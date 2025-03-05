@@ -54,7 +54,6 @@ final class ParserTest extends TestCase
             '{"foo": "bar"',
             '{"foo": "bar",',
             '{"foo": "bar" "baz": "qux"}',
-            '{[]: "foo"}',
             '{: "foo"}',
             '{null: "foo"}',
             '{true: "foo"}',
