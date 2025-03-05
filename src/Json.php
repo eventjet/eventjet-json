@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace Eventjet\Json;
 
 use BackedEnum;
+use Eventjet\Json\Parser\Parser;
+use Eventjet\Json\Parser\SyntaxError;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionObject;
 use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionUnionType;
+use stdClass;
 
 use function array_is_list;
-use function array_key_exists;
 use function array_map;
 use function assert;
 use function class_exists;
@@ -21,6 +23,7 @@ use function enum_exists;
 use function error_get_last;
 use function explode;
 use function file;
+use function get_debug_type;
 use function get_object_vars;
 use function gettype;
 use function implode;
@@ -31,7 +34,6 @@ use function is_int;
 use function is_object;
 use function is_string;
 use function is_subclass_of;
-use function json_decode;
 use function json_encode;
 use function preg_match;
 use function property_exists;
@@ -123,12 +125,16 @@ final class Json
      */
     private static function decodeClass(string $json, object|string $value): object
     {
-        $data = json_decode($json, true);
+        try {
+            $data = Parser::parse($json);
+        } catch (SyntaxError $syntaxError) {
+            throw JsonError::decodeFailed(sprintf('JSON decoding failed: %s', $syntaxError->getMessage()), $syntaxError);
+        }
         if ($data === null) {
             throw JsonError::decodeFailed(error_get_last()['message'] ?? null);
         }
-        if (!is_array($data)) {
-            throw JsonError::decodeFailed(sprintf("Expected JSON object, got %s", gettype($data)));
+        if (!$data instanceof stdClass) {
+            throw JsonError::decodeFailed(sprintf('Expected JSON object, got %s', get_debug_type($data)));
         }
         /** @psalm-suppress DocblockTypeContradiction */
         if (!is_string($value)) {
@@ -145,12 +151,14 @@ final class Json
         return $object;
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
-    private static function populateObject(object $object, array $data): void
+    private static function populateObject(object $object, stdClass $data): void
     {
-        /** @var mixed $value */
+        /**
+         * @var array-key $jsonKey
+         * @var mixed $value
+         * @psalm-suppress RawObjectIteration
+         * @phpstan-ignore-next-line foreach.nonIterable stdClass _is_ iterable
+         */
         foreach ($data as $jsonKey => $value) {
             if (is_int($jsonKey)) {
                 throw JsonError::decodeFailed(sprintf('Expected JSON object, got array at key "%s"', $jsonKey));
@@ -179,12 +187,17 @@ final class Json
     private static function populateProperty(object $object, string $jsonKey, mixed $value): void
     {
         $property = self::getPropertyNameForJsonKey($object, $jsonKey);
+        if ($value instanceof stdClass) {
+            $newValue = self::getPropertyObject($object, $jsonKey);
+            self::populateObject($newValue, $value);
+            $value = $newValue;
+        }
         if (is_array($value)) {
             $itemType = self::getArrayPropertyItemType($object, $property);
             if ($itemType !== null && class_exists($itemType)) {
                 /** @var mixed $item */
                 foreach ($value as &$item) {
-                    if (!is_array($item)) {
+                    if (!$item instanceof stdClass) {
                         throw JsonError::decodeFailed(
                             sprintf(
                                 'Expected JSON objects for items in property "%s", got %s',
@@ -198,11 +211,6 @@ final class Json
                     self::populateObject($newItem, $item);
                     $item = $newItem;
                 }
-            }
-            if (!array_is_list($value)) {
-                $newValue = self::getPropertyObject($object, $jsonKey);
-                self::populateObject($newValue, $value);
-                $value = $newValue;
             }
         }
         $object->$property = $value; // @phpstan-ignore-line
@@ -260,9 +268,8 @@ final class Json
 
     /**
      * @param class-string $class
-     * @param array<array-key, mixed> $data
      */
-    private static function instantiateClass(string $class, array $data): object
+    private static function instantiateClass(string $class, stdClass $data): object
     {
         $classReflection = new ReflectionClass($class);
         $constructor = $classReflection->getConstructor();
@@ -271,7 +278,7 @@ final class Json
             $parameters = $constructor->getParameters();
             foreach ($parameters as $parameter) {
                 $name = $parameter->getName();
-                if (!array_key_exists($name, $data)) {
+                if (!property_exists($data, $name)) {
                     if ($parameter->isOptional()) {
                         /** @psalm-suppress MixedAssignment */
                         $arguments[] = $parameter->getDefaultValue();
@@ -280,14 +287,12 @@ final class Json
                     throw JsonError::decodeFailed(sprintf('Missing required constructor argument "%s"', $name));
                 }
                 /** @psalm-suppress MixedAssignment */
-                $arguments[] = self::createConstructorArgument($parameter, $data[$name]);
-                unset($data[$name]);
+                $arguments[] = self::createConstructorArgument($parameter, $data->$name);
+                unset($data->$name);
             }
         }
         $instance = $classReflection->newInstanceArgs($arguments);
-        if ($data !== []) {
-            self::populateObject($instance, $data);
-        }
+        self::populateObject($instance, $data);
         return $instance;
     }
 
@@ -345,7 +350,7 @@ final class Json
                 ),
             );
         }
-        if (!is_array($value)) {
+        if (!$value instanceof stdClass) {
             throw JsonError::decodeFailed(
                 sprintf(
                     'Expected array<string, mixed> for parameter "%s", got %s',
@@ -485,13 +490,13 @@ final class Json
             if ($result !== 1) {
                 continue;
             }
-            $useStatements[$matches['alias'] ?? $matches['class']] = ($matches['ns'] ?? '') . $matches['class'];
+            $useStatements[$matches['alias'] ?? $matches['class']] = $matches['ns'] . $matches['class'];
         }
         return $useStatements;
     }
 
     /**
-     * @return list<mixed> | array<string, mixed>
+     * @return list<mixed> | array<array-key, mixed>
      */
     private static function createConstructorArgumentForArrayType(
         ReflectionParameter $parameter,
@@ -500,14 +505,15 @@ final class Json
         if ($value === null && $parameter->allowsNull()) {
             return null;
         }
-        if (!is_array($value)) {
-            throw JsonError::decodeFailed(
-                sprintf('Expected array for parameter "%s", got %s', $parameter->getName(), gettype($value)),
-            );
+        if (is_array($value) && array_is_list($value)) {
+            return self::createConstructorArgumentForListType($parameter, $value);
         }
-        return array_is_list($value)
-            ? self::createConstructorArgumentForListType($parameter, $value)
-            : self::createConstructorArgumentForMapType($parameter, $value);
+        if ($value instanceof stdClass) {
+            return self::createConstructorArgumentForMapType($parameter, $value);
+        }
+        throw JsonError::decodeFailed(
+            sprintf('Expected array for parameter "%s", got %s', $parameter->getName(), gettype($value)),
+        );
     }
 
     /**
@@ -541,7 +547,7 @@ final class Json
             $items = [];
             /** @var mixed $item */
             foreach ($value as $item) {
-                if (!is_array($item)) {
+                if (!$item instanceof stdClass) {
                     throw JsonError::decodeFailed(
                         sprintf(
                             'Expected JSON objects for items in property "%s", got %s',
@@ -557,10 +563,9 @@ final class Json
     }
 
     /**
-     * @param array<array-key, mixed> $value
      * @return array<array-key, mixed>
      */
-    private static function createConstructorArgumentForMapType(ReflectionParameter $parameter, array $value): array
+    private static function createConstructorArgumentForMapType(ReflectionParameter $parameter, stdClass $value): array
     {
         $paramName = $parameter->getName();
         $valueType = self::getMapValueType($parameter);
@@ -577,17 +582,22 @@ final class Json
             );
         }
         if (!class_exists($valueType)) {
-            return $value;
+            return (array)$value;
         }
         $result = [];
+        /**
+         * @var array-key $key
+         * @var mixed $value
+         * @phpstan-ignore-next-line foreach.nonIterable stdClass _is_ iterable
+         */
         foreach ($value as $key => $item) {
-            if (!is_array($item)) {
+            if (!$item instanceof stdClass) {
                 throw JsonError::decodeFailed(
                     sprintf(
                         'Expected an array for the value of key "%s" in parameter "%s", got %s',
                         $key,
                         $paramName,
-                        gettype($item),
+                        get_debug_type($item),
                     ),
                 );
             }
