@@ -128,7 +128,7 @@ final class Json
             throw JsonError::decodeFailed(error_get_last()['message'] ?? null);
         }
         if (!is_array($data)) {
-            throw JsonError::decodeFailed(sprintf("Expected JSON object, got %s", gettype($data)));
+            throw JsonError::decodeFailed(sprintf('Expected JSON object, got %s', gettype($data)));
         }
         /** @psalm-suppress DocblockTypeContradiction */
         if (!is_string($value)) {
@@ -485,13 +485,13 @@ final class Json
             if ($result !== 1) {
                 continue;
             }
-            $useStatements[$matches['alias'] ?? $matches['class']] = ($matches['ns'] ?? '') . $matches['class'];
+            $useStatements[$matches['alias'] ?? $matches['class']] = $matches['ns'] . $matches['class'];
         }
         return $useStatements;
     }
 
     /**
-     * @return list<mixed> | array<string, mixed>
+     * @return list<mixed> | array<array-key, mixed>
      */
     private static function createConstructorArgumentForArrayType(
         ReflectionParameter $parameter,

@@ -70,7 +70,7 @@ abstract class JsonType implements Stringable
 
     protected static function joinPath(string $prefix, string|int $key): string
     {
-        return $prefix === '' ? (string)$key : sprintf("%s.%d", $prefix, $key);
+        return $prefix === '' ? (string)$key : sprintf('%s.%d', $prefix, $key);
     }
 
     /**
