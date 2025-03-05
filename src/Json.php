@@ -485,13 +485,13 @@ final class Json
             if ($result !== 1) {
                 continue;
             }
-            $useStatements[$matches['alias'] ?? $matches['class']] = ($matches['ns'] ?? '') . $matches['class'];
+            $useStatements[$matches['alias'] ?? $matches['class']] = $matches['ns'] . $matches['class'];
         }
         return $useStatements;
     }
 
     /**
-     * @return list<mixed> | array<string, mixed>
+     * @return list<mixed> | array<array-key, mixed>
      */
     private static function createConstructorArgumentForArrayType(
         ReflectionParameter $parameter,
