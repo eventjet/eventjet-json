@@ -31,9 +31,7 @@ final class ValidationIssueTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider equalsCases
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('equalsCases')]
     public function testEquals(ValidationIssue $a, ValidationIssue $b, bool $expected): void
     {
         if ($expected) {

@@ -34,10 +34,10 @@ final class Object_ extends JsonType
     public function validateValue(mixed $value, string $path = ''): ValidationResult
     {
         if (!is_array($value)) {
-            return ValidationResult::error(sprintf('Expected object, got %s.', json_encode($value)), $path);
+            return ValidationResult::error(sprintf('Expected object, got %s.', (string)json_encode($value)), $path);
         }
         if ($value !== [] && array_is_list($value)) {
-            return ValidationResult::error(sprintf('Expected object, got %s.', json_encode($value)), $path);
+            return ValidationResult::error(sprintf('Expected object, got %s.', (string)json_encode($value)), $path);
         }
         $results = [];
         foreach ($this->members as $name => $member) {

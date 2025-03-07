@@ -233,8 +233,8 @@ final class TypesTest extends TestCase
     /**
      * @param JsonType | callable(): JsonType $type
      * @param list<ValidationIssue> $expectedIssues
-     * @dataProvider validateCases
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('validateCases')]
     public function testValidate(JsonType|callable $type, string $json, array $expectedIssues = []): void
     {
         if (!$type instanceof JsonType) {
@@ -258,17 +258,13 @@ final class TypesTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider toStringCases
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('toStringCases')]
     public function testToString(JsonType $type, string $expected): void
     {
         self::assertSame($expected, (string)$type);
     }
 
-    /**
-     * @dataProvider equalsCases
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('equalsCases')]
     public function testEquals(JsonType $a, JsonType $b, bool $expected): void
     {
         $aString = (string)$a->canonicalize();

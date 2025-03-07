@@ -519,9 +519,7 @@ final class JsonTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider encodeCases
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('encodeCases')]
     public function testEncode(mixed $value, string $expected): void
     {
         $encoded = Json::encode($value);
@@ -532,8 +530,8 @@ final class JsonTest extends TestCase
     /**
      * @param object | class-string $object
      * @param callable(object): void $test
-     * @dataProvider decodeCases
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('decodeCases')]
     public function testDecode(string $json, object|string $object, callable $test): void
     {
         $object = Json::decode($json, $object);
@@ -541,9 +539,7 @@ final class JsonTest extends TestCase
         $test($object);
     }
 
-    /**
-     * @dataProvider roundtripsCases
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('roundtripsCases')]
     public function testRoundtrips(object $value): void
     {
         $encoded1 = Json::encode($value);
@@ -553,9 +549,7 @@ final class JsonTest extends TestCase
         self::assertJsonStringEqualsJsonString($encoded1, $encoded2);
     }
 
-    /**
-     * @dataProvider failingEncodeCases
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('failingEncodeCases')]
     public function testFailingEncode(mixed $value): void
     {
         $this->expectException(JsonError::class);
@@ -566,8 +560,8 @@ final class JsonTest extends TestCase
 
     /**
      * @param object | class-string $object
-     * @dataProvider failingDecodeCases
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('failingDecodeCases')]
     public function testFailingDecode(string $json, object|string $object, string|null $expectedMessage = null): void
     {
         $this->expectException(JsonError::class);

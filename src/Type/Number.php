@@ -28,6 +28,6 @@ final class Number extends JsonType
         if (is_int($value) || is_float($value)) {
             return ValidationResult::valid();
         }
-        return ValidationResult::error(sprintf('Expected number, got %s.', json_encode($value)), $path);
+        return ValidationResult::error(sprintf('Expected number, got %s.', (string)json_encode($value)), $path);
     }
 }

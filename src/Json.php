@@ -62,12 +62,10 @@ final class Json
     }
 
     /**
-     * @psalm-suppress MixedInferredReturnType
      * @return string|int|float|bool|array<array-key, mixed>|null
      */
     private static function preparePropertyValueForEncoding(mixed $value): string|int|float|bool|array|null
     {
-        /** @psalm-suppress MixedReturnStatement */
         return match (true) {
             is_string($value), is_int($value), is_float($value), is_bool($value), $value === null => $value,
             is_array($value) => self::encodeArray($value),
@@ -119,7 +117,6 @@ final class Json
      * @template T of object
      * @param T | class-string<T> $value
      * @return T
-     * @psalm-suppress InvalidReturnType
      */
     private static function decodeClass(string $json, object|string $value): object
     {
@@ -128,7 +125,7 @@ final class Json
             throw JsonError::decodeFailed(error_get_last()['message'] ?? null);
         }
         if (!is_array($data)) {
-            throw JsonError::decodeFailed(sprintf("Expected JSON object, got %s", gettype($data)));
+            throw JsonError::decodeFailed(sprintf('Expected JSON object, got %s', gettype($data)));
         }
         /** @psalm-suppress DocblockTypeContradiction */
         if (!is_string($value)) {
@@ -615,16 +612,8 @@ final class Json
                 ),
             );
         }
-        /**
-         * @psalm-suppress MixedAssignment
-         * @psalm-suppress MixedMethodCall
-         */
         $case = $typeName::tryFrom($value);
         if ($case === null) {
-            /**
-             * @psalm-suppress MixedArgument
-             * @psalm-suppress MixedMethodCall
-             */
             throw JsonError::decodeFailed(
                 sprintf(
                     '"%s" is not a valid value for enum %s. Valid values are: %s',

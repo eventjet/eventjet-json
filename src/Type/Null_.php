@@ -26,6 +26,6 @@ final class Null_ extends JsonType
         if ($value === null) {
             return ValidationResult::valid();
         }
-        return ValidationResult::error(sprintf('Expected null, got %s.', json_encode($value)), $path);
+        return ValidationResult::error(sprintf('Expected null, got %s.', (string)json_encode($value)), $path);
     }
 }

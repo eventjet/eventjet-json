@@ -56,7 +56,7 @@ final class Union extends JsonType
         }
         $expected = self::disjunction($this->canonicalize()->types);
         return ValidationResult::error(
-            sprintf('Expected %s, got %s.', $expected, json_encode($value)),
+            sprintf('Expected %s, got %s.', $expected, (string)json_encode($value)),
             $path,
         );
     }
