@@ -35,7 +35,7 @@ jobs:
       - name: Composer Require Checker
         run: composer check-deps
 
-  phpcs:
+  code-style:
     strategy:
       matrix:
         php: ["8.3", "8.4"]
@@ -63,8 +63,8 @@ jobs:
       - name: Install dependencies
         run: composer update --no-interaction --no-progress --no-suggest
 
-      - name: PHPCS
-        run: composer cs-check
+      - name: PHP Code Style
+        run: PHP_CS_FIXER_IGNORE_ENV=1 composer cs-check
 
   phpstan:
     strategy:
@@ -129,6 +129,7 @@ jobs:
         run: composer psalm
 
   infection:
+
     strategy:
       matrix:
         php: ["8.3", "8.4"]
