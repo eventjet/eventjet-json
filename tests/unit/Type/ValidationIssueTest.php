@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Test\Unit\Json\Type;
 
 use Eventjet\Json\Type\ValidationIssue;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 use function sprintf;
@@ -13,6 +14,7 @@ final class ValidationIssueTest extends TestCase
 {
     /**
      * @return iterable<string, array{ValidationIssue, ValidationIssue, bool}>
+     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function equalsCases(): iterable
     {
@@ -31,7 +33,7 @@ final class ValidationIssueTest extends TestCase
         }
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('equalsCases')]
+    #[DataProvider('equalsCases')]
     public function testEquals(ValidationIssue $a, ValidationIssue $b, bool $expected): void
     {
         if ($expected) {

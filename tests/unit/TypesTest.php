@@ -8,6 +8,7 @@ use Eventjet\Json\Type\JsonType;
 use Eventjet\Json\Type\Member;
 use Eventjet\Json\Type\ValidationIssue;
 use Eventjet\Json\Type\ValidationResult;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -18,6 +19,7 @@ final class TypesTest extends TestCase
 {
     /**
      * @return iterable<string, array{JsonType | callable(): JsonType, string, list<ValidationIssue>}>
+     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function validateCases(): iterable
     {
@@ -114,6 +116,7 @@ final class TypesTest extends TestCase
 
     /**
      * @return iterable<string, array{JsonType, string}>
+     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function toStringCases(): iterable
     {
@@ -148,6 +151,7 @@ final class TypesTest extends TestCase
 
     /**
      * @return iterable<string, array{JsonType, JsonType, bool}>
+     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function equalsCases(): iterable
     {
@@ -234,7 +238,7 @@ final class TypesTest extends TestCase
      * @param JsonType | callable(): JsonType $type
      * @param list<ValidationIssue> $expectedIssues
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('validateCases')]
+    #[DataProvider('validateCases')]
     public function testValidate(JsonType|callable $type, string $json, array $expectedIssues = []): void
     {
         if (!$type instanceof JsonType) {
@@ -258,13 +262,13 @@ final class TypesTest extends TestCase
         }
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('toStringCases')]
+    #[DataProvider('toStringCases')]
     public function testToString(JsonType $type, string $expected): void
     {
         self::assertSame($expected, (string)$type);
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('equalsCases')]
+    #[DataProvider('equalsCases')]
     public function testEquals(JsonType $a, JsonType $b, bool $expected): void
     {
         $aString = (string)$a->canonicalize();

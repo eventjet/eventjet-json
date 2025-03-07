@@ -39,6 +39,7 @@ use Eventjet\Test\Unit\Json\Fixtures\Worldline\AccountOnFileAttributeStatus;
 use Eventjet\Test\Unit\Json\Fixtures\Worldline\AccountOnFileDisplayHints;
 use Eventjet\Test\Unit\Json\Fixtures\Worldline\LabelTemplateElement;
 use Eventjet\Test\Unit\Json\Fixtures\WrongArrayDocblockType;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ThisClassDoesNotExist;
 
@@ -51,6 +52,7 @@ final class JsonTest extends TestCase
 {
     /**
      * @return iterable<string, array{mixed, string}>
+     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function encodeCases(): iterable
     {
@@ -105,6 +107,7 @@ final class JsonTest extends TestCase
 
     /**
      * @return iterable<string, array{string, object | class-string, callable(object): void}>
+     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function decodeCases(): iterable
     {
@@ -305,6 +308,7 @@ final class JsonTest extends TestCase
 
     /**
      * @return iterable<string, array{object}>
+     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function roundtripsCases(): iterable
     {
@@ -363,6 +367,7 @@ final class JsonTest extends TestCase
 
     /**
      * @return iterable<string, array{mixed}>
+     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function failingEncodeCases(): iterable
     {
@@ -372,6 +377,7 @@ final class JsonTest extends TestCase
 
     /**
      * @return iterable<string, array{0: string, 1: object | class-string, 2?: string}>
+     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function failingDecodeCases(): iterable
     {
@@ -519,7 +525,7 @@ final class JsonTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('encodeCases')]
+    #[DataProvider('encodeCases')]
     public function testEncode(mixed $value, string $expected): void
     {
         $encoded = Json::encode($value);
@@ -531,7 +537,7 @@ final class JsonTest extends TestCase
      * @param object | class-string $object
      * @param callable(object): void $test
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('decodeCases')]
+    #[DataProvider('decodeCases')]
     public function testDecode(string $json, object|string $object, callable $test): void
     {
         $object = Json::decode($json, $object);
@@ -539,7 +545,7 @@ final class JsonTest extends TestCase
         $test($object);
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('roundtripsCases')]
+    #[DataProvider('roundtripsCases')]
     public function testRoundtrips(object $value): void
     {
         $encoded1 = Json::encode($value);
@@ -549,7 +555,7 @@ final class JsonTest extends TestCase
         self::assertJsonStringEqualsJsonString($encoded1, $encoded2);
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('failingEncodeCases')]
+    #[DataProvider('failingEncodeCases')]
     public function testFailingEncode(mixed $value): void
     {
         $this->expectException(JsonError::class);
@@ -561,7 +567,7 @@ final class JsonTest extends TestCase
     /**
      * @param object | class-string $object
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('failingDecodeCases')]
+    #[DataProvider('failingDecodeCases')]
     public function testFailingDecode(string $json, object|string $object, string|null $expectedMessage = null): void
     {
         $this->expectException(JsonError::class);
