@@ -19,7 +19,6 @@ final class TypesTest extends TestCase
 {
     /**
      * @return iterable<string, array{JsonType | callable(): JsonType, string, list<ValidationIssue>}>
-     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function validateCases(): iterable
     {
@@ -116,7 +115,6 @@ final class TypesTest extends TestCase
 
     /**
      * @return iterable<string, array{JsonType, string}>
-     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function toStringCases(): iterable
     {
@@ -151,7 +149,6 @@ final class TypesTest extends TestCase
 
     /**
      * @return iterable<string, array{JsonType, JsonType, bool}>
-     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function equalsCases(): iterable
     {

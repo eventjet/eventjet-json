@@ -52,7 +52,6 @@ final class JsonTest extends TestCase
 {
     /**
      * @return iterable<string, array{mixed, string}>
-     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function encodeCases(): iterable
     {
@@ -107,7 +106,6 @@ final class JsonTest extends TestCase
 
     /**
      * @return iterable<string, array{string, object | class-string, callable(object): void}>
-     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function decodeCases(): iterable
     {
@@ -308,7 +306,6 @@ final class JsonTest extends TestCase
 
     /**
      * @return iterable<string, array{object}>
-     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function roundtripsCases(): iterable
     {
@@ -367,7 +364,6 @@ final class JsonTest extends TestCase
 
     /**
      * @return iterable<string, array{mixed}>
-     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function failingEncodeCases(): iterable
     {
@@ -377,7 +373,6 @@ final class JsonTest extends TestCase
 
     /**
      * @return iterable<string, array{0: string, 1: object | class-string, 2?: string}>
-     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function failingDecodeCases(): iterable
     {

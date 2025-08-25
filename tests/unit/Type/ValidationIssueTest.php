@@ -14,7 +14,6 @@ final class ValidationIssueTest extends TestCase
 {
     /**
      * @return iterable<string, array{ValidationIssue, ValidationIssue, bool}>
-     * @psalm-suppress PossiblyUnusedMethod Psalm doesn't yet recognize dataProvider attributes
      */
     public static function equalsCases(): iterable
     {
