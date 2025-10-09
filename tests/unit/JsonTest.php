@@ -7,12 +7,16 @@ namespace Eventjet\Test\Unit\Json;
 use Eventjet\Json\Json;
 use Eventjet\Json\JsonError;
 use Eventjet\Test\Unit\Json\Fixtures\AllSimpleTypes;
+use Eventjet\Test\Unit\Json\Fixtures\IntBackedEnum;
 use Eventjet\Test\Unit\Json\Fixtures\MultipleOptionalFields;
+use Eventjet\Test\Unit\Json\Fixtures\NonBackedEnum;
+use Eventjet\Test\Unit\Json\Fixtures\OptionalEnums;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalIntegerWithDefaultInt;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalMixed;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalStringDefaultNull;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredMixed;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredString;
+use Eventjet\Test\Unit\Json\Fixtures\StringBackedEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -29,6 +33,7 @@ final class JsonTest extends TestCase
     public static function provideRoundtripCases(): iterable
     {
         yield AllSimpleTypes::class => [new AllSimpleTypes('John', 42, 3.14, true, true, false, null)];
+        yield IntBackedEnum::class => [new OptionalEnums(int: IntBackedEnum::Bar)];
         yield MultipleOptionalFields::class . ' with only second field' => [new MultipleOptionalFields(age: 42)];
         yield OptionalIntegerWithDefaultInt::class . ' with int' => [new OptionalIntegerWithDefaultInt(42)];
         yield OptionalIntegerWithDefaultInt::class . ' with default' => [new OptionalIntegerWithDefaultInt()];
@@ -45,6 +50,7 @@ final class JsonTest extends TestCase
         yield RequiredMixed::class . ' with string array' => [new RequiredMixed(['John', 'Jane'])];
         yield RequiredMixed::class . ' with int array' => [new RequiredMixed([1, 2, 3])];
         yield RequiredString::class => [new RequiredString('John')];
+        yield StringBackedEnum::class => [new OptionalEnums(str: StringBackedEnum::Bar)];
     }
 
     /**
@@ -109,6 +115,36 @@ final class JsonTest extends TestCase
             '{"name": {"foo": "bar"}}',
             OptionalStringDefaultNull::class,
             'Can\'t populate property "name" of type string with JSON object.',
+        ];
+        yield 'Non-existent string-backed enum case' => [
+            '{"str": "baz"}',
+            OptionalEnums::class,
+            sprintf('"baz" is not a valid a value of any case of enum %s.', StringBackedEnum::class),
+        ];
+        yield 'Non-existent int-backed enum case' => [
+            '{"int": 420}',
+            OptionalEnums::class,
+            sprintf('420 is not a valid a value of any case of enum %s.', IntBackedEnum::class),
+        ];
+        yield 'Value for non-backed enum' => [
+            '{"nb": "Foo"}',
+            OptionalEnums::class,
+            sprintf('All enums must be backed, but %s is not a backed enum.', NonBackedEnum::class),
+        ];
+        yield 'Int for string-backed enum' => [
+            '{"str": 123}',
+            OptionalEnums::class,
+            sprintf('123 is not a valid a value of any case of enum %s.', StringBackedEnum::class),
+        ];
+        yield 'String for int-backed enum' => [
+            '{"int": "foo"}',
+            OptionalEnums::class,
+            sprintf('"foo" is not a valid a value of any case of enum %s.', IntBackedEnum::class),
+        ];
+        yield 'true for string-backed enum' => [
+            '{"str": true}',
+            OptionalEnums::class,
+            sprintf('true is not a valid a value of any case of enum %s.', StringBackedEnum::class),
         ];
     }
 

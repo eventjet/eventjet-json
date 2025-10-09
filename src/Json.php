@@ -4,14 +4,22 @@ declare(strict_types=1);
 
 namespace Eventjet\Json;
 
+use BackedEnum;
 use ReflectionClass;
+use ReflectionEnum;
 use ReflectionNamedType;
 use ReflectionParameter;
 use stdClass;
 use Throwable;
+use UnitEnum;
 
 use function assert;
+use function class_exists;
+use function is_a;
+use function is_int;
+use function is_string;
 use function json_decode;
+use function json_encode;
 use function preg_match;
 use function property_exists;
 use function sprintf;
@@ -85,10 +93,11 @@ final class Json
     {
         /** @var mixed $value */
         $value = $data->{$parameter->name};
-        if ($value instanceof stdClass) {
-            $parameterType = $parameter->getType();
-            if ($parameterType instanceof ReflectionNamedType) {
-                if ($parameterType->getName() === 'mixed') {
+        $parameterType = $parameter->getType();
+        if ($parameterType instanceof ReflectionNamedType) {
+            $typeName = $parameterType->getName();
+            if ($value instanceof stdClass) {
+                if ($typeName === 'mixed') {
                     $class = $parameter->getDeclaringClass();
                     assert($class !== null);
                     throw JsonError::decodeFailed(sprintf(
@@ -100,8 +109,50 @@ final class Json
                 throw JsonError::decodeFailed(sprintf(
                     'Can\'t populate property "%s" of type %s with JSON object.',
                     $parameter->name,
-                    $parameterType->getName(),
+                    $typeName,
                 ));
+            }
+            if (class_exists($typeName)) {
+                if (is_a($typeName, UnitEnum::class, true)) {
+                    if ($parameter->isOptional() && $parameter->getDefaultValue() === null && $value === null) {
+                        return null;
+                    }
+                    if (!is_a($typeName, BackedEnum::class, true)) {
+                        throw JsonError::decodeFailed(sprintf(
+                            'All enums must be backed, but %s is not a backed enum.',
+                            $typeName,
+                        ));
+                    }
+                    if (!is_int($value) && !is_string($value)) {
+                        throw JsonError::decodeFailed(sprintf(
+                            '%s is not a valid a value of any case of enum %s.',
+                            json_encode($value, JSON_THROW_ON_ERROR),
+                            $typeName,
+                        ));
+                    }
+                    $backingType = (new ReflectionEnum($typeName))->getBackingType();
+                    assert($backingType instanceof ReflectionNamedType);
+                    $backingTypeName = $backingType->getName();
+                    if (
+                        ($backingTypeName === 'int' && !is_int($value)) ||
+                        ($backingTypeName === 'string' && !is_string($value))
+                    ) {
+                        throw JsonError::decodeFailed(sprintf(
+                            '%s is not a valid a value of any case of enum %s.',
+                            json_encode($value, JSON_THROW_ON_ERROR),
+                            $typeName,
+                        ));
+                    }
+                    $enum = $typeName::tryFrom($value);
+                    if ($enum === null) {
+                        throw JsonError::decodeFailed(sprintf(
+                            '%s is not a valid a value of any case of enum %s.',
+                            json_encode($value, JSON_THROW_ON_ERROR),
+                            $typeName,
+                        ));
+                    }
+                    return $enum;
+                }
             }
         }
         return $value;
