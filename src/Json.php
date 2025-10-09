@@ -96,14 +96,25 @@ final class Json
         $parameterType = $parameter->getType();
         if ($parameterType instanceof ReflectionNamedType) {
             $typeName = $parameterType->getName();
+            $class = $parameter->getDeclaringClass();
+            assert($class !== null);
+            $className = $class->getName();
+            if ($parameter->isOptional() && $parameter->getDefaultValue() === null && $value === null) {
+                return null;
+            }
+            if ($typeName === 'object') {
+                throw JsonError::decodeFailed(sprintf(
+                    '"object" is not allowed as a type for property "%s" in class %s, use a specific class name instead.',
+                    $parameter->name,
+                    $className,
+                ));
+            }
             if ($value instanceof stdClass) {
                 if ($typeName === 'mixed') {
-                    $class = $parameter->getDeclaringClass();
-                    assert($class !== null);
                     throw JsonError::decodeFailed(sprintf(
                         'To populate a property with an object, it must have a specific class type instead of mixed (property "%s" in class %s).',
                         $parameter->name,
-                        $class->getName(),
+                        $className,
                     ));
                 }
                 throw JsonError::decodeFailed(sprintf(
@@ -114,9 +125,6 @@ final class Json
             }
             if (class_exists($typeName)) {
                 if (is_a($typeName, UnitEnum::class, true)) {
-                    if ($parameter->isOptional() && $parameter->getDefaultValue() === null && $value === null) {
-                        return null;
-                    }
                     if (!is_a($typeName, BackedEnum::class, true)) {
                         throw JsonError::decodeFailed(sprintf(
                             'All enums must be backed, but %s is not a backed enum.',

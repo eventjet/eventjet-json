@@ -13,8 +13,10 @@ use Eventjet\Test\Unit\Json\Fixtures\NonBackedEnum;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalEnums;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalIntegerWithDefaultInt;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalMixed;
+use Eventjet\Test\Unit\Json\Fixtures\OptionalObject;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalStringDefaultNull;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredMixed;
+use Eventjet\Test\Unit\Json\Fixtures\RequiredObject;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredString;
 use Eventjet\Test\Unit\Json\Fixtures\StringBackedEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -38,6 +40,7 @@ final class JsonTest extends TestCase
         yield OptionalIntegerWithDefaultInt::class . ' with int' => [new OptionalIntegerWithDefaultInt(42)];
         yield OptionalIntegerWithDefaultInt::class . ' with default' => [new OptionalIntegerWithDefaultInt()];
         yield OptionalMixed::class . ' with string' => [new OptionalMixed('John')];
+        yield OptionalObject::class . ' with default' => [new OptionalObject()];
         yield OptionalStringDefaultNull::class . ' with string' => [new OptionalStringDefaultNull('John')];
         yield OptionalStringDefaultNull::class . ' with null' => [new OptionalStringDefaultNull(null)];
         yield OptionalStringDefaultNull::class . ' with default' => [new OptionalStringDefaultNull()];
@@ -145,6 +148,38 @@ final class JsonTest extends TestCase
             '{"str": true}',
             OptionalEnums::class,
             sprintf('true is not a valid a value of any case of enum %s.', StringBackedEnum::class),
+        ];
+        yield 'Required PHP object type with JSON object' => [
+            '{"obj": {"foo": "bar"}}',
+            RequiredObject::class,
+            sprintf(
+                '"object" is not allowed as a type for property "obj" in class %s, use a specific class name instead.',
+                RequiredObject::class,
+            ),
+        ];
+        yield 'Optional PHP object type with JSON object' => [
+            '{"obj": {"foo": "bar"}}',
+            OptionalObject::class,
+            sprintf(
+                '"object" is not allowed as a type for property "obj" in class %s, use a specific class name instead.',
+                OptionalObject::class,
+            ),
+        ];
+        yield 'Required PHP object type with string' => [
+            '{"obj": "bar"}',
+            RequiredObject::class,
+            sprintf(
+                '"object" is not allowed as a type for property "obj" in class %s, use a specific class name instead.',
+                RequiredObject::class,
+            ),
+        ];
+        yield 'Optional PHP object type with string' => [
+            '{"obj": "bar"}',
+            OptionalObject::class,
+            sprintf(
+                '"object" is not allowed as a type for property "obj" in class %s, use a specific class name instead.',
+                OptionalObject::class,
+            ),
         ];
     }
 
