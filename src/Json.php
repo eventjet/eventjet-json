@@ -7,14 +7,21 @@ namespace Eventjet\Json;
 use BackedEnum;
 use ReflectionClass;
 use ReflectionEnum;
+use ReflectionIntersectionType;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionType;
+use ReflectionUnionType;
 use stdClass;
 use Throwable;
 use UnitEnum;
 
+use function array_filter;
+use function array_map;
 use function assert;
 use function class_exists;
+use function count;
+use function implode;
 use function is_a;
 use function is_int;
 use function is_string;
@@ -67,7 +74,7 @@ final class Json
                 $matches['name'],
                 $matches['expected'],
                 $matches['got'],
-            ));
+            ), $e);
         }
     }
 
@@ -104,10 +111,10 @@ final class Json
         /** @var mixed $value */
         $value = $data->{$parameter->name};
         $parameterType = $parameter->getType();
+        $class = $parameter->getDeclaringClass();
+        assert($class !== null);
         if ($parameterType instanceof ReflectionNamedType) {
             $typeName = $parameterType->getName();
-            $class = $parameter->getDeclaringClass();
-            assert($class !== null);
             $className = $class->getName();
             if ($parameter->isOptional() && $parameter->getDefaultValue() === null && $value === null) {
                 return null;
@@ -176,6 +183,66 @@ final class Json
                 }
             }
         }
+        if ($parameterType instanceof ReflectionUnionType) {
+            if ($value instanceof stdClass) {
+                $classTypes = self::classTypes($parameterType->getTypes());
+                $numberOfClassTypes = count($classTypes);
+                if ($numberOfClassTypes === 0) {
+                    throw JsonError::decodeFailed(sprintf(
+                        'Can\'t populate property "%s" with a JSON object, no class types found in union %s for class %s.',
+                        $parameter->name,
+                        self::dumpType($parameterType),
+                        $class->getName(),
+                    ));
+                }
+                if ($numberOfClassTypes === 1) {
+                    $onlyClassName = $classTypes[0]->getName();
+                    assert(class_exists($onlyClassName), 'Should have been checked by classTypes()');
+                    return self::createObject($value, $onlyClassName);
+                }
+                throw JsonError::decodeFailed(sprintf(
+                    'Unions of multiple object types (%s) are not supported yet for property "%s" in class %s.',
+                    implode(', ', array_map(static fn(ReflectionNamedType $t) => $t->getName(), $classTypes)),
+                    $parameter->name,
+                    $class->getName(),
+                ));
+            }
+        }
         return $value;
+    }
+
+    /**
+     * @template Key of array-key
+     * @param array<Key, ReflectionType> $types
+     * @psalm-suppress MoreSpecificReturnType False positive
+     * @return array<Key, ReflectionNamedType>
+     */
+    private static function classTypes(array $types): array
+    {
+        /** @psalm-suppress LessSpecificReturnStatement False positive */
+        return array_filter($types, self::isClassType(...));
+    }
+
+    /**
+     * @psalm-assert-if-true ReflectionNamedType $type
+     */
+    private static function isClassType(ReflectionType $type): bool
+    {
+        assert($type instanceof ReflectionNamedType, 'Intersection types are not supported.');
+        return class_exists($type->getName());
+    }
+
+    private static function dumpType(ReflectionType $type): string
+    {
+        if ($type instanceof ReflectionNamedType) {
+            return $type->getName();
+        }
+        if ($type instanceof ReflectionUnionType) {
+            return implode('|', array_map(self::dumpType(...), $type->getTypes()));
+        }
+        if ($type instanceof ReflectionIntersectionType) {
+            return implode('&', array_map(self::dumpType(...), $type->getTypes()));
+        }
+        return 'unknown';
     }
 }

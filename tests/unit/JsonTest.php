@@ -10,19 +10,24 @@ use Eventjet\Test\Unit\Json\Fixtures\AllSimpleTypes;
 use Eventjet\Test\Unit\Json\Fixtures\IntBackedEnum;
 use Eventjet\Test\Unit\Json\Fixtures\MultipleOptionalFields;
 use Eventjet\Test\Unit\Json\Fixtures\NonBackedEnum;
+use Eventjet\Test\Unit\Json\Fixtures\OnlyClassInUnionIsUnknown;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalEnums;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalIntegerWithDefaultInt;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalMixed;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalObject;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalStringDefaultNull;
+use Eventjet\Test\Unit\Json\Fixtures\OptionalUnionOfClasses;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredMixed;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredNestedObject;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredObject;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredString;
 use Eventjet\Test\Unit\Json\Fixtures\StringBackedEnum;
+use Eventjet\Test\Unit\Json\Fixtures\UnionOfEverything;
+use Eventjet\Test\Unit\Json\Fixtures\UnionWithoutClasses;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+use function implode;
 use function json_encode;
 use function sprintf;
 
@@ -35,9 +40,11 @@ final class JsonTest extends TestCase
      */
     public static function provideRoundtripCases(): iterable
     {
+        yield UnionOfEverything::class . ' with object' => [new UnionOfEverything(new OptionalStringDefaultNull('X'))];
         yield AllSimpleTypes::class => [new AllSimpleTypes('John', 42, 3.14, true, true, false, null)];
         yield IntBackedEnum::class => [new OptionalEnums(int: IntBackedEnum::Bar)];
         yield MultipleOptionalFields::class . ' with only second field' => [new MultipleOptionalFields(age: 42)];
+        yield OnlyClassInUnionIsUnknown::class . ' with string' => [new OnlyClassInUnionIsUnknown('John')];
         yield OptionalIntegerWithDefaultInt::class . ' with int' => [new OptionalIntegerWithDefaultInt(42)];
         yield OptionalIntegerWithDefaultInt::class . ' with default' => [new OptionalIntegerWithDefaultInt()];
         yield OptionalMixed::class . ' with string' => [new OptionalMixed('John')];
@@ -56,6 +63,12 @@ final class JsonTest extends TestCase
         yield RequiredNestedObject::class => [new RequiredNestedObject(new OptionalStringDefaultNull('John'))];
         yield RequiredString::class => [new RequiredString('John')];
         yield StringBackedEnum::class => [new OptionalEnums(str: StringBackedEnum::Bar)];
+        yield UnionOfEverything::class . ' with string' => [new UnionOfEverything('John')];
+        yield UnionOfEverything::class . ' with int' => [new UnionOfEverything(123)];
+        yield UnionOfEverything::class . ' with float' => [new UnionOfEverything(12.34)];
+        yield UnionOfEverything::class . ' with true' => [new UnionOfEverything(true)];
+        yield UnionOfEverything::class . ' with false' => [new UnionOfEverything(false)];
+        yield UnionOfEverything::class . ' with null' => [new UnionOfEverything(null)];
     }
 
     /**
@@ -82,6 +95,16 @@ final class JsonTest extends TestCase
             '{"obj": {}}',
             RequiredNestedObject::class,
             new RequiredNestedObject(new OptionalStringDefaultNull()),
+        ];
+        yield 'Missing value for class union' => [
+            '{}',
+            OptionalUnionOfClasses::class,
+            new OptionalUnionOfClasses(null),
+        ];
+        yield 'Explicit default value for for class union' => [
+            '{"val": null}',
+            OptionalUnionOfClasses::class,
+            new OptionalUnionOfClasses(null),
         ];
     }
 
@@ -192,6 +215,31 @@ final class JsonTest extends TestCase
             '{}',
             RequiredNestedObject::class,
             sprintf('Missing required property "obj" in JSON data for class %s.', RequiredNestedObject::class),
+        ];
+        yield 'Unsupported union of classes' => [
+            '{"obj": {"name": "bar"}}',
+            OptionalUnionOfClasses::class,
+            sprintf(
+                'Unions of multiple object types (%s) are not supported yet for property "obj" in class %s.',
+                implode(', ', [OptionalIntegerWithDefaultInt::class, OptionalStringDefaultNull::class]),
+                OptionalUnionOfClasses::class,
+            ),
+        ];
+        yield 'JSON object for union without classes' => [
+            '{"val": {"foo": "bar"}}',
+            UnionWithoutClasses::class,
+            sprintf(
+                'Can\'t populate property "val" with a JSON object, no class types found in union string|int for class %s.',
+                UnionWithoutClasses::class,
+            ),
+        ];
+        yield 'Only class in union is unknown' => [
+            '{"val": {"foo": "bar"}}',
+            OnlyClassInUnionIsUnknown::class,
+            sprintf(
+                'Can\'t populate property "val" with a JSON object, no class types found in union Eventjet\Test\Unit\Json\Fixtures\UnknownClass|string|int for class %s.',
+                OnlyClassInUnionIsUnknown::class,
+            ),
         ];
     }
 
