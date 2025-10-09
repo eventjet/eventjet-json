@@ -19,26 +19,10 @@
         <pluginClass class="Psalm\PhpUnitPlugin\Plugin"/>
     </plugins>
     <issueHandlers>
-        <ImplicitToStringCast errorLevel="info"/>
-        <MismatchingDocblockPropertyType>
-            <errorLevel type="suppress">
-                <file name="tests/unit/Fixtures/WrongArrayDocblockType.php"/>
-            </errorLevel>
-        </MismatchingDocblockPropertyType>
-        <PossiblyUnusedMethod>
-            <errorLevel type="suppress">
-                <directory name="tests/unit/Fixtures"/>
-            </errorLevel>
-        </PossiblyUnusedMethod>
         <PossiblyUnusedProperty>
             <errorLevel type="suppress">
                 <directory name="tests/unit/Fixtures"/>
             </errorLevel>
         </PossiblyUnusedProperty>
-        <UndefinedClass>
-            <errorLevel type="suppress">
-                <referencedClass name="DoesNotExist"/>
-            </errorLevel>
-        </UndefinedClass>
     </issueHandlers>
 </psalm>

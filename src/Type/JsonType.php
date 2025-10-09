@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Type;
 
+use Override;
 use Stringable;
 
 use function json_decode;
@@ -70,12 +71,13 @@ abstract class JsonType implements Stringable
 
     protected static function joinPath(string $prefix, string|int $key): string
     {
-        return $prefix === '' ? (string)$key : sprintf("%s.%d", $prefix, $key);
+        return $prefix === '' ? (string)$key : sprintf('%s.%d', $prefix, $key);
     }
 
     /**
      * Returns a string representation of the type in TypeScript syntax.
      */
+    #[Override]
     abstract public function __toString(): string;
 
     public function or(self $other): Union

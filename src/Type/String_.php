@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Type;
 
+use Override;
+
 use function is_string;
 use function json_encode;
 use function sprintf;
+
+use const JSON_THROW_ON_ERROR;
 
 final class String_ extends JsonType
 {
@@ -22,10 +26,14 @@ final class String_ extends JsonType
         return 'string';
     }
 
+    #[Override]
     public function validateValue(mixed $value, string $path = ''): ValidationResult
     {
         if (!is_string($value)) {
-            return ValidationResult::error(sprintf('Expected string, got %s.', json_encode($value)), $path);
+            return ValidationResult::error(
+                sprintf('Expected string, got %s.', json_encode($value, JSON_THROW_ON_ERROR)),
+                $path,
+            );
         }
         return ValidationResult::valid();
     }

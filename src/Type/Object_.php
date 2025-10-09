@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Type;
 
+use Override;
+
 use function array_is_list;
 use function array_key_exists;
 use function implode;
@@ -11,6 +13,8 @@ use function is_array;
 use function json_encode;
 use function ksort;
 use function sprintf;
+
+use const JSON_THROW_ON_ERROR;
 
 final class Object_ extends JsonType
 {
@@ -31,13 +35,20 @@ final class Object_ extends JsonType
         return sprintf('{%s}', implode(', ', $members));
     }
 
+    #[Override]
     public function validateValue(mixed $value, string $path = ''): ValidationResult
     {
         if (!is_array($value)) {
-            return ValidationResult::error(sprintf('Expected object, got %s.', json_encode($value)), $path);
+            return ValidationResult::error(
+                sprintf('Expected object, got %s.', json_encode($value, JSON_THROW_ON_ERROR)),
+                $path,
+            );
         }
         if ($value !== [] && array_is_list($value)) {
-            return ValidationResult::error(sprintf('Expected object, got %s.', json_encode($value)), $path);
+            return ValidationResult::error(
+                sprintf('Expected object, got %s.', json_encode($value, JSON_THROW_ON_ERROR)),
+                $path,
+            );
         }
         $results = [];
         foreach ($this->members as $name => $member) {
@@ -50,12 +61,10 @@ final class Object_ extends JsonType
             }
             $results[] = ValidationResult::error('Missing required member.', self::joinPath($path, $name));
         }
-        if ($results === []) {
-            return ValidationResult::valid();
-        }
         return ValidationResult::merge($results);
     }
 
+    #[Override]
     public function canonicalize(): JsonType
     {
         $members = [];

@@ -8,6 +8,7 @@ use Eventjet\Json\Type\JsonType;
 use Eventjet\Json\Type\Member;
 use Eventjet\Json\Type\ValidationIssue;
 use Eventjet\Json\Type\ValidationResult;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 use function count;
@@ -233,8 +234,8 @@ final class TypesTest extends TestCase
     /**
      * @param JsonType | callable(): JsonType $type
      * @param list<ValidationIssue> $expectedIssues
-     * @dataProvider validateCases
      */
+    #[DataProvider('validateCases')]
     public function testValidate(JsonType|callable $type, string $json, array $expectedIssues = []): void
     {
         if (!$type instanceof JsonType) {
@@ -258,17 +259,13 @@ final class TypesTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider toStringCases
-     */
+    #[DataProvider('toStringCases')]
     public function testToString(JsonType $type, string $expected): void
     {
         self::assertSame($expected, (string)$type);
     }
 
-    /**
-     * @dataProvider equalsCases
-     */
+    #[DataProvider('equalsCases')]
     public function testEquals(JsonType $a, JsonType $b, bool $expected): void
     {
         $aString = (string)$a->canonicalize();

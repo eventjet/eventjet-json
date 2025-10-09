@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Type;
 
+use Override;
+
 use function array_is_list;
 use function is_array;
 use function json_encode;
 use function sprintf;
+
+use const JSON_THROW_ON_ERROR;
 
 final class Array_ extends JsonType
 {
@@ -23,10 +27,14 @@ final class Array_ extends JsonType
         return sprintf('Array<%s>', $this->elementType);
     }
 
+    #[Override]
     public function validateValue(mixed $value, string $path = ''): ValidationResult
     {
         if (!is_array($value)) {
-            return ValidationResult::error(sprintf('Expected array, got %s.', json_encode($value)), $path);
+            return ValidationResult::error(
+                sprintf('Expected array, got %s.', json_encode($value, JSON_THROW_ON_ERROR)),
+                $path,
+            );
         }
         if (!array_is_list($value)) {
             return ValidationResult::error('Expected array, got object.', $path);
@@ -36,12 +44,10 @@ final class Array_ extends JsonType
         foreach ($value as $key => $element) {
             $results[] = $this->elementType->validateValue($element, self::joinPath($path, $key));
         }
-        if ($results === []) {
-            return ValidationResult::valid();
-        }
         return ValidationResult::merge($results);
     }
 
+    #[Override]
     public function canonicalize(): JsonType
     {
         return new self($this->elementType->canonicalize());

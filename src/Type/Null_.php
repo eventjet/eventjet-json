@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Type;
 
+use Override;
+
 use function json_encode;
 use function sprintf;
+
+use const JSON_THROW_ON_ERROR;
 
 final class Null_ extends JsonType
 {
@@ -21,11 +25,15 @@ final class Null_ extends JsonType
         return 'null';
     }
 
+    #[Override]
     public function validateValue(mixed $value, string $path = ''): ValidationResult
     {
         if ($value === null) {
             return ValidationResult::valid();
         }
-        return ValidationResult::error(sprintf('Expected null, got %s.', json_encode($value)), $path);
+        return ValidationResult::error(
+            sprintf('Expected null, got %s.', json_encode($value, JSON_THROW_ON_ERROR)),
+            $path,
+        );
     }
 }

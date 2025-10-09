@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Type;
 
+use Override;
 use Stringable;
 
 use function array_key_last;
@@ -14,6 +15,7 @@ use function json_encode;
 use function ksort;
 use function sprintf;
 
+use const JSON_THROW_ON_ERROR;
 use const SORT_STRING;
 
 final class Union extends JsonType
@@ -45,6 +47,7 @@ final class Union extends JsonType
         return implode(' | ', $this->types);
     }
 
+    #[Override]
     public function validateValue(mixed $value, string $path = ''): ValidationResult
     {
         foreach ($this->types as $type) {
@@ -56,11 +59,12 @@ final class Union extends JsonType
         }
         $expected = self::disjunction($this->canonicalize()->types);
         return ValidationResult::error(
-            sprintf('Expected %s, got %s.', $expected, json_encode($value)),
+            sprintf('Expected %s, got %s.', $expected, json_encode($value, JSON_THROW_ON_ERROR)),
             $path,
         );
     }
 
+    #[Override]
     public function canonicalize(): static
     {
         $types = [];

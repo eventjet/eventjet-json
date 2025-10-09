@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Type;
 
+use Override;
 use Stringable;
 
 use function sprintf;
@@ -14,6 +15,7 @@ final class ValidationIssue implements Stringable
     {
     }
 
+    #[Override]
     public function __toString(): string
     {
         return sprintf('%s at %s', $this->message, $this->path);
