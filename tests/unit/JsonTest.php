@@ -16,6 +16,7 @@ use Eventjet\Test\Unit\Json\Fixtures\OptionalMixed;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalObject;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalStringDefaultNull;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredMixed;
+use Eventjet\Test\Unit\Json\Fixtures\RequiredNestedObject;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredObject;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredString;
 use Eventjet\Test\Unit\Json\Fixtures\StringBackedEnum;
@@ -52,6 +53,7 @@ final class JsonTest extends TestCase
         yield RequiredMixed::class . ' with null' => [new RequiredMixed(null)];
         yield RequiredMixed::class . ' with string array' => [new RequiredMixed(['John', 'Jane'])];
         yield RequiredMixed::class . ' with int array' => [new RequiredMixed([1, 2, 3])];
+        yield RequiredNestedObject::class => [new RequiredNestedObject(new OptionalStringDefaultNull('John'))];
         yield RequiredString::class => [new RequiredString('John')];
         yield StringBackedEnum::class => [new OptionalEnums(str: StringBackedEnum::Bar)];
     }
@@ -75,6 +77,11 @@ final class JsonTest extends TestCase
             '{"age": 23}',
             MultipleOptionalFields::class,
             new MultipleOptionalFields(age: 23),
+        ];
+        yield 'Missing field in required nested object' => [
+            '{"obj": {}}',
+            RequiredNestedObject::class,
+            new RequiredNestedObject(new OptionalStringDefaultNull()),
         ];
     }
 
@@ -180,6 +187,11 @@ final class JsonTest extends TestCase
                 '"object" is not allowed as a type for property "obj" in class %s, use a specific class name instead.',
                 OptionalObject::class,
             ),
+        ];
+        yield 'Missing required nested object' => [
+            '{}',
+            RequiredNestedObject::class,
+            sprintf('Missing required property "obj" in JSON data for class %s.', RequiredNestedObject::class),
         ];
     }
 

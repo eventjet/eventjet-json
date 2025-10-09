@@ -39,6 +39,16 @@ final class Json
         if (!$data instanceof stdClass) {
             throw JsonError::decodeFailed('Expected JSON object at the root.');
         }
+        return self::createObject($data, $class);
+    }
+
+    /**
+     * @template T of object
+     * @param class-string<T> $class
+     * @return T
+     */
+    private static function createObject(stdClass $data, string $class): object
+    {
         $arguments = self::buildConstructorArguments($data, $class);
         try {
             /** @psalm-suppress MixedMethodCall */
@@ -116,6 +126,9 @@ final class Json
                         $parameter->name,
                         $className,
                     ));
+                }
+                if (class_exists($typeName)) {
+                    return self::createObject($value, $typeName);
                 }
                 throw JsonError::decodeFailed(sprintf(
                     'Can\'t populate property "%s" of type %s with JSON object.',
