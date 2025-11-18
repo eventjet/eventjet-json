@@ -7,8 +7,15 @@ namespace Eventjet\Test\Unit\Json;
 use Eventjet\Json\Json;
 use Eventjet\Json\JsonError;
 use Eventjet\Test\Unit\Json\Fixtures\AllSimpleTypes;
+use Eventjet\Test\Unit\Json\Fixtures\ArrayOfObjects;
+use Eventjet\Test\Unit\Json\Fixtures\ArrayOfStrings;
+use Eventjet\Test\Unit\Json\Fixtures\Arrays;
+use Eventjet\Test\Unit\Json\Fixtures\DeeplyNestedArrays;
 use Eventjet\Test\Unit\Json\Fixtures\IntBackedEnum;
+use Eventjet\Test\Unit\Json\Fixtures\MissingArrayOfAttribute;
+use Eventjet\Test\Unit\Json\Fixtures\MultipleArrayOfAttributes;
 use Eventjet\Test\Unit\Json\Fixtures\MultipleOptionalFields;
+use Eventjet\Test\Unit\Json\Fixtures\NoConstructor;
 use Eventjet\Test\Unit\Json\Fixtures\NonBackedEnum;
 use Eventjet\Test\Unit\Json\Fixtures\OnlyClassInUnionIsUnknown;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalEnums;
@@ -24,6 +31,7 @@ use Eventjet\Test\Unit\Json\Fixtures\RequiredString;
 use Eventjet\Test\Unit\Json\Fixtures\StringBackedEnum;
 use Eventjet\Test\Unit\Json\Fixtures\UnionOfEverything;
 use Eventjet\Test\Unit\Json\Fixtures\UnionWithoutClasses;
+use Eventjet\Test\Unit\Json\Fixtures\UnknownArrayItemClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -69,6 +77,18 @@ final class JsonTest extends TestCase
         yield UnionOfEverything::class . ' with true' => [new UnionOfEverything(true)];
         yield UnionOfEverything::class . ' with false' => [new UnionOfEverything(false)];
         yield UnionOfEverything::class . ' with null' => [new UnionOfEverything(null)];
+        yield Arrays::class => [new Arrays(
+            ['foo', 'bar', 'baz'],
+            [1, 2, 3],
+            [1.1, 2.2, 3.3],
+            [true, false, true],
+            [null, null],
+            [new RequiredString('A'), new RequiredString('B')],
+            [StringBackedEnum::Foo, StringBackedEnum::Bar],
+            [IntBackedEnum::Foo, IntBackedEnum::Bar],
+            [['a', 'b'], ['c', 'd']],
+        )];
+        yield DeeplyNestedArrays::class => [new DeeplyNestedArrays([[['foo', 'bar']]])];
     }
 
     /**
@@ -113,6 +133,11 @@ final class JsonTest extends TestCase
      */
     public static function provideFailingDecodeCases(): iterable
     {
+        yield 'Root string' => [
+            '"just a string"',
+            RequiredString::class,
+            'Expected JSON object at the root.',
+        ];
         yield 'Missing required field' => [
             '{}',
             RequiredString::class,
@@ -240,6 +265,47 @@ final class JsonTest extends TestCase
                 'Can\'t populate property "val" with a JSON object, no class types found in union Eventjet\Test\Unit\Json\Fixtures\UnknownClass|string|int for class %s.',
                 OnlyClassInUnionIsUnknown::class,
             ),
+        ];
+        yield 'Class has no constructor' => [
+            '{"name": "John"}',
+            NoConstructor::class,
+            sprintf('Class %s does not have a constructor.', NoConstructor::class),
+        ];
+        yield 'Object in array position' => [
+            '{"strings": {"foo": "bar"}}',
+            ArrayOfStrings::class,
+            'Expected array for property "strings", got object.',
+        ];
+        yield 'Missing ArrayOf attribute' => [
+            '{"items": [42, 69, 420]}',
+            MissingArrayOfAttribute::class,
+            sprintf(
+                'Missing #[ArrayOf] attribute for array property "items" in class %s.',
+                MissingArrayOfAttribute::class,
+            ),
+        ];
+        yield 'Duplicate ArrayOf attributes' => [
+            '{"bools": [true, false, true]}',
+            MultipleArrayOfAttributes::class,
+            sprintf(
+                'Multiple #[ArrayOf] attributes found for array property "bools" in class %s.',
+                MultipleArrayOfAttributes::class,
+            ),
+        ];
+        yield 'Object for deeply nested array' => [
+            '{"data": [[["foo"], [], {"foo": "bar"}], []]}',
+            DeeplyNestedArrays::class,
+            'Expected array at index 2 of array, got object.',
+        ];
+        yield 'Float for object array item' => [
+            '{"items": [{"name": "A"}, 3.14, {"name": "B"}]}',
+            ArrayOfObjects::class,
+            'Expected object at index 1, got number.',
+        ];
+        yield 'Unknown array item class' => [
+            '{"items": [{"name": "A"}]}',
+            UnknownArrayItemClass::class,
+            'Class Eventjet\Test\Unit\Json\Fixtures\DoesNotExist referenced by ArrayOf does not exist.',
         ];
     }
 

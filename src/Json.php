@@ -17,12 +17,17 @@ use Throwable;
 use UnitEnum;
 
 use function array_filter;
+use function array_is_list;
 use function array_map;
 use function assert;
 use function class_exists;
 use function count;
+use function gettype;
 use function implode;
 use function is_a;
+use function is_array;
+use function is_bool;
+use function is_float;
 use function is_int;
 use function is_string;
 use function json_decode;
@@ -126,6 +131,24 @@ final class Json
                     $className,
                 ));
             }
+            if ($typeName === 'array') {
+                $itemType = self::getArrayItemType($parameter);
+                if (!is_array($value)) {
+                    throw JsonError::decodeFailed(sprintf(
+                        'Expected array for property "%s", got %s.',
+                        $parameter->name,
+                        self::jsonTypeOfPhpValue($value),
+                    ));
+                }
+                assert(array_is_list($value));
+                $array = [];
+                /** @var mixed $itemValue */
+                foreach ($value as $index => $itemValue) {
+                    /** @psalm-suppress MixedAssignment */
+                    $array[] = self::arrayItem($itemValue, $itemType, $index);
+                }
+                return $array;
+            }
             if ($value instanceof stdClass) {
                 if ($typeName === 'mixed') {
                     throw JsonError::decodeFailed(sprintf(
@@ -145,41 +168,7 @@ final class Json
             }
             if (class_exists($typeName)) {
                 if (is_a($typeName, UnitEnum::class, true)) {
-                    if (!is_a($typeName, BackedEnum::class, true)) {
-                        throw JsonError::decodeFailed(sprintf(
-                            'All enums must be backed, but %s is not a backed enum.',
-                            $typeName,
-                        ));
-                    }
-                    if (!is_int($value) && !is_string($value)) {
-                        throw JsonError::decodeFailed(sprintf(
-                            '%s is not a valid a value of any case of enum %s.',
-                            json_encode($value, JSON_THROW_ON_ERROR),
-                            $typeName,
-                        ));
-                    }
-                    $backingType = (new ReflectionEnum($typeName))->getBackingType();
-                    assert($backingType instanceof ReflectionNamedType);
-                    $backingTypeName = $backingType->getName();
-                    if (
-                        ($backingTypeName === 'int' && !is_int($value)) ||
-                        ($backingTypeName === 'string' && !is_string($value))
-                    ) {
-                        throw JsonError::decodeFailed(sprintf(
-                            '%s is not a valid a value of any case of enum %s.',
-                            json_encode($value, JSON_THROW_ON_ERROR),
-                            $typeName,
-                        ));
-                    }
-                    $enum = $typeName::tryFrom($value);
-                    if ($enum === null) {
-                        throw JsonError::decodeFailed(sprintf(
-                            '%s is not a valid a value of any case of enum %s.',
-                            json_encode($value, JSON_THROW_ON_ERROR),
-                            $typeName,
-                        ));
-                    }
-                    return $enum;
+                    return self::createEnumCase($value, $typeName);
                 }
             }
         }
@@ -244,5 +233,150 @@ final class Json
             return implode('&', array_map(self::dumpType(...), $type->getTypes()));
         }
         return 'unknown';
+    }
+
+    /**
+     * @return 'string'|'int'|'float'|'null'|'bool'|class-string|ArrayOf
+     */
+    private static function getArrayItemType(ReflectionParameter $parameter): string|ArrayOf
+    {
+        $attributes = $parameter->getAttributes(ArrayOf::class);
+        return match (count($attributes)) {
+            0 => throw JsonError::decodeFailed(sprintf(
+                'Missing #[ArrayOf] attribute for array property "%s" in class %s.',
+                $parameter->name,
+                $parameter->getDeclaringClass()?->getName() ?? 'unknown',
+            )),
+            1 => $attributes[0]->newInstance()->itemType,
+            default => throw JsonError::decodeFailed(sprintf(
+                'Multiple #[ArrayOf] attributes found for array property "%s" in class %s.',
+                $parameter->name,
+                $parameter->getDeclaringClass()?->getName() ?? 'unknown',
+            )),
+        };
+    }
+
+    private static function arrayItem(mixed $value, ArrayOf|string $type, int $index): mixed
+    {
+        return match ($type) {
+            'string' => is_string($value) ? $value : throw JsonError::decodeFailed(sprintf(
+                'Expected string at index %d of array, got %s.',
+                $index,
+                gettype($value),
+            )),
+            'int' => is_int($value) ? $value : throw JsonError::decodeFailed(sprintf(
+                'Expected int at index %d of array, got %s.',
+                $index,
+                gettype($value),
+            )),
+            'float' => is_float($value) ? $value : throw JsonError::decodeFailed(sprintf(
+                'Expected float at index %d of array, got %s.',
+                $index,
+                gettype($value),
+            )),
+            'bool' => is_bool($value) ? $value : throw JsonError::decodeFailed(sprintf(
+                'Expected bool at index %d of array, got %s.',
+                $index,
+                gettype($value),
+            )),
+            'null' => $value === null ? null : throw JsonError::decodeFailed(sprintf(
+                'Expected null at index %d of array, got %s.',
+                $index,
+                gettype($value),
+            )),
+            default => self::nonTrivialArrayItem($value, $type, $index),
+        };
+    }
+
+    private static function nonTrivialArrayItem(mixed $value, ArrayOf|string $type, int $index): mixed
+    {
+        if ($type instanceof ArrayOf) {
+            if (!is_array($value)) {
+                throw JsonError::decodeFailed(sprintf(
+                    'Expected array at index %d of array, got %s.',
+                    $index,
+                    gettype($value),
+                ));
+            }
+            assert(array_is_list($value));
+            $array = [];
+            /** @var mixed $itemValue */
+            foreach ($value as $j => $itemValue) {
+                /** @psalm-suppress MixedAssignment */
+                $array[] = self::arrayItem($itemValue, $type->itemType, $j);
+            }
+            return $array;
+        }
+        if (is_a($type, UnitEnum::class, true)) {
+            return self::createEnumCase($value, $type);
+        }
+        if (!$value instanceof stdClass) {
+            throw JsonError::decodeFailed(sprintf(
+                'Expected object at index %d, got %s.',
+                $index,
+                self::jsonTypeOfPhpValue($value),
+            ));
+        }
+        if (!class_exists($type)) {
+            throw JsonError::decodeFailed(sprintf(
+                'Class %s referenced by ArrayOf does not exist.',
+                $type,
+            ));
+        }
+        return self::createObject($value, $type);
+    }
+
+    /**
+     * @param class-string<UnitEnum> $enumType
+     */
+    private static function createEnumCase(mixed $value, string $enumType): UnitEnum
+    {
+        if (!is_a($enumType, BackedEnum::class, true)) {
+            throw JsonError::decodeFailed(sprintf(
+                'All enums must be backed, but %s is not a backed enum.',
+                $enumType,
+            ));
+        }
+        if (!is_int($value) && !is_string($value)) {
+            throw JsonError::decodeFailed(sprintf(
+                '%s is not a valid a value of any case of enum %s.',
+                json_encode($value, JSON_THROW_ON_ERROR),
+                $enumType,
+            ));
+        }
+        $backingType = (new ReflectionEnum($enumType))->getBackingType();
+        assert($backingType instanceof ReflectionNamedType);
+        $backingTypeName = $backingType->getName();
+        if (
+            ($backingTypeName === 'int' && !is_int($value)) ||
+            ($backingTypeName === 'string' && !is_string($value))
+        ) {
+            throw JsonError::decodeFailed(sprintf(
+                '%s is not a valid a value of any case of enum %s.',
+                json_encode($value, JSON_THROW_ON_ERROR),
+                $enumType,
+            ));
+        }
+        $enum = $enumType::tryFrom($value);
+        if ($enum === null) {
+            throw JsonError::decodeFailed(sprintf(
+                '%s is not a valid a value of any case of enum %s.',
+                json_encode($value, JSON_THROW_ON_ERROR),
+                $enumType,
+            ));
+        }
+        return $enum;
+    }
+
+    private static function jsonTypeOfPhpValue(mixed $value): string
+    {
+        return match (gettype($value)) {
+            'NULL' => 'null',
+            'boolean' => 'boolean',
+            'integer', 'double' => 'number',
+            'string' => 'string',
+            'array' => 'array',
+            default => 'object',
+        };
     }
 }

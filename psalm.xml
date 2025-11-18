@@ -19,6 +19,11 @@
         <pluginClass class="Psalm\PhpUnitPlugin\Plugin"/>
     </plugins>
     <issueHandlers>
+        <PossiblyUnusedMethod>
+            <errorLevel type="suppress">
+                <referencedMethod name="*::__construct"/>
+            </errorLevel>
+        </PossiblyUnusedMethod>
         <PossiblyUnusedProperty>
             <errorLevel type="suppress">
                 <directory name="tests/unit/Fixtures"/>
