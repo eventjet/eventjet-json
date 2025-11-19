@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Eventjet\Test\Unit\Json;
 
+use Eventjet\Json\ArrayOf;
 use Eventjet\Json\Schema;
 use Eventjet\Test\Unit\Json\Fixtures\AllSimpleTypes;
+use Eventjet\Test\Unit\Json\Fixtures\ArrayOfStrings;
+use Eventjet\Test\Unit\Json\Fixtures\Arrays;
+use Eventjet\Test\Unit\Json\Fixtures\MissingArrayOfAttribute;
 use Eventjet\Test\Unit\Json\Fixtures\MissingConstructorArgumentType;
+use Eventjet\Test\Unit\Json\Fixtures\MultipleArrayOfAttributes;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalStringDefaultNull;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredMixed;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredNestedObject;
@@ -14,6 +19,7 @@ use Eventjet\Test\Unit\Json\Fixtures\RequiredString;
 use Eventjet\Test\Unit\Json\Fixtures\TakesNonBackedEnum;
 use Eventjet\Test\Unit\Json\Fixtures\TakesStringEnum;
 use Eventjet\Test\Unit\Json\Fixtures\UnionWithoutClasses;
+use Eventjet\Test\Unit\Json\Fixtures\UnknownArrayItemClass;
 use Eventjet\Test\Unit\Json\Fixtures\UnknownPropertyType;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -27,7 +33,7 @@ use const JSON_THROW_ON_ERROR;
 final class SchemaTest extends TestCase
 {
     /**
-     * @return iterable<string, array{class-string, array<string, mixed>}>
+     * @return iterable<string, array{class-string|ArrayOf, array<string, mixed>}>
      */
     public static function provideInferFromTypeCases(): iterable
     {
@@ -100,10 +106,88 @@ final class SchemaTest extends TestCase
                 'additionalProperties' => false,
             ],
         ];
+        yield ArrayOfStrings::class => [
+            ArrayOfStrings::class,
+            [
+                'type' => 'object',
+                'properties' => [
+                    'strings' => [
+                        'type' => 'array',
+                        'items' => ['type' => 'string'],
+                    ],
+                ],
+                'required' => ['strings'],
+                'additionalProperties' => false,
+            ],
+        ];
+        yield Arrays::class => [
+            Arrays::class,
+            [
+                'type' => 'object',
+                'properties' => [
+                    'strings' => [
+                        'type' => 'array',
+                        'items' => ['type' => 'string'],
+                    ],
+                    'ints' => [
+                        'type' => 'array',
+                        'items' => ['type' => 'integer'],
+                    ],
+                    'floats' => [
+                        'type' => 'array',
+                        'items' => ['type' => 'number'],
+                    ],
+                    'bools' => [
+                        'type' => 'array',
+                        'items' => ['type' => 'boolean'],
+                    ],
+                    'nulls' => [
+                        'type' => 'array',
+                        'items' => ['type' => 'null'],
+                    ],
+                    'objects' => [
+                        'type' => 'array',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => ['name' => ['type' => 'string']],
+                            'required' => ['name'],
+                            'additionalProperties' => false,
+                        ],
+                    ],
+                    'stringEnums' => [
+                        'type' => 'array',
+                        'items' => ['enum' => ['yay', 'nay']],
+                    ],
+                    'intEnums' => [
+                        'type' => 'array',
+                        'items' => ['enum' => [42, 69]],
+                    ],
+                    'stringArrays' => [
+                        'type' => 'array',
+                        'items' => [
+                            'type' => 'array',
+                            'items' => ['type' => 'string'],
+                        ],
+                    ],
+                ],
+                'required' => [
+                    'strings',
+                    'ints',
+                    'floats',
+                    'bools',
+                    'nulls',
+                    'objects',
+                    'stringEnums',
+                    'intEnums',
+                    'stringArrays',
+                ],
+                'additionalProperties' => false,
+            ],
+        ];
     }
 
     /**
-     * @return iterable<string, array{string, string}>
+     * @return iterable<string, array{string|ArrayOf, string}>
      */
     public static function provideFailToInferFromTypeCases(): iterable
     {
@@ -139,24 +223,60 @@ final class SchemaTest extends TestCase
                 TakesNonBackedEnum::class,
             ),
         ];
+        /**
+         * @psalm-suppress MixedArgument
+         * @psalm-suppress UndefinedClass
+         */
+        yield 'Unknown array item type' => [
+            /** @phpstan-ignore-next-line class.notFound */
+            new ArrayOf(NonExistentType::class),
+            sprintf(
+                'Failed to infer schema for array items: Cannot infer schema: class %s does not exist.',
+                /** @phpstan-ignore-next-line class.notFound */
+                NonExistentType::class,
+            ),
+        ];
+        yield UnknownArrayItemClass::class => [
+            UnknownArrayItemClass::class,
+            sprintf(
+                'Failed to infer schema for array parameter %s::items: Cannot infer schema: class Eventjet\Test\Unit\Json\Fixtures\DoesNotExist does not exist.',
+                UnknownArrayItemClass::class,
+            ),
+        ];
+        yield MissingArrayOfAttribute::class => [
+            MissingArrayOfAttribute::class,
+            sprintf(
+                'Failed to infer schema for array parameter %s::items: Missing #[ArrayOf] attribute to specify the item type.',
+                MissingArrayOfAttribute::class,
+            ),
+        ];
+        yield MultipleArrayOfAttributes::class => [
+            MultipleArrayOfAttributes::class,
+            sprintf(
+                'Failed to infer schema for array parameter %s::bools: Multiple #[ArrayOf] attributes found; only one is allowed.',
+                MultipleArrayOfAttributes::class,
+            ),
+        ];
     }
 
     /**
-     * @param class-string $type
+     * @param class-string|ArrayOf $type
      * @param array<string, mixed>|bool $expectedSchema
      */
     #[DataProvider('provideInferFromTypeCases')]
-    public function testInferFromType(string $type, array|bool $expectedSchema): void
+    public function testInferFromType(string|ArrayOf $type, array|bool $expectedSchema): void
     {
         $schema = Schema::inferFromType($type);
 
-        self::assertInstanceOf(Schema::class, $schema);
+        if (!$schema instanceof Schema) {
+            self::fail(sprintf('Failed to infer schema for type %s: %s', $type, $schema->getMessage()));
+        }
         $actual = json_encode($schema, JSON_THROW_ON_ERROR);
         self::assertJsonStringEqualsJsonString(json_encode($expectedSchema, JSON_THROW_ON_ERROR), $actual);
     }
 
     #[DataProvider('provideFailToInferFromTypeCases')]
-    public function testFailToInferFromType(string $type, string $expectedMessage): void
+    public function testFailToInferFromType(string|ArrayOf $type, string $expectedMessage): void
     {
         $schema = Schema::inferFromType($type);
 

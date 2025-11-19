@@ -10,6 +10,7 @@ use LogicException;
 use Override;
 use ReflectionClass;
 use ReflectionNamedType;
+use ReflectionParameter;
 use Throwable;
 use UnitEnum;
 
@@ -33,12 +34,26 @@ final readonly class Schema implements JsonSerializable
         public bool|null $additionalProperties = null,
         public mixed $const = null,
         public array $enum = [],
+        public self|null $items = null,
     ) {
 
     }
 
-    public static function inferFromType(string $type): self|Throwable
+    public static function inferFromType(string|ArrayOf $type): self|Throwable
     {
+        if ($type instanceof ArrayOf) {
+            $itemSchema = self::inferFromType($type->itemType);
+            if ($itemSchema instanceof Throwable) {
+                return new LogicException(
+                    sprintf(
+                        'Failed to infer schema for array items: %s',
+                        $itemSchema->getMessage(),
+                    ),
+                    previous: $itemSchema,
+                );
+            }
+            return self::array($itemSchema);
+        }
         return match ($type) {
             'string' => self::string(),
             'int' => self::integer(),
@@ -83,6 +98,25 @@ final readonly class Schema implements JsonSerializable
                     ));
                 }
                 $paramTypeName = $paramType->getName();
+                if ($paramTypeName === 'array') {
+                    $itemType = self::inferFromArrayParameter($parameter);
+                    if ($itemType instanceof Throwable) {
+                        return new LogicException(
+                            sprintf(
+                                'Failed to infer schema for array parameter %s::%s: %s',
+                                $type,
+                                $parameter->getName(),
+                                $itemType->getMessage(),
+                            ),
+                            previous: $itemType,
+                        );
+                    }
+                    $properties[$parameter->getName()] = $itemType;
+                    if (!$parameter->isOptional()) {
+                        $required[] = $parameter->getName();
+                    }
+                    continue;
+                }
                 $propertySchema = self::inferFromType($paramTypeName);
                 if ($propertySchema instanceof Throwable) {
                     return new LogicException(
@@ -151,6 +185,29 @@ final readonly class Schema implements JsonSerializable
         return new self(enum: $values);
     }
 
+    private static function inferFromArrayParameter(ReflectionParameter $parameter): self|Throwable
+    {
+        $attributes = $parameter->getAttributes(ArrayOf::class);
+        $nAttributes = count($attributes);
+        if ($nAttributes === 0) {
+            return new LogicException('Missing #[ArrayOf] attribute to specify the item type.');
+        }
+        if ($nAttributes > 1) {
+            return new LogicException('Multiple #[ArrayOf] attributes found; only one is allowed.');
+        }
+        $arrayOf = $attributes[0]->newInstance();
+        $itemSchema = self::inferFromType($arrayOf->itemType);
+        if ($itemSchema instanceof Throwable) {
+            return $itemSchema;
+        }
+        return self::array($itemSchema);
+    }
+
+    private static function array(self $items): self
+    {
+        return new self('array', items: $items);
+    }
+
     /**
      * @return array<string, mixed>|true
      */
@@ -179,6 +236,9 @@ final readonly class Schema implements JsonSerializable
         }
         if (count($data) === 0) {
             return true;
+        }
+        if ($this->items !== null) {
+            $data['items'] = $this->items;
         }
         return $data;
     }
