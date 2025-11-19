@@ -6,9 +6,11 @@ namespace Eventjet\Test\Unit\Json;
 
 use Eventjet\Json\ArrayOf;
 use Eventjet\Json\Schema;
+use Eventjet\Test\Unit\Json\Fixtures\AbstractPerson;
 use Eventjet\Test\Unit\Json\Fixtures\AllSimpleTypes;
 use Eventjet\Test\Unit\Json\Fixtures\ArrayOfStrings;
 use Eventjet\Test\Unit\Json\Fixtures\Arrays;
+use Eventjet\Test\Unit\Json\Fixtures\EmployeeInterface;
 use Eventjet\Test\Unit\Json\Fixtures\MissingArrayOfAttribute;
 use Eventjet\Test\Unit\Json\Fixtures\MissingConstructorArgumentType;
 use Eventjet\Test\Unit\Json\Fixtures\MultipleArrayOfAttributes;
@@ -17,8 +19,10 @@ use Eventjet\Test\Unit\Json\Fixtures\OptionalStringDefaultNull;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredMixed;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredNestedObject;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredString;
+use Eventjet\Test\Unit\Json\Fixtures\TakesIntersection;
 use Eventjet\Test\Unit\Json\Fixtures\TakesNonBackedEnum;
 use Eventjet\Test\Unit\Json\Fixtures\TakesStringEnum;
+use Eventjet\Test\Unit\Json\Fixtures\TakesUnionWithUnknownClass;
 use Eventjet\Test\Unit\Json\Fixtures\UnionWithoutClasses;
 use Eventjet\Test\Unit\Json\Fixtures\UnknownArrayItemClass;
 use Eventjet\Test\Unit\Json\Fixtures\UnknownPropertyType;
@@ -266,6 +270,22 @@ final class SchemaTest extends TestCase
             sprintf(
                 'Failed to infer schema for %s::bools: Multiple #[ArrayOf] attributes found; only one is allowed.',
                 MultipleArrayOfAttributes::class,
+            ),
+        ];
+        yield TakesIntersection::class => [
+            TakesIntersection::class,
+            sprintf(
+                'Failed to infer schema for %s::person: Intersections are not supported: %s&%s.',
+                TakesIntersection::class,
+                AbstractPerson::class,
+                EmployeeInterface::class,
+            ),
+        ];
+        yield TakesUnionWithUnknownClass::class => [
+            TakesUnionWithUnknownClass::class,
+            sprintf(
+                'Failed to infer schema for %s::value: Cannot infer schema: class Eventjet\Test\Unit\Json\Fixtures\UnknownClassA does not exist.',
+                TakesUnionWithUnknownClass::class,
             ),
         ];
     }

@@ -185,7 +185,7 @@ final readonly class Schema implements JsonSerializable
         }
         if (!$type instanceof ReflectionNamedType) {
             return new LogicException(sprintf(
-                'Unsupported union or intersection type %s.',
+                'Intersections are not supported: %s.',
                 (string)$type,
             ));
         }
