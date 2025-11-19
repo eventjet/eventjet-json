@@ -22,7 +22,10 @@ use function count;
 use function is_a;
 use function sprintf;
 
-final readonly class Schema implements JsonSerializable
+/**
+ * This class isn't `final` on purpose so it can be extended in order to be used in attributes.
+ */
+readonly class Schema implements JsonSerializable
 {
     /**
      * @param 'string'|'number'|'object'|'array'|'boolean'|'null'|'integer'|null $type
