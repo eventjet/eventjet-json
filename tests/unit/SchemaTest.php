@@ -12,6 +12,7 @@ use Eventjet\Test\Unit\Json\Fixtures\Arrays;
 use Eventjet\Test\Unit\Json\Fixtures\MissingArrayOfAttribute;
 use Eventjet\Test\Unit\Json\Fixtures\MissingConstructorArgumentType;
 use Eventjet\Test\Unit\Json\Fixtures\MultipleArrayOfAttributes;
+use Eventjet\Test\Unit\Json\Fixtures\NonBackedEnum;
 use Eventjet\Test\Unit\Json\Fixtures\OptionalStringDefaultNull;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredMixed;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredNestedObject;
@@ -198,29 +199,30 @@ final class SchemaTest extends TestCase
         yield MissingConstructorArgumentType::class => [
             MissingConstructorArgumentType::class,
             sprintf(
-                'Property %s::val has no type. If you want it to accept anything, use "mixed" as type.',
+                'Failed to infer schema for %s::val: Missing type. If you want it to accept anything, use "mixed" as type.',
                 MissingConstructorArgumentType::class,
             ),
         ];
         yield UnionWithoutClasses::class => [
             UnionWithoutClasses::class,
             sprintf(
-                'Property %s::val has an unsupported union or intersection type.',
+                'Failed to infer schema for %s::val: Unsupported union or intersection type string|int.',
                 UnionWithoutClasses::class,
             ),
         ];
         yield UnknownPropertyType::class => [
             UnknownPropertyType::class,
             sprintf(
-                'Failed to infer schema for property %s::unknown: Cannot infer schema: class Eventjet\Test\Unit\Json\Fixtures\Unknown does not exist.',
+                'Failed to infer schema for %s::unknown: Cannot infer schema: class Eventjet\Test\Unit\Json\Fixtures\Unknown does not exist.',
                 UnknownPropertyType::class,
             ),
         ];
         yield TakesNonBackedEnum::class => [
             TakesNonBackedEnum::class,
             sprintf(
-                'Failed to infer schema for property %s::value: Only backed enums are supported, Eventjet\Test\Unit\Json\Fixtures\NonBackedEnum is not.',
+                'Failed to infer schema for %s::value: Only backed enums are supported, %s is not.',
                 TakesNonBackedEnum::class,
+                NonBackedEnum::class,
             ),
         ];
         /**
@@ -239,21 +241,21 @@ final class SchemaTest extends TestCase
         yield UnknownArrayItemClass::class => [
             UnknownArrayItemClass::class,
             sprintf(
-                'Failed to infer schema for array parameter %s::items: Cannot infer schema: class Eventjet\Test\Unit\Json\Fixtures\DoesNotExist does not exist.',
+                'Failed to infer schema for %s::items: Cannot infer schema: class Eventjet\Test\Unit\Json\Fixtures\DoesNotExist does not exist.',
                 UnknownArrayItemClass::class,
             ),
         ];
         yield MissingArrayOfAttribute::class => [
             MissingArrayOfAttribute::class,
             sprintf(
-                'Failed to infer schema for array parameter %s::items: Missing #[ArrayOf] attribute to specify the item type.',
+                'Failed to infer schema for %s::items: Missing #[ArrayOf] attribute to specify the item type.',
                 MissingArrayOfAttribute::class,
             ),
         ];
         yield MultipleArrayOfAttributes::class => [
             MultipleArrayOfAttributes::class,
             sprintf(
-                'Failed to infer schema for array parameter %s::bools: Multiple #[ArrayOf] attributes found; only one is allowed.',
+                'Failed to infer schema for %s::bools: Multiple #[ArrayOf] attributes found; only one is allowed.',
                 MultipleArrayOfAttributes::class,
             ),
         ];

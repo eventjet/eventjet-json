@@ -82,54 +82,19 @@ final readonly class Schema implements JsonSerializable
         $required = [];
         if ($constructor !== null) {
             foreach ($constructor->getParameters() as $parameter) {
-                $paramType = $parameter->getType();
-                if ($paramType === null) {
-                    return new LogicException(sprintf(
-                        'Property %s::%s has no type. If you want it to accept anything, use "mixed" as type.',
-                        $type,
-                        $parameter->getName(),
-                    ));
-                }
-                if (!$paramType instanceof ReflectionNamedType) {
-                    return new LogicException(sprintf(
-                        'Property %s::%s has an unsupported union or intersection type.',
-                        $type,
-                        $parameter->getName(),
-                    ));
-                }
-                $paramTypeName = $paramType->getName();
-                if ($paramTypeName === 'array') {
-                    $itemType = self::inferFromArrayParameter($parameter);
-                    if ($itemType instanceof Throwable) {
-                        return new LogicException(
-                            sprintf(
-                                'Failed to infer schema for array parameter %s::%s: %s',
-                                $type,
-                                $parameter->getName(),
-                                $itemType->getMessage(),
-                            ),
-                            previous: $itemType,
-                        );
-                    }
-                    $properties[$parameter->getName()] = $itemType;
-                    if (!$parameter->isOptional()) {
-                        $required[] = $parameter->getName();
-                    }
-                    continue;
-                }
-                $propertySchema = self::inferFromType($paramTypeName);
-                if ($propertySchema instanceof Throwable) {
+                $parameterSchema = self::inferFromReflectionParameter($parameter);
+                if ($parameterSchema instanceof Throwable) {
                     return new LogicException(
                         sprintf(
-                            'Failed to infer schema for property %s::%s: %s',
+                            'Failed to infer schema for %s::%s: %s',
                             $type,
                             $parameter->getName(),
-                            $propertySchema->getMessage(),
+                            $parameterSchema->getMessage(),
                         ),
-                        previous: $propertySchema,
+                        previous: $parameterSchema,
                     );
                 }
-                $properties[$parameter->getName()] = $propertySchema;
+                $properties[$parameter->getName()] = $parameterSchema;
                 if (!$parameter->isOptional()) {
                     $required[] = $parameter->getName();
                 }
@@ -183,6 +148,33 @@ final readonly class Schema implements JsonSerializable
             $values[] = $value;
         }
         return new self(enum: $values);
+    }
+
+    private static function inferFromReflectionParameter(ReflectionParameter $parameter): self|Throwable
+    {
+        $paramType = $parameter->getType();
+        if ($paramType === null) {
+            return new LogicException('Missing type. If you want it to accept anything, use "mixed" as type.');
+        }
+        if (!$paramType instanceof ReflectionNamedType) {
+            return new LogicException(sprintf(
+                'Unsupported union or intersection type %s.',
+                (string)$paramType,
+            ));
+        }
+        $paramTypeName = $paramType->getName();
+        if ($paramTypeName === 'array') {
+            $itemType = self::inferFromArrayParameter($parameter);
+            if ($itemType instanceof Throwable) {
+                return $itemType;
+            }
+            return $itemType;
+        }
+        $propertySchema = self::inferFromType($paramTypeName);
+        if ($propertySchema instanceof Throwable) {
+            return $propertySchema;
+        }
+        return $propertySchema;
     }
 
     private static function inferFromArrayParameter(ReflectionParameter $parameter): self|Throwable
