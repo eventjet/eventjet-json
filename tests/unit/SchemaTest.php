@@ -185,6 +185,22 @@ final class SchemaTest extends TestCase
                 'additionalProperties' => false,
             ],
         ];
+        yield UnionWithoutClasses::class => [
+            UnionWithoutClasses::class,
+            [
+                'type' => 'object',
+                'properties' => [
+                    'val' => [
+                        'anyOf' => [
+                            ['type' => 'string'],
+                            ['type' => 'integer'],
+                        ],
+                    ],
+                ],
+                'required' => ['val'],
+                'additionalProperties' => false,
+            ],
+        ];
     }
 
     /**
@@ -201,13 +217,6 @@ final class SchemaTest extends TestCase
             sprintf(
                 'Failed to infer schema for %s::val: Missing type. If you want it to accept anything, use "mixed" as type.',
                 MissingConstructorArgumentType::class,
-            ),
-        ];
-        yield UnionWithoutClasses::class => [
-            UnionWithoutClasses::class,
-            sprintf(
-                'Failed to infer schema for %s::val: Unsupported union or intersection type string|int.',
-                UnionWithoutClasses::class,
             ),
         ];
         yield UnknownPropertyType::class => [

@@ -11,9 +11,12 @@ use Override;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionType;
+use ReflectionUnionType;
 use Throwable;
 use UnitEnum;
 
+use function array_unshift;
 use function class_exists;
 use function count;
 use function is_a;
@@ -26,6 +29,7 @@ final readonly class Schema implements JsonSerializable
      * @param array<string, self> $properties
      * @param list<string> $required
      * @param list<string|int> $enum
+     * @param list<self> $anyOf
      */
     private function __construct(
         public string|null $type = null,
@@ -35,8 +39,8 @@ final readonly class Schema implements JsonSerializable
         public mixed $const = null,
         public array $enum = [],
         public self|null $items = null,
+        public array $anyOf = [],
     ) {
-
     }
 
     public static function inferFromType(string|ArrayOf $type): self|Throwable
@@ -156,21 +160,36 @@ final readonly class Schema implements JsonSerializable
         if ($paramType === null) {
             return new LogicException('Missing type. If you want it to accept anything, use "mixed" as type.');
         }
-        if (!$paramType instanceof ReflectionNamedType) {
-            return new LogicException(sprintf(
-                'Unsupported union or intersection type %s.',
-                (string)$paramType,
-            ));
-        }
-        $paramTypeName = $paramType->getName();
-        if ($paramTypeName === 'array') {
+        if ($paramType instanceof ReflectionNamedType && $paramType->getName() === 'array') {
             $itemType = self::inferFromArrayParameter($parameter);
             if ($itemType instanceof Throwable) {
                 return $itemType;
             }
             return $itemType;
         }
-        $propertySchema = self::inferFromType($paramTypeName);
+        return self::inferFromReflectionType($paramType);
+    }
+
+    private static function inferFromReflectionType(ReflectionType $type): self|Throwable
+    {
+        if ($type instanceof ReflectionUnionType) {
+            $schemas = [];
+            foreach ($type->getTypes() as $unionType) {
+                $schema = self::inferFromReflectionType($unionType);
+                if ($schema instanceof Throwable) {
+                    return $schema;
+                }
+                $schemas[] = $schema;
+            }
+            return self::anyOf(...$schemas);
+        }
+        if (!$type instanceof ReflectionNamedType) {
+            return new LogicException(sprintf(
+                'Unsupported union or intersection type %s.',
+                (string)$type,
+            ));
+        }
+        $propertySchema = self::inferFromType($type->getName());
         if ($propertySchema instanceof Throwable) {
             return $propertySchema;
         }
@@ -201,6 +220,15 @@ final readonly class Schema implements JsonSerializable
     }
 
     /**
+     * @no-named-arguments
+     */
+    private static function anyOf(self $schema, self ...$schemas): self
+    {
+        array_unshift($schemas, $schema);
+        return new self(anyOf: $schemas);
+    }
+
+    /**
      * @return array<string, mixed>|true
      */
     #[Override]
@@ -226,11 +254,14 @@ final readonly class Schema implements JsonSerializable
         if (count($this->enum) !== 0) {
             $data['enum'] = $this->enum;
         }
-        if (count($data) === 0) {
-            return true;
-        }
         if ($this->items !== null) {
             $data['items'] = $this->items;
+        }
+        if (count($this->anyOf) !== 0) {
+            $data['anyOf'] = $this->anyOf;
+        }
+        if (count($data) === 0) {
+            return true;
         }
         return $data;
     }
