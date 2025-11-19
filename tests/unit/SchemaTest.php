@@ -19,6 +19,7 @@ use Eventjet\Test\Unit\Json\Fixtures\OptionalStringDefaultNull;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredMixed;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredNestedObject;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredString;
+use Eventjet\Test\Unit\Json\Fixtures\StringFormatDate;
 use Eventjet\Test\Unit\Json\Fixtures\TakesIntersection;
 use Eventjet\Test\Unit\Json\Fixtures\TakesNonBackedEnum;
 use Eventjet\Test\Unit\Json\Fixtures\TakesStringEnum;
@@ -202,6 +203,20 @@ final class SchemaTest extends TestCase
                     ],
                 ],
                 'required' => ['val'],
+                'additionalProperties' => false,
+            ],
+        ];
+        yield StringFormatDate::class => [
+            StringFormatDate::class,
+            [
+                'type' => 'object',
+                'properties' => [
+                    'date' => [
+                        'type' => 'string',
+                        'format' => 'date',
+                    ],
+                ],
+                'required' => ['date'],
                 'additionalProperties' => false,
             ],
         ];

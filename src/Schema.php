@@ -17,13 +17,17 @@ use Throwable;
 use UnitEnum;
 
 use function array_unshift;
+use function assert;
 use function class_exists;
 use function count;
+use function get_object_vars;
 use function is_a;
 use function sprintf;
 
 /**
  * This class isn't `final` on purpose so it can be extended in order to be used in attributes.
+ *
+ * @api
  */
 readonly class Schema implements JsonSerializable
 {
@@ -43,6 +47,7 @@ readonly class Schema implements JsonSerializable
         public array $enum = [],
         public self|null $items = null,
         public array $anyOf = [],
+        public string|null $format = null,
     ) {
     }
 
@@ -76,40 +81,6 @@ readonly class Schema implements JsonSerializable
         };
     }
 
-    /**
-     * @param class-string $type
-     */
-    private static function inferFromClassName(string $type): self|Throwable
-    {
-        if (is_a($type, UnitEnum::class, true)) {
-            return self::inferFromEnum($type);
-        }
-        $constructor = (new ReflectionClass($type))->getConstructor();
-        $properties = [];
-        $required = [];
-        if ($constructor !== null) {
-            foreach ($constructor->getParameters() as $parameter) {
-                $parameterSchema = self::inferFromReflectionParameter($parameter);
-                if ($parameterSchema instanceof Throwable) {
-                    return new LogicException(
-                        sprintf(
-                            'Failed to infer schema for %s::%s: %s',
-                            $type,
-                            $parameter->getName(),
-                            $parameterSchema->getMessage(),
-                        ),
-                        previous: $parameterSchema,
-                    );
-                }
-                $properties[$parameter->getName()] = $parameterSchema;
-                if (!$parameter->isOptional()) {
-                    $required[] = $parameter->getName();
-                }
-            }
-        }
-        return new self('object', $properties, $required, additionalProperties: false);
-    }
-
     public static function string(): self
     {
         return new self('string');
@@ -141,6 +112,44 @@ readonly class Schema implements JsonSerializable
     }
 
     /**
+     * @param class-string $type
+     */
+    private static function inferFromClassName(string $type): self|Throwable
+    {
+        if (is_a($type, UnitEnum::class, true)) {
+            return self::inferFromEnum($type);
+        }
+        $constructor = (new ReflectionClass($type))->getConstructor();
+        $properties = [];
+        $required = [];
+        if ($constructor !== null) {
+            foreach ($constructor->getParameters() as $parameter) {
+                $parameterSchema = self::inferFromReflectionParameter($parameter);
+                if ($parameterSchema instanceof Throwable) {
+                    return new LogicException(
+                        sprintf(
+                            'Failed to infer schema for %s::%s: %s',
+                            $type,
+                            $parameter->getName(),
+                            $parameterSchema->getMessage(),
+                        ),
+                        previous: $parameterSchema,
+                    );
+                }
+                $format = self::getOptionalAttribute($parameter, Format::class)?->format;
+                if ($format !== null) {
+                    $parameterSchema = $parameterSchema->withFormat($format);
+                }
+                $properties[$parameter->getName()] = $parameterSchema;
+                if (!$parameter->isOptional()) {
+                    $required[] = $parameter->getName();
+                }
+            }
+        }
+        return new self('object', $properties, $required, additionalProperties: false);
+    }
+
+    /**
      * @param class-string<UnitEnum> $type
      */
     private static function inferFromEnum(string $type): self|Throwable
@@ -164,11 +173,11 @@ readonly class Schema implements JsonSerializable
             return new LogicException('Missing type. If you want it to accept anything, use "mixed" as type.');
         }
         if ($paramType instanceof ReflectionNamedType && $paramType->getName() === 'array') {
-            $itemType = self::inferFromArrayParameter($parameter);
-            if ($itemType instanceof Throwable) {
-                return $itemType;
+            $schema = self::inferFromArrayParameter($parameter);
+            if ($schema instanceof Throwable) {
+                return $schema;
             }
-            return $itemType;
+            return $schema;
         }
         return self::inferFromReflectionType($paramType);
     }
@@ -232,6 +241,29 @@ readonly class Schema implements JsonSerializable
     }
 
     /**
+     * @template T of object
+     * @param class-string<T> $class
+     * @return T|null
+     */
+    private static function getOptionalAttribute(ReflectionParameter $attributeTarget, string $class): object|null
+    {
+        $attributes = $attributeTarget->getAttributes($class);
+        $n = count($attributes);
+        if ($n === 0) {
+            return null;
+        }
+        if ($n > 1) {
+            throw new LogicException(sprintf(
+                'Multiple attributes of type %s found; only one is allowed.',
+                $class,
+            ));
+        }
+        $attribute = $attributes[0]->newInstance();
+        assert($attribute instanceof $class);
+        return $attribute;
+    }
+
+    /**
      * @return array<string, mixed>|true
      */
     #[Override]
@@ -263,9 +295,20 @@ readonly class Schema implements JsonSerializable
         if (count($this->anyOf) !== 0) {
             $data['anyOf'] = $this->anyOf;
         }
+        if ($this->format !== null) {
+            $data['format'] = $this->format;
+        }
         if (count($data) === 0) {
             return true;
         }
         return $data;
+    }
+
+    public function withFormat(string $format): self
+    {
+        $data = get_object_vars($this);
+        $data['format'] = $format;
+        /** @phpstan-ignore-next-line argument.type */
+        return new self(...$data);
     }
 }
