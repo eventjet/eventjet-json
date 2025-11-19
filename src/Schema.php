@@ -34,7 +34,7 @@ readonly class Schema implements JsonSerializable
      * @param list<string|int> $enum
      * @param list<self> $anyOf
      */
-    private function __construct(
+    protected function __construct(
         public string|null $type = null,
         public array $properties = [],
         public array $required = [],
