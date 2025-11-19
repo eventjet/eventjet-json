@@ -107,32 +107,32 @@ final readonly class Schema implements JsonSerializable
         return new self('object', $properties, $required, additionalProperties: false);
     }
 
-    private static function string(): self
+    public static function string(): self
     {
         return new self('string');
     }
 
-    private static function integer(): self
+    public static function integer(): self
     {
         return new self('integer');
     }
 
-    private static function number(): self
+    public static function number(): self
     {
         return new self('number');
     }
 
-    private static function boolean(): self
+    public static function boolean(): self
     {
         return new self('boolean');
     }
 
-    private static function const(mixed $value): self
+    public static function const(mixed $value): self
     {
         return new self(const: $value);
     }
 
-    private static function null(): self
+    public static function null(): self
     {
         return new self('null');
     }
