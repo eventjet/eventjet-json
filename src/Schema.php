@@ -10,6 +10,7 @@ use LogicException;
 use Override;
 use ReflectionClass;
 use ReflectionNamedType;
+use ReflectionObject;
 use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
@@ -136,10 +137,7 @@ readonly class Schema implements JsonSerializable
                         previous: $parameterSchema,
                     );
                 }
-                $format = self::getOptionalAttribute($parameter, Format::class)?->format;
-                if ($format !== null) {
-                    $parameterSchema = $parameterSchema->withFormat($format);
-                }
+                $parameterSchema = self::applySchemaAttributes($parameterSchema, $parameter);
                 $properties[$parameter->getName()] = $parameterSchema;
                 if (!$parameter->isOptional()) {
                     $required[] = $parameter->getName();
@@ -168,6 +166,26 @@ readonly class Schema implements JsonSerializable
 
     private static function inferFromReflectionParameter(ReflectionParameter $parameter): self|Throwable
     {
+        //        $scalar = null;
+        //        foreach ($parameter->getAttributes() as $reflectionAttribute) {
+        //            if (!is_a($reflectionAttribute->getName(), JsonScalar::class, true)) {
+        //                continue;
+        //            }
+        //            if ($scalar !== null) {
+        //                return new LogicException(sprintf(
+        //                    'Multiple Scalar attributes (%s and %s) found; only one is allowed.',
+        //                    $scalar::class,
+        //                    $reflectionAttribute->getName(),
+        //                ));
+        //            }
+        //            /** @var JsonScalar $attribute */
+        //            $attribute = $reflectionAttribute->newInstance();
+        //            $scalar = $attribute;
+        //        }
+        //        if ($scalar !== null) {
+        //            // TODO: validate that the scalar type matches the parameter type?
+        //            return $scalar->schema();
+        //        }
         $paramType = $parameter->getType();
         if ($paramType === null) {
             return new LogicException('Missing type. If you want it to accept anything, use "mixed" as type.');
@@ -179,7 +197,15 @@ readonly class Schema implements JsonSerializable
             }
             return $schema;
         }
-        return self::inferFromReflectionType($paramType);
+        $schema = self::inferFromReflectionType($paramType);
+        if ($schema instanceof Throwable) {
+            return $schema;
+        }
+        $refTarget = self::getOptionalAttribute($parameter, Ref::class)?->target;
+        if ($refTarget !== null) {
+            $schema = self::applySchemaAttributes($schema, new ReflectionObject($refTarget));
+        }
+        return $schema;
     }
 
     private static function inferFromReflectionType(ReflectionType $type): self|Throwable
@@ -245,9 +271,9 @@ readonly class Schema implements JsonSerializable
      * @param class-string<T> $class
      * @return T|null
      */
-    private static function getOptionalAttribute(ReflectionParameter $attributeTarget, string $class): object|null
+    private static function getOptionalAttribute(ReflectionParameter|ReflectionObject $target, string $class): object|null
     {
-        $attributes = $attributeTarget->getAttributes($class);
+        $attributes = $target->getAttributes($class);
         $n = count($attributes);
         if ($n === 0) {
             return null;
@@ -261,6 +287,15 @@ readonly class Schema implements JsonSerializable
         $attribute = $attributes[0]->newInstance();
         assert($attribute instanceof $class);
         return $attribute;
+    }
+
+    private static function applySchemaAttributes(self $schema, ReflectionParameter|ReflectionObject $target): self
+    {
+        $format = self::getOptionalAttribute($target, Format::class)?->format;
+        if ($format !== null) {
+            $schema = $schema->withFormat($format);
+        }
+        return $schema;
     }
 
     /**
@@ -304,7 +339,7 @@ readonly class Schema implements JsonSerializable
         return $data;
     }
 
-    public function withFormat(string $format): self
+    private function withFormat(string $format): self
     {
         $data = get_object_vars($this);
         $data['format'] = $format;

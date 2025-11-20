@@ -20,6 +20,7 @@ use Eventjet\Test\Unit\Json\Fixtures\RequiredMixed;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredNestedObject;
 use Eventjet\Test\Unit\Json\Fixtures\RequiredString;
 use Eventjet\Test\Unit\Json\Fixtures\StringFormatDate;
+use Eventjet\Test\Unit\Json\Fixtures\TakesAccountId;
 use Eventjet\Test\Unit\Json\Fixtures\TakesIntersection;
 use Eventjet\Test\Unit\Json\Fixtures\TakesNonBackedEnum;
 use Eventjet\Test\Unit\Json\Fixtures\TakesStringEnum;
@@ -217,6 +218,17 @@ final class SchemaTest extends TestCase
                     ],
                 ],
                 'required' => ['date'],
+                'additionalProperties' => false,
+            ],
+        ];
+        yield TakesAccountId::class => [
+            TakesAccountId::class,
+            [
+                'type' => 'object',
+                'properties' => [
+                    'accountId' => ['type' => 'string', 'format' => 'uuid'],
+                ],
+                'required' => ['accountId'],
                 'additionalProperties' => false,
             ],
         ];

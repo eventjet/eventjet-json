@@ -307,7 +307,11 @@ If a required nested object is missing from JSON, decoding fails with a `JsonErr
 
 Extra fields in the JSON object that do not correspond to constructor parameters are **ignored**. They do not cause an error and are not stored anywhere.
 
-## Arrays and the `#[ArrayOf]` attribute
+### Reusing schema metadata with attributes
+
+In addition to type hints, you can influence the generated JSON Schema with attributes.
+
+#### `#[ArrayOf]` for arrays
 
 Arrays are supported via the `Eventjet\Json\ArrayOf` attribute applied to `array`-typed constructor parameters.
 
@@ -421,6 +425,49 @@ Docblock array types (PHPStan/Psalm):
 - Docblock types such as `list<string>`, `array<int, Foo>`, or `array<string, Bar>` are not enforced by the decoder today; `#[ArrayOf(...)]` is the runtime source of truth.
 - Until docblock support lands, you should keep `#[ArrayOf(...)]` and your docblock types (e.g., `list<...>`) in sync manually.
 - Supporting PHPStan/Psalm-style docblock types is an explicit goal of the project and may be added in a future release.
+
+#### `#[Format]` and `#[Ref]` for reusable scalars
+
+Sometimes you want to describe a reusable scalar concept (for example an `AccountId` that is always a UUID) and apply the same JSON Schema metadata in multiple places.
+
+You can attach a `Format` to a class, and then reference that class from constructor parameters using `Ref`:
+
+```php
+use Attribute;
+use Eventjet\Json\Format;
+use Eventjet\Json\Ref;
+
+#[Attribute(Attribute::TARGET_PARAMETER | Attribute::TARGET_CLASS)]
+#[Format('uuid')]
+final class AccountId
+{
+}
+
+final class TakesAccountId
+{
+    public function __construct(#[Ref(new AccountId())] public string $accountId)
+    {
+    }
+}
+```
+
+When you build a schema from `TakesAccountId`, the `accountId` property will be inferred as a string with the `uuid` format:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "accountId": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": ["accountId"],
+  "additionalProperties": false
+}
+```
+
+The `Ref` attribute tells the schema generator to apply supported schema-related attributes found on the referenced object (such as `Format`) to the parameter schema. This lets you keep the JSON Schema for common scalar concepts in one place and reuse it across your model.
 
 ## Error handling with `JsonError`
 
