@@ -5,25 +5,34 @@ declare(strict_types=1);
 namespace Eventjet\Json;
 
 use BackedEnum;
+use Eventjet\Json\Exception\InvalidEnumValueException;
+use Eventjet\Json\Exception\InvalidJsonException;
+use Eventjet\Json\Exception\MissingFieldException;
+use Eventjet\Json\Exception\TypeMismatchException;
+use Eventjet\Json\Exception\TypeParseException;
+use Eventjet\Json\Exception\UnsupportedTypeException;
+use Eventjet\Json\Type\ClassType;
+use Eventjet\Json\Type\ListType;
+use Eventjet\Json\Type\MapType;
+use Eventjet\Json\Type\ParsedType;
+use Eventjet\Json\Type\PrimitiveType;
+use Eventjet\Json\Type\TypeParser;
+use Eventjet\Json\Type\UnionType;
 use ReflectionClass;
 use ReflectionEnum;
-use ReflectionIntersectionType;
 use ReflectionNamedType;
 use ReflectionParameter;
-use ReflectionType;
 use ReflectionUnionType;
 use stdClass;
-use Throwable;
-use UnitEnum;
 
-use function array_filter;
 use function array_is_list;
-use function array_map;
+use function array_key_exists;
 use function assert;
 use function class_exists;
 use function count;
-use function gettype;
-use function implode;
+use function enum_exists;
+use function get_debug_type;
+use function in_array;
 use function is_a;
 use function is_array;
 use function is_bool;
@@ -31,352 +40,680 @@ use function is_float;
 use function is_int;
 use function is_string;
 use function json_decode;
-use function json_encode;
-use function preg_match;
-use function property_exists;
+use function json_last_error;
+use function json_last_error_msg;
 use function sprintf;
 
-use const JSON_THROW_ON_ERROR;
+use const JSON_ERROR_NONE;
 
 final class Json
 {
     /**
+     * Decode JSON into PHP values.
+     *
+     * The $type parameter supports a subset of PHPStan/Psalm/PhpStorm-compatible type syntax:
+     * - Primitives: `'string'`, `'int'`, `'float'`, `'bool'`, `'null'`
+     * - Class names: `MyClass::class` or `'My\Namespace\MyClass'`
+     * - Backed enums: `MyEnum::class`
+     * - List types: `'list<string>'`, `'list<MyClass>'`, `'list<list<int>>'`
+     * - Map types: `'array<string, int>'`, `'array<string, MyClass>'`
+     * - Union types: `'string|null'`, `'list<string>|array<string, int>'`
+     *
      * @template T of object
-     * @param class-string<T> $class
-     * @return T
+     * @param class-string<T>|null $type
+     * @return ($type is null ? mixed : T)
+     * @throws Exception\JsonDecodeException
      */
-    public static function decode(string $json, string $class): object
+    public static function decode(string $json, string|null $type = null): mixed
     {
-        $data = json_decode($json, associative: false, flags: JSON_THROW_ON_ERROR);
-        if (!$data instanceof stdClass) {
-            throw JsonError::decodeFailed('Expected JSON object at the root.');
+        /** @psalm-suppress MixedAssignment json_decode returns mixed by design */
+        $decoded = json_decode($json);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new InvalidJsonException(json_last_error_msg());
         }
-        return self::createObject($data, $class);
+
+        if ($type === null) {
+            /** @psalm-suppress MixedReturnStatement Return type is mixed when $type is null */
+            return self::decodeWithoutType($decoded);
+        }
+
+        $parser = new TypeParser();
+        $parsedType = $parser->parse($type);
+
+        /** @psalm-suppress MixedReturnStatement Return type depends on $type which is validated at runtime */
+        return self::decodeWithParsedType($decoded, $parsedType, 'root', 'root');
+    }
+
+    private static function decodeWithoutType(mixed $value): mixed
+    {
+        if ($value === null || is_bool($value) || is_int($value) || is_float($value) || is_string($value)) {
+            return $value;
+        }
+
+        throw new UnsupportedTypeException(
+            sprintf('Cannot decode JSON %s without a type argument', get_debug_type($value)),
+        );
     }
 
     /**
-     * @template T of object
-     * @param class-string<T> $class
-     * @return T
+     * @param class-string<BackedEnum> $enumClass
      */
-    private static function createObject(stdClass $data, string $class): object
+    private static function decodeBackedEnum(mixed $value, string $enumClass): BackedEnum
     {
-        $arguments = self::buildConstructorArguments($data, $class);
-        try {
-            /** @psalm-suppress MixedMethodCall */
-            return new $class(...$arguments);
-        } catch (Throwable $e) {
-            $result = preg_match(
-                '/Argument #\d+ \(\$(?<name>.+)\) must be of type (?<expected>.+), (?<got>.+) given, called in/',
-                $e->getMessage(),
-                $matches,
-            );
-            if ($result !== 1) {
-                throw $e;
-            }
-            throw JsonError::decodeFailed(sprintf(
-                'Field "%s" expected to be of type %s, got %s.',
-                $matches['name'],
-                $matches['expected'],
-                $matches['got'],
-            ), $e);
-        }
-    }
+        $reflection = new ReflectionEnum($enumClass);
+        $backingType = $reflection->getBackingType();
+        assert(
+            $backingType instanceof ReflectionNamedType,
+            'BackedEnum always has a backing type; unbacked enums are rejected in decodeWithType()',
+        );
+        $backingTypeName = $backingType->getName();
 
-    /**
-     * @param class-string $class
-     * @return array<string, mixed>
-     */
-    private static function buildConstructorArguments(stdClass $data, string $class): array
-    {
-        $constructor = (new ReflectionClass($class))->getConstructor();
-        if ($constructor === null) {
-            throw JsonError::decodeFailed(sprintf('Class %s does not have a constructor.', $class));
-        }
-        $args = [];
-        foreach ($constructor->getParameters() as $parameter) {
-            if (!property_exists($data, $parameter->name)) {
-                if ($parameter->isOptional()) {
-                    continue;
-                }
-                throw JsonError::decodeFailed(
-                    sprintf('Missing required property "%s" in JSON data for class %s.', $parameter->getName(), $class),
+        if ($backingTypeName === 'string') {
+            if (!is_string($value)) {
+                throw new TypeMismatchException(
+                    sprintf('Expected string for enum %s, got %s', $enumClass, get_debug_type($value)),
                 );
             }
-            /** @psalm-suppress MixedAssignment */
-            $value = self::buildConstructorArgument($data, $parameter);
-            /** @psalm-suppress MixedAssignment */
-            $args[$parameter->name] = $value;
+        } else {
+            if (!is_int($value)) {
+                throw new TypeMismatchException(
+                    sprintf('Expected int for enum %s, got %s', $enumClass, get_debug_type($value)),
+                );
+            }
         }
-        return $args;
+
+        $case = $enumClass::tryFrom($value);
+
+        if ($case === null) {
+            $valueStr = is_string($value) ? $value : (string)$value;
+            throw new InvalidEnumValueException(
+                sprintf('Invalid value %s for enum %s', $valueStr, $enumClass),
+            );
+        }
+
+        return $case;
     }
 
-    private static function buildConstructorArgument(stdClass $data, ReflectionParameter $parameter): mixed
+    /**
+     * @template T of object
+     * @param class-string<T> $className
+     * @return T
+     */
+    private static function decodeClass(mixed $value, string $className): object
     {
-        /** @var mixed $value */
-        $value = $data->{$parameter->name};
-        $parameterType = $parameter->getType();
-        $class = $parameter->getDeclaringClass();
-        assert($class !== null);
-        if ($parameterType instanceof ReflectionNamedType) {
-            $typeName = $parameterType->getName();
-            $className = $class->getName();
-            if ($parameter->isOptional() && $parameter->getDefaultValue() === null && $value === null) {
-                return null;
+        if (!$value instanceof stdClass) {
+            throw new TypeMismatchException(
+                sprintf('Expected object for %s, got %s', $className, get_debug_type($value)),
+            );
+        }
+
+        $reflection = new ReflectionClass($className);
+        $constructor = $reflection->getConstructor();
+
+        if ($constructor === null) {
+            return $reflection->newInstance();
+        }
+
+        $args = [];
+        foreach ($constructor->getParameters() as $param) {
+            /** @psalm-suppress MixedAssignment Constructor args are intentionally mixed, validated at runtime */
+            $args[] = self::resolveParameter($param, $value, $className);
+        }
+
+        return $reflection->newInstanceArgs($args);
+    }
+
+    private static function resolveParameter(ReflectionParameter $param, stdClass $data, string $className): mixed
+    {
+        $name = $param->getName();
+        $hasValue = array_key_exists($name, (array)$data);
+
+        if (!$hasValue) {
+            if ($param->isDefaultValueAvailable()) {
+                return $param->getDefaultValue();
             }
-            if ($typeName === 'object') {
-                throw JsonError::decodeFailed(sprintf(
-                    '"object" is not allowed as a type for property "%s" in class %s, use a specific class name instead.',
-                    $parameter->name,
-                    $className,
-                ));
+            throw new MissingFieldException(
+                sprintf('Missing required field "%s" for class %s', $name, $className),
+            );
+        }
+
+        /** @psalm-suppress MixedAssignment stdClass property access returns mixed, validated below */
+        $value = $data->{$name};
+        $type = $param->getType();
+
+        if ($type === null) {
+            return $value;
+        }
+
+        if ($type instanceof ReflectionUnionType) {
+            return self::resolveUnionType($type, $value, $name, $className, $param);
+        }
+
+        if ($type instanceof ReflectionNamedType) {
+            return self::resolveNamedType($type, $value, $name, $className, $param);
+        }
+
+        throw new UnsupportedTypeException(
+            sprintf('Unsupported type for field "%s" in class %s', $name, $className),
+        );
+    }
+
+    private static function resolveUnionType(
+        ReflectionUnionType $type,
+        mixed $value,
+        string $fieldName,
+        string $className,
+        ReflectionParameter|null $param = null,
+    ): mixed {
+        $namedTypes = $type->getTypes();
+        $classTypes = [];
+        $primitiveTypes = [];
+        $hasArray = false;
+
+        foreach ($namedTypes as $namedType) {
+            assert(
+                $namedType instanceof ReflectionNamedType,
+                'PHP union types can only contain named types (ReflectionNamedType)',
+            );
+            $typeName = $namedType->getName();
+            if ($namedType->isBuiltin()) {
+                if ($typeName === 'array') {
+                    $hasArray = true;
+                } else {
+                    $primitiveTypes[] = $typeName;
+                }
+            } elseif (class_exists($typeName) || is_a($typeName, BackedEnum::class, true)) {
+                $classTypes[] = $typeName;
             }
+        }
+
+        if (count($classTypes) > 1) {
+            throw new UnsupportedTypeException(
+                sprintf('Class unions are not supported for field "%s" in class %s', $fieldName, $className),
+            );
+        }
+
+        if ($value === null && in_array('null', $primitiveTypes, true)) {
+            return null;
+        }
+
+        if (is_string($value) && in_array('string', $primitiveTypes, true)) {
+            return $value;
+        }
+
+        if (is_int($value) && in_array('int', $primitiveTypes, true)) {
+            return $value;
+        }
+
+        if (is_float($value) && in_array('float', $primitiveTypes, true)) {
+            return $value;
+        }
+
+        if (is_bool($value) && in_array('bool', $primitiveTypes, true)) {
+            return $value;
+        }
+
+        if ($value instanceof stdClass && count($classTypes) === 1) {
+            return self::decodeClass($value, $classTypes[0]);
+        }
+
+        if ((is_array($value) || $value instanceof stdClass) && $hasArray && $param !== null) {
+            return self::resolveArrayType($param, $value, $fieldName, $className);
+        }
+
+        throw new TypeMismatchException(
+            sprintf(
+                'Type mismatch for field "%s" in class %s: expected one of union types, got %s',
+                $fieldName,
+                $className,
+                get_debug_type($value),
+            ),
+        );
+    }
+
+    private static function resolveNamedType(
+        ReflectionNamedType $type,
+        mixed $value,
+        string $fieldName,
+        string $className,
+        ReflectionParameter|null $param = null,
+    ): mixed {
+        $typeName = $type->getName();
+
+        if ($type->allowsNull() && $value === null) {
+            return null;
+        }
+
+        if ($type->isBuiltin()) {
             if ($typeName === 'array') {
-                $itemType = self::getArrayItemType($parameter);
-                if (!is_array($value)) {
-                    throw JsonError::decodeFailed(sprintf(
-                        'Expected array for property "%s", got %s.',
-                        $parameter->name,
-                        self::jsonTypeOfPhpValue($value),
-                    ));
+                if ($param === null) {
+                    throw new UnsupportedTypeException(
+                        sprintf('Array type is not supported for field "%s" in class %s', $fieldName, $className),
+                    );
                 }
-                assert(array_is_list($value));
-                $array = [];
-                /** @var mixed $itemValue */
-                foreach ($value as $index => $itemValue) {
-                    /** @psalm-suppress MixedAssignment */
-                    $array[] = self::arrayItem($itemValue, $itemType, $index);
-                }
-                return $array;
+                return self::resolveArrayType($param, $value, $fieldName, $className);
             }
-            if ($value instanceof stdClass) {
-                if ($typeName === 'mixed') {
-                    throw JsonError::decodeFailed(sprintf(
-                        'To populate a property with an object, it must have a specific class type instead of mixed (property "%s" in class %s).',
-                        $parameter->name,
+            return self::resolvePrimitiveType($typeName, $value, $fieldName, $className);
+        }
+
+        if (is_a($typeName, BackedEnum::class, true)) {
+            return self::decodeBackedEnum($value, $typeName);
+        }
+
+        if (class_exists($typeName)) {
+            return self::decodeClass($value, $typeName);
+        }
+
+        throw new UnsupportedTypeException(
+            sprintf('Unknown type %s for field "%s" in class %s', $typeName, $fieldName, $className),
+        );
+    }
+
+    private static function resolvePrimitiveType(
+        string $typeName,
+        mixed $value,
+        string $fieldName,
+        string $className,
+    ): mixed {
+        return match ($typeName) {
+            'string' => is_string($value)
+                ? $value
+                : throw new TypeMismatchException(
+                    sprintf(
+                        'Expected string for field "%s" in class %s, got %s',
+                        $fieldName,
                         $className,
-                    ));
+                        get_debug_type($value),
+                    ),
+                ),
+            'int' => is_int($value)
+                ? $value
+                : throw new TypeMismatchException(
+                    sprintf(
+                        'Expected int for field "%s" in class %s, got %s',
+                        $fieldName,
+                        $className,
+                        get_debug_type($value),
+                    ),
+                ),
+            'float' => is_float($value) || is_int($value)
+                ? (float)$value
+                : throw new TypeMismatchException(
+                    sprintf(
+                        'Expected float for field "%s" in class %s, got %s',
+                        $fieldName,
+                        $className,
+                        get_debug_type($value),
+                    ),
+                ),
+            'bool' => is_bool($value)
+                ? $value
+                : throw new TypeMismatchException(
+                    sprintf(
+                        'Expected bool for field "%s" in class %s, got %s',
+                        $fieldName,
+                        $className,
+                        get_debug_type($value),
+                    ),
+                ),
+            default => throw new UnsupportedTypeException(
+                sprintf('Unsupported primitive type %s for field "%s" in class %s', $typeName, $fieldName, $className),
+            ),
+        };
+    }
+
+    /**
+     * @return list<mixed>|array<string, mixed>
+     */
+    private static function resolveArrayType(
+        ReflectionParameter $param,
+        mixed $value,
+        string $fieldName,
+        string $className,
+    ): array {
+        $docComment = $param->getDeclaringFunction()->getDocComment();
+        if ($docComment === false) {
+            throw new UnsupportedTypeException(
+                sprintf(
+                    'Array field "%s" in class %s requires a @param docblock annotation with list<T> or array<string, T> type',
+                    $fieldName,
+                    $className,
+                ),
+            );
+        }
+
+        $docblockParser = new DocblockParser();
+        $typeString = $docblockParser->getParamType($docComment, $fieldName);
+        if ($typeString === null) {
+            throw new UnsupportedTypeException(
+                sprintf(
+                    'Array field "%s" in class %s requires a @param docblock annotation with list<T> or array<string, T> type',
+                    $fieldName,
+                    $className,
+                ),
+            );
+        }
+
+        $resolver = new UseStatementResolver();
+        $parser = new TypeParser(static fn(string $name): string => $resolver->resolve($name, $className));
+        try {
+            $parsedType = $parser->parse($typeString);
+        } catch (TypeParseException $e) {
+            throw new UnsupportedTypeException(
+                sprintf(
+                    'Array field "%s" in class %s: %s',
+                    $fieldName,
+                    $className,
+                    $e->getMessage(),
+                ),
+                0,
+                $e,
+            );
+        }
+
+        $mapType = self::extractMapTypeFromParsed($parsedType);
+        $listType = self::extractListTypeFromParsed($parsedType);
+
+        // Handle unions like list<T>|array<string, T> by checking the actual value type
+        if ($value instanceof stdClass && $mapType !== null) {
+            return self::decodeMap($value, $mapType->valueType, $fieldName, $className);
+        }
+
+        if (is_array($value) && $listType !== null) {
+            if ($value !== [] && !array_is_list($value)) {
+                throw new TypeMismatchException(
+                    sprintf('Expected list for field "%s" in class %s, got associative array', $fieldName, $className),
+                );
+            }
+            return self::decodeList($value, $listType->inner, $fieldName, $className);
+        }
+
+        // Provide specific error messages based on what types were expected
+        if ($mapType !== null && $listType !== null) {
+            throw new TypeMismatchException(
+                sprintf('Expected array or object for field "%s" in class %s, got %s', $fieldName, $className, get_debug_type($value)),
+            );
+        }
+
+        if ($mapType !== null) {
+            throw new TypeMismatchException(
+                sprintf('Expected object for field "%s" in class %s, got %s', $fieldName, $className, get_debug_type($value)),
+            );
+        }
+
+        if ($listType !== null) {
+            throw new TypeMismatchException(
+                sprintf('Expected array for field "%s" in class %s, got %s', $fieldName, $className, get_debug_type($value)),
+            );
+        }
+
+        throw new UnsupportedTypeException(
+            sprintf(
+                'Array field "%s" in class %s must use list<T> or array<string, T> syntax, got "%s"',
+                $fieldName,
+                $className,
+                $typeString,
+            ),
+        );
+    }
+
+    /**
+     * Extract a ListType from a parsed type, handling unions like list<T>|null.
+     */
+    private static function extractListTypeFromParsed(ParsedType $type): ListType|null
+    {
+        if ($type instanceof ListType) {
+            return $type;
+        }
+
+        if ($type instanceof UnionType) {
+            foreach ($type->types as $innerType) {
+                if ($innerType instanceof ListType) {
+                    return $innerType;
                 }
-                if (class_exists($typeName)) {
-                    return self::createObject($value, $typeName);
-                }
-                throw JsonError::decodeFailed(sprintf(
-                    'Can\'t populate property "%s" of type %s with JSON object.',
-                    $parameter->name,
-                    $typeName,
-                ));
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<mixed> $value
+     * @return list<mixed>
+     */
+    private static function decodeList(array $value, ParsedType $innerType, string $fieldName, string $className): array
+    {
+        $result = [];
+        /** @psalm-suppress MixedAssignment Array items are intentionally mixed */
+        foreach ($value as $index => $item) {
+            $result[] = self::decodeWithParsedType($item, $innerType, "{$fieldName}[{$index}]", $className);
+        }
+        return $result;
+    }
+
+    private static function decodeWithParsedType(
+        mixed $value,
+        ParsedType $type,
+        string $fieldName,
+        string $contextClass,
+    ): mixed {
+        if ($type instanceof PrimitiveType) {
+            return self::decodeParsedPrimitive($value, $type, $fieldName, $contextClass);
+        }
+
+        if ($type instanceof ClassType) {
+            $typeName = $type->className;
+            if (is_a($typeName, BackedEnum::class, true)) {
+                return self::decodeBackedEnum($value, $typeName);
+            }
+            if (enum_exists($typeName)) {
+                throw new UnsupportedTypeException(
+                    sprintf('Enum %s is not backed', $typeName),
+                );
             }
             if (class_exists($typeName)) {
-                if (is_a($typeName, UnitEnum::class, true)) {
-                    return self::createEnumCase($value, $typeName);
-                }
+                return self::decodeClass($value, $typeName);
             }
+            throw new UnsupportedTypeException(
+                sprintf('Class %s does not exist for field "%s" in class %s', $typeName, $fieldName, $contextClass),
+            );
         }
-        if ($parameterType instanceof ReflectionUnionType) {
-            if ($value instanceof stdClass) {
-                $classTypes = self::classTypes($parameterType->getTypes());
-                $numberOfClassTypes = count($classTypes);
-                if ($numberOfClassTypes === 0) {
-                    throw JsonError::decodeFailed(sprintf(
-                        'Can\'t populate property "%s" with a JSON object, no class types found in union %s for class %s.',
-                        $parameter->name,
-                        self::dumpType($parameterType),
-                        $class->getName(),
-                    ));
-                }
-                if ($numberOfClassTypes === 1) {
-                    $onlyClassName = $classTypes[0]->getName();
-                    assert(class_exists($onlyClassName), 'Should have been checked by classTypes()');
-                    return self::createObject($value, $onlyClassName);
-                }
-                throw JsonError::decodeFailed(sprintf(
-                    'Unions of multiple object types (%s) are not supported yet for property "%s" in class %s.',
-                    implode(', ', array_map(static fn(ReflectionNamedType $t) => $t->getName(), $classTypes)),
-                    $parameter->name,
-                    $class->getName(),
-                ));
-            }
-        }
-        return $value;
-    }
 
-    /**
-     * @template Key of array-key
-     * @param array<Key, ReflectionType> $types
-     * @psalm-suppress MoreSpecificReturnType False positive
-     * @return array<Key, ReflectionNamedType>
-     */
-    private static function classTypes(array $types): array
-    {
-        /** @psalm-suppress LessSpecificReturnStatement False positive */
-        return array_filter($types, self::isClassType(...));
-    }
-
-    /**
-     * @psalm-assert-if-true ReflectionNamedType $type
-     */
-    private static function isClassType(ReflectionType $type): bool
-    {
-        assert($type instanceof ReflectionNamedType, 'Intersection types are not supported.');
-        return class_exists($type->getName());
-    }
-
-    private static function dumpType(ReflectionType $type): string
-    {
-        if ($type instanceof ReflectionNamedType) {
-            return $type->getName();
-        }
-        if ($type instanceof ReflectionUnionType) {
-            return implode('|', array_map(self::dumpType(...), $type->getTypes()));
-        }
-        if ($type instanceof ReflectionIntersectionType) {
-            return implode('&', array_map(self::dumpType(...), $type->getTypes()));
-        }
-        return 'unknown';
-    }
-
-    /**
-     * @return 'string'|'int'|'float'|'null'|'bool'|class-string|ArrayOf
-     */
-    private static function getArrayItemType(ReflectionParameter $parameter): string|ArrayOf
-    {
-        $attributes = $parameter->getAttributes(ArrayOf::class);
-        return match (count($attributes)) {
-            0 => throw JsonError::decodeFailed(sprintf(
-                'Missing #[ArrayOf] attribute for array property "%s" in class %s.',
-                $parameter->name,
-                $parameter->getDeclaringClass()?->getName() ?? 'unknown',
-            )),
-            1 => $attributes[0]->newInstance()->itemType,
-            default => throw JsonError::decodeFailed(sprintf(
-                'Multiple #[ArrayOf] attributes found for array property "%s" in class %s.',
-                $parameter->name,
-                $parameter->getDeclaringClass()?->getName() ?? 'unknown',
-            )),
-        };
-    }
-
-    private static function arrayItem(mixed $value, ArrayOf|string $type, int $index): mixed
-    {
-        return match ($type) {
-            'string' => is_string($value) ? $value : throw JsonError::decodeFailed(sprintf(
-                'Expected string at index %d of array, got %s.',
-                $index,
-                gettype($value),
-            )),
-            'int' => is_int($value) ? $value : throw JsonError::decodeFailed(sprintf(
-                'Expected int at index %d of array, got %s.',
-                $index,
-                gettype($value),
-            )),
-            'float' => is_float($value) ? $value : throw JsonError::decodeFailed(sprintf(
-                'Expected float at index %d of array, got %s.',
-                $index,
-                gettype($value),
-            )),
-            'bool' => is_bool($value) ? $value : throw JsonError::decodeFailed(sprintf(
-                'Expected bool at index %d of array, got %s.',
-                $index,
-                gettype($value),
-            )),
-            'null' => $value === null ? null : throw JsonError::decodeFailed(sprintf(
-                'Expected null at index %d of array, got %s.',
-                $index,
-                gettype($value),
-            )),
-            default => self::nonTrivialArrayItem($value, $type, $index),
-        };
-    }
-
-    private static function nonTrivialArrayItem(mixed $value, ArrayOf|string $type, int $index): mixed
-    {
-        if ($type instanceof ArrayOf) {
+        if ($type instanceof ListType) {
             if (!is_array($value)) {
-                throw JsonError::decodeFailed(sprintf(
-                    'Expected array at index %d of array, got %s.',
-                    $index,
-                    gettype($value),
-                ));
+                throw new TypeMismatchException(
+                    sprintf(
+                        'Expected array for field "%s" in class %s, got %s',
+                        $fieldName,
+                        $contextClass,
+                        get_debug_type($value),
+                    ),
+                );
             }
-            assert(array_is_list($value));
-            $array = [];
-            /** @var mixed $itemValue */
-            foreach ($value as $j => $itemValue) {
-                /** @psalm-suppress MixedAssignment */
-                $array[] = self::arrayItem($itemValue, $type->itemType, $j);
+            if ($value !== [] && !array_is_list($value)) {
+                throw new TypeMismatchException(
+                    sprintf('Expected list for field "%s" in class %s, got associative array', $fieldName, $contextClass),
+                );
             }
-            return $array;
+            return self::decodeList($value, $type->inner, $fieldName, $contextClass);
         }
-        if (is_a($type, UnitEnum::class, true)) {
-            return self::createEnumCase($value, $type);
+
+        if ($type instanceof MapType) {
+            if (!$value instanceof stdClass) {
+                throw new TypeMismatchException(
+                    sprintf(
+                        'Expected object for field "%s" in class %s, got %s',
+                        $fieldName,
+                        $contextClass,
+                        get_debug_type($value),
+                    ),
+                );
+            }
+            return self::decodeMap($value, $type->valueType, $fieldName, $contextClass);
         }
-        if (!$value instanceof stdClass) {
-            throw JsonError::decodeFailed(sprintf(
-                'Expected object at index %d, got %s.',
-                $index,
-                self::jsonTypeOfPhpValue($value),
-            ));
+
+        if ($type instanceof UnionType) {
+            return self::decodeParsedUnion($value, $type, $fieldName, $contextClass);
         }
-        if (!class_exists($type)) {
-            throw JsonError::decodeFailed(sprintf(
-                'Class %s referenced by ArrayOf does not exist.',
-                $type,
-            ));
+
+        throw new UnsupportedTypeException(
+            sprintf('Unsupported parsed type for field "%s" in class %s', $fieldName, $contextClass),
+        );
+    }
+
+    private static function decodeParsedPrimitive(
+        mixed $value,
+        PrimitiveType $type,
+        string $fieldName,
+        string $contextClass,
+    ): mixed {
+        return match ($type->name) {
+            'string' => is_string($value)
+                ? $value
+                : throw new TypeMismatchException(
+                    sprintf('Expected string for field "%s" in class %s, got %s', $fieldName, $contextClass, get_debug_type($value)),
+                ),
+            'int' => is_int($value)
+                ? $value
+                : throw new TypeMismatchException(
+                    sprintf('Expected int for field "%s" in class %s, got %s', $fieldName, $contextClass, get_debug_type($value)),
+                ),
+            'float' => is_float($value) || is_int($value)
+                ? (float)$value
+                : throw new TypeMismatchException(
+                    sprintf('Expected float for field "%s" in class %s, got %s', $fieldName, $contextClass, get_debug_type($value)),
+                ),
+            'bool' => is_bool($value)
+                ? $value
+                : throw new TypeMismatchException(
+                    sprintf('Expected bool for field "%s" in class %s, got %s', $fieldName, $contextClass, get_debug_type($value)),
+                ),
+            'null' => $value === null
+                ? null
+                : throw new TypeMismatchException(
+                    sprintf('Expected null for field "%s" in class %s, got %s', $fieldName, $contextClass, get_debug_type($value)),
+                ),
+            default => throw new UnsupportedTypeException(
+                sprintf('Unsupported primitive type %s for field "%s" in class %s', $type->name, $fieldName, $contextClass),
+            ),
+        };
+    }
+
+    private static function decodeParsedUnion(
+        mixed $value,
+        UnionType $type,
+        string $fieldName,
+        string $contextClass,
+    ): mixed {
+        $primitiveTypes = [];
+        $classTypes = [];
+        $listTypes = [];
+        $mapTypes = [];
+
+        foreach ($type->types as $innerType) {
+            if ($innerType instanceof PrimitiveType) {
+                $primitiveTypes[] = $innerType;
+            } elseif ($innerType instanceof ClassType) {
+                $classTypes[] = $innerType;
+            } elseif ($innerType instanceof ListType) {
+                $listTypes[] = $innerType;
+            } elseif ($innerType instanceof MapType) {
+                $mapTypes[] = $innerType;
+            }
         }
-        return self::createObject($value, $type);
+
+        if (count($classTypes) > 1) {
+            throw new UnsupportedTypeException(
+                sprintf('Class unions are not supported for field "%s" in class %s', $fieldName, $contextClass),
+            );
+        }
+
+        foreach ($primitiveTypes as $primitiveType) {
+            if ($primitiveType->name === 'null' && $value === null) {
+                return null;
+            }
+            if ($primitiveType->name === 'string' && is_string($value)) {
+                return $value;
+            }
+            if ($primitiveType->name === 'int' && is_int($value)) {
+                return $value;
+            }
+            if ($primitiveType->name === 'float' && (is_float($value) || is_int($value))) {
+                return (float)$value;
+            }
+            if ($primitiveType->name === 'bool' && is_bool($value)) {
+                return $value;
+            }
+        }
+
+        if ($value instanceof stdClass && count($classTypes) === 1) {
+            $typeName = $classTypes[0]->className;
+            if (is_a($typeName, BackedEnum::class, true)) {
+                return self::decodeBackedEnum($value, $typeName);
+            }
+            if (class_exists($typeName)) {
+                return self::decodeClass($value, $typeName);
+            }
+        }
+
+        if ($value instanceof stdClass && count($mapTypes) === 1) {
+            return self::decodeMap($value, $mapTypes[0]->valueType, $fieldName, $contextClass);
+        }
+
+        if (is_array($value) && count($listTypes) === 1) {
+            if ($value !== [] && !array_is_list($value)) {
+                throw new TypeMismatchException(
+                    sprintf('Expected list for field "%s" in class %s, got associative array', $fieldName, $contextClass),
+                );
+            }
+            return self::decodeList($value, $listTypes[0]->inner, $fieldName, $contextClass);
+        }
+
+        throw new TypeMismatchException(
+            sprintf(
+                'Type mismatch for field "%s" in class %s: expected one of union types, got %s',
+                $fieldName,
+                $contextClass,
+                get_debug_type($value),
+            ),
+        );
     }
 
     /**
-     * @param class-string<UnitEnum> $enumType
+     * @return array<string, mixed>
      */
-    private static function createEnumCase(mixed $value, string $enumType): UnitEnum
-    {
-        if (!is_a($enumType, BackedEnum::class, true)) {
-            throw JsonError::decodeFailed(sprintf(
-                'All enums must be backed, but %s is not a backed enum.',
-                $enumType,
-            ));
+    private static function decodeMap(
+        stdClass $value,
+        ParsedType $valueType,
+        string $fieldName,
+        string $className,
+    ): array {
+        $result = [];
+        /** @psalm-suppress MixedAssignment Object properties are intentionally mixed */
+        foreach ((array)$value as $key => $item) {
+            /** @var string $key */
+            $result[$key] = self::decodeWithParsedType($item, $valueType, "{$fieldName}[{$key}]", $className);
         }
-        if (!is_int($value) && !is_string($value)) {
-            throw JsonError::decodeFailed(sprintf(
-                '%s is not a valid a value of any case of enum %s.',
-                json_encode($value, JSON_THROW_ON_ERROR),
-                $enumType,
-            ));
-        }
-        $backingType = (new ReflectionEnum($enumType))->getBackingType();
-        assert($backingType instanceof ReflectionNamedType);
-        $backingTypeName = $backingType->getName();
-        if (
-            ($backingTypeName === 'int' && !is_int($value)) ||
-            ($backingTypeName === 'string' && !is_string($value))
-        ) {
-            throw JsonError::decodeFailed(sprintf(
-                '%s is not a valid a value of any case of enum %s.',
-                json_encode($value, JSON_THROW_ON_ERROR),
-                $enumType,
-            ));
-        }
-        $enum = $enumType::tryFrom($value);
-        if ($enum === null) {
-            throw JsonError::decodeFailed(sprintf(
-                '%s is not a valid a value of any case of enum %s.',
-                json_encode($value, JSON_THROW_ON_ERROR),
-                $enumType,
-            ));
-        }
-        return $enum;
+        return $result;
     }
 
-    private static function jsonTypeOfPhpValue(mixed $value): string
+    /**
+     * Extract a MapType from a parsed type, handling unions like array<string, T>|null.
+     */
+    private static function extractMapTypeFromParsed(ParsedType $type): MapType|null
     {
-        return match (gettype($value)) {
-            'NULL' => 'null',
-            'boolean' => 'boolean',
-            'integer', 'double' => 'number',
-            'string' => 'string',
-            'array' => 'array',
-            default => 'object',
-        };
+        if ($type instanceof MapType) {
+            return $type;
+        }
+
+        if ($type instanceof UnionType) {
+            foreach ($type->types as $innerType) {
+                if ($innerType instanceof MapType) {
+                    return $innerType;
+                }
+            }
+        }
+
+        return null;
     }
 }

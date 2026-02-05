@@ -21,7 +21,7 @@
     <issueHandlers>
         <PossiblyUnusedMethod>
             <errorLevel type="suppress">
-                <referencedMethod name="*::__construct"/>
+                <directory name="tests/unit/Fixtures"/>
             </errorLevel>
         </PossiblyUnusedMethod>
         <PossiblyUnusedProperty>

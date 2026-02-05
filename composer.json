@@ -1,15 +1,14 @@
 {
     "name": "eventjet/json",
     "type": "library",
-    "description": "Type-safe JSON encoding and decoding",
+    "description": "Type-safe JSON decoding",
     "license": "MIT",
     "require": {
-        "php": ">=8.2",
-        "ext-json": "*"
+        "php": ">=8.2"
     },
     "require-dev": {
         "eventjet/coding-standard": "^3.18",
-        "infection/infection": "^0.31.4",
+        "infection/infection": "^0.32.3",
         "maglnet/composer-require-checker": "^4.16",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan": "^2.1",
@@ -37,7 +36,6 @@
             "Eventjet\\Test\\Unit\\Json\\": "tests/unit"
         }
     },
-    "minimum-stability": "stable",
     "scripts": {
         "check": [
             "@check-deps",
@@ -47,12 +45,12 @@
             "@phpunit",
             "@infection"
         ],
-        "check-deps": "vendor/bin/composer-require-checker",
-        "cs-check": "php-cs-fixer fix --dry-run",
+        "check-deps": "composer-require-checker",
+        "cs-check": "php-cs-fixer fix --dry-run --diff",
         "cs-fix": "php-cs-fixer fix",
-        "infection": "vendor/bin/infection -jmax",
-        "phpstan": "vendor/bin/phpstan",
-        "phpunit": "vendor/bin/phpunit",
-        "psalm": "vendor/bin/psalm"
+        "infection": "infection -jmax",
+        "phpstan": "phpstan",
+        "phpunit": "phpunit --no-coverage",
+        "psalm": "psalm"
     }
 }
