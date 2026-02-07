@@ -56,18 +56,17 @@ final class SchemaGenerator
             $shortName = $this->shortName($className);
             $rootDef = $defs[$shortName] ?? null;
             unset($defs[$shortName]);
-            if ($rootDef === null) {
-                return $refSchema; // @codeCoverageIgnore - ClassSchemaGenerator always registers, so rootDef is never null
-            }
+            assert(
+                $rootDef !== null,
+                'ClassSchemaGenerator::generate() always registers the class, so its definition must exist',
+            );
             if ($defs !== []) {
                 return $rootDef->withDefs($defs);
             }
             return $rootDef;
         }
-        if ($defs !== []) {
-            return $refSchema->withDefs($defs);
-        }
-        return $refSchema; // @codeCoverageIgnore - ClassSchemaGenerator always registers, so defs is never empty
+        assert($defs !== [], 'ClassSchemaGenerator::generate() always registers at least one definition');
+        return $refSchema->withDefs($defs);
     }
 
     private function generateFromTypeString(string $type): Schema

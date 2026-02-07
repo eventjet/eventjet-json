@@ -75,9 +75,10 @@ final class ClassSchemaGenerator
      */
     public function generate(string $className): Schema
     {
-        if ($this->registry->isInProgress($className)) {
-            return Schema::ref($this->registry->refPath($className)); // @codeCoverageIgnore - TypeNodeConverter checks isInProgress first
-        }
+        assert(
+            !$this->registry->isInProgress($className),
+            'TypeNodeConverter checks isInProgress before calling generate(), so this should never be reached',
+        );
         if ($this->registry->has($className)) {
             return Schema::ref($this->registry->refPath($className));
         }
