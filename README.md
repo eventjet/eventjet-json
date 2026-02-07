@@ -198,10 +198,12 @@ Works with type strings too:
 ```php
 $schema = JsonSchema::generate('list<int>');
 $schema = JsonSchema::generate('array{name: string, age: int}');
+$schema = JsonSchema::generate('array{string, int}'); // tuple
+$schema = JsonSchema::generate('object{name: string, age?: int}');
 $schema = JsonSchema::generate('string|int');
 ```
 
-Supports classes, backed enums, `JsonSerializable` (via `@return` docblock), generics (`list<T>`, `array<string, T>`), union types, nullable types, array shapes (sealed and unsealed), const literals, int ranges (`int<0, 100>`), and self-referencing types.
+Supports classes, backed enums, `JsonSerializable` (via `@return` docblock), generics (`list<T>`, `array<string, T>`, `iterable<T>`), union types, nullable types, array shapes (sealed and unsealed, with typed spreads), object shapes, tuple shapes, const literals, int ranges (`int<0, 100>`), `int-mask<1, 2, 4>`, `value-of<BackedEnum>`, and self-referencing types. Also handles PHPStan string types (`non-empty-string`, `non-falsy-string`, `lowercase-string`, `numeric-string`) and integer types (`positive-int`, `non-zero-int`, `array-key`, `scalar`, etc.).
 
 For `JsonSerializable` classes, the schema is derived from the `@return` docblock on `jsonSerialize()`, falling back to the native return type.
 
