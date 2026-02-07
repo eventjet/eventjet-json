@@ -4,10 +4,12 @@
     "description": "Type-safe JSON decoding",
     "license": "MIT",
     "require": {
-        "php": ">=8.2"
+        "php": ">=8.2",
+        "phpstan/phpdoc-parser": "^2.1"
     },
     "require-dev": {
         "eventjet/coding-standard": "^3.18",
+        "opis/json-schema": "^2.3",
         "infection/infection": "^0.32.3",
         "maglnet/composer-require-checker": "^4.16",
         "phpstan/extension-installer": "^1.4",
