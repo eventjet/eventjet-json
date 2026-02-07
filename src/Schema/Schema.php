@@ -16,6 +16,7 @@ final readonly class Schema implements JsonSerializable
      * @param array<string, Schema>|null $properties
      * @param list<string>|null $required
      * @param list<Schema>|null $anyOf
+     * @param list<Schema>|null $prefixItems
      * @param array<string, Schema>|null $defs
      */
     private function __construct(
@@ -39,6 +40,7 @@ final readonly class Schema implements JsonSerializable
         private int|null $maxItems = null,
         private int|null $minProperties = null,
         private string|null $pattern = null,
+        private array|null $prefixItems = null,
         private array|null $defs = null,
         private bool $isMixed = false,
         private bool $isNever = false,
@@ -99,6 +101,14 @@ final readonly class Schema implements JsonSerializable
     }
 
     /**
+     * @param list<Schema> $prefixItems
+     */
+    public static function tuple(array $prefixItems): self
+    {
+        return new self(type: 'array', items: self::never(), prefixItems: $prefixItems);
+    }
+
+    /**
      * @param array<string, Schema> $properties
      * @param list<string> $required
      */
@@ -128,6 +138,36 @@ final readonly class Schema implements JsonSerializable
     public static function ref(string $refPath): self
     {
         return new self(ref: $refPath);
+    }
+
+    public function withItems(self|null $items): self
+    {
+        return new self(
+            type: $this->type,
+            format: $this->format,
+            const: $this->const,
+            enum: $this->enum,
+            items: $items,
+            properties: $this->properties,
+            required: $this->required,
+            additionalProperties: $this->additionalProperties,
+            anyOf: $this->anyOf,
+            ref: $this->ref,
+            minimum: $this->minimum,
+            maximum: $this->maximum,
+            exclusiveMinimum: $this->exclusiveMinimum,
+            exclusiveMaximum: $this->exclusiveMaximum,
+            minLength: $this->minLength,
+            maxLength: $this->maxLength,
+            minItems: $this->minItems,
+            maxItems: $this->maxItems,
+            minProperties: $this->minProperties,
+            pattern: $this->pattern,
+            prefixItems: $this->prefixItems,
+            defs: $this->defs,
+            isMixed: $this->isMixed,
+            isNever: $this->isNever,
+        );
     }
 
     public function withFormat(string $format): self
@@ -226,6 +266,9 @@ final readonly class Schema implements JsonSerializable
         if ($this->enum !== null) {
             $result['enum'] = $this->enum;
         }
+        if ($this->prefixItems !== null) {
+            $result['prefixItems'] = $this->prefixItems;
+        }
         if ($this->items !== null) {
             $result['items'] = $this->items;
         }
@@ -312,6 +355,7 @@ final readonly class Schema implements JsonSerializable
             maxItems: $maxItems ?? $this->maxItems,
             minProperties: $minProperties ?? $this->minProperties,
             pattern: $pattern ?? $this->pattern,
+            prefixItems: $this->prefixItems,
             defs: $defs ?? $this->defs,
             isMixed: $this->isMixed,
             isNever: $this->isNever,

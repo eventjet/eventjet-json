@@ -17,6 +17,7 @@ use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableMixed;
 use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableNoDocblock;
 use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableNoReturn;
 use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableUnionReturn;
+use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableWithObjectShape;
 use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableWithReturn;
 use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableWithShape;
 use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableWithUnsealedReturn;
@@ -110,6 +111,10 @@ final class SchemaGeneratorTest extends TestCase
         yield 'nullable union with string' => [new NullableUnion('hello'), null];
         yield 'nullable union with null' => [new NullableUnion(null), null];
         yield 'json serializable with unsealed return' => [new JsonSerializableWithUnsealedReturn('Alice'), null];
+        yield 'json serializable with object shape' => [
+            new JsonSerializableWithObjectShape(StringStatus::Active),
+            null,
+        ];
 
         yield 'string type' => ['hello', 'string'];
         yield 'int type' => [42, 'int'];
@@ -153,6 +158,87 @@ final class SchemaGeneratorTest extends TestCase
         yield 'float const' => [3.14, '3.14'];
         yield 'const int and float enum' => [42, '42|3.14'];
         yield 'unsealed array shape' => [['name' => 'test', 'extra' => 'stuff'], 'array{name: string, ...}'];
+
+        yield 'tuple array{string, int}' => [['hello', 42], 'array{string, int}'];
+        yield 'list{string, int}' => [['hello', 42], 'list{string, int}'];
+        yield 'object{name: string, age?: int}' => [['name' => 'John'], 'object{name: string, age?: int}'];
+        yield 'object{name: string, age?: int} with age' => [
+            ['name' => 'John', 'age' => 30],
+            'object{name: string, age?: int}',
+        ];
+
+        yield 'identifier array' => [['anything'], 'array'];
+        yield 'identifier list' => [['a', 'b'], 'list'];
+        yield 'identifier iterable' => [['a'], 'iterable'];
+        yield 'identifier object' => [['key' => 'value'], 'object'];
+        yield 'identifier scalar string' => ['hello', 'scalar'];
+        yield 'identifier scalar number' => [42, 'scalar'];
+        yield 'identifier scalar bool' => [true, 'scalar'];
+        yield 'identifier number int' => [42, 'number'];
+        yield 'identifier number float' => [3.14, 'number'];
+        yield 'identifier numeric int' => [42, 'numeric'];
+        yield 'identifier numeric string' => ['42.5', 'numeric'];
+        yield 'identifier array-key string' => ['key', 'array-key'];
+        yield 'identifier array-key int' => [42, 'array-key'];
+        yield 'identifier non-zero-int positive' => [5, 'non-zero-int'];
+        yield 'identifier non-zero-int negative' => [-3, 'non-zero-int'];
+        yield 'identifier literal-string' => ['hello', 'literal-string'];
+        yield 'identifier callable-string' => ['strlen', 'callable-string'];
+        yield 'identifier lowercase-string' => ['hello', 'lowercase-string'];
+        yield 'identifier non-falsy-string' => ['hello', 'non-falsy-string'];
+        yield 'identifier truthy-string' => ['hello', 'truthy-string'];
+
+        yield 'iterable<string>' => [['a', 'b'], 'iterable<string>'];
+        yield 'iterable<string, int>' => [['a' => 1], 'iterable<string, int>'];
+        yield 'int-mask<1, 2, 4> 0' => [0, 'int-mask<1, 2, 4>'];
+        yield 'int-mask<1, 2, 4> 3' => [3, 'int-mask<1, 2, 4>'];
+        yield 'int-mask<1, 2, 4> 7' => [7, 'int-mask<1, 2, 4>'];
+    }
+
+    /**
+     * @return Generator<string, array{mixed, string}>
+     */
+    public static function rejectionProvider(): Generator
+    {
+        yield 'string rejects int' => [42, 'string'];
+        yield 'int rejects string' => ['hello', 'int'];
+        yield 'bool rejects int' => [1, 'bool'];
+        yield 'null rejects empty string' => ['', 'null'];
+
+        yield 'non-empty-string rejects empty' => ['', 'non-empty-string'];
+        yield 'non-falsy-string rejects empty' => ['', 'non-falsy-string'];
+        yield 'non-falsy-string rejects zero' => ['0', 'non-falsy-string'];
+        yield 'truthy-string rejects empty' => ['', 'truthy-string'];
+        yield 'truthy-string rejects zero' => ['0', 'truthy-string'];
+        yield 'lowercase-string rejects uppercase' => ['Hello', 'lowercase-string'];
+        yield 'numeric-string rejects alpha' => ['hello', 'numeric-string'];
+
+        yield 'positive-int rejects zero' => [0, 'positive-int'];
+        yield 'positive-int rejects negative' => [-1, 'positive-int'];
+        yield 'negative-int rejects zero' => [0, 'negative-int'];
+        yield 'negative-int rejects positive' => [1, 'negative-int'];
+        yield 'non-negative-int rejects negative' => [-1, 'non-negative-int'];
+        yield 'non-positive-int rejects positive' => [1, 'non-positive-int'];
+        yield 'non-zero-int rejects zero' => [0, 'non-zero-int'];
+
+        yield 'scalar rejects null' => [null, 'scalar'];
+        yield 'scalar rejects array' => [[1], 'scalar'];
+        yield 'number rejects string' => ['hello', 'number'];
+        yield 'numeric rejects non-numeric string' => ['hello', 'numeric'];
+        yield 'array-key rejects bool' => [true, 'array-key'];
+
+        yield 'list<int> rejects list of strings' => [['a'], 'list<int>'];
+        yield 'non-empty-list<int> rejects empty' => [[], 'non-empty-list<int>'];
+
+        yield 'tuple rejects too few items' => [['hello'], 'array{string, int}'];
+        yield 'tuple rejects extra items' => [['hello', 42, 'extra'], 'array{string, int}'];
+        yield 'tuple rejects wrong types' => [[42, 'hello'], 'array{string, int}'];
+
+        yield 'object shape rejects missing required' => [['age' => 30], 'object{name: string, age?: int}'];
+        yield 'array shape rejects missing required' => [['n' => 1], 'array{foo: string, n: int}'];
+
+        yield 'int-mask rejects invalid combination' => [8, 'int-mask<1, 2, 4>'];
+        yield 'int-mask rejects non-integer' => ['3', 'int-mask<1, 2, 4>'];
     }
 
     #[DataProvider('validationProvider')]
@@ -178,6 +264,27 @@ final class SchemaGeneratorTest extends TestCase
                 json_encode($schema, JSON_THROW_ON_ERROR),
                 json_encode($value, JSON_THROW_ON_ERROR),
                 $result->error() !== null ? (string)$result->error() : 'none',
+            ),
+        );
+    }
+
+    #[DataProvider('rejectionProvider')]
+    public function testGeneratedSchemaRejectsInvalidValue(mixed $value, string $type): void
+    {
+        $generator = new SchemaGenerator();
+        $schema = $generator->generate($type);
+        /** @var bool|object $jsonSchema */
+        $jsonSchema = json_decode(json_encode($schema, JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR);
+        /** @var mixed $jsonData */
+        $jsonData = json_decode(json_encode($value, JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR);
+        $validator = new Validator();
+        $result = $validator->validate($jsonData, $jsonSchema);
+        self::assertFalse(
+            $result->isValid(),
+            sprintf(
+                "Schema should have rejected value.\nSchema: %s\nData: %s",
+                json_encode($schema, JSON_THROW_ON_ERROR),
+                json_encode($value, JSON_THROW_ON_ERROR),
             ),
         );
     }
@@ -257,6 +364,18 @@ final class SchemaGeneratorTest extends TestCase
             json_encode($first, JSON_THROW_ON_ERROR),
             json_encode($second, JSON_THROW_ON_ERROR),
         );
+    }
+
+    public function testNeverReturnAliases(): void
+    {
+        $generator = new SchemaGenerator();
+        foreach (['never-return', 'never-returns', 'no-return'] as $alias) {
+            $schema = $generator->generate($alias);
+            self::assertFalse(
+                json_decode(json_encode($schema, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR),
+                sprintf('Expected %s to produce false schema', $alias),
+            );
+        }
     }
 
     public function testReusedGeneratorResolvesAlreadyRegisteredClass(): void

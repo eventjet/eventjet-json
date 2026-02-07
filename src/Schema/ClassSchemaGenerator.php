@@ -15,6 +15,8 @@ use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\GenericTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
 use PHPStan\PhpDocParser\Ast\Type\NullableTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\ObjectShapeItemNode;
+use PHPStan\PhpDocParser\Ast\Type\ObjectShapeNode;
 use PHPStan\PhpDocParser\Ast\Type\TypeNode;
 use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
 use PHPStan\PhpDocParser\Lexer\Lexer;
@@ -282,6 +284,11 @@ final class ClassSchemaGenerator
                 'null', 'mixed', 'never', 'true', 'false', 'self', 'static',
                 'class-string', 'non-empty-string', 'numeric-string',
                 'positive-int', 'negative-int', 'non-negative-int', 'non-positive-int',
+                'array', 'list', 'iterable', 'object', 'scalar', 'number', 'numeric',
+                'array-key', 'non-zero-int',
+                'literal-string', 'callable-string', 'lowercase-string',
+                'non-falsy-string', 'truthy-string',
+                'never-return', 'never-returns', 'no-return',
             ];
             if (in_array($lower, $builtins, true)) {
                 return $node;
@@ -329,6 +336,17 @@ final class ClassSchemaGenerator
                 $node->unsealedType,
                 $node->kind,
             );
+        }
+        if ($node instanceof ObjectShapeNode) {
+            $resolvedItems = array_map(
+                fn(ObjectShapeItemNode $item): ObjectShapeItemNode => new ObjectShapeItemNode(
+                    $item->keyName,
+                    $item->optional,
+                    $this->resolveTypeNodeClassNames($item->valueType, $contextClass),
+                ),
+                $node->items,
+            );
+            return new ObjectShapeNode($resolvedItems);
         }
         return $node;
     }
