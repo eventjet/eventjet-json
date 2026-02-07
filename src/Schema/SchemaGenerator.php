@@ -11,6 +11,7 @@ use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
 use PHPStan\PhpDocParser\ParserConfig;
 
+use function assert;
 use function class_exists;
 use function count;
 use function enum_exists;

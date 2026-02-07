@@ -233,8 +233,36 @@ final readonly class Schema implements JsonSerializable
         return $this->with(defs: $defs);
     }
 
+    /**
+     * @return bool|object{
+     *     '$ref': string,
+     *     '$defs'?: array<string, self>,
+     * }|object{
+     *     '$defs'?: array<string, self>,
+     *     type?: string,
+     *     format?: string,
+     *     const?: mixed,
+     *     enum?: list<mixed>,
+     *     prefixItems?: list<self>,
+     *     items?: self,
+     *     properties?: object,
+     *     required?: list<string>,
+     *     additionalProperties?: bool|self,
+     *     anyOf?: list<self>,
+     *     minimum?: int,
+     *     maximum?: int,
+     *     exclusiveMinimum?: int,
+     *     exclusiveMaximum?: int,
+     *     minLength?: int,
+     *     maxLength?: int,
+     *     minItems?: int,
+     *     maxItems?: int,
+     *     minProperties?: int,
+     *     pattern?: string,
+     * }
+     */
     #[Override]
-    public function jsonSerialize(): mixed
+    public function jsonSerialize(): bool|object
     {
         if ($this->isMixed) {
             return true;

@@ -36,6 +36,7 @@ use ReflectionUnionType;
 use function array_key_exists;
 use function array_map;
 use function array_values;
+use function assert;
 use function in_array;
 use function is_a;
 use function ltrim;
