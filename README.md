@@ -1,16 +1,19 @@
 # eventjet/json
 
-A better alternative to `json_decode($json, true)` + `array{foo: string, bar: int}` PHPStan shapes.
+Type-safe JSON decoding and JSON Schema generation for PHP.
 
-This library provides **real runtime type checking** into actual PHP objects, not just static analysis.
-
-**Goal:** Round-trip `json_encode` → `Json::decode` should restore the original value.
-
-> ⚠️ This isn't fully achieved yet, and perfect round-trips may never be possible (e.g., no tracking of omitted fields).
+- **Decoding:** A better alternative to `json_decode($json, true)` + PHPStan shapes—provides real runtime type checking into actual PHP objects.
+- **Schema generation:** Derive JSON Schema from PHP classes and type strings, using the same type information (native types, docblocks, enums).
 
 ```php
 \Eventjet\Json\Json::decode(string $json, ?string $type = null): mixed
+\Eventjet\Json\Schema\JsonSchema::generate(string $type): Schema
 ```
+
+- [Installation](#installation)
+- [Decoding](#decoding)
+- [JSON Schema Generation](#json-schema-generation)
+- [Development](#development)
 
 ## Installation
 
@@ -18,7 +21,7 @@ This library provides **real runtime type checking** into actual PHP objects, no
 composer require eventjet/json
 ```
 
-## Usage
+## Decoding
 
 ### Objects
 
@@ -128,9 +131,9 @@ $result = Json::decode('{"value": 42}', Result::class);     // value is 42
 
 For `array<string, string>|Foo`, an empty object `{}` decodes as `Foo`, not an empty map.
 
-## Differences from `json_decode()`
+### Differences from `json_decode()`
 
-This library requires explicit types and performs strict validation:
+`Json::decode()` requires explicit types and performs strict validation:
 
 ```php
 // json_decode() returns stdClass or array, no validation
@@ -163,11 +166,11 @@ class Example
 }
 ```
 
-## Exceptions
+### Exceptions
 
 All exceptions extend `JsonDecodeException`. See the `@throws` tag on `Json::decode()` for details.
 
-## Limitations
+### Decoding Limitations
 
 - Array notations other than `list<T>` and `array<string, T>` are not supported (e.g., `T[]`, `array<T>`, `array<int, T>`)
 - Unit enums are not supported; only backed enums work
@@ -176,9 +179,31 @@ All exceptions extend `JsonDecodeException`. See the `@throws` tag on `Json::dec
 - Only constructor parameters are mapped; properties outside the constructor are ignored
 - JSON field names must match constructor parameter names exactly
 
-## "I want more mapping options!"
-
 The classes you decode into should mirror the JSON structure exactly. Then transform those objects into whatever you want—just like you did before with `json_decode($json, true)`.
+
+## JSON Schema Generation
+
+Generate JSON Schema from PHP classes or type strings:
+
+```php
+use Eventjet\Json\Schema\JsonSchema;
+
+$schema = JsonSchema::generate(Person::class);
+echo json_encode($schema, JSON_PRETTY_PRINT);
+// {"type":"object","properties":{"name":{"type":"string"},"age":{"type":"integer"}},"required":["name","age"],"additionalProperties":false}
+```
+
+Works with type strings too:
+
+```php
+$schema = JsonSchema::generate('list<int>');
+$schema = JsonSchema::generate('array{name: string, age: int}');
+$schema = JsonSchema::generate('string|int');
+```
+
+Supports classes, backed enums, `JsonSerializable` (via `@return` docblock), generics (`list<T>`, `array<string, T>`), union types, nullable types, array shapes (sealed and unsealed), const literals, int ranges (`int<0, 100>`), and self-referencing types.
+
+For `JsonSerializable` classes, the schema is derived from the `@return` docblock on `jsonSerialize()`, falling back to the native return type.
 
 ## Development
 
@@ -192,7 +217,7 @@ composer check  # Run all checks
 | `composer cs-fix` | Fix code style |
 | `composer phpstan` | Run PHPStan |
 | `composer psalm` | Run Psalm |
-| `composer test` | Run PHPUnit |
+| `composer phpunit` | Run PHPUnit |
 | `composer infection` | Run mutation testing |
 
 ## Requirements
