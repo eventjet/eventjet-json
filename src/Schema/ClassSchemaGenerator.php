@@ -281,9 +281,12 @@ final class ClassSchemaGenerator
     {
         if ($node instanceof IdentifierTypeNode) {
             $lower = strtolower($node->name);
+            if ($lower === 'self' || $lower === 'static') {
+                return new IdentifierTypeNode($contextClass);
+            }
             $builtins = [
                 'string', 'int', 'integer', 'float', 'double', 'bool', 'boolean',
-                'null', 'mixed', 'never', 'true', 'false', 'self', 'static',
+                'null', 'mixed', 'never', 'true', 'false',
                 'class-string', 'non-empty-string', 'numeric-string',
                 'positive-int', 'negative-int', 'non-negative-int', 'non-positive-int',
                 'array', 'list', 'iterable', 'object', 'scalar', 'number', 'numeric',
