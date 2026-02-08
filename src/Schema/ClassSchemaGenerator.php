@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Eventjet\Json\Schema;
 
 use BackedEnum;
+use Eventjet\Json\Schema\Attribute\Example;
+use Eventjet\Json\Schema\Attribute\Format;
 use Eventjet\Json\Schema\Exception\UnsupportedTypeException;
 use Eventjet\Json\UseStatementResolver;
 use JsonSerializable;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayShapeItemNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayShapeNode;
 use PHPStan\PhpDocParser\Ast\Type\ArrayTypeNode;
@@ -37,11 +41,13 @@ use function array_key_exists;
 use function array_map;
 use function array_values;
 use function assert;
+use function explode;
 use function in_array;
 use function is_a;
 use function ltrim;
 use function sprintf;
 use function strtolower;
+use function trim;
 
 final class ClassSchemaGenerator
 {
@@ -118,7 +124,9 @@ final class ClassSchemaGenerator
             /** @var ReflectionEnumBackedCase $case */
             $values[] = $case->getBackingValue();
         }
-        return Schema::enum($values);
+        /** @var ReflectionClass<object> $classReflection */
+        $classReflection = new ReflectionClass($className);
+        return $this->applyClassMetadata(Schema::enum($values), $classReflection);
     }
 
     /**
@@ -129,13 +137,16 @@ final class ClassSchemaGenerator
         $method = $reflection->getMethod('jsonSerialize');
         $typeNode = $this->getReturnTypeNode($method, $reflection->getName());
         if ($typeNode !== null) {
-            return $this->typeNodeConverter->convert($typeNode);
+            return $this->applyClassMetadata($this->typeNodeConverter->convert($typeNode), $reflection);
         }
         $returnType = $method->getReturnType();
         if ($returnType instanceof ReflectionNamedType) {
-            return $this->reflectionTypeToSchema($returnType, $reflection->getName());
+            return $this->applyClassMetadata(
+                $this->reflectionTypeToSchema($returnType, $reflection->getName()),
+                $reflection,
+            );
         }
-        return Schema::mixed();
+        return $this->applyClassMetadata(Schema::mixed(), $reflection);
     }
 
     /**
@@ -152,10 +163,11 @@ final class ClassSchemaGenerator
                 continue;
             }
             $name = $property->getName();
-            $schemaProperties[$name] = $this->resolvePropertyType($property, $reflection, $constructorDocParams);
+            $propertySchema = $this->resolvePropertyType($property, $reflection, $constructorDocParams);
+            $schemaProperties[$name] = $this->applyPropertyMetadata($propertySchema, $property);
             $required[] = $name;
         }
-        return Schema::object($schemaProperties, $required);
+        return $this->applyClassMetadata(Schema::object($schemaProperties, $required), $reflection);
     }
 
     /**
@@ -269,6 +281,93 @@ final class ClassSchemaGenerator
         }
         $varTag = array_values($varTags)[0];
         return $this->resolveTypeNodeClassNames($varTag->type, $contextClass);
+    }
+
+    /**
+     * @param ReflectionClass<object> $reflection
+     */
+    private function applyClassMetadata(Schema $schema, ReflectionClass $reflection): Schema
+    {
+        $docComment = $reflection->getDocComment();
+        if ($docComment !== false) {
+            $schema = $this->applyDocblockText($schema, $docComment);
+        }
+        $examples = $this->extractExamplesFromAttributes($reflection);
+        if ($examples !== null) {
+            $schema = $schema->withExamples($examples);
+        }
+        return $schema;
+    }
+
+    private function applyPropertyMetadata(Schema $schema, ReflectionProperty $property): Schema
+    {
+        $docComment = $property->getDocComment();
+        if ($docComment !== false) {
+            $schema = $this->applyDocblockText($schema, $docComment);
+        }
+        $format = $this->extractFormat($property);
+        if ($format !== null) {
+            $schema = $schema->withFormat($format);
+        }
+        $examples = $this->extractExamplesFromAttributes($property);
+        if ($examples !== null) {
+            $schema = $schema->withExamples($examples);
+        }
+        return $schema;
+    }
+
+    private function applyDocblockText(Schema $schema, string $docComment): Schema
+    {
+        $phpDoc = $this->parseDocblock($docComment);
+        $text = '';
+        foreach ($phpDoc->children as $child) {
+            if ($child instanceof PhpDocTagNode) {
+                break;
+            }
+            if ($child instanceof PhpDocTextNode) {
+                $text .= $child->text;
+            }
+        }
+        $text = trim($text);
+        if ($text === '') {
+            return $schema;
+        }
+        $parts = explode("\n\n", $text, 2);
+        $schema = $schema->withTitle($parts[0]);
+        if (isset($parts[1])) {
+            $description = trim($parts[1]);
+            if ($description !== '') {
+                $schema = $schema->withDescription($description);
+            }
+        }
+        return $schema;
+    }
+
+    /**
+     * @param ReflectionClass<object>|ReflectionProperty $reflection
+     * @return list<mixed>|null
+     */
+    private function extractExamplesFromAttributes(ReflectionClass|ReflectionProperty $reflection): array|null
+    {
+        $attributes = $reflection->getAttributes(Example::class);
+        if ($attributes === []) {
+            return null;
+        }
+        $examples = [];
+        foreach ($attributes as $attribute) {
+            /** @psalm-suppress MixedAssignment */
+            $examples[] = $attribute->newInstance()->value;
+        }
+        return $examples;
+    }
+
+    private function extractFormat(ReflectionProperty $property): string|null
+    {
+        $attributes = $property->getAttributes(Format::class);
+        if ($attributes === []) {
+            return null;
+        }
+        return $attributes[0]->newInstance()->format;
     }
 
     private function parseDocblock(string $docComment): PhpDocNode

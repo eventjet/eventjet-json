@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Test\Unit\Json\Schema;
 
+use Eventjet\Json\Schema\Attribute\Example;
+use Eventjet\Json\Schema\Attribute\Format;
 use Eventjet\Json\Schema\ClassSchemaGenerator;
 use Eventjet\Json\Schema\Exception\UnsupportedTypeException;
 use Eventjet\Json\Schema\JsonSchema;
@@ -11,6 +13,14 @@ use Eventjet\Json\Schema\Schema;
 use Eventjet\Json\Schema\SchemaGenerator;
 use Eventjet\Json\Schema\SchemaRegistry;
 use Eventjet\Json\Schema\TypeNodeConverter;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithAllMetadata;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithDocblock;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithDocblockAndTags;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithExamples;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithMultiParagraphDescription;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithFormat;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithPropertyMetadata;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithTitleOnly;
 use Eventjet\Test\Unit\Json\Fixtures\EmptyClass;
 use Eventjet\Test\Unit\Json\Fixtures\IntStatus;
 use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableMixed;
@@ -58,6 +68,8 @@ use function sprintf;
 
 use const JSON_THROW_ON_ERROR;
 
+#[CoversClass(Example::class)]
+#[CoversClass(Format::class)]
 #[CoversClass(SchemaGenerator::class)]
 #[CoversClass(ClassSchemaGenerator::class)]
 #[CoversClass(TypeNodeConverter::class)]
@@ -123,6 +135,15 @@ final class SchemaGeneratorTest extends TestCase
         ];
         yield 'json serializable with static return' => [
             new JsonSerializableWithStaticReturn('test'),
+            null,
+        ];
+        yield 'class with docblock' => [new ClassWithDocblock('John', 30), null];
+        yield 'class with title only' => [new ClassWithTitleOnly('abc'), null];
+        yield 'class with examples' => [new ClassWithExamples('John', 30), null];
+        yield 'class with format' => [new ClassWithFormat('2024-01-01T00:00:00Z', 'john@example.com'), null];
+        yield 'class with property metadata' => [new ClassWithPropertyMetadata('john@example.com'), null];
+        yield 'class with all metadata' => [
+            new ClassWithAllMetadata('john@example.com', '2024-01-01T00:00:00Z'),
             null,
         ];
 
@@ -396,5 +417,120 @@ final class SchemaGeneratorTest extends TestCase
         /** @var object $json */
         $json = json_decode(json_encode($schema, JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR);
         self::assertObjectHasProperty('$defs', $json);
+    }
+
+    public function testClassDocblockProducesTitleAndDescription(): void
+    {
+        $json = $this->generateAndDecode(ClassWithDocblock::class);
+        self::assertSame('A person.', $json['title']);
+        self::assertSame('Represents a person with a name and age.', $json['description']);
+    }
+
+    public function testDocblockTagsAreNotIncludedInDescription(): void
+    {
+        $json = $this->generateAndDecode(ClassWithDocblockAndTags::class);
+        self::assertSame('A tagged class.', $json['title']);
+        self::assertSame('Has a description.', $json['description']);
+    }
+
+    public function testMultiParagraphDescription(): void
+    {
+        $json = $this->generateAndDecode(ClassWithMultiParagraphDescription::class);
+        self::assertSame('A complex entity.', $json['title']);
+        $expectedDescription = "This is the first paragraph\nthat spans multiple lines.\n\nThis is the second paragraph.";
+        self::assertSame($expectedDescription, $json['description']);
+    }
+
+    public function testClassDocblockTitleOnlyNoDescription(): void
+    {
+        $json = $this->generateAndDecode(ClassWithTitleOnly::class);
+        self::assertSame('A simple widget.', $json['title']);
+        self::assertArrayNotHasKey('description', $json);
+    }
+
+    public function testClassExamplesAttribute(): void
+    {
+        $json = $this->generateAndDecode(ClassWithExamples::class);
+        self::assertArrayHasKey('examples', $json);
+        self::assertIsArray($json['examples']);
+        self::assertCount(2, $json['examples']);
+    }
+
+    public function testPropertyFormatAttribute(): void
+    {
+        $json = $this->generateAndDecode(ClassWithFormat::class);
+        $properties = $this->properties($json);
+        self::assertSame('date-time', $properties['createdAt']['format']);
+        self::assertSame('email', $properties['email']['format']);
+    }
+
+    public function testPropertyMetadata(): void
+    {
+        $json = $this->generateAndDecode(ClassWithPropertyMetadata::class);
+        $email = $this->property($json, 'email');
+        self::assertSame("The user's email address.", $email['title']);
+        self::assertSame('Must be a valid email.', $email['description']);
+        self::assertIsArray($email['examples']);
+        self::assertCount(2, $email['examples']);
+        self::assertSame('john@example.com', $email['examples'][0]);
+        self::assertSame('jane@example.com', $email['examples'][1]);
+    }
+
+    public function testClassWithNoDocblockHasNoTitleOrDescription(): void
+    {
+        $json = $this->generateAndDecode(SimpleClass::class);
+        self::assertArrayNotHasKey('title', $json);
+        self::assertArrayNotHasKey('description', $json);
+    }
+
+    public function testAllMetadataCombined(): void
+    {
+        $json = $this->generateAndDecode(ClassWithAllMetadata::class);
+        self::assertSame('A user account.', $json['title']);
+        self::assertSame('Represents a registered user in the system.', $json['description']);
+        self::assertIsArray($json['examples']);
+        self::assertCount(1, $json['examples']);
+        $properties = $this->properties($json);
+        self::assertSame('email', $properties['email']['format']);
+        self::assertSame('date-time', $properties['createdAt']['format']);
+        $email = $this->property($json, 'email');
+        self::assertSame("The user's email address.", $email['title']);
+        self::assertIsArray($email['examples']);
+        self::assertCount(1, $email['examples']);
+    }
+
+    /**
+     * @param class-string $className
+     * @return array<string, mixed>
+     */
+    private function generateAndDecode(string $className): array
+    {
+        $generator = new SchemaGenerator();
+        $schema = $generator->generate($className);
+        /** @var array<string, mixed> */
+        return json_decode(json_encode($schema, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param array<string, mixed> $json
+     * @return array<string, array<string, mixed>>
+     */
+    private function properties(array $json): array
+    {
+        $properties = $json['properties'];
+        self::assertIsArray($properties);
+        /** @var array<string, array<string, mixed>> */
+        return $properties;
+    }
+
+    /**
+     * @param array<string, mixed> $json
+     * @return array<string, mixed>
+     */
+    private function property(array $json, string $name): array
+    {
+        $properties = $this->properties($json);
+        self::assertArrayHasKey($name, $properties);
+        return $properties[$name];
     }
 }

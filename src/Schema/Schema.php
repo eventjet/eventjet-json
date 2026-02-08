@@ -22,6 +22,10 @@ final readonly class Schema implements JsonSerializable
     private function __construct(
         private string|null $type = null,
         private string|null $format = null,
+        private string|null $title = null,
+        private string|null $description = null,
+        /** @var list<mixed>|null */
+        private array|null $examples = null,
         private mixed $const = self::UNSET,
         private array|null $enum = null,
         private Schema|null $items = null,
@@ -145,6 +149,9 @@ final readonly class Schema implements JsonSerializable
         return new self(
             type: $this->type,
             format: $this->format,
+            title: $this->title,
+            description: $this->description,
+            examples: $this->examples,
             const: $this->const,
             enum: $this->enum,
             items: $items,
@@ -173,6 +180,24 @@ final readonly class Schema implements JsonSerializable
     public function withFormat(string $format): self
     {
         return $this->with(format: $format);
+    }
+
+    public function withTitle(string $title): self
+    {
+        return $this->with(title: $title);
+    }
+
+    public function withDescription(string $description): self
+    {
+        return $this->with(description: $description);
+    }
+
+    /**
+     * @param list<mixed> $examples
+     */
+    public function withExamples(array $examples): self
+    {
+        return $this->with(examples: $examples);
     }
 
     public function withMinimum(int $minimum): self
@@ -239,6 +264,8 @@ final readonly class Schema implements JsonSerializable
      *     '$defs'?: array<string, self>,
      * }|object{
      *     '$defs'?: array<string, self>,
+     *     title?: string,
+     *     description?: string,
      *     type?: string,
      *     format?: string,
      *     const?: mixed,
@@ -259,6 +286,7 @@ final readonly class Schema implements JsonSerializable
      *     maxItems?: int,
      *     minProperties?: int,
      *     pattern?: string,
+     *     examples?: list<mixed>,
      * }
      */
     #[Override]
@@ -280,6 +308,12 @@ final readonly class Schema implements JsonSerializable
         $result = [];
         if ($this->defs !== null) {
             $result['$defs'] = $this->defs;
+        }
+        if ($this->title !== null) {
+            $result['title'] = $this->title;
+        }
+        if ($this->description !== null) {
+            $result['description'] = $this->description;
         }
         if ($this->type !== null) {
             $result['type'] = $this->type;
@@ -342,14 +376,21 @@ final readonly class Schema implements JsonSerializable
         if ($this->pattern !== null) {
             $result['pattern'] = $this->pattern;
         }
+        if ($this->examples !== null) {
+            $result['examples'] = $this->examples;
+        }
         return (object)$result;
     }
 
     /**
+     * @param list<mixed>|null $examples
      * @param array<string, Schema>|null $defs
      */
     private function with(
         string|null $format = null,
+        string|null $title = null,
+        string|null $description = null,
+        array|null $examples = null,
         int|null $minimum = null,
         int|null $maximum = null,
         int|null $exclusiveMinimum = null,
@@ -365,6 +406,9 @@ final readonly class Schema implements JsonSerializable
         return new self(
             type: $this->type,
             format: $format ?? $this->format,
+            title: $title ?? $this->title,
+            description: $description ?? $this->description,
+            examples: $examples ?? $this->examples,
             const: $this->const,
             enum: $this->enum,
             items: $this->items,

@@ -116,6 +116,22 @@ final class SchemaTest extends TestCase
             static fn() => Schema::ref('#/$defs/Foo')->withDefs(['Foo' => Schema::string()]),
             (object)['$ref' => '#/$defs/Foo', '$defs' => ['Foo' => (object)['type' => 'string']]],
         ];
+        yield 'withTitle' => [
+            static fn() => Schema::string()->withTitle('A name'),
+            (object)['title' => 'A name', 'type' => 'string'],
+        ];
+        yield 'withDescription' => [
+            static fn() => Schema::string()->withDescription('The full name'),
+            (object)['description' => 'The full name', 'type' => 'string'],
+        ];
+        yield 'withExamples' => [
+            static fn() => Schema::string()->withExamples(['hello', 'world']),
+            (object)['type' => 'string', 'examples' => ['hello', 'world']],
+        ];
+        yield 'withTitle and description' => [
+            static fn() => Schema::string()->withTitle('Name')->withDescription('Full name'),
+            (object)['title' => 'Name', 'description' => 'Full name', 'type' => 'string'],
+        ];
         yield 'defs on non-ref schema' => [
             static fn() => Schema::object(['name' => Schema::string()], ['name'])->withDefs(
                 ['Other' => Schema::integer()],
