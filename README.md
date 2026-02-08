@@ -242,6 +242,7 @@ class User
     public function __construct(
         #[Format('email')]
         #[Example('john@example.com')]
+        #[Example('jane@example.com')]
         public string $email,
         #[Format('date-time')]
         public string $createdAt,
