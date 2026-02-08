@@ -19,7 +19,9 @@ use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableNoReturn;
 use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableUnionReturn;
 use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableWithObjectShape;
 use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableWithReturn;
+use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableWithSelfReturn;
 use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableWithShape;
+use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableWithStaticReturn;
 use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableWithUnsealedReturn;
 use Eventjet\Test\Unit\Json\Fixtures\NestedClass;
 use Eventjet\Test\Unit\Json\Fixtures\NoConstructor;
@@ -113,6 +115,14 @@ final class SchemaGeneratorTest extends TestCase
         yield 'json serializable with unsealed return' => [new JsonSerializableWithUnsealedReturn('Alice'), null];
         yield 'json serializable with object shape' => [
             new JsonSerializableWithObjectShape(StringStatus::Active),
+            null,
+        ];
+        yield 'json serializable with self return' => [
+            new JsonSerializableWithSelfReturn('root', new JsonSerializableWithSelfReturn('child', null)),
+            null,
+        ];
+        yield 'json serializable with static return' => [
+            new JsonSerializableWithStaticReturn('test'),
             null,
         ];
 
