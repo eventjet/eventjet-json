@@ -13,6 +13,7 @@ Type-safe JSON decoding and JSON Schema generation for PHP.
 - [Installation](#installation)
 - [Decoding](#decoding)
 - [JSON Schema Generation](#json-schema-generation)
+  - [Schema Metadata](#schema-metadata)
 - [Development](#development)
 
 ## Installation
@@ -206,6 +207,50 @@ $schema = JsonSchema::generate('string|int');
 Supports classes, backed enums, `JsonSerializable` (via `@return` docblock), generics (`list<T>`, `array<string, T>`, `iterable<T>`), union types, nullable types, array shapes (sealed and unsealed, with typed spreads), object shapes, tuple shapes, const literals, int ranges (`int<0, 100>`), `int-mask<1, 2, 4>`, `value-of<BackedEnum>`, and self-referencing types. Also handles PHPStan string types (`non-empty-string`, `non-falsy-string`, `lowercase-string`, `numeric-string`) and integer types (`positive-int`, `non-zero-int`, `array-key`, `scalar`, etc.).
 
 For `JsonSerializable` classes, the schema is derived from the `@return` docblock on `jsonSerialize()`, falling back to the native return type.
+
+### Schema Metadata
+
+Title and description are extracted from docblocks. The first paragraph becomes `title`, and subsequent paragraphs become `description`:
+
+```php
+/**
+ * A user account.
+ *
+ * Represents a registered user in the system.
+ */
+class User
+{
+    public function __construct(
+        /**
+         * The user's email address.
+         */
+        public string $email,
+    ) {
+    }
+}
+```
+
+Use the `#[Format]` attribute to set the JSON Schema `format` keyword, and `#[Example]` (repeatable) to add examples:
+
+```php
+use Eventjet\Json\Schema\Attribute\Example;
+use Eventjet\Json\Schema\Attribute\Format;
+
+#[Example(['email' => 'john@example.com', 'createdAt' => '2024-01-01T00:00:00Z'])]
+class User
+{
+    public function __construct(
+        #[Format('email')]
+        #[Example('john@example.com')]
+        public string $email,
+        #[Format('date-time')]
+        public string $createdAt,
+    ) {
+    }
+}
+```
+
+Metadata works on classes, properties, and backed enums.
 
 ## Development
 
