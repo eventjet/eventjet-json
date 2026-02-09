@@ -7,6 +7,7 @@ namespace Eventjet\Json\Schema;
 use BackedEnum;
 use Eventjet\Json\Schema\Attribute\Example;
 use Eventjet\Json\Schema\Attribute\Format;
+use Eventjet\Json\Schema\Attribute\Pattern;
 use Eventjet\Json\Schema\Exception\UnsupportedTypeException;
 use Eventjet\Json\UseStatementResolver;
 use JsonSerializable;
@@ -296,6 +297,10 @@ final class ClassSchemaGenerator
         if ($format !== null) {
             $schema = $schema->withFormat($format);
         }
+        $pattern = $this->extractPattern($reflection);
+        if ($pattern !== null) {
+            $schema = $schema->withPattern($pattern);
+        }
         $examples = $this->extractExamplesFromAttributes($reflection);
         if ($examples !== null) {
             $schema = $schema->withExamples($examples);
@@ -312,6 +317,10 @@ final class ClassSchemaGenerator
         $format = $this->extractFormat($property);
         if ($format !== null) {
             $schema = $schema->withFormat($format);
+        }
+        $pattern = $this->extractPattern($property);
+        if ($pattern !== null) {
+            $schema = $schema->withPattern($pattern);
         }
         $examples = $this->extractExamplesFromAttributes($property);
         if ($examples !== null) {
@@ -375,6 +384,18 @@ final class ClassSchemaGenerator
             return null;
         }
         return $attributes[0]->newInstance()->format;
+    }
+
+    /**
+     * @param ReflectionClass<object>|ReflectionProperty $reflection
+     */
+    private function extractPattern(ReflectionClass|ReflectionProperty $reflection): string|null
+    {
+        $attributes = $reflection->getAttributes(Pattern::class);
+        if ($attributes === []) {
+            return null;
+        }
+        return $attributes[0]->newInstance()->pattern;
     }
 
     private function parseDocblock(string $docComment): PhpDocNode
