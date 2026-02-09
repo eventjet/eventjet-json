@@ -292,6 +292,10 @@ final class ClassSchemaGenerator
         if ($docComment !== false) {
             $schema = $this->applyDocblockText($schema, $docComment);
         }
+        $format = $this->extractFormat($reflection);
+        if ($format !== null) {
+            $schema = $schema->withFormat($format);
+        }
         $examples = $this->extractExamplesFromAttributes($reflection);
         if ($examples !== null) {
             $schema = $schema->withExamples($examples);
@@ -361,9 +365,12 @@ final class ClassSchemaGenerator
         return $examples;
     }
 
-    private function extractFormat(ReflectionProperty $property): string|null
+    /**
+     * @param ReflectionClass<object>|ReflectionProperty $reflection
+     */
+    private function extractFormat(ReflectionClass|ReflectionProperty $reflection): string|null
     {
-        $attributes = $property->getAttributes(Format::class);
+        $attributes = $reflection->getAttributes(Format::class);
         if ($attributes === []) {
             return null;
         }

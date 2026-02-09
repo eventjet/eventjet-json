@@ -14,11 +14,12 @@ use Eventjet\Json\Schema\SchemaGenerator;
 use Eventjet\Json\Schema\SchemaRegistry;
 use Eventjet\Json\Schema\TypeNodeConverter;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithAllMetadata;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithClassLevelFormat;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithDocblock;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithDocblockAndTags;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithExamples;
-use Eventjet\Test\Unit\Json\Fixtures\ClassWithMultiParagraphDescription;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithFormat;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithMultiParagraphDescription;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithPropertyMetadata;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithTitleOnly;
 use Eventjet\Test\Unit\Json\Fixtures\EmptyClass;
@@ -44,6 +45,7 @@ use Eventjet\Test\Unit\Json\Fixtures\UnionTypes;
 use Eventjet\Test\Unit\Json\Fixtures\UnitEnum;
 use Eventjet\Test\Unit\Json\Fixtures\WithArrayDocblock;
 use Eventjet\Test\Unit\Json\Fixtures\WithBareArray;
+use Eventjet\Test\Unit\Json\Fixtures\WithClassLevelFormat;
 use Eventjet\Test\Unit\Json\Fixtures\WithEnum;
 use Eventjet\Test\Unit\Json\Fixtures\WithList;
 use Eventjet\Test\Unit\Json\Fixtures\WithListOfClass;
@@ -141,6 +143,10 @@ final class SchemaGeneratorTest extends TestCase
         yield 'class with title only' => [new ClassWithTitleOnly('abc'), null];
         yield 'class with examples' => [new ClassWithExamples('John', 30), null];
         yield 'class with format' => [new ClassWithFormat('2024-01-01T00:00:00Z', 'john@example.com'), null];
+        yield 'class with class-level format' => [
+            new WithClassLevelFormat(new ClassWithClassLevelFormat('550e8400-e29b-41d4-a716-446655440000')),
+            null,
+        ];
         yield 'class with property metadata' => [new ClassWithPropertyMetadata('john@example.com'), null];
         yield 'class with all metadata' => [
             new ClassWithAllMetadata('john@example.com', '2024-01-01T00:00:00Z'),
@@ -462,6 +468,12 @@ final class SchemaGeneratorTest extends TestCase
         $properties = $this->properties($json);
         self::assertSame('date-time', $properties['createdAt']['format']);
         self::assertSame('email', $properties['email']['format']);
+    }
+
+    public function testClassLevelFormatAttribute(): void
+    {
+        $json = $this->generateAndDecode(ClassWithClassLevelFormat::class);
+        self::assertSame('uuid', $json['format']);
     }
 
     public function testPropertyMetadata(): void
