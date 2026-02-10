@@ -108,6 +108,10 @@ final class SchemaTest extends TestCase
             static fn() => Schema::map(Schema::string())->withMinProperties(1),
             (object)['type' => 'object', 'additionalProperties' => (object)['type' => 'string'], 'minProperties' => 1],
         ];
+        yield 'withUniqueItems' => [
+            static fn() => Schema::array(Schema::string())->withUniqueItems(true),
+            (object)['type' => 'array', 'items' => (object)['type' => 'string'], 'uniqueItems' => true],
+        ];
         yield 'withPattern' => [
             static fn() => Schema::string()->withPattern('^[a-z]+$'),
             (object)['type' => 'string', 'pattern' => '^[a-z]+$'],

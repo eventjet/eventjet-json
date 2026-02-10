@@ -8,6 +8,7 @@ use BackedEnum;
 use Eventjet\Json\Schema\Attribute\Example;
 use Eventjet\Json\Schema\Attribute\Format;
 use Eventjet\Json\Schema\Attribute\Pattern;
+use Eventjet\Json\Schema\Attribute\UniqueItems;
 use Eventjet\Json\Schema\Exception\UnsupportedTypeException;
 use Eventjet\Json\UseStatementResolver;
 use JsonSerializable;
@@ -305,6 +306,9 @@ final class ClassSchemaGenerator
         if ($examples !== null) {
             $schema = $schema->withExamples($examples);
         }
+        if ($this->extractUniqueItems($reflection)) {
+            $schema = $schema->withUniqueItems(true);
+        }
         return $schema;
     }
 
@@ -325,6 +329,9 @@ final class ClassSchemaGenerator
         $examples = $this->extractExamplesFromAttributes($property);
         if ($examples !== null) {
             $schema = $schema->withExamples($examples);
+        }
+        if ($this->extractUniqueItems($property)) {
+            $schema = $schema->withUniqueItems(true);
         }
         return $schema;
     }
@@ -396,6 +403,14 @@ final class ClassSchemaGenerator
             return null;
         }
         return $attributes[0]->newInstance()->pattern;
+    }
+
+    /**
+     * @param ReflectionClass<object>|ReflectionProperty $reflection
+     */
+    private function extractUniqueItems(ReflectionClass|ReflectionProperty $reflection): bool
+    {
+        return $reflection->getAttributes(UniqueItems::class) !== [];
     }
 
     private function parseDocblock(string $docComment): PhpDocNode

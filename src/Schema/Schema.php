@@ -42,6 +42,7 @@ final readonly class Schema implements JsonSerializable
         private int|null $maxLength = null,
         private int|null $minItems = null,
         private int|null $maxItems = null,
+        private bool|null $uniqueItems = null,
         private int|null $minProperties = null,
         private string|null $pattern = null,
         private array|null $prefixItems = null,
@@ -168,6 +169,7 @@ final readonly class Schema implements JsonSerializable
             maxLength: $this->maxLength,
             minItems: $this->minItems,
             maxItems: $this->maxItems,
+            uniqueItems: $this->uniqueItems,
             minProperties: $this->minProperties,
             pattern: $this->pattern,
             prefixItems: $this->prefixItems,
@@ -240,6 +242,11 @@ final readonly class Schema implements JsonSerializable
         return $this->with(maxItems: $maxItems);
     }
 
+    public function withUniqueItems(bool $uniqueItems): self
+    {
+        return $this->with(uniqueItems: $uniqueItems);
+    }
+
     public function withMinProperties(int $minProperties): self
     {
         return $this->with(minProperties: $minProperties);
@@ -284,6 +291,7 @@ final readonly class Schema implements JsonSerializable
      *     maxLength?: int,
      *     minItems?: int,
      *     maxItems?: int,
+     *     uniqueItems?: bool,
      *     minProperties?: int,
      *     pattern?: string,
      *     examples?: list<mixed>,
@@ -370,6 +378,9 @@ final readonly class Schema implements JsonSerializable
         if ($this->maxItems !== null) {
             $result['maxItems'] = $this->maxItems;
         }
+        if ($this->uniqueItems !== null) {
+            $result['uniqueItems'] = $this->uniqueItems;
+        }
         if ($this->minProperties !== null) {
             $result['minProperties'] = $this->minProperties;
         }
@@ -399,6 +410,7 @@ final readonly class Schema implements JsonSerializable
         int|null $maxLength = null,
         int|null $minItems = null,
         int|null $maxItems = null,
+        bool|null $uniqueItems = null,
         int|null $minProperties = null,
         string|null $pattern = null,
         array|null $defs = null,
@@ -425,6 +437,7 @@ final readonly class Schema implements JsonSerializable
             maxLength: $maxLength ?? $this->maxLength,
             minItems: $minItems ?? $this->minItems,
             maxItems: $maxItems ?? $this->maxItems,
+            uniqueItems: $uniqueItems ?? $this->uniqueItems,
             minProperties: $minProperties ?? $this->minProperties,
             pattern: $pattern ?? $this->pattern,
             prefixItems: $this->prefixItems,

@@ -6,6 +6,7 @@ namespace Eventjet\Test\Unit\Json\Schema;
 
 use Eventjet\Json\Schema\Attribute\Example;
 use Eventjet\Json\Schema\Attribute\Format;
+use Eventjet\Json\Schema\Attribute\UniqueItems;
 use Eventjet\Json\Schema\ClassSchemaGenerator;
 use Eventjet\Json\Schema\Exception\UnsupportedTypeException;
 use Eventjet\Json\Schema\JsonSchema;
@@ -16,6 +17,7 @@ use Eventjet\Json\Schema\TypeNodeConverter;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithAllMetadata;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithClassLevelFormat;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithClassLevelPattern;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithClassLevelUniqueItems;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithDocblock;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithDocblockAndTags;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithExamples;
@@ -24,6 +26,7 @@ use Eventjet\Test\Unit\Json\Fixtures\ClassWithMultiParagraphDescription;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithPattern;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithPropertyMetadata;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithTitleOnly;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithUniqueItems;
 use Eventjet\Test\Unit\Json\Fixtures\EmptyClass;
 use Eventjet\Test\Unit\Json\Fixtures\IntStatus;
 use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableMixed;
@@ -49,6 +52,7 @@ use Eventjet\Test\Unit\Json\Fixtures\WithArrayDocblock;
 use Eventjet\Test\Unit\Json\Fixtures\WithBareArray;
 use Eventjet\Test\Unit\Json\Fixtures\WithClassLevelFormat;
 use Eventjet\Test\Unit\Json\Fixtures\WithClassLevelPattern;
+use Eventjet\Test\Unit\Json\Fixtures\WithClassLevelUniqueItems;
 use Eventjet\Test\Unit\Json\Fixtures\WithEnum;
 use Eventjet\Test\Unit\Json\Fixtures\WithList;
 use Eventjet\Test\Unit\Json\Fixtures\WithListOfClass;
@@ -75,6 +79,7 @@ use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(Example::class)]
 #[CoversClass(Format::class)]
+#[CoversClass(UniqueItems::class)]
 #[CoversClass(SchemaGenerator::class)]
 #[CoversClass(ClassSchemaGenerator::class)]
 #[CoversClass(TypeNodeConverter::class)]
@@ -153,6 +158,11 @@ final class SchemaGeneratorTest extends TestCase
         yield 'class with pattern' => [new ClassWithPattern('hello'), null];
         yield 'class with class-level pattern' => [
             new WithClassLevelPattern(new ClassWithClassLevelPattern('42')),
+            null,
+        ];
+        yield 'class with unique items' => [new ClassWithUniqueItems(['a', 'b', 'c']), null];
+        yield 'class with class-level unique items' => [
+            new WithClassLevelUniqueItems(new ClassWithClassLevelUniqueItems(['a', 'b'])),
             null,
         ];
         yield 'class with property metadata' => [new ClassWithPropertyMetadata('john@example.com'), null];
@@ -495,6 +505,19 @@ final class SchemaGeneratorTest extends TestCase
     {
         $json = $this->generateAndDecode(ClassWithClassLevelPattern::class);
         self::assertSame('[1-9][0-9]*', $json['pattern']);
+    }
+
+    public function testPropertyUniqueItemsAttribute(): void
+    {
+        $json = $this->generateAndDecode(ClassWithUniqueItems::class);
+        $properties = $this->properties($json);
+        self::assertTrue($properties['tags']['uniqueItems']);
+    }
+
+    public function testClassLevelUniqueItemsAttribute(): void
+    {
+        $json = $this->generateAndDecode(ClassWithClassLevelUniqueItems::class);
+        self::assertTrue($json['uniqueItems']);
     }
 
     public function testPropertyMetadata(): void
