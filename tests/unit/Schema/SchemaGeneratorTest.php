@@ -23,6 +23,7 @@ use Eventjet\Test\Unit\Json\Fixtures\ClassWithDocblockAndTags;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithExamples;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithFormat;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithMultiParagraphDescription;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithParamDescriptions;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithPattern;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithPropertyMetadata;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithTitleOnly;
@@ -168,6 +169,10 @@ final class SchemaGeneratorTest extends TestCase
         yield 'class with property metadata' => [new ClassWithPropertyMetadata('john@example.com'), null];
         yield 'class with all metadata' => [
             new ClassWithAllMetadata('john@example.com', '2024-01-01T00:00:00Z'),
+            null,
+        ];
+        yield 'class with param descriptions' => [
+            new ClassWithParamDescriptions('John', 30, 'john@example.com', 'none'),
             null,
         ];
 
@@ -537,6 +542,30 @@ final class SchemaGeneratorTest extends TestCase
         $json = $this->generateAndDecode(SimpleClass::class);
         self::assertArrayNotHasKey('title', $json);
         self::assertArrayNotHasKey('description', $json);
+    }
+
+    public function testParamDescriptionBecomesPropertyDescription(): void
+    {
+        $json = $this->generateAndDecode(ClassWithParamDescriptions::class);
+        $name = $this->property($json, 'name');
+        self::assertArrayNotHasKey('title', $name);
+        self::assertSame("The user's full name", $name['description']);
+    }
+
+    public function testPropertyDocblockTakesPriorityOverParamDescription(): void
+    {
+        $json = $this->generateAndDecode(ClassWithParamDescriptions::class);
+        $age = $this->property($json, 'age');
+        self::assertSame('The age of the person.', $age['title']);
+        self::assertSame('Must be positive.', $age['description']);
+    }
+
+    public function testVarOnlyPropertyGetsParamDescription(): void
+    {
+        $json = $this->generateAndDecode(ClassWithParamDescriptions::class);
+        $email = $this->property($json, 'email');
+        self::assertArrayNotHasKey('title', $email);
+        self::assertSame("The user's email address", $email['description']);
     }
 
     public function testAllMetadataCombined(): void

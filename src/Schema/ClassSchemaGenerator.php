@@ -160,13 +160,19 @@ final class ClassSchemaGenerator
         $schemaProperties = [];
         $required = [];
         $constructorDocParams = $this->getConstructorParamTypes($reflection);
+        $paramDescriptions = $this->getConstructorParamDescriptions($reflection);
         foreach ($properties as $property) {
             if ($property->isStatic()) {
                 continue;
             }
             $name = $property->getName();
             $propertySchema = $this->resolvePropertyType($property, $reflection, $constructorDocParams);
-            $schemaProperties[$name] = $this->applyPropertyMetadata($propertySchema, $property);
+            $propertySchema = $this->applyPropertyMetadata($propertySchema, $property);
+            $paramDescription = $paramDescriptions[$name] ?? '';
+            if ($paramDescription !== '' && !$this->propertyDocblockHasText($property)) {
+                $propertySchema = $propertySchema->withDescription($paramDescription);
+            }
+            $schemaProperties[$name] = $propertySchema;
             $required[] = $name;
         }
         return $this->applyClassMetadata(Schema::object($schemaProperties, $required), $reflection);
@@ -268,6 +274,53 @@ final class ClassSchemaGenerator
             $result[$name] = $this->resolveTypeNodeClassNames($paramTag->type, $reflection->getName());
         }
         return $result;
+    }
+
+    /**
+     * @param ReflectionClass<object> $reflection
+     * @return array<string, string>
+     */
+    private function getConstructorParamDescriptions(ReflectionClass $reflection): array
+    {
+        $constructor = $reflection->getConstructor();
+        if ($constructor === null) {
+            return [];
+        }
+        $docComment = $constructor->getDocComment();
+        if ($docComment === false) {
+            return [];
+        }
+        $phpDoc = $this->parseDocblock($docComment);
+        $paramTags = $phpDoc->getParamTagValues();
+        $result = [];
+        foreach ($paramTags as $paramTag) {
+            $description = trim($paramTag->description);
+            if ($description === '') {
+                continue;
+            }
+            $name = ltrim($paramTag->parameterName, '$');
+            $result[$name] = $description;
+        }
+        return $result;
+    }
+
+    private function propertyDocblockHasText(ReflectionProperty $property): bool
+    {
+        $docComment = $property->getDocComment();
+        if ($docComment === false) {
+            return false;
+        }
+        $phpDoc = $this->parseDocblock($docComment);
+        $text = '';
+        foreach ($phpDoc->children as $child) {
+            if ($child instanceof PhpDocTagNode) {
+                break;
+            }
+            if ($child instanceof PhpDocTextNode) {
+                $text .= $child->text;
+            }
+        }
+        return trim($text) !== '';
     }
 
     private function getVarTypeNode(ReflectionProperty $property, string $contextClass): TypeNode|null
