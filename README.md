@@ -132,6 +132,37 @@ $result = Json::decode('{"value": 42}', Result::class);     // value is 42
 
 For `array<string, string>|Foo`, an empty object `{}` decodes as `Foo`, not an empty map.
 
+### JsonSerializable
+
+Classes implementing `JsonSerializable` that serialize to non-object values (e.g.,
+value objects wrapping a string or int) are decoded by passing the JSON value to the
+single constructor parameter:
+
+```php
+final readonly class UserId implements \JsonSerializable
+{
+    public function __construct(private string $value) {}
+    public function jsonSerialize(): string { return $this->value; }
+}
+
+$id = Json::decode('"user-42"', UserId::class);
+// UserId { value: "user-42" }
+```
+
+This also works as a property type:
+
+```php
+class Order
+{
+    public function __construct(
+        public UserId $userId,
+        public string $item,
+    ) {}
+}
+
+Json::decode('{"userId": "user-42", "item": "widget"}', Order::class);
+```
+
 ### Differences from `json_decode()`
 
 `Json::decode()` requires explicit types and performs strict validation:
@@ -179,6 +210,7 @@ All exceptions extend `JsonDecodeException`. See the `@throws` tag on `Json::dec
 - Docblock-only types like `non-empty-string` or `positive-int` are not supported
 - Only constructor parameters are mapped; properties outside the constructor are ignored
 - JSON field names must match constructor parameter names exactly
+- `JsonSerializable` classes that serialize to non-object values require exactly one required constructor parameter. Multi-parameter constructors that serialize to a non-object value are not supported.
 
 The classes you decode into should mirror the JSON structure exactly. Then transform those objects into whatever you want—just like you did before with `json_decode($json, true)`.
 

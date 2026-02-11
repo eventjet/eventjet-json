@@ -18,6 +18,7 @@ use Eventjet\Json\Type\ParsedType;
 use Eventjet\Json\Type\PrimitiveType;
 use Eventjet\Json\Type\TypeParser;
 use Eventjet\Json\Type\UnionType;
+use JsonSerializable;
 use ReflectionClass;
 use ReflectionEnum;
 use ReflectionNamedType;
@@ -138,10 +139,16 @@ final class Json
      * @template T of object
      * @param class-string<T> $className
      * @return T
+     * @psalm-suppress InvalidReturnType T may implement JsonSerializable; runtime guarantees correct type
      */
     private static function decodeClass(mixed $value, string $className): object
     {
         if (!$value instanceof stdClass) {
+            /** @psalm-suppress DocblockTypeContradiction T may implement JsonSerializable */
+            if (is_a($className, JsonSerializable::class, true)) {
+                /** @psalm-suppress InvalidReturnStatement T may implement JsonSerializable */
+                return self::decodeJsonSerializable($value, new ReflectionClass($className), $className);
+            }
             throw new TypeMismatchException(
                 sprintf('Expected object for %s, got %s', $className, get_debug_type($value)),
             );
@@ -158,6 +165,76 @@ final class Json
         foreach ($constructor->getParameters() as $param) {
             /** @psalm-suppress MixedAssignment Constructor args are intentionally mixed, validated at runtime */
             $args[] = self::resolveParameter($param, $value, $className);
+        }
+
+        return $reflection->newInstanceArgs($args);
+    }
+
+    /**
+     * @template T of object
+     * @param ReflectionClass<T> $reflection
+     * @param class-string<T> $className
+     * @return T
+     */
+    private static function decodeJsonSerializable(
+        mixed $value,
+        ReflectionClass $reflection,
+        string $className,
+    ): object {
+        $constructor = $reflection->getConstructor();
+        if ($constructor === null) {
+            throw new UnsupportedTypeException(
+                sprintf('JsonSerializable class %s has no constructor', $className),
+            );
+        }
+
+        $params = $constructor->getParameters();
+        $requiredParams = [];
+        foreach ($params as $param) {
+            if (!$param->isOptional()) {
+                $requiredParams[] = $param;
+            }
+        }
+
+        if (count($requiredParams) !== 1) {
+            throw new UnsupportedTypeException(
+                sprintf(
+                    'JsonSerializable class %s must have exactly one required constructor parameter to decode from a non-object value, got %d',
+                    $className,
+                    count($requiredParams),
+                ),
+            );
+        }
+
+        $requiredParam = $requiredParams[0];
+        $type = $requiredParam->getType();
+        /** @psalm-suppress MixedAssignment Decoded value is intentionally mixed */
+        $decoded = match (true) {
+            $type instanceof ReflectionNamedType => self::resolveNamedType(
+                $type,
+                $value,
+                $requiredParam->getName(),
+                $className,
+                $requiredParam,
+            ),
+            $type instanceof ReflectionUnionType => self::resolveUnionType(
+                $type,
+                $value,
+                $requiredParam->getName(),
+                $className,
+                $requiredParam,
+            ),
+            default => $value,
+        };
+
+        $args = [];
+        foreach ($params as $param) {
+            /** @psalm-suppress MixedAssignment Constructor args are intentionally mixed */
+            if ($param->getName() === $requiredParam->getName()) {
+                $args[] = $decoded;
+            } else {
+                $args[] = $param->getDefaultValue();
+            }
         }
 
         return $reflection->newInstanceArgs($args);
@@ -254,6 +331,11 @@ final class Json
         }
 
         if ($value instanceof stdClass && count($classTypes) === 1) {
+            return self::decodeClass($value, $classTypes[0]);
+        }
+
+        if (!$value instanceof stdClass && count($classTypes) === 1
+            && is_a($classTypes[0], JsonSerializable::class, true)) {
             return self::decodeClass($value, $classTypes[0]);
         }
 
@@ -654,6 +736,11 @@ final class Json
             if (class_exists($typeName)) {
                 return self::decodeClass($value, $typeName);
             }
+        }
+
+        if (!$value instanceof stdClass && count($classTypes) === 1
+            && is_a($classTypes[0]->className, JsonSerializable::class, true)) {
+            return self::decodeClass($value, $classTypes[0]->className);
         }
 
         if ($value instanceof stdClass && count($mapTypes) === 1) {

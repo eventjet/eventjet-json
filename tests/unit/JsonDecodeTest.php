@@ -14,6 +14,8 @@ use Eventjet\Test\Unit\Json\Fixtures\ClassUnion;
 use Eventjet\Test\Unit\Json\Fixtures\EmptyClass;
 use Eventjet\Test\Unit\Json\Fixtures\FloatBoolUnion;
 use Eventjet\Test\Unit\Json\Fixtures\IntStatus;
+use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableNoDocblock;
+use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableWithReturn;
 use Eventjet\Test\Unit\Json\Fixtures\NestedClass;
 use Eventjet\Test\Unit\Json\Fixtures\NoConstructor;
 use Eventjet\Test\Unit\Json\Fixtures\NullableFields;
@@ -29,6 +31,7 @@ use Eventjet\Test\Unit\Json\Fixtures\WithArray;
 use Eventjet\Test\Unit\Json\Fixtures\WithEnum;
 use Eventjet\Test\Unit\Json\Fixtures\WithInterface;
 use Eventjet\Test\Unit\Json\Fixtures\WithIntersection;
+use Eventjet\Test\Unit\Json\Fixtures\WithJsonSerializableProperty;
 use Generator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -436,5 +439,68 @@ final class JsonDecodeTest extends TestCase
         $this->expectException(TypeMismatchException::class);
 
         Json::decode($json, UnionWithClass::class);
+    }
+
+    public function testDecodesJsonSerializableFromScalar(): void
+    {
+        $result = Json::decode('"hello"', JsonSerializableNoDocblock::class);
+
+        self::assertEquals(new JsonSerializableNoDocblock('hello'), $result);
+    }
+
+    public function testDecodesJsonSerializableAsPropertyType(): void
+    {
+        $json = self::encode((object)['required' => 'hello']);
+
+        $result = Json::decode($json, WithJsonSerializableProperty::class);
+
+        self::assertEquals(
+            new WithJsonSerializableProperty(new JsonSerializableNoDocblock('hello')),
+            $result,
+        );
+    }
+
+    public function testDecodesJsonSerializableNullableProperty(): void
+    {
+        $json = self::encode((object)['required' => 'hello', 'nullable' => 'world']);
+
+        $result = Json::decode($json, WithJsonSerializableProperty::class);
+
+        self::assertEquals(
+            new WithJsonSerializableProperty(
+                new JsonSerializableNoDocblock('hello'),
+                new JsonSerializableNoDocblock('world'),
+            ),
+            $result,
+        );
+    }
+
+    public function testDecodesJsonSerializableNullablePropertyWithNull(): void
+    {
+        $json = self::encode((object)['required' => 'hello', 'nullable' => null]);
+
+        $result = Json::decode($json, WithJsonSerializableProperty::class);
+
+        self::assertEquals(
+            new WithJsonSerializableProperty(new JsonSerializableNoDocblock('hello'), null),
+            $result,
+        );
+    }
+
+    public function testDecodesObjectShapedJsonSerializableStillWorks(): void
+    {
+        $json = self::encode((object)['name' => 'Alice', 'age' => 30]);
+
+        $result = Json::decode($json, JsonSerializableWithReturn::class);
+
+        self::assertEquals(new JsonSerializableWithReturn('Alice', 30), $result);
+    }
+
+    public function testThrowsOnNonObjectValueForMultiParamJsonSerializable(): void
+    {
+        $this->expectException(UnsupportedTypeException::class);
+        $this->expectExceptionMessage('exactly one required constructor parameter');
+
+        Json::decode('"hello"', JsonSerializableWithReturn::class);
     }
 }

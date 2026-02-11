@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Test\Unit\Json;
 
 use Eventjet\Json\Json;
+use Eventjet\Test\Unit\Json\Fixtures\JsonSerializableNoDocblock;
 use Eventjet\Test\Unit\Json\Fixtures\SimpleClass;
 use Generator;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -92,6 +93,22 @@ final class RootTypeDecodeTest extends TestCase
     {
         /** @psalm-suppress ArgumentTypeCoercion Type expressions are valid but not class-strings */
         $result = Json::decode('null', SimpleClass::class . '|null'); // @phpstan-ignore argument.type
+
+        self::assertNull($result); // @phpstan-ignore staticMethod.impossibleType
+    }
+
+    public function testDecodesRootJsonSerializableUnion(): void
+    {
+        /** @psalm-suppress ArgumentTypeCoercion, MixedAssignment Type expressions are valid but not class-strings */
+        $result = Json::decode('"hello"', JsonSerializableNoDocblock::class . '|null'); // @phpstan-ignore argument.type
+
+        self::assertEquals(new JsonSerializableNoDocblock('hello'), $result);
+    }
+
+    public function testDecodesRootJsonSerializableUnionWithNull(): void
+    {
+        /** @psalm-suppress ArgumentTypeCoercion Type expressions are valid but not class-strings */
+        $result = Json::decode('null', JsonSerializableNoDocblock::class . '|null'); // @phpstan-ignore argument.type
 
         self::assertNull($result); // @phpstan-ignore staticMethod.impossibleType
     }
