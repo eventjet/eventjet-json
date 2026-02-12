@@ -102,6 +102,16 @@ final class TypeParserTest extends TestCase
         self::assertSame('string', $result->inner->name);
     }
 
+    public function testParsesNonEmptyList(): void
+    {
+        $parser = new TypeParser();
+        $result = $parser->parse('non-empty-list<string>');
+
+        self::assertInstanceOf(ListType::class, $result);
+        self::assertInstanceOf(PrimitiveType::class, $result->inner);
+        self::assertSame('string', $result->inner->name);
+    }
+
     public function testParsesListOfClass(): void
     {
         $parser = new TypeParser();

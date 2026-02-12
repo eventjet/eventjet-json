@@ -21,7 +21,7 @@ use function trim;
  * Grammar:
  *   Type       := UnionType | SimpleType
  *   UnionType  := SimpleType ('|' SimpleType)+
- *   SimpleType := 'list' '<' Type '>' | 'array' '<' 'string' ',' Type '>' | ClassName | Primitive
+ *   SimpleType := ('list' | 'non-empty-list') '<' Type '>' | 'array' '<' 'string' ',' Type '>' | ClassName | Primitive
  *   Primitive  := 'string' | 'int' | 'float' | 'bool' | 'null'
  */
 final class TypeParser
@@ -129,7 +129,8 @@ final class TypeParser
     {
         $type = trim($type);
 
-        if (str_starts_with($type, 'list<')) {
+        // non-empty-list<T> is treated as list<T>; the non-empty constraint is not enforced at runtime.
+        if (str_starts_with($type, 'list<') || str_starts_with($type, 'non-empty-list<')) {
             return $this->parseListType($type);
         }
 
@@ -156,11 +157,19 @@ final class TypeParser
      */
     private function parseListType(string $type): ListType
     {
-        if (!str_starts_with($type, 'list<') || !str_ends_with($type, '>')) {
+        if (str_starts_with($type, 'non-empty-list<')) {
+            $prefixLength = 15;
+        } elseif (str_starts_with($type, 'list<')) {
+            $prefixLength = 5;
+        } else {
             throw new TypeParseException(sprintf('Invalid list type: %s', $type));
         }
 
-        $inner = substr($type, 5, -1);
+        if (!str_ends_with($type, '>')) {
+            throw new TypeParseException(sprintf('Invalid list type: %s', $type));
+        }
+
+        $inner = substr($type, $prefixLength, -1);
         $inner = trim($inner);
 
         if ($inner === '') {

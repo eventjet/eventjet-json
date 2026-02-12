@@ -79,6 +79,8 @@ class WithTags
 $obj = Json::decode('{"tags": ["php", "json"]}', WithTags::class);
 ```
 
+`non-empty-list<T>` is also accepted and treated identically to `list<T>` (the non-empty constraint is not enforced at runtime).
+
 Root-level: `Json::decode('[1, 2, 3]', 'list<int>')`
 
 ### Maps
