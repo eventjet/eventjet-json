@@ -7,6 +7,7 @@ namespace Eventjet\Json\Schema;
 use BackedEnum;
 use Eventjet\Json\Schema\Attribute\Example;
 use Eventjet\Json\Schema\Attribute\Format;
+use Eventjet\Json\Schema\Attribute\OneOf;
 use Eventjet\Json\Schema\Attribute\Pattern;
 use Eventjet\Json\Schema\Attribute\UniqueItems;
 use Eventjet\Json\Schema\Exception\UnsupportedTypeException;
@@ -103,6 +104,10 @@ final class ClassSchemaGenerator
     private function doGenerate(string $className): Schema
     {
         $reflection = new ReflectionClass($className);
+        $oneOf = $reflection->getAttributes(OneOf::class);
+        if ($oneOf !== []) {
+            return $this->generateOneOf($reflection, $oneOf[0]->newInstance());
+        }
         if ($reflection->isEnum()) {
             return $this->generateEnum($className);
         }
@@ -110,6 +115,18 @@ final class ClassSchemaGenerator
             return $this->generateJsonSerializable($reflection);
         }
         return $this->generateFromProperties($reflection);
+    }
+
+    /**
+     * @param ReflectionClass<object> $reflection
+     */
+    private function generateOneOf(ReflectionClass $reflection, OneOf $oneOf): Schema
+    {
+        $refs = [];
+        foreach ($oneOf->variants as $variant) {
+            $refs[] = $this->generate($variant);
+        }
+        return $this->applyClassMetadata(Schema::anyOf($refs), $reflection);
     }
 
     /**

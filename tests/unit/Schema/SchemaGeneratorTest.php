@@ -6,6 +6,7 @@ namespace Eventjet\Test\Unit\Json\Schema;
 
 use Eventjet\Json\Schema\Attribute\Example;
 use Eventjet\Json\Schema\Attribute\Format;
+use Eventjet\Json\Schema\Attribute\OneOf;
 use Eventjet\Json\Schema\Attribute\UniqueItems;
 use Eventjet\Json\Schema\ClassSchemaGenerator;
 use Eventjet\Json\Schema\Exception\UnsupportedTypeException;
@@ -44,6 +45,12 @@ use Eventjet\Test\Unit\Json\Fixtures\NestedClass;
 use Eventjet\Test\Unit\Json\Fixtures\NoConstructor;
 use Eventjet\Test\Unit\Json\Fixtures\NullableFields;
 use Eventjet\Test\Unit\Json\Fixtures\NullableUnion;
+use Eventjet\Test\Unit\Json\Fixtures\OneOfInterface;
+use Eventjet\Test\Unit\Json\Fixtures\OneOfSelfRef;
+use Eventjet\Test\Unit\Json\Fixtures\OneOfSelfRefComposite;
+use Eventjet\Test\Unit\Json\Fixtures\OneOfSelfRefLeaf;
+use Eventjet\Test\Unit\Json\Fixtures\OneOfVariantA;
+use Eventjet\Test\Unit\Json\Fixtures\OneOfVariantB;
 use Eventjet\Test\Unit\Json\Fixtures\SelfReferencing;
 use Eventjet\Test\Unit\Json\Fixtures\SimpleClass;
 use Eventjet\Test\Unit\Json\Fixtures\StringStatus;
@@ -80,6 +87,7 @@ use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(Example::class)]
 #[CoversClass(Format::class)]
+#[CoversClass(OneOf::class)]
 #[CoversClass(UniqueItems::class)]
 #[CoversClass(SchemaGenerator::class)]
 #[CoversClass(ClassSchemaGenerator::class)]
@@ -174,6 +182,13 @@ final class SchemaGeneratorTest extends TestCase
         yield 'class with param descriptions' => [
             new ClassWithParamDescriptions('John', 30, 'john@example.com', 'none'),
             null,
+        ];
+        yield 'oneOf variant A' => [new OneOfVariantA('hello'), OneOfInterface::class];
+        yield 'oneOf variant B' => [new OneOfVariantB(42), OneOfInterface::class];
+        yield 'oneOf self-ref leaf' => [new OneOfSelfRefLeaf('x'), OneOfSelfRef::class];
+        yield 'oneOf self-ref composite' => [
+            new OneOfSelfRefComposite([new OneOfSelfRefLeaf('a')]),
+            OneOfSelfRef::class,
         ];
 
         yield 'string type' => ['hello', 'string'];
@@ -582,6 +597,14 @@ final class SchemaGeneratorTest extends TestCase
         self::assertSame("The user's email address.", $email['title']);
         self::assertIsArray($email['examples']);
         self::assertCount(1, $email['examples']);
+    }
+
+    public function testOneOfProducesAnyOf(): void
+    {
+        $json = $this->generateAndDecode(OneOfInterface::class);
+        self::assertArrayHasKey('anyOf', $json);
+        self::assertIsArray($json['anyOf']);
+        self::assertCount(2, $json['anyOf']);
     }
 
     /**
