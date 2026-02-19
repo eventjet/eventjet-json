@@ -257,26 +257,17 @@ final class TypeNodeConverterTest extends TestCase
         );
     }
 
-    public function testNonEmptyListShapeMinItemsAtLeastOne(): void
+    public function testNonEmptyListShapeThrows(): void
     {
         $converter = $this->createConverter();
-        $schema = $converter->convert(ArrayShapeNode::createSealed(
+        $this->expectException(UnsupportedTypeException::class);
+        $this->expectExceptionMessage('#[MinItems(1)]');
+        $converter->convert(ArrayShapeNode::createSealed(
             [
                 new ArrayShapeItemNode(null, true, new IdentifierTypeNode('string')),
             ],
             ArrayShapeNode::KIND_NON_EMPTY_LIST,
         ));
-        self::assertEquals(
-            (object)[
-                'type' => 'array',
-                'prefixItems' => [
-                    (object)['type' => 'string'],
-                ],
-                'items' => false,
-                'minItems' => 1,
-            ],
-            json_decode(json_encode($schema, JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR),
-        );
     }
 
     public function testUnsealedTupleWithType(): void
@@ -346,10 +337,12 @@ final class TypeNodeConverterTest extends TestCase
         );
     }
 
-    public function testNonEmptyArrayObjectShapeMinProperties(): void
+    public function testNonEmptyArrayObjectShapeThrows(): void
     {
         $converter = $this->createConverter();
-        $schema = $converter->convert(ArrayShapeNode::createSealed(
+        $this->expectException(UnsupportedTypeException::class);
+        $this->expectExceptionMessage('#[MinProperties(1)]');
+        $converter->convert(ArrayShapeNode::createSealed(
             [
                 new ArrayShapeItemNode(
                     new IdentifierTypeNode('name'),
@@ -359,15 +352,6 @@ final class TypeNodeConverterTest extends TestCase
             ],
             ArrayShapeNode::KIND_NON_EMPTY_ARRAY,
         ));
-        self::assertEquals(
-            (object)[
-                'type' => 'object',
-                'properties' => (object)['name' => (object)['type' => 'string']],
-                'additionalProperties' => false,
-                'minProperties' => 1,
-            ],
-            json_decode(json_encode($schema, JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR),
-        );
     }
 
     public function testObjectShapeNode(): void

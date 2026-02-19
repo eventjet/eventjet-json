@@ -77,7 +77,10 @@ final class TypeNodeConverter
     {
         return match (strtolower($node->name)) {
             'string', 'literal-string', 'callable-string' => Schema::string(),
-            'non-empty-string' => Schema::string()->withMinLength(1),
+            'non-empty-string' => throw new UnsupportedTypeException(
+                'non-empty-string is not supported in schema generation.'
+                . ' Use the string type with the #[MinLength(1)] attribute instead.',
+            ),
             'non-falsy-string', 'truthy-string' => Schema::string()->withPattern('^(?!0$).+'),
             'lowercase-string' => Schema::string()->withPattern('^[^A-Z]*$'),
             'numeric-string' => Schema::string()->withPattern('^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$'),
@@ -130,9 +133,15 @@ final class TypeNodeConverter
         $baseName = strtolower($node->type->name);
         return match ($baseName) {
             'list' => Schema::array($this->convert($node->genericTypes[0])),
-            'non-empty-list' => Schema::array($this->convert($node->genericTypes[0]))->withMinItems(1),
+            'non-empty-list' => throw new UnsupportedTypeException(
+                'non-empty-list is not supported in schema generation.'
+                . ' Use list<T> with the #[MinItems(1)] attribute instead.',
+            ),
             'array' => $this->convertGenericArray($node),
-            'non-empty-array' => $this->convertGenericArray($node)->withMinProperties(1),
+            'non-empty-array' => throw new UnsupportedTypeException(
+                'non-empty-array is not supported in schema generation.'
+                . ' Use array<K, V> with the #[MinItems(1)] or #[MinProperties(1)] attribute instead.',
+            ),
             'iterable' => $this->convertGenericIterable($node),
             'int' => $this->convertIntRange($node),
             'int-mask' => $this->convertIntMask($node),
@@ -329,12 +338,17 @@ final class TypeNodeConverter
                 $minItems = $position;
             }
         }
-        if (
-            $minItems < 1
-            && ($node->kind === ArrayShapeNode::KIND_NON_EMPTY_LIST
-                || $node->kind === ArrayShapeNode::KIND_NON_EMPTY_ARRAY)
-        ) {
-            $minItems = 1;
+        if ($node->kind === ArrayShapeNode::KIND_NON_EMPTY_LIST) {
+            throw new UnsupportedTypeException(
+                'non-empty-list is not supported in schema generation.'
+                . ' Use list<T> with the #[MinItems(1)] attribute instead.',
+            );
+        }
+        if ($node->kind === ArrayShapeNode::KIND_NON_EMPTY_ARRAY) {
+            throw new UnsupportedTypeException(
+                'non-empty-array is not supported in schema generation.'
+                . ' Use array<K, V> with the #[MinItems(1)] or #[MinProperties(1)] attribute instead.',
+            );
         }
         $schema = Schema::tuple($prefixItems);
         if (!$node->sealed && $node->unsealedType !== null) {
@@ -365,11 +379,13 @@ final class TypeNodeConverter
         if (!$node->sealed) {
             return Schema::object($properties, $required, true);
         }
-        $schema = Schema::object($properties, $required);
         if ($node->kind === ArrayShapeNode::KIND_NON_EMPTY_ARRAY) {
-            $schema = $schema->withMinProperties(1);
+            throw new UnsupportedTypeException(
+                'non-empty-array is not supported in schema generation.'
+                . ' Use array<K, V> with the #[MinItems(1)] or #[MinProperties(1)] attribute instead.',
+            );
         }
-        return $schema;
+        return Schema::object($properties, $required);
     }
 
     private function convertObjectShapeNode(ObjectShapeNode $node): Schema

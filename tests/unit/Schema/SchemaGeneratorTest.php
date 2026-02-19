@@ -6,6 +6,9 @@ namespace Eventjet\Test\Unit\Json\Schema;
 
 use Eventjet\Json\Schema\Attribute\Example;
 use Eventjet\Json\Schema\Attribute\Format;
+use Eventjet\Json\Schema\Attribute\MinItems;
+use Eventjet\Json\Schema\Attribute\MinLength;
+use Eventjet\Json\Schema\Attribute\MinProperties;
 use Eventjet\Json\Schema\Attribute\OneOf;
 use Eventjet\Json\Schema\Attribute\UniqueItems;
 use Eventjet\Json\Schema\ClassSchemaGenerator;
@@ -17,12 +20,16 @@ use Eventjet\Json\Schema\SchemaRegistry;
 use Eventjet\Json\Schema\TypeNodeConverter;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithAllMetadata;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithClassLevelFormat;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithClassLevelMinItems;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithClassLevelPattern;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithClassLevelUniqueItems;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithDocblock;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithDocblockAndTags;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithExamples;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithFormat;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithMinItems;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithMinLength;
+use Eventjet\Test\Unit\Json\Fixtures\ClassWithMinProperties;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithMultiParagraphDescription;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithParamDescriptions;
 use Eventjet\Test\Unit\Json\Fixtures\ClassWithPattern;
@@ -87,6 +94,9 @@ use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(Example::class)]
 #[CoversClass(Format::class)]
+#[CoversClass(MinItems::class)]
+#[CoversClass(MinLength::class)]
+#[CoversClass(MinProperties::class)]
 #[CoversClass(OneOf::class)]
 #[CoversClass(UniqueItems::class)]
 #[CoversClass(SchemaGenerator::class)]
@@ -208,13 +218,10 @@ final class SchemaGeneratorTest extends TestCase
         yield 'list<int>' => [[1, 2, 3], 'list<int>'];
         yield 'list<string>' => [['a', 'b'], 'list<string>'];
         yield 'array<string, int>' => [['x' => 1, 'y' => 2], 'array<string, int>'];
-        yield 'non-empty-string' => ['hello', 'non-empty-string'];
         yield 'positive-int' => [42, 'positive-int'];
         yield 'non-negative-int' => [0, 'non-negative-int'];
         yield 'non-positive-int' => [0, 'non-positive-int'];
         yield 'negative-int' => [-1, 'negative-int'];
-        yield 'non-empty-list<int>' => [[1], 'non-empty-list<int>'];
-        yield 'non-empty-array<string, int>' => [['a' => 1], 'non-empty-array<string, int>'];
         yield 'class-string<Foo>' => ['SomeClass', 'class-string<int>'];
         yield 'array shape' => [['foo' => 'bar', 'n' => 1], 'array{foo: string, n: int}'];
         yield 'array shape optional' => [['foo' => 'bar'], 'array{foo: string, n?: int}'];
@@ -280,7 +287,6 @@ final class SchemaGeneratorTest extends TestCase
         yield 'bool rejects int' => [1, 'bool'];
         yield 'null rejects empty string' => ['', 'null'];
 
-        yield 'non-empty-string rejects empty' => ['', 'non-empty-string'];
         yield 'non-falsy-string rejects empty' => ['', 'non-falsy-string'];
         yield 'non-falsy-string rejects zero' => ['0', 'non-falsy-string'];
         yield 'truthy-string rejects empty' => ['', 'truthy-string'];
@@ -303,8 +309,6 @@ final class SchemaGeneratorTest extends TestCase
         yield 'array-key rejects bool' => [true, 'array-key'];
 
         yield 'list<int> rejects list of strings' => [['a'], 'list<int>'];
-        yield 'non-empty-list<int> rejects empty' => [[], 'non-empty-list<int>'];
-
         yield 'tuple rejects too few items' => [['hello'], 'array{string, int}'];
         yield 'tuple rejects extra items' => [['hello', 42, 'extra'], 'array{string, int}'];
         yield 'tuple rejects wrong types' => [[42, 'hello'], 'array{string, int}'];
@@ -605,6 +609,57 @@ final class SchemaGeneratorTest extends TestCase
         self::assertArrayHasKey('anyOf', $json);
         self::assertIsArray($json['anyOf']);
         self::assertCount(2, $json['anyOf']);
+    }
+
+    public function testNonEmptyStringThrows(): void
+    {
+        $generator = new SchemaGenerator();
+        $this->expectException(UnsupportedTypeException::class);
+        $this->expectExceptionMessage('#[MinLength(1)]');
+        $generator->generate('non-empty-string');
+    }
+
+    public function testNonEmptyListThrows(): void
+    {
+        $generator = new SchemaGenerator();
+        $this->expectException(UnsupportedTypeException::class);
+        $this->expectExceptionMessage('#[MinItems(1)]');
+        $generator->generate('non-empty-list<int>');
+    }
+
+    public function testNonEmptyArrayThrows(): void
+    {
+        $generator = new SchemaGenerator();
+        $this->expectException(UnsupportedTypeException::class);
+        $this->expectExceptionMessage('#[MinItems(1)]');
+        $generator->generate('non-empty-array<string, int>');
+    }
+
+    public function testPropertyMinItemsAttribute(): void
+    {
+        $json = $this->generateAndDecode(ClassWithMinItems::class);
+        $properties = $this->properties($json);
+        self::assertSame(1, $properties['tags']['minItems']);
+    }
+
+    public function testPropertyMinLengthAttribute(): void
+    {
+        $json = $this->generateAndDecode(ClassWithMinLength::class);
+        $properties = $this->properties($json);
+        self::assertSame(1, $properties['name']['minLength']);
+    }
+
+    public function testClassLevelMinItemsAttribute(): void
+    {
+        $json = $this->generateAndDecode(ClassWithClassLevelMinItems::class);
+        self::assertSame(1, $json['minItems']);
+    }
+
+    public function testPropertyMinPropertiesAttribute(): void
+    {
+        $json = $this->generateAndDecode(ClassWithMinProperties::class);
+        $properties = $this->properties($json);
+        self::assertSame(1, $properties['counts']['minProperties']);
     }
 
     /**

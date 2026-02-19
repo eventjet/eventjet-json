@@ -7,6 +7,9 @@ namespace Eventjet\Json\Schema;
 use BackedEnum;
 use Eventjet\Json\Schema\Attribute\Example;
 use Eventjet\Json\Schema\Attribute\Format;
+use Eventjet\Json\Schema\Attribute\MinItems;
+use Eventjet\Json\Schema\Attribute\MinLength;
+use Eventjet\Json\Schema\Attribute\MinProperties;
 use Eventjet\Json\Schema\Attribute\OneOf;
 use Eventjet\Json\Schema\Attribute\Pattern;
 use Eventjet\Json\Schema\Attribute\UniqueItems;
@@ -379,6 +382,18 @@ final class ClassSchemaGenerator
         if ($this->extractUniqueItems($reflection)) {
             $schema = $schema->withUniqueItems(true);
         }
+        $minItems = $this->extractMinItems($reflection);
+        if ($minItems !== null) {
+            $schema = $schema->withMinItems($minItems);
+        }
+        $minLength = $this->extractMinLength($reflection);
+        if ($minLength !== null) {
+            $schema = $schema->withMinLength($minLength);
+        }
+        $minProperties = $this->extractMinProperties($reflection);
+        if ($minProperties !== null) {
+            $schema = $schema->withMinProperties($minProperties);
+        }
         return $schema;
     }
 
@@ -402,6 +417,18 @@ final class ClassSchemaGenerator
         }
         if ($this->extractUniqueItems($property)) {
             $schema = $schema->withUniqueItems(true);
+        }
+        $minItems = $this->extractMinItems($property);
+        if ($minItems !== null) {
+            $schema = $schema->withMinItems($minItems);
+        }
+        $minLength = $this->extractMinLength($property);
+        if ($minLength !== null) {
+            $schema = $schema->withMinLength($minLength);
+        }
+        $minProperties = $this->extractMinProperties($property);
+        if ($minProperties !== null) {
+            $schema = $schema->withMinProperties($minProperties);
         }
         return $schema;
     }
@@ -481,6 +508,42 @@ final class ClassSchemaGenerator
     private function extractUniqueItems(ReflectionClass|ReflectionProperty $reflection): bool
     {
         return $reflection->getAttributes(UniqueItems::class) !== [];
+    }
+
+    /**
+     * @param ReflectionClass<object>|ReflectionProperty $reflection
+     */
+    private function extractMinItems(ReflectionClass|ReflectionProperty $reflection): int|null
+    {
+        $attributes = $reflection->getAttributes(MinItems::class);
+        if ($attributes === []) {
+            return null;
+        }
+        return $attributes[0]->newInstance()->value;
+    }
+
+    /**
+     * @param ReflectionClass<object>|ReflectionProperty $reflection
+     */
+    private function extractMinLength(ReflectionClass|ReflectionProperty $reflection): int|null
+    {
+        $attributes = $reflection->getAttributes(MinLength::class);
+        if ($attributes === []) {
+            return null;
+        }
+        return $attributes[0]->newInstance()->value;
+    }
+
+    /**
+     * @param ReflectionClass<object>|ReflectionProperty $reflection
+     */
+    private function extractMinProperties(ReflectionClass|ReflectionProperty $reflection): int|null
+    {
+        $attributes = $reflection->getAttributes(MinProperties::class);
+        if ($attributes === []) {
+            return null;
+        }
+        return $attributes[0]->newInstance()->value;
     }
 
     private function parseDocblock(string $docComment): PhpDocNode
