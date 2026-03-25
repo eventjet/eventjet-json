@@ -26,7 +26,7 @@ final class Array_ extends JsonType
     public function validateValue(mixed $value, string $path = ''): ValidationResult
     {
         if (!is_array($value)) {
-            return ValidationResult::error(sprintf('Expected array, got %s.', json_encode($value)), $path);
+            return ValidationResult::error(sprintf('Expected array, got %s.', (string)json_encode($value)), $path);
         }
         if (!array_is_list($value)) {
             return ValidationResult::error('Expected array, got object.', $path);

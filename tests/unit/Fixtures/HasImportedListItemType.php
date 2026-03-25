@@ -11,7 +11,7 @@ final class HasImportedListItemType
 {
     /**
      * @param list<ImportedListItem> $items1
-     * @param list<SubNs\ImportedListItem> $items2 The second set of items
+     * @param list<ImportedListItem> $items2 The second set of items
      * @param list<Aliased> $items3 The third set of items
      */
     public function __construct(

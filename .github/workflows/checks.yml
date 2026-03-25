@@ -7,11 +7,11 @@ jobs:
   composer-require-checker:
     strategy:
       matrix:
-        php: [ "8.1", "8.2" ]
+        php: ["8.3", "8.4"]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -23,27 +23,26 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.deps }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.deps }}-
+          key: ${{ runner.os }}-${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.php }}-
 
       - name: Install dependencies
-        run: composer update --no-interaction --no-progress --no-suggest ${{ matrix.deps }}
+        run: composer update --no-interaction --no-progress --no-suggest
 
       - name: Composer Require Checker
         run: composer check-deps
 
-  phpcs:
+  code-style:
     strategy:
       matrix:
-        php: [ "8.1", "8.2" ]
-        deps: [ "--prefer-lowest", "" ]
+        php: ["8.3", "8.4"]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -55,27 +54,26 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.deps }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.deps }}-
+          key: ${{ runner.os }}-${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.php }}-
 
       - name: Install dependencies
-        run: composer update --no-interaction --no-progress --no-suggest ${{ matrix.deps }}
+        run: composer update --no-interaction --no-progress --no-suggest
 
-      - name: PHPCS
-        run: composer cs-check
+      - name: PHP Code Style
+        run: PHP_CS_FIXER_IGNORE_ENV=1 composer cs-check
 
   phpstan:
     strategy:
       matrix:
-        php: [ "8.1", "8.2" ]
-        deps: [ "--prefer-lowest", "" ]
+        php: ["8.3", "8.4"]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -87,14 +85,14 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.deps }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.deps }}-
+          key: ${{ runner.os }}-${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.php }}-
 
       - name: Install dependencies
-        run: composer update --no-interaction --no-progress --no-suggest ${{ matrix.deps }}
+        run: composer update --no-interaction --no-progress --no-suggest
 
       - name: PHPStan
         run: composer phpstan
@@ -102,12 +100,11 @@ jobs:
   psalm:
     strategy:
       matrix:
-        php: [ "8.1", "8.2" ]
-        deps: [ "--prefer-lowest", "" ]
+        php: ["8.3", "8.4"]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -119,27 +116,27 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.deps }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.deps }}-
+          key: ${{ runner.os }}-${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.php }}-
 
       - name: Install dependencies
-        run: composer update --no-interaction --no-progress --no-suggest ${{ matrix.deps }}
+        run: composer update --no-interaction --no-progress --no-suggest
 
       - name: Psalm
         run: composer psalm
 
   infection:
+
     strategy:
       matrix:
-        php: [ "8.1", "8.2" ]
-        deps: [ "--prefer-lowest", "" ]
+        php: ["8.3", "8.4"]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -151,14 +148,14 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.deps }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.deps }}-
+          key: ${{ runner.os }}-${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.php }}-
 
       - name: Install dependencies
-        run: composer update --no-interaction --no-progress --no-suggest ${{ matrix.deps }}
+        run: composer update --no-interaction --no-progress --no-suggest
 
       - name: Infection coverage of changed lines
         if: "!contains(github.event.pull_request.labels.*.name, 'skip-infection')"
@@ -174,21 +171,20 @@ jobs:
             -jmax
 
       - name: Save Infection result
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: infection-log-${{ matrix.php }}-${{ matrix.deps }}.txt
+          name: infection-log-${{ matrix.php }}.txt
           path: infection-log.txt
 
   phpunit:
     strategy:
       matrix:
-        php: [ "8.1", "8.2" ]
-        deps: [ "--prefer-lowest", "" ]
+        php: ["8.3", "8.4"]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -200,14 +196,14 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.deps }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-${{ matrix.php }}-${{ matrix.deps }}-
+          key: ${{ runner.os }}-${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.php }}-
 
       - name: Install dependencies
-        run: composer update --no-interaction --no-progress --no-suggest ${{ matrix.deps }}
+        run: composer update --no-interaction --no-progress --no-suggest
 
       - name: Tests
         run: vendor/bin/phpunit --coverage-clover=coverage.xml --stop-on-failure

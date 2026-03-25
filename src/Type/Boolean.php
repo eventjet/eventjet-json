@@ -54,7 +54,7 @@ final class Boolean extends JsonType
             return ValidationResult::valid();
         }
         return ValidationResult::error(
-            sprintf('Expected %s, got %s.', json_encode($this->value), json_encode($value)),
+            sprintf('Expected %s, got %s.', (string)json_encode($this->value), (string)json_encode($value)),
             $path,
         );
     }
