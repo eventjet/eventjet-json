@@ -11,6 +11,7 @@ use Eventjet\Json\JsonError;
 use Eventjet\Test\Unit\Json\Fixtures\ConstructorTakesAnUnknownClass;
 use Eventjet\Test\Unit\Json\Fixtures\GitHub\Repository;
 use Eventjet\Test\Unit\Json\Fixtures\GitHub\RepositoryOwner;
+use Eventjet\Test\Unit\Json\Fixtures\HasBoolProperty;
 use Eventjet\Test\Unit\Json\Fixtures\HasImportedListItemType;
 use Eventjet\Test\Unit\Json\Fixtures\HasIntersectionType;
 use Eventjet\Test\Unit\Json\Fixtures\HasListOfStrings;
@@ -25,10 +26,21 @@ use Eventjet\Test\Unit\Json\Fixtures\PromotedPropertyWithMissingType;
 use Eventjet\Test\Unit\Json\Fixtures\SomePropertiesAreNotConstructorArguments;
 use Eventjet\Test\Unit\Json\Fixtures\StringField;
 use Eventjet\Test\Unit\Json\Fixtures\TakesAListOfDateTimes;
+use Eventjet\Test\Unit\Json\Fixtures\TakesBool;
+use Eventjet\Test\Unit\Json\Fixtures\TakesCallable;
+use Eventjet\Test\Unit\Json\Fixtures\TakesFalse;
+use Eventjet\Test\Unit\Json\Fixtures\TakesFloat;
+use Eventjet\Test\Unit\Json\Fixtures\TakesInt;
+use Eventjet\Test\Unit\Json\Fixtures\TakesIterable;
 use Eventjet\Test\Unit\Json\Fixtures\TakesMapOrNull;
+use Eventjet\Test\Unit\Json\Fixtures\TakesMixed;
 use Eventjet\Test\Unit\Json\Fixtures\TakesMultilineList;
 use Eventjet\Test\Unit\Json\Fixtures\TakesNonBackedEnum;
+use Eventjet\Test\Unit\Json\Fixtures\TakesNull;
+use Eventjet\Test\Unit\Json\Fixtures\TakesObject;
+use Eventjet\Test\Unit\Json\Fixtures\TakesString;
 use Eventjet\Test\Unit\Json\Fixtures\TakesStringStringMap;
+use Eventjet\Test\Unit\Json\Fixtures\TakesTrue;
 use Eventjet\Test\Unit\Json\Fixtures\UndocumentedListItemType;
 use Eventjet\Test\Unit\Json\Fixtures\UndocumentedListItemTypeNoDocblock;
 use Eventjet\Test\Unit\Json\Fixtures\UndocumentedMap;
@@ -47,6 +59,7 @@ use function assert;
 use function file_get_contents;
 use function fopen;
 use function get_class;
+use function sprintf;
 
 final class JsonTest extends TestCase
 {
@@ -302,6 +315,99 @@ final class JsonTest extends TestCase
                 self::assertNull($object->map);
             },
         ];
+        yield 'Bool constructor argument' => [
+            '{"value":true}',
+            TakesBool::class,
+            static function (object $object): void {
+                self::assertInstanceOf(TakesBool::class, $object);
+                self::assertTrue($object->value);
+            },
+        ];
+        yield 'Int constructor argument' => [
+            '{"value":42}',
+            TakesInt::class,
+            static function (object $object): void {
+                self::assertInstanceOf(TakesInt::class, $object);
+                self::assertSame(42, $object->value);
+            },
+        ];
+        yield 'Float constructor argument' => [
+            '{"value":1.5}',
+            TakesFloat::class,
+            static function (object $object): void {
+                self::assertInstanceOf(TakesFloat::class, $object);
+                self::assertSame(1.5, $object->value);
+            },
+        ];
+        yield 'String constructor argument' => [
+            '{"value":"foo"}',
+            TakesString::class,
+            static function (object $object): void {
+                self::assertInstanceOf(TakesString::class, $object);
+                self::assertSame('foo', $object->value);
+            },
+        ];
+        yield 'Mixed constructor argument takes a string' => [
+            '{"value":"foo"}',
+            TakesMixed::class,
+            static function (object $object): void {
+                self::assertInstanceOf(TakesMixed::class, $object);
+                self::assertSame('foo', $object->value);
+            },
+        ];
+        yield 'Mixed constructor argument takes a JSON object' => [
+            '{"value":{"foo":"bar"}}',
+            TakesMixed::class,
+            static function (object $object): void {
+                self::assertInstanceOf(TakesMixed::class, $object);
+                self::assertSame(['foo' => 'bar'], $object->value);
+            },
+        ];
+        yield 'True constructor argument' => [
+            '{"value":true}',
+            TakesTrue::class,
+            static function (object $object): void {
+                self::assertInstanceOf(TakesTrue::class, $object);
+            },
+        ];
+        yield 'False constructor argument' => [
+            '{"value":false}',
+            TakesFalse::class,
+            static function (object $object): void {
+                self::assertInstanceOf(TakesFalse::class, $object);
+            },
+        ];
+        yield 'Null constructor argument' => [
+            '{"value":null}',
+            TakesNull::class,
+            static function (object $object): void {
+                self::assertInstanceOf(TakesNull::class, $object);
+            },
+        ];
+        yield 'Null for nullable constructor argument' => [
+            '{"name":null}',
+            NullableStringField::class,
+            static function (object $object): void {
+                self::assertInstanceOf(NullableStringField::class, $object);
+                self::assertNull($object->name);
+            },
+        ];
+        yield 'Omitted optional argument keeps its default and is not type checked' => [
+            '{}',
+            TakesIterable::class,
+            static function (object $object): void {
+                self::assertInstanceOf(TakesIterable::class, $object);
+                self::assertSame([], $object->value);
+            },
+        ];
+        yield 'Bool property' => [
+            '{"value":true}',
+            HasBoolProperty::class,
+            static function (object $object): void {
+                self::assertInstanceOf(HasBoolProperty::class, $object);
+                self::assertTrue($object->value);
+            },
+        ];
     }
 
     /**
@@ -518,6 +624,153 @@ final class JsonTest extends TestCase
             'The type of the constructor parameter "map" for class Eventjet\Test\Unit\Json\Fixtures\UndocumentedMap is '
             . '"array", but its shape is not documented',
         ];
+        yield 'String for bool constructor argument' => [
+            '{"value":"not a boolean"}',
+            TakesBool::class,
+            'Expected bool for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesBool, got string',
+        ];
+        yield '"false" for bool constructor argument' => [
+            '{"value":"false"}',
+            TakesBool::class,
+            'Expected bool for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesBool, got string',
+        ];
+        yield 'Zero for bool constructor argument' => [
+            '{"value":0}',
+            TakesBool::class,
+            'Expected bool for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesBool, got integer',
+        ];
+        yield 'One for bool constructor argument' => [
+            '{"value":1}',
+            TakesBool::class,
+            'Expected bool for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesBool, got integer',
+        ];
+        yield 'Fractional float for int constructor argument' => [
+            '{"value":50.9}',
+            TakesInt::class,
+            'Expected int for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesInt, got double',
+        ];
+        yield 'Whole float for int constructor argument' => [
+            '{"value":50.0}',
+            TakesInt::class,
+            'Expected int for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesInt, got double',
+        ];
+        yield 'Numeric string for int constructor argument' => [
+            '{"value":"42"}',
+            TakesInt::class,
+            'Expected int for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesInt, got string',
+        ];
+        yield 'Bool for int constructor argument' => [
+            '{"value":true}',
+            TakesInt::class,
+            'Expected int for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesInt, got boolean',
+        ];
+        yield 'Numeric string for float constructor argument' => [
+            '{"value":"1.5"}',
+            TakesFloat::class,
+            'Expected float for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesFloat, got string',
+        ];
+        yield 'Bool for float constructor argument' => [
+            '{"value":true}',
+            TakesFloat::class,
+            'Expected float for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesFloat, got boolean',
+        ];
+        yield 'Int for string constructor argument' => [
+            '{"value":42}',
+            TakesString::class,
+            'Expected string for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesString, got integer',
+        ];
+        yield 'Float for string constructor argument' => [
+            '{"value":1.5}',
+            TakesString::class,
+            'Expected string for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesString, got double',
+        ];
+        yield 'Bool for string constructor argument' => [
+            '{"value":true}',
+            TakesString::class,
+            'Expected string for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesString, got boolean',
+        ];
+        yield 'False for true constructor argument' => [
+            '{"value":false}',
+            TakesTrue::class,
+            'Expected true for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesTrue, got boolean',
+        ];
+        yield 'One for true constructor argument' => [
+            '{"value":1}',
+            TakesTrue::class,
+            'Expected true for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesTrue, got integer',
+        ];
+        yield 'True for false constructor argument' => [
+            '{"value":true}',
+            TakesFalse::class,
+            'Expected false for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesFalse, got boolean',
+        ];
+        yield 'Zero for false constructor argument' => [
+            '{"value":0}',
+            TakesFalse::class,
+            'Expected false for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesFalse, got integer',
+        ];
+        yield 'String for null constructor argument' => [
+            '{"value":"foo"}',
+            TakesNull::class,
+            'Expected null for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesNull, got string',
+        ];
+        yield 'Null for non-nullable constructor argument' => [
+            '{"name":null}',
+            StringField::class,
+            'Expected string for parameter "name" of class Eventjet\Test\Unit\Json\Fixtures\StringField, got NULL',
+        ];
+        yield 'Iterable constructor argument' => [
+            '{"value":[]}',
+            TakesIterable::class,
+            'Unsupported type "iterable" for parameter "value" of class '
+            . 'Eventjet\Test\Unit\Json\Fixtures\TakesIterable',
+        ];
+        yield 'Object constructor argument' => [
+            '{"value":{"foo":"bar"}}',
+            TakesObject::class,
+            'Unsupported type "object" for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesObject',
+        ];
+        yield 'Callable constructor argument' => [
+            '{"value":"strlen"}',
+            TakesCallable::class,
+            'Unsupported type "callable" for parameter "value" of class '
+            . 'Eventjet\Test\Unit\Json\Fixtures\TakesCallable',
+        ];
+        yield 'Type mismatch in a nested object' => [
+            '{"nested":{"name":42}}',
+            HasNestedClass::class,
+            'Expected string for parameter "name" of class Eventjet\Test\Unit\Json\Fixtures\StringField, got integer',
+        ];
+        yield 'String for bool property' => [
+            '{"value":"not a boolean"}',
+            HasBoolProperty::class,
+            'Expected bool for property "value" of class Eventjet\Test\Unit\Json\Fixtures\HasBoolProperty, got string',
+        ];
+        yield 'Int for nullable string property' => [
+            '{"name":42}',
+            new NullableStringField(),
+            'Expected string for property "name" of class Eventjet\Test\Unit\Json\Fixtures\NullableStringField, got '
+            . 'integer',
+        ];
+        yield 'String for array property' => [
+            '{"topics":"foo"}',
+            new Repository(),
+            'Expected array for property "topics" of class Eventjet\Test\Unit\Json\Fixtures\GitHub\Repository, got '
+            . 'string',
+        ];
+    }
+
+    /**
+     * @param class-string $class
+     */
+    private static function captureDecodeError(string $json, string $class): JsonError
+    {
+        try {
+            Json::decode($json, $class);
+        } catch (JsonError $error) {
+            return $error;
+        }
+        self::fail(sprintf('Expected decoding %s into %s to fail, but it succeeded', $json, $class));
     }
 
     #[DataProvider('encodeCases')]
@@ -572,5 +825,31 @@ final class JsonTest extends TestCase
         }
 
         Json::decode($json, $object);
+    }
+
+    /**
+     * Widening an int to a float is the one conversion strict-mode parameter binding permits, and APIs routinely send
+     * whole amounts without a fractional part.
+     */
+    public function testIntIsWidenedToFloatConstructorArgument(): void
+    {
+        $decoded = Json::decode('{"value":100}', TakesFloat::class);
+
+        self::assertSame(100.0, $decoded->value);
+    }
+
+    public function testPromotedConstructorParametersAndPlainPropertiesRejectTheSameValue(): void
+    {
+        $viaConstructor = self::captureDecodeError('{"value":"not a boolean"}', TakesBool::class);
+        $viaProperty = self::captureDecodeError('{"value":"not a boolean"}', HasBoolProperty::class);
+
+        self::assertSame(
+            'Expected bool for parameter "value" of class Eventjet\Test\Unit\Json\Fixtures\TakesBool, got string',
+            $viaConstructor->getMessage(),
+        );
+        self::assertSame(
+            'Expected bool for property "value" of class Eventjet\Test\Unit\Json\Fixtures\HasBoolProperty, got string',
+            $viaProperty->getMessage(),
+        );
     }
 }
