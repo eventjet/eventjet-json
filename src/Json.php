@@ -202,7 +202,24 @@ final class Json
                 $value = $newValue;
             }
         }
+        self::assertPropertyType($object, $property, $value);
         $object->$property = $value; // @phpstan-ignore-line
+    }
+
+    private static function assertPropertyType(object $object, string $property, mixed $value): void
+    {
+        $type = (new ReflectionProperty($object, $property))->getType();
+        if (!$type instanceof ReflectionNamedType || !$type->isBuiltin()) {
+            return;
+        }
+        if ($value === null && $type->allowsNull()) {
+            return;
+        }
+        self::assertBuiltinType(
+            $type->getName(),
+            $value,
+            sprintf('property "%s" of class %s', $property, $object::class),
+        );
     }
 
     private static function getPropertyNameForJsonKey(object $object, string $key): string
@@ -316,6 +333,13 @@ final class Json
             return self::createConstructorArgumentForArrayType($parameter, $value);
         }
         if ($type->isBuiltin()) {
+            $class = $parameter->getDeclaringClass();
+            assert($class !== null);
+            self::assertBuiltinType(
+                $typeName,
+                $value,
+                sprintf('parameter "%s" of class %s', $paramName, $class->getName()),
+            );
             return $value;
         }
         if (enum_exists($typeName)) {
@@ -352,6 +376,37 @@ final class Json
             );
         }
         return self::instantiateClass($typeName, $value);
+    }
+
+    /**
+     * Constructor arguments are bound by the Reflection API, which always uses weak mode and would silently coerce
+     * them, and property values are assigned dynamically. Check both against the declared type ourselves so that the
+     * two paths reject the same payloads with the same error.
+     *
+     * @param string $subject Describes the target the value is checked against, e.g. `parameter "age" of class Person`.
+     */
+    private static function assertBuiltinType(string $typeName, mixed $value, string $subject): void
+    {
+        $isValid = match ($typeName) {
+            'mixed' => true,
+            'bool' => is_bool($value),
+            'int' => is_int($value),
+            // Widening an int to a float is the one conversion strict mode itself performs.
+            'float' => is_float($value) || is_int($value),
+            'string' => is_string($value),
+            'array' => is_array($value),
+            'true' => $value === true,
+            'false' => $value === false,
+            // Nulls are returned before we get here if the type allows them, so nothing left can satisfy this type.
+            'null' => false,
+            default => throw JsonError::decodeFailed(
+                sprintf('Unsupported type "%s" for %s', $typeName, $subject),
+            ),
+        };
+        if ($isValid) {
+            return;
+        }
+        throw JsonError::decodeFailed(sprintf('Expected %s for %s, got %s', $typeName, $subject, gettype($value)));
     }
 
     private static function createConstructorArgumentForUnionType(): mixed
