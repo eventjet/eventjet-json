@@ -7,6 +7,7 @@ namespace Eventjet\Test\Unit\Json;
 use Eventjet\Json\Field;
 use Eventjet\Json\Json;
 use Eventjet\Json\JsonError;
+use Eventjet\Json\Schema\Draft202012;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -107,6 +108,18 @@ final class RoundTripTest extends TestCase
         Json::decode($json, $object);
         self::assertInstanceOf(stdClass::class, $object->value);
         self::assertJsonStringEqualsJsonString($json, Json::encode($object));
+    }
+
+    public function testNewNestedSchemaInOrdinaryDto(): void
+    {
+        $object = new class (new Draft202012()) {
+            public function __construct(public Draft202012 $schema)
+            {
+            }
+        };
+        $decoded = Json::decode('{"schema":{"items":false,"properties":{},"default":null}}', $object::class);
+        self::assertFalse($decoded->schema->items);
+        self::assertSame('{"schema":{"default":null,"items":false,"properties":{}}}', Json::encode($decoded));
     }
 
     public function testReadonlyInstanceCannotBeRepopulated(): void
