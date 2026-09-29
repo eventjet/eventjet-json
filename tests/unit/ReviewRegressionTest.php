@@ -7,7 +7,7 @@ namespace Eventjet\Test\Unit\Json;
 use Eventjet\Json\Internal\PhpType;
 use Eventjet\Json\Json;
 use Eventjet\Json\JsonError;
-use Eventjet\Test\Unit\Json\Fixtures\Worldline\AccountOnFileAttributeStatus;
+use Eventjet\Json\Schema\Type;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use RuntimeException;
@@ -163,11 +163,11 @@ final class ReviewRegressionTest extends TestCase
 
     public function testEnumUnionAcceptsOtherBackingTypesInEitherOrder(): void
     {
-        self::assertSame(42, Json::decode('42', AccountOnFileAttributeStatus::class . '|int'));
-        self::assertSame(42, Json::decode('42', 'int|' . AccountOnFileAttributeStatus::class));
+        self::assertSame(42, Json::decode('42', Type::class . '|int'));
+        self::assertSame(42, Json::decode('42', 'int|' . Type::class));
         self::assertSame('other', Json::decode('"other"', ReviewIntegerEnum::class . '|string'));
         self::assertSame('other', Json::decode('"other"', 'string|' . ReviewIntegerEnum::class));
-        self::assertSame(AccountOnFileAttributeStatus::ReadOnly, Json::decode('"READ_ONLY"', AccountOnFileAttributeStatus::class . '|int'));
+        self::assertSame(Type::String, Json::decode('"string"', Type::class . '|int'));
         self::assertSame(ReviewIntegerEnum::One, Json::decode('1', ReviewIntegerEnum::class . '|string'));
     }
 }
