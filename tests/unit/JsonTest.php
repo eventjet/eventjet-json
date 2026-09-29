@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Test\Unit\Json;
 
+use DateTimeImmutable;
 use DateTimeInterface;
 use DoesNotExist;
 use Eventjet\Json\Json;
@@ -360,7 +361,7 @@ final class JsonTest extends TestCase
             TakesMixed::class,
             static function (object $object): void {
                 self::assertInstanceOf(TakesMixed::class, $object);
-                self::assertSame(['foo' => 'bar'], $object->value);
+                self::assertEquals((object)['foo' => 'bar'], $object->value);
             },
         ];
         yield 'True constructor argument' => [
@@ -490,8 +491,7 @@ final class JsonTest extends TestCase
                 {
                 }
             },
-            'Property "nested" has a union or intersection type (Eventjet\Test\Unit\Json\Fixtures\StringField|'
-            . 'Eventjet\Test\Unit\Json\Fixtures\NullableStringField|null), but only simple types are allowed',
+            'Ambiguous union type for property "nested"',
         ];
         yield 'Missing field type' => [
             '{"nested":{"name":"Test"}}',
@@ -518,35 +518,27 @@ final class JsonTest extends TestCase
                 {
                 }
             },
-            'Property "nested" has an unknown type "DoesNotExist"',
+            'Unsupported type "DoesNotExist" for property "nested"',
         ];
         yield 'String for class item in array property' => [
             '{"people":["Test"]}',
             new PersonList(),
-            'Expected JSON objects for items in property "people", got string',
+            'Expected JSON object, got string',
         ];
         yield 'Wrong dockblock type for array constructor parameter' => [
             '{"items":[{"datetime":"2023-01-23T12:34:56+00:00"}]}',
             WrongArrayDocblockType::class,
-            'The doc type for the constructor argument items of '
-            . 'Eventjet\Test\Unit\Json\Fixtures\WrongArrayDocblockType is wrong. Expected "list<...>", got '
-            . '"class-string<DateTimeImmutable>"',
+            'PHPDoc type is incompatible with native type "array"',
         ];
         yield 'Constructor param has intersection type' => [
             '{"value":{"foo":"bar"}}',
             HasIntersectionType::class,
             'Intersection types are not supported',
         ];
-        // We might be able to support union types later
-        yield 'Constructor param has union type' => [
-            '{"value":{"datetime":"2023-01-23T12:34:56+00:00"}}',
-            HasUnionType::class,
-            'Union types are not supported',
-        ];
         yield 'Non-array value for object constructor type' => [
             '{"displayHints":"not-an-object"}',
             AccountOnFile::class,
-            'Expected array<string, mixed> for parameter "displayHints", got string',
+            'Expected JSON object, got string',
         ];
         yield 'Invalid enum case value' => [
             '{"status":"NOPE"}',
@@ -558,12 +550,13 @@ final class JsonTest extends TestCase
         yield 'Float value for enum case' => [
             '{"status":1.0}',
             AccountOnFileAttribute::class,
-            'Expected string or int for parameter "status", got double',
+            'Expected string or int for parameter "status" of class '
+            . 'Eventjet\Test\Unit\Json\Fixtures\Worldline\AccountOnFileAttribute, got double',
         ];
         yield 'string item for list constructor parameter with object items' => [
             '{"attributes":["foo"]}',
             AccountOnFile::class,
-            'Expected JSON objects for items in property "attributes", got string',
+            'Expected JSON object, got string',
         ];
         yield 'Undocumented item type for list constructor parameter' => [
             '{"items":[{"test":"foo"}]}',
@@ -581,14 +574,13 @@ final class JsonTest extends TestCase
         yield 'String for constructor argument that takes an array' => [
             '{"tags":"foo"}',
             HasListOfStrings::class,
-            'Expected array for parameter "tags", got string',
+            'Expected array for parameter "tags" of class '
+            . 'Eventjet\Test\Unit\Json\Fixtures\HasListOfStrings, got string',
         ];
         yield 'Constructor takes an unknown class' => [
             '{"foo":{"bar":"baz"}}',
             ConstructorTakesAnUnknownClass::class,
-            'The type of the constructor parameter "foo" for class '
-            . 'Eventjet\Test\Unit\Json\Fixtures\ConstructorTakesAnUnknownClass is "DoesNotExist", but this class does '
-            . 'not exist',
+            'Unsupported type "DoesNotExist" for parameter "foo"',
         ];
         yield 'Missing required constructor argument' => [
             '{}',
@@ -599,7 +591,7 @@ final class JsonTest extends TestCase
         yield 'Class does not exist' => [
             '{}',
             ThisClassDoesNotExist::class, // @phpstan-ignore-line
-            'Class "ThisClassDoesNotExist" does not exist',
+            'Unsupported type "ThisClassDoesNotExist" for root value',
         ];
         yield 'Non-backed enum' => [
             '{"status":"Enabled"}',
@@ -610,13 +602,13 @@ final class JsonTest extends TestCase
         yield 'JSON object for constructor argument that takes a list' => [
             '{"tags":{"foo":"bar"}}',
             HasListOfStrings::class,
-            'The type of the constructor parameter "tags" for class Eventjet\Test\Unit\Json\Fixtures\HasListOfStrings '
-            . 'is wrong. Expected "array<K, V>", got "list<string>"',
+            'Expected a JSON array for parameter "tags" of class '
+            . 'Eventjet\Test\Unit\Json\Fixtures\HasListOfStrings, got object',
         ];
         yield 'String for map value expecting objects' => [
             '{"map":{"foo":"bar"}}',
             HasMapOfObjects::class,
-            'Expected an array for the value of key "foo" in parameter "map", got string',
+            'Expected JSON object, got string',
         ];
         yield 'Undocumented map' => [
             '{"map":{"foo":{"bar":"baz"}}}',
@@ -722,8 +714,7 @@ final class JsonTest extends TestCase
         yield 'Iterable constructor argument' => [
             '{"value":[]}',
             TakesIterable::class,
-            'Unsupported type "iterable" for parameter "value" of class '
-            . 'Eventjet\Test\Unit\Json\Fixtures\TakesIterable',
+            'PHPDoc type is incompatible with native type "iterable"',
         ];
         yield 'Object constructor argument' => [
             '{"value":{"foo":"bar"}}',
@@ -773,6 +764,13 @@ final class JsonTest extends TestCase
         self::fail(sprintf('Expected decoding %s into %s to fail, but it succeeded', $json, $class));
     }
 
+    public function testUnambiguousConstructorUnion(): void
+    {
+        $decoded = Json::decode('{"value":{"datetime":"2023-01-23T12:34:56+00:00"}}', HasUnionType::class);
+        self::assertInstanceOf(DateTimeImmutable::class, $decoded->value);
+        self::assertSame('2023-01-23T12:34:56+00:00', $decoded->value->format('c'));
+    }
+
     #[DataProvider('encodeCases')]
     public function testEncode(mixed $value, string $expected): void
     {
@@ -797,8 +795,8 @@ final class JsonTest extends TestCase
     public function testRoundtrips(object $value): void
     {
         $encoded1 = Json::encode($value);
-        Json::decode($encoded1, get_class($value));
-        $encoded2 = Json::encode($value);
+        $decoded = Json::decode($encoded1, get_class($value));
+        $encoded2 = Json::encode($decoded);
 
         self::assertJsonStringEqualsJsonString($encoded1, $encoded2);
     }
