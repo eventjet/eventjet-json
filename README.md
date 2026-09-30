@@ -18,13 +18,14 @@ scope decisions are made, and include a reason for every exclusion.
 | --- | --- |
 | Unions containing more than one class, such as `ClassA\|ClassB` | JSON objects do not identify their PHP class. Choosing a class would require a discriminator or inspecting class fields, adding complexity to decoding. |
 | Unions containing more than one enum | The union contract allows at most one enum. Multiple enums would need additional selection rules, especially when their backing values overlap. |
+| Unions combining a backed enum with its backing scalar type, such as `MyStringBackedEnum\|string` or `MyIntBackedEnum\|int` (initially) | An enum case and its backing scalar encode to the same JSON value. Checking the enum first would turn an original scalar into an enum case; checking the scalar first would lose the enum case. JSON cannot recover the original PHP type, so these unions break the round-trip contract. |
 | Interface and abstract class type hints | They cannot be instantiated directly, and JSON does not identify which concrete implementation or subclass to create. Resolving one would require additional selection rules or metadata. |
 | Non-backed enums | They have no scalar backing value and cannot round-trip through PHP's `json_encode()`. |
 | Non-JSON-encodable values, including resources, `INF`, `NAN`, invalid UTF-8, and circular references | JSON cannot represent these values without losing information or changing their meaning. They fall outside the round-trip contract. |
 | Implicit coercion of mismatched scalar types | Converting values such as `"42"` to `42` hides a type mismatch and changes the value's type. Decoding must validate the declared type. |
 
-Open decisions, including intersection types and enum/scalar union ambiguity,
-remain in the TODO list until their scope is settled.
+Open decisions, including intersection types, remain in the TODO list until
+their scope is settled.
 
 ## TODO
 
@@ -47,9 +48,10 @@ remain in the TODO list until their scope is settled.
 - [ ] Reject interface and abstract class targets with a clear `DecodeError`, including root targets, field types, union members, and collection item/value types.
 - [ ] Define supported class shapes and report unsupported ones clearly, including inaccessible constructors and constructor arguments that cannot be recovered from encoded properties.
 - [ ] Define behavior for `mixed`, untyped fields, `object`, and `stdClass`.
-- [ ] Support unions with at most one concrete class and one backed enum, alongside scalar and null members, such as `Foo|string|int` and `MyEnum|MyClass|null`.
+- [ ] Support unions with at most one concrete class and one backed enum, alongside scalar and null members whose types do not overlap the enum's backing type, such as `Foo|string|int` and `MyEnum|MyClass|null`.
 - [ ] Reject unions containing multiple classes (such as `ClassA|ClassB`) or multiple enums. Select the class member by JSON value kind without discriminators or inspecting class fields.
-- [ ] Define and test resolution when an enum's backing type overlaps a scalar union member (such as `MyEnum|string`), accounting for the round-trip ambiguity.
+- [ ] Initially reject union declarations combining a backed enum with its backing scalar type, such as `MyStringBackedEnum|string` and `MyIntBackedEnum|int`, with a clear `DecodeError`. Apply this rule to larger and nullable unions and reject the declaration regardless of the input value.
+- [ ] Test supported enum/scalar unions with distinct JSON types, such as `MyStringBackedEnum|int` and `MyIntBackedEnum|string`, without coercion.
 - [ ] Define support or explicit rejection for intersection types.
 - [ ] Define the round-trip contract for classes implementing `JsonSerializable`, whose JSON representation may differ from their properties.
 
@@ -64,7 +66,7 @@ remain in the TODO list until their scope is settled.
 
 - [ ] Decode JSON array fields into PHPDoc `list<T>`, supporting scalar, enum, and object items.
 - [ ] Decode JSON object fields into PHPDoc `array<array-key, T>`, supporting scalar, enum, and object values.
-- [ ] Support recursively nested lists and maps, including nullable items and values and unions that follow the same class/enum limits as object fields.
+- [ ] Support recursively nested lists and maps, including nullable items and values and unions that follow the same rules as object fields.
 - [ ] Validate collection items against their declared types and reject object/array shape mismatches.
 - [ ] Test empty collections and map keys, including integer keys, numeric-looking string keys, and non-sequential keys; preserve JSON shape during round trips.
 - [ ] Resolve PHPDoc collection types using the declaring namespace and imported or aliased class names.
