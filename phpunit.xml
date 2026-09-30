@@ -1,17 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <phpunit
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
     bootstrap="vendor/autoload.php"
-    beStrictAboutChangesToGlobalState="true"
+    cacheDirectory=".phpunit.cache"
+    executionOrder="defects"
+    requireCoverageMetadata="true"
+    beStrictAboutCoverageMetadata="true"
     beStrictAboutOutputDuringTests="true"
+    displayDetailsOnPhpunitDeprecations="true"
+    failOnPhpunitDeprecation="true"
+    failOnRisky="true"
     failOnWarning="true"
-    displayDetailsOnTestsThatTriggerWarnings="true"
 >
     <testsuites>
-        <testsuite name="Unit">
-            <directory>tests/unit</directory>
+        <testsuite name="default">
+            <directory>tests</directory>
         </testsuite>
     </testsuites>
+
     <source>
         <include>
             <directory>src</directory>

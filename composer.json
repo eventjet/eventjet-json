@@ -1,23 +1,23 @@
 {
     "name": "eventjet/json",
-    "description": "Type-safe JSON encoding and decoding",
+    "description": "Type-safe JSON decoding",
     "license": "MIT",
     "type": "library",
     "require": {
-        "php": ">=8.3",
+        "php": ">=8.4",
         "ext-json": "*"
     },
     "require-dev": {
-        "eventjet/coding-standard": "^3.18",
-        "infection/infection": "^0.31.2",
-        "maglnet/composer-require-checker": "^4.16.1",
-        "phpstan/extension-installer": "^1.4.3",
-        "phpstan/phpstan": "^2.1.7",
-        "phpstan/phpstan-phpunit": "^2.0.4",
-        "phpstan/phpstan-strict-rules": "^2.0.3",
-        "phpunit/phpunit": "^12.0.7",
-        "psalm/plugin-phpunit": "^0.19.2",
-        "vimeo/psalm": "^6.8.8"
+        "carthage-software/mago": "^1.50",
+        "infection/infection": "^0.35.5",
+        "maglnet/composer-require-checker": "^4.20",
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan": "^2.2",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpunit/phpunit": "^12.5",
+        "psalm/plugin-phpunit": "^0.19.7",
+        "vimeo/psalm": "^6.19"
     },
     "minimum-stability": "stable",
     "autoload": {
@@ -27,7 +27,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Eventjet\\Test\\Unit\\Json\\": "tests/unit"
+            "Eventjet\\Json\\Test\\": "tests"
         }
     },
     "config": {
@@ -44,14 +44,21 @@
             "@cs-check",
             "@psalm",
             "@phpstan",
+            "@mago",
             "@phpunit",
             "@infection"
         ],
         "check-deps": "composer-require-checker",
-        "cs-check": "php-cs-fixer fix --dry-run",
-        "cs-fix": "php-cs-fixer fix",
+        "cs": "mago format",
+        "cs-check": "mago format --check",
         "infection": "infection -jmax",
         "infection-diff": "infection -jmax --git-diff-lines --min-msi=100 --min-covered-msi=100 --ignore-msi-with-no-mutations",
+        "mago": [
+            "@mago-lint",
+            "@mago-analyze"
+        ],
+        "mago-analyze": "mago analyze",
+        "mago-lint": "mago lint",
         "phpstan": "phpstan analyze",
         "phpunit": "phpunit",
         "psalm": "psalm"

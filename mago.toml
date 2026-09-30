@@ -1,0 +1,43 @@
+#:schema vendor/carthage-software/mago/schema.json
+php-version = "8.4"
+version = "1"
+
+[source]
+includes = ["vendor"]
+paths = ["src", "tests"]
+
+[formatter]
+null-type-hint = "null_pipe_last"
+preset = "default"
+
+[linter]
+integrations = ["phpunit"]
+minimum-fail-level = "note"
+
+[analyzer]
+allow-side-effects-in-conditions = false
+analyze-dead-code = true
+check-arrow-function-missing-type-hints = true
+check-closure-missing-type-hints = true
+check-experimental = true
+check-missing-override = true
+check-missing-type-hints = true
+check-name-casing = true
+check-property-initialization = true
+check-throws = true
+check-use-statements = true
+enforce-class-finality = true
+find-overly-wide-return-types = true
+find-unused-definitions = true
+find-unused-expressions = true
+find-unused-parameters = true
+ignore = [
+    # PHPUnit handles assertion failures as test results, but Mago's PHPUnit integration only applies to linting.
+    { code = "unhandled-thrown-type", in = ["tests/"], pattern = 'PHPUnit\\Framework\\ExpectationFailedException' },
+]
+minimum-fail-level = "note"
+no-boolean-literal-comparison = true
+require-api-or-internal = true
+strict-array-index-existence = true
+strict-list-index-checks = true
+trust-existence-checks = false
