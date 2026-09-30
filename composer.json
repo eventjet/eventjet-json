@@ -51,7 +51,7 @@
         "check-deps": "composer-require-checker",
         "cs": "mago format",
         "cs-check": "mago format --check",
-        "infection": "infection -jmax",
+        "infection": "infection -jmax --with-uncovered",
         "infection-diff": "infection -jmax --git-diff-lines --min-msi=100 --min-covered-msi=100 --ignore-msi-with-no-mutations",
         "mago": [
             "@mago-lint",
