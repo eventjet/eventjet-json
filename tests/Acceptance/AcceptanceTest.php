@@ -31,6 +31,7 @@ final class AcceptanceTest extends TestCase
         $decoded = Json::decode($json, $person::class);
 
         static::assertEquals($person, $decoded);
+        static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
     }
 
     /** @param class-string $class */
@@ -51,6 +52,24 @@ final class AcceptanceTest extends TestCase
         yield 'middle name' => [new Person('John', 'Doe', 'Quincy')];
         yield 'age' => [new Person('Jane', 'Doe', age: 42)];
         yield 'all properties' => [new Person('Alice', 'Smith', 'Beth', 30)];
+
+        foreach (self::stringFieldValues() as $name => [$value]) {
+            yield $name => [new Person($value, $value, $value)];
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function stringFieldValues(): iterable
+    {
+        yield 'Unicode' => ["Grüße, 世界, 😀, e\u{0301}"];
+        yield 'escaped characters' => ["\"\\/\n\r\t\x08\x0c\0"];
+        yield 'empty string' => [''];
+        yield 'integer text' => ['42'];
+        yield 'negative integer text' => ['-42'];
+        yield 'decimal text' => ['3.14'];
+        yield 'scientific notation text' => ['1e3'];
+        yield 'leading zeros' => ['00042'];
+        yield 'zero' => ['0'];
     }
 
     /** @return iterable<string, array{string, class-string, string, int}> */
