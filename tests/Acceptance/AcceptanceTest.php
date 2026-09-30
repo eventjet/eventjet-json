@@ -12,6 +12,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+use function array_keys;
+use function implode;
 use function json_encode;
 
 use const JSON_THROW_ON_ERROR;
@@ -24,9 +26,10 @@ final class AcceptanceTest extends TestCase
      * @throws JsonException
      */
     #[DataProvider('jsonValues')]
-    public function testDecodeIsTheExactInverseOfJsonEncode(object $person): void
+    #[DataProvider('jsonMemberOrders')]
+    public function testDecodeIsTheExactInverseOfJsonEncode(object $person, string|null $json = null): void
     {
-        $json = json_encode($person, JSON_THROW_ON_ERROR);
+        $json ??= json_encode($person, JSON_THROW_ON_ERROR);
 
         $decoded = Json::decode($json, $person::class);
 
@@ -70,6 +73,44 @@ final class AcceptanceTest extends TestCase
         yield 'scientific notation text' => ['1e3'];
         yield 'leading zeros' => ['00042'];
         yield 'zero' => ['0'];
+    }
+
+    /**
+     * @return iterable<string, array{Person, string}>
+     * @throws JsonException
+     */
+    public static function jsonMemberOrders(): iterable
+    {
+        $person = new Person('Ada', 'Lovelace', 'Byron', 36);
+        $members = ['firstName' => 'Ada', 'lastName' => 'Lovelace', 'middleName' => 'Byron', 'age' => 36];
+
+        foreach (self::memberPermutations($members) as $permutation) {
+            yield 'member order: ' . implode(', ', array_keys($permutation)) => [
+                $person,
+                json_encode($permutation, JSON_THROW_ON_ERROR),
+            ];
+        }
+    }
+
+    /**
+     * @param array<string, string|int|null> $members
+     * @return iterable<array<string, string|int|null>>
+     */
+    private static function memberPermutations(array $members): iterable
+    {
+        if ($members === []) {
+            yield [];
+            return;
+        }
+
+        foreach ($members as $name => $value) {
+            $remaining = $members;
+            unset($remaining[$name]);
+
+            foreach (self::memberPermutations($remaining) as $permutation) {
+                yield [$name => $value, ...$permutation];
+            }
+        }
     }
 
     /** @return iterable<string, array{string, class-string, string, int}> */

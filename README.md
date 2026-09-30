@@ -43,7 +43,7 @@ their scope is settled.
 - [ ] Support public properties that are not promoted constructor parameters, including classes without constructors and inherited properties.
 - [ ] Test required constructor arguments, omitted optional arguments, defaults, and explicit `null`; distinguish a missing field from a present null value.
 - [ ] Define and test how omitted JSON object members interact with PHP constructor and property defaults. Decide whether re-encoding may include initialized default-valued properties or must preserve the original omissions, and whether this requires additional support beyond round trips that start with a PHP object.
-- [ ] Test that JSON member order does not affect constructor argument binding.
+- [x] Test that JSON member order does not affect constructor argument binding.
 - [ ] Preserve the distinction between JSON objects and arrays, especially `{}` versus `[]` and objects with numeric-looking keys.
 - [ ] Define and test the policy for unknown JSON fields and duplicate JSON member names.
 - [ ] Reject interface and abstract class targets with a clear `DecodeError`, including root targets, field types, union members, and collection item/value types.
