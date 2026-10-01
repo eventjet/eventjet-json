@@ -85,6 +85,14 @@ final class ObjectValueConverter
             if ($converted !== null) {
                 return $converted;
             }
+
+            if ($value instanceof stdClass) {
+                $converted = ConcreteClassUnionValueConverter::convert($class, $parameter, $type, $value);
+
+                if ($converted !== null) {
+                    return $converted;
+                }
+            }
         }
 
         return self::convertObjectsToArrays($value);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\Address;
+use Eventjet\Json\Test\Acceptance\Fixtures\ClassScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedObjectFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassField;
@@ -86,6 +87,15 @@ final class NestedObjectErrorCases
             'Could not create '
                 . Coordinates::class
                 . ' from the JSON object: Field latitude must be of type float, string given.',
+            3,
+        ];
+
+        yield 'class and scalar union rejects an invalid nested field value' => [
+            '{"value":{"firstName":42,"lastName":"Lovelace"}}',
+            ClassScalarUnionField::class,
+            'Could not create '
+                . Person::class
+                . ' from the JSON object: Field firstName must be of type string, int given.',
             3,
         ];
 

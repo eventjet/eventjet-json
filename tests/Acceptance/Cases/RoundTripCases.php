@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\Address;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\ClassScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctStringEnumScalarUnionField;
@@ -37,7 +38,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{BackedEnumFields|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|NestedBackedEnumFields|NestedObjectFields|RecursiveNode}>
+     * @return iterable<string, array{BackedEnumFields|ClassScalarUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|NestedBackedEnumFields|NestedObjectFields|RecursiveNode}>
      */
     public static function objects(): iterable
     {
@@ -66,6 +67,12 @@ final class RoundTripCases
         yield 'recursively nested self type' => [
             new RecursiveNode('root', new RecursiveNode('leaf', null)),
         ];
+        yield 'class and scalar union with an object value' => [
+            new ClassScalarUnionField(new Person('Ada', 'Lovelace')),
+        ];
+        yield 'class and scalar union with a string value' => [new ClassScalarUnionField('Ada')];
+        yield 'class and scalar union with an integer value' => [new ClassScalarUnionField(42)];
+        yield 'class and scalar union with a null value' => [new ClassScalarUnionField(null)];
         yield 'int-backed enum and string union with enum value Ready' => [
             new DistinctEnumScalarUnionField(IntBackedStatus::Ready),
         ];
