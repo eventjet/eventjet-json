@@ -185,7 +185,8 @@ The round-trip contract also has these representation limits:
 - [ ] Define supported class shapes and report unsupported ones clearly, including inaccessible constructors and constructor arguments that cannot be recovered from encoded properties.
 - [ ] Define behavior for `mixed`, untyped fields, `object`, and `stdClass`.
 - [ ] Support unions with at most one concrete class and one backed enum, alongside scalar and null members whose types do not overlap the enum's backing type, such as `Foo|string|int` and `MyEnum|MyClass|null`.
-- [ ] Reject unions containing multiple classes (such as `ClassA|ClassB`). Select the class member by JSON value kind without discriminators or inspecting class fields.
+- [x] Reject unions containing multiple classes (such as `ClassA|ClassB`).
+- [ ] Select the single class member in supported unions by JSON value kind without discriminators or inspecting class fields.
 - [x] Reject unions containing multiple enums.
 - [ ] Support unions containing multiple backed enums when each JSON scalar representation identifies exactly one enum case; continue rejecting declarations with overlapping backing values.
 - [x] Initially reject union declarations combining a backed enum with its backing scalar type, such as `MyStringBackedEnum|string` and `MyIntBackedEnum|int`, with a clear `DecodeError`. Apply this rule to larger and nullable unions and reject the declaration regardless of the input value.

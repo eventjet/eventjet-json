@@ -63,6 +63,12 @@ final class FieldTypeValidator
      */
     private static function validateUnionType(string $class, string $field, ReflectionUnionType $type): DecodeError|null
     {
+        $classUnionError = ClassUnionValidator::validate($class, $field, $type);
+
+        if ($classUnionError !== null) {
+            return $classUnionError;
+        }
+
         $enumUnionError = EnumUnionValidator::validate($class, $field, $type);
 
         if ($enumUnionError !== null) {
