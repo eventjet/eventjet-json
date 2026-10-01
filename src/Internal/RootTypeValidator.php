@@ -10,6 +10,7 @@ use ReflectionClass;
 use ReflectionEnum;
 
 use function enum_exists;
+use function sprintf;
 
 /** @internal */
 final class RootTypeValidator
@@ -23,15 +24,32 @@ final class RootTypeValidator
         $className = $class->getName();
 
         if ($class->isInterface()) {
-            return DecodeError::nonInstantiableTarget($className, 'an interface', 'a concrete implementation');
+            return DecodeError::nonInstantiableTarget(
+                $className,
+                'Target type is an interface. JSON does not identify a concrete implementation to instantiate.',
+            );
         }
 
         if ($class->isAbstract()) {
-            return DecodeError::nonInstantiableTarget($className, 'an abstract class', 'a concrete subclass');
+            return DecodeError::nonInstantiableTarget(
+                $className,
+                'Target type is an abstract class. JSON does not identify a concrete subclass to instantiate.',
+            );
         }
 
         if ($class->implementsInterface(JsonSerializable::class)) {
             return DecodeError::jsonSerializableTarget($className);
+        }
+
+        $constructor = $class->getConstructor();
+
+        if ($constructor !== null && !$constructor->isPublic()) {
+            $visibility = $constructor->isPrivate() ? 'private' : 'protected';
+
+            return DecodeError::nonInstantiableTarget($className, sprintf(
+                'Target class has a %s constructor, which cannot be called to create the object.',
+                $visibility,
+            ));
         }
 
         $classIsNonBackedEnum = self::isNonBackedEnum($className);

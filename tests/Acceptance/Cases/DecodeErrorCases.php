@@ -192,6 +192,7 @@ final class DecodeErrorCases
 
         yield from AmbiguousBackedEnumUnionErrorCases::errors();
         yield from BackedEnumErrorCases::errors();
+        yield from InaccessibleConstructorErrorCases::errors();
         yield from MultipleClassUnionErrorCases::errors();
         yield from MultipleEnumUnionErrorCases::errors();
         yield from NestedObjectErrorCases::errors();

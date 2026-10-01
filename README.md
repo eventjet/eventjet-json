@@ -140,7 +140,7 @@ must not be relied on, even if a particular value happens to decode.
 | General union types | Limited | Nullable scalar declarations and backed enum/scalar unions with distinct JSON types are supported. Other unions do not yet have a supported selection policy. |
 | Intersection types | Rejected | JSON does not identify a concrete class that satisfies the intersection. |
 | Interfaces and abstract classes | Rejected at the root and in field types | Root targets, direct constructor field declarations, and union members return dedicated errors because JSON does not identify a concrete implementation or subclass to instantiate. Rejection for collection item and value types remains to be added. |
-| Public properties outside the constructor, inherited properties, and classes without usable constructors | Not yet supported | Object construction currently uses named constructor arguments only. |
+| Public properties outside the constructor, inherited properties, and other unsupported class shapes | Not yet supported | Object construction currently uses named constructor arguments only. Targets with private or protected constructors are rejected with a dedicated error. |
 | `mixed`, untyped fields, `object`, and `stdClass` | Rejected | These declarations cannot preserve every value's original PHP type and JSON object/array shape, so they return a dedicated `DecodeError` whether or not the member is present. |
 | Root arrays, maps, scalars, enums, and `null` | Not yet supported | `Json::decode()` currently accepts only a JSON object and a class target. |
 | Classes implementing `JsonSerializable` | Rejected | A custom JSON representation may not correspond to constructor parameters, so these targets return a dedicated `DecodeError`. |
@@ -184,7 +184,8 @@ The round-trip contract also has these representation limits:
 - [x] Reject interface and abstract class union members with a clear `DecodeError`.
 - [x] Reject non-final class field types because JSON cannot preserve a value's runtime subclass.
 - [ ] Reject interface and abstract class collection item/value types with a clear `DecodeError`.
-- [ ] Define supported class shapes and report unsupported ones clearly, including inaccessible constructors and constructor arguments that cannot be recovered from encoded properties.
+- [x] Reject target classes with private or protected constructors with a clear `DecodeError`.
+- [ ] Define the remaining supported class shapes and report unsupported ones clearly, including constructor arguments that cannot be recovered from encoded properties.
 - [x] Define behavior for `mixed`, untyped fields, `object`, and `stdClass`.
 - [ ] Support unions with at most one concrete class and one backed enum, alongside scalar and null members whose types do not overlap the enum's backing type, such as `Foo|string|int` and `MyEnum|MyClass|null`.
 - [x] Reject unions containing multiple classes (such as `ClassA|ClassB`).

@@ -58,13 +58,12 @@ final class DecodeError extends RuntimeException
     }
 
     /** @param class-string $class */
-    public static function nonInstantiableTarget(string $class, string $typeKind, string $concreteTypeKind): self
+    public static function nonInstantiableTarget(string $class, string $reason): self
     {
         return new self(DecodeErrorKind::CannotInstantiate, sprintf(
-            'Could not create %s from the JSON object: Target type is %s. JSON does not identify %s to instantiate.',
+            'Could not create %s from the JSON object: %s',
             $class,
-            $typeKind,
-            $concreteTypeKind,
+            $reason,
         ));
     }
 
