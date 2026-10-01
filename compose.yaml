@@ -1,0 +1,16 @@
+services:
+  php:
+    build:
+      context: .
+      args:
+        APP_UID: ${LOCAL_UID:-1000}
+        APP_GID: ${LOCAL_GID:-1000}
+    init: true
+    command: ["sleep", "infinity"]
+    volumes:
+      - .:/app
+      - composer-cache:/home/app/.cache/composer
+
+volumes:
+  composer-cache:
+

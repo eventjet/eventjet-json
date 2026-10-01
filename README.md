@@ -2,6 +2,28 @@
 
 Type-safe JSON decoding for PHP.
 
+## Local development
+
+Build and start the PHP 8.4 development container. On Linux, passing your user
+and group IDs keeps files created in the container owned by your host user.
+
+```bash
+LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)" docker compose up --build --detach
+docker compose exec php composer install
+```
+
+Run the complete quality suite inside the container:
+
+```bash
+docker compose exec php composer check
+```
+
+Stop the development container when you are finished:
+
+```bash
+docker compose down
+```
+
 The `tabula-rasa` rewrite treats `Json::decode()` as the inverse of PHP's
 `json_encode()`: supported values must round-trip without changing their meaning
 or shape. Target classes should use standard PHP types and PHPDoc rather than
