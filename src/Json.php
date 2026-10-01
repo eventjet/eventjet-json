@@ -11,6 +11,8 @@ use function is_array;
 use function json_decode;
 use function json_last_error;
 use function json_last_error_msg;
+use function ltrim;
+use function str_starts_with;
 
 use const JSON_ERROR_NONE;
 
@@ -31,7 +33,8 @@ final class Json
             return DecodeError::invalidJson(json_last_error_msg());
         }
 
-        if (!is_array($values)) {
+        // Associative decoding loses the root shape, so inspect the validated JSON.
+        if (!is_array($values) || str_starts_with(ltrim($json), '[')) {
             return DecodeError::unexpectedRootValue($values);
         }
 

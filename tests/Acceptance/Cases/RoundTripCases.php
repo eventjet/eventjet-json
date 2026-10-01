@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\MapHolder;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use JsonException;
 
@@ -18,7 +19,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{Person}>
+     * @return iterable<string, array{Person|MapHolder}>
      */
     public static function objects(): iterable
     {
@@ -26,6 +27,28 @@ final class RoundTripCases
         yield 'middle name' => [new Person('John', 'Doe', 'Quincy')];
         yield 'age' => [new Person('Jane', 'Doe', age: 42)];
         yield 'all properties' => [new Person('Alice', 'Smith', 'Beth', 30)];
+        yield 'array-valued field encoded as an object' => [new MapHolder(['answer' => 42])];
+    }
+
+    /**
+     * @api Called by PHPUnit through DataProviderExternal.
+     * @return iterable<string, array{Person, string}>
+     * @throws JsonException
+     */
+    public static function objectRootWhitespace(): iterable
+    {
+        $person = new Person('Ada', 'Lovelace');
+        $json = json_encode($person, JSON_THROW_ON_ERROR);
+
+        foreach ([
+            'space' => ' ',
+            'tab' => "\t",
+            'carriage return' => "\r",
+            'line feed' => "\n",
+            'all' => " \t\r\n",
+        ] as $name => $whitespace) {
+            yield 'object root whitespace: ' . $name => [$person, $whitespace . $json . $whitespace];
+        }
     }
 
     /**

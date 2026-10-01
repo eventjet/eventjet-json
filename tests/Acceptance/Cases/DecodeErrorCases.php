@@ -15,15 +15,6 @@ final class DecodeErrorCases
      * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{string, class-string, string, int}>
      */
-    public static function unexpectedRootValues(): iterable
-    {
-        yield 'JSON scalar' => ['null', Person::class, 'Expected the JSON root to be an object, got null.', 2];
-    }
-
-    /**
-     * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{string, class-string, string, int}>
-     */
     public static function constructionFailures(): iterable
     {
         yield 'missing constructor arguments' => [

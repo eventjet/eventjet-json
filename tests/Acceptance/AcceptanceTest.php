@@ -7,6 +7,7 @@ namespace Eventjet\Json\Test\Acceptance;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
+use Eventjet\Json\Test\Acceptance\Cases\RootValueErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\RoundTripCases;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -27,6 +28,7 @@ final class AcceptanceTest extends TestCase
     #[DataProviderExternal(RoundTripCases::class, 'objects')]
     #[DataProviderExternal(RoundTripCases::class, 'stringFields')]
     #[DataProviderExternal(RoundTripCases::class, 'memberOrders')]
+    #[DataProviderExternal(RoundTripCases::class, 'objectRootWhitespace')]
     public function testDecodeIsTheExactInverseOfJsonEncode(object $original, string|null $json = null): void
     {
         $json ??= json_encode($original, JSON_THROW_ON_ERROR);
@@ -38,7 +40,8 @@ final class AcceptanceTest extends TestCase
     }
 
     /** @param class-string $class */
-    #[DataProviderExternal(DecodeErrorCases::class, 'unexpectedRootValues')]
+    #[DataProviderExternal(RootValueErrorCases::class, 'unexpectedRootValues')]
+    #[DataProviderExternal(RootValueErrorCases::class, 'arrayRootValues')]
     #[DataProviderExternal(DecodeErrorCases::class, 'constructionFailures')]
     #[DataProviderExternal(DecodeErrorCases::class, 'malformedDocuments')]
     #[DataProviderExternal(DecodeErrorCases::class, 'documentsWithTrailingContent')]
