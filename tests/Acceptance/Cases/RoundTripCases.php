@@ -12,6 +12,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\DistinctStringEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\MapHolder;
+use Eventjet\Json\Test\Acceptance\Fixtures\NestedBackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedObjectFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
@@ -36,7 +37,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{BackedEnumFields|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|NestedObjectFields|RecursiveNode}>
+     * @return iterable<string, array{BackedEnumFields|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|NestedBackedEnumFields|NestedObjectFields|RecursiveNode}>
      */
     public static function objects(): iterable
     {
@@ -98,6 +99,20 @@ final class RoundTripCases
         ];
         yield 'backed enum fields: Pending, Pending' => [
             new BackedEnumFields(StringBackedStatus::Pending, null, IntBackedStatus::Pending),
+        ];
+        yield 'nested backed enum fields with a nullable enum case' => [
+            new NestedBackedEnumFields(new BackedEnumFields(
+                StringBackedStatus::Ready,
+                StringBackedStatus::Pending,
+                IntBackedStatus::Ready,
+            )),
+        ];
+        yield 'nested backed enum fields with a null enum field' => [
+            new NestedBackedEnumFields(new BackedEnumFields(
+                StringBackedStatus::Pending,
+                null,
+                IntBackedStatus::Pending,
+            )),
         ];
     }
 

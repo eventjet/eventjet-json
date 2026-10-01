@@ -8,6 +8,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctStringEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
+use Eventjet\Json\Test\Acceptance\Fixtures\NestedBackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use JsonException;
 
@@ -37,6 +38,19 @@ final class BackedEnumErrorCases
             yield $name => [
                 json_encode($members, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
                 BackedEnumFields::class,
+                'Could not create '
+                    . BackedEnumFields::class
+                    . ' from the JSON object: Field '
+                    . $field
+                    . ' uses backed enum '
+                    . $enum
+                    . ', '
+                    . $message,
+                3,
+            ];
+            yield 'nested ' . $name => [
+                json_encode(['fields' => $members], JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
+                NestedBackedEnumFields::class,
                 'Could not create '
                     . BackedEnumFields::class
                     . ' from the JSON object: Field '
