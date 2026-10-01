@@ -58,19 +58,21 @@ final class DecodeError extends RuntimeException
     }
 
     /** @param class-string $class */
-    public static function interfaceTarget(string $class): self
+    public static function nonInstantiableTarget(string $class, string $typeKind, string $concreteTypeKind): self
     {
         return new self(DecodeErrorKind::CannotInstantiate, sprintf(
-            'Could not create %s from the JSON object: Target type is an interface. JSON does not identify a concrete implementation to instantiate.',
+            'Could not create %s from the JSON object: Target type is %s. JSON does not identify %s to instantiate.',
             $class,
+            $typeKind,
+            $concreteTypeKind,
         ));
     }
 
     /** @param class-string $class */
-    public static function abstractClassTarget(string $class): self
+    public static function jsonSerializableTarget(string $class): self
     {
         return new self(DecodeErrorKind::CannotInstantiate, sprintf(
-            'Could not create %s from the JSON object: Target type is an abstract class. JSON does not identify a concrete subclass to instantiate.',
+            'Could not create %s from the JSON object: Target type implements JsonSerializable. Its custom JSON representation may not match its constructor parameters, so it cannot satisfy the round-trip contract.',
             $class,
         ));
     }

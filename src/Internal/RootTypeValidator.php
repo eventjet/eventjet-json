@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use JsonSerializable;
 use ReflectionClass;
 use ReflectionEnum;
 
@@ -22,11 +23,15 @@ final class RootTypeValidator
         $className = $class->getName();
 
         if ($class->isInterface()) {
-            return DecodeError::interfaceTarget($className);
+            return DecodeError::nonInstantiableTarget($className, 'an interface', 'a concrete implementation');
         }
 
         if ($class->isAbstract()) {
-            return DecodeError::abstractClassTarget($className);
+            return DecodeError::nonInstantiableTarget($className, 'an abstract class', 'a concrete subclass');
+        }
+
+        if ($class->implementsInterface(JsonSerializable::class)) {
+            return DecodeError::jsonSerializableTarget($className);
         }
 
         $classIsNonBackedEnum = self::isNonBackedEnum($className);

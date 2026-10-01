@@ -11,6 +11,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\InterfaceField;
 use Eventjet\Json\Test\Acceptance\Fixtures\InterfaceUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionTypeField;
+use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionTypeField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface;
@@ -46,6 +47,15 @@ final class DecodeErrorCases
             '{}',
             AbstractRootTarget::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget from the JSON object: Target type is an abstract class. JSON does not identify a concrete subclass to instantiate.',
+            3,
+        ];
+
+        $jsonSerializableTarget = new JsonSerializableTarget('Ada');
+
+        yield 'JsonSerializable root target' => [
+            '{"constructorName":"Ada"}',
+            $jsonSerializableTarget::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget from the JSON object: Target type implements JsonSerializable. Its custom JSON representation may not match its constructor parameters, so it cannot satisfy the round-trip contract.',
             3,
         ];
 

@@ -95,6 +95,7 @@ scope decisions are made, and include a reason for every exclusion.
 | Interface and abstract class type hints | They cannot be instantiated directly, and JSON does not identify which concrete implementation or subclass to create. Resolving one would require additional selection rules or metadata. |
 | Intersection type hints | JSON does not identify the concrete class that satisfies every member of an intersection. Resolving one would require additional selection rules or metadata. |
 | Non-backed enums | They have no scalar backing value and cannot round-trip through PHP's `json_encode()`. |
+| Object targets implementing `JsonSerializable` | Their custom JSON representation may not match their constructor parameters, so generic decoding cannot guarantee the round-trip contract. |
 | Non-JSON-encodable values, including resources, `INF`, `NAN`, invalid UTF-8, and circular references | JSON cannot represent these values without losing information or changing their meaning. They fall outside the round-trip contract. |
 | Implicit coercion of mismatched scalar types | Converting values such as `"42"` to `42` hides a type mismatch and changes the value's type. Decoding must validate the declared type. |
 
@@ -133,7 +134,7 @@ must not be relied on, even if a particular value happens to decode.
 | Public properties outside the constructor, inherited properties, and classes without usable constructors | Not yet supported | Object construction currently uses named constructor arguments only. |
 | `mixed`, untyped fields, `object`, and `stdClass` | Not yet supported | Their decoding and round-trip policies have not been defined. |
 | Root arrays, maps, scalars, enums, and `null` | Not yet supported | `Json::decode()` currently accepts only a JSON object and a class target. |
-| Classes implementing `JsonSerializable` | Not yet supported | A custom JSON representation may not correspond to constructor parameters or object properties. |
+| Classes implementing `JsonSerializable` | Rejected | A custom JSON representation may not correspond to constructor parameters, so these targets return a dedicated `DecodeError`. |
 
 The round-trip contract also has these representation limits:
 
@@ -181,7 +182,7 @@ The round-trip contract also has these representation limits:
 - [x] Initially reject union declarations combining a backed enum with its backing scalar type, such as `MyStringBackedEnum|string` and `MyIntBackedEnum|int`, with a clear `DecodeError`. Apply this rule to larger and nullable unions and reject the declaration regardless of the input value.
 - [ ] Test supported enum/scalar unions with distinct JSON types, such as `MyStringBackedEnum|int` and `MyIntBackedEnum|string`, without coercion.
 - [x] Define support or explicit rejection for intersection types.
-- [ ] Define the round-trip contract for classes implementing `JsonSerializable`, whose JSON representation may differ from their properties.
+- [x] Define the round-trip contract for classes implementing `JsonSerializable`, whose JSON representation may differ from their properties.
 
 ### Enums
 
