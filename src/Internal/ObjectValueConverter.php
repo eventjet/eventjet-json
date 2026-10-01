@@ -7,18 +7,11 @@ namespace Eventjet\Json\Internal;
 use BackedEnum;
 use Eventjet\Json\DecodeError;
 use ReflectionClass;
-use ReflectionEnum;
-use ReflectionEnumBackedCase;
 use ReflectionException;
-use ReflectionNamedType;
 use ReflectionParameter;
 use UnitEnum;
 
 use function array_key_exists;
-use function enum_exists;
-use function get_debug_type;
-use function sprintf;
-use function var_export;
 
 /** @internal */
 final class ObjectValueConverter
@@ -61,61 +54,14 @@ final class ObjectValueConverter
         array $values,
     ): UnitEnum|DecodeError|null {
         $field = $parameter->getName();
-        $type = $parameter->getType();
 
-        if (!$type instanceof ReflectionNamedType || !array_key_exists($field, $values)) {
-            return null;
-        }
-
-        $typeName = $type->getName();
-
-        if (!enum_exists($typeName)) {
+        if (!array_key_exists($field, $values)) {
             return null;
         }
 
         /** @var mixed $value */
         $value = $values[$field];
 
-        if ($value === null && $type->allowsNull()) {
-            return null;
-        }
-
-        $enum = new ReflectionEnum($typeName);
-        /** @var ReflectionNamedType $backingType */
-        $backingType = $enum->getBackingType();
-        $valueMatchesBackingType = ValueTypeMatcher::matches($value, $backingType);
-
-        if (!$valueMatchesBackingType) {
-            return DecodeError::nonInstantiableField(
-                $class,
-                $field,
-                'backed enum',
-                $typeName,
-                sprintf(
-                    'backed enum %s, which expects a %s backing value; %s given.',
-                    $typeName,
-                    $backingType->getName(),
-                    get_debug_type($value),
-                ),
-            );
-        }
-
-        foreach ($enum->getCases() as $case) {
-            if ($case instanceof ReflectionEnumBackedCase && $case->getBackingValue() === $value) {
-                return $case->getValue();
-            }
-        }
-
-        return DecodeError::nonInstantiableField(
-            $class,
-            $field,
-            'backed enum',
-            $typeName,
-            sprintf(
-                'backed enum %s, which has no case with backing value %s.',
-                $typeName,
-                var_export($value, return: true),
-            ),
-        );
+        return BackedEnumValueConverter::convert($class, $parameter, $value);
     }
 }

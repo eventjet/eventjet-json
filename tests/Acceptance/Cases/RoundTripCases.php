@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
+use Eventjet\Json\Test\Acceptance\Fixtures\DistinctStringEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\MapHolder;
@@ -31,7 +32,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{BackedEnumFields|DistinctEnumScalarUnionField|Person|MapHolder}>
+     * @return iterable<string, array{BackedEnumFields|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder}>
      */
     public static function objects(): iterable
     {
@@ -40,7 +41,27 @@ final class RoundTripCases
         yield 'age' => [new Person('Jane', 'Doe', age: 42)];
         yield 'all properties' => [new Person('Alice', 'Smith', 'Beth', 30)];
         yield 'array-valued field encoded as an object' => [new MapHolder(['answer' => 42])];
-        yield 'enum and scalar union with distinct JSON types' => [new DistinctEnumScalarUnionField('ready')];
+        yield 'int-backed enum and string union with enum value Ready' => [
+            new DistinctEnumScalarUnionField(IntBackedStatus::Ready),
+        ];
+        yield 'int-backed enum and string union with enum value Pending' => [
+            new DistinctEnumScalarUnionField(IntBackedStatus::Pending),
+        ];
+        yield 'int-backed enum and string union with string value' => [
+            new DistinctEnumScalarUnionField('ready'),
+        ];
+        yield 'int-backed enum and string union with numeric string' => [
+            new DistinctEnumScalarUnionField('1'),
+        ];
+        yield 'string-backed enum and int union with enum value Ready' => [
+            new DistinctStringEnumScalarUnionField(StringBackedStatus::Ready),
+        ];
+        yield 'string-backed enum and int union with enum value Pending' => [
+            new DistinctStringEnumScalarUnionField(StringBackedStatus::Pending),
+        ];
+        yield 'string-backed enum and int union with integer value' => [
+            new DistinctStringEnumScalarUnionField(42),
+        ];
 
         yield 'backed enum fields: Ready, Ready' => [
             new BackedEnumFields(StringBackedStatus::Ready, null, IntBackedStatus::Ready),

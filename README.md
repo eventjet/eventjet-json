@@ -127,8 +127,8 @@ must not be relied on, even if a particular value happens to decode.
 | `null`, nullable scalar fields, and literal `true` and `false` fields | Supported | A non-null value must still match the non-null member of a nullable type. Literal Boolean fields accept only their declared value. |
 | `array` constructor fields | Limited | Decoded arrays are passed through, but PHPDoc item and value types are not read or validated. Only nonempty, string-keyed maps have round-trip coverage. |
 | Nested class fields | Not yet supported | JSON objects are not yet converted to the field's declared class. |
-| Backed enum fields | Supported in direct constructor fields | String-backed and int-backed values are converted without coercion, including nullable enum fields. Enum members of general unions, lists, maps, and nested objects are not yet supported. Non-backed enums are rejected because they have no JSON representation. |
-| General union types | Not yet supported | Nullable scalar declarations are supported. Other unions do not yet have a supported selection policy. |
+| Backed enum fields | Supported in direct constructor fields and distinct scalar unions | String-backed and int-backed values are converted without coercion, including nullable enum fields and unions where the scalar members use different JSON types from the enum backing type. Enum members of other unions, lists, maps, and nested objects are not yet supported. Non-backed enums are rejected because they have no JSON representation. |
+| General union types | Limited | Nullable scalar declarations and backed enum/scalar unions with distinct JSON types are supported. Other unions do not yet have a supported selection policy. |
 | Intersection types | Rejected | JSON does not identify a concrete class that satisfies the intersection. |
 | Interfaces and abstract classes | Rejected at the root and in field types | Root targets, direct constructor field declarations, and union members return dedicated errors because JSON does not identify a concrete implementation or subclass to instantiate. Rejection for collection item and value types remains to be added. |
 | Public properties outside the constructor, inherited properties, and classes without usable constructors | Not yet supported | Object construction currently uses named constructor arguments only. |
@@ -180,7 +180,7 @@ The round-trip contract also has these representation limits:
 - [ ] Support unions with at most one concrete class and one backed enum, alongside scalar and null members whose types do not overlap the enum's backing type, such as `Foo|string|int` and `MyEnum|MyClass|null`.
 - [ ] Reject unions containing multiple classes (such as `ClassA|ClassB`) or multiple enums. Select the class member by JSON value kind without discriminators or inspecting class fields.
 - [x] Initially reject union declarations combining a backed enum with its backing scalar type, such as `MyStringBackedEnum|string` and `MyIntBackedEnum|int`, with a clear `DecodeError`. Apply this rule to larger and nullable unions and reject the declaration regardless of the input value.
-- [ ] Test supported enum/scalar unions with distinct JSON types, such as `MyStringBackedEnum|int` and `MyIntBackedEnum|string`, without coercion.
+- [x] Test supported enum/scalar unions with distinct JSON types, such as `MyStringBackedEnum|int` and `MyIntBackedEnum|string`, without coercion.
 - [x] Define support or explicit rejection for intersection types.
 - [x] Define the round-trip contract for classes implementing `JsonSerializable`, whose JSON representation may differ from their properties.
 
