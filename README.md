@@ -2,6 +2,57 @@
 
 Type-safe JSON decoding for PHP.
 
+## Installation
+
+Install the package with Composer:
+
+```bash
+composer require eventjet/json
+```
+
+## Object decoding
+
+Pass a JSON object and the concrete class to construct to `Json::decode()`. JSON
+member names must match the class's constructor parameter names.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Eventjet\Json\DecodeError;
+use Eventjet\Json\Json;
+
+final readonly class Person
+{
+    public function __construct(
+        public string $firstName,
+        public string $lastName,
+        public int|null $age = null,
+    ) {}
+}
+
+$person = Json::decode(
+    '{"firstName":"Ada","lastName":"Lovelace","age":36}',
+    Person::class,
+);
+
+if ($person instanceof DecodeError) {
+    throw $person;
+}
+
+echo $person->firstName;
+```
+
+Decoding failures are returned as `DecodeError` values rather than thrown by
+`Json::decode()`. Check the result before using the decoded object. The error
+message describes the invalid JSON, unexpected root value, type mismatch, or
+construction failure; `getPrevious()` retains an underlying construction
+exception when one exists.
+
+Only the types and class shapes marked as supported below are part of the
+current contract. In particular, the root value must be a JSON object.
+
 ## Local development
 
 Build and start the PHP 8.4 development container. On Linux, passing your user
@@ -160,5 +211,6 @@ The round-trip contract also has these representation limits:
 
 ### Documentation
 
-- [ ] Document installation, object decoding, collection type declarations, root collections, and handling returned errors.
+- [x] Document installation, object decoding, and handling returned errors.
+- [ ] Document collection type declarations and root collections when they are supported.
 - [x] Publish the supported-type matrix and explicit limits, including any values whose original PHP type or shape cannot be recovered from JSON alone.
