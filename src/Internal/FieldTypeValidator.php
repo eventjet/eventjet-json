@@ -12,9 +12,11 @@ use ReflectionIntersectionType;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionUnionType;
+use stdClass;
 
 use function class_exists;
 use function enum_exists;
+use function in_array;
 use function interface_exists;
 use function sprintf;
 
@@ -56,6 +58,20 @@ final class FieldTypeValidator
     ): DecodeError|null {
         $field = $parameter->getName();
         $typeName = ParameterTypeNameResolver::resolve($parameter, $type);
+
+        if (in_array($typeName, ['mixed', 'object', stdClass::class], strict: true)) {
+            return DecodeError::nonInstantiableField(
+                $class,
+                $field,
+                'unsupported type',
+                $typeName,
+                sprintf(
+                    'unsupported type %s. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
+                    $typeName,
+                ),
+            );
+        }
+
         $typeIsNonBackedEnum = self::isNonBackedEnum($typeName);
 
         if ($typeIsNonBackedEnum) {

@@ -89,11 +89,17 @@ final class NestedObjectErrorCases
             3,
         ];
 
+        $parentClassFieldTarget = new ParentClassField(
+            new Person('Ada', 'Lovelace'),
+            new ParentClassFieldBase(),
+            'value',
+        );
+
         yield 'non-final nested class is rejected' => [
             '{"person":{"firstName":"Ada","lastName":"Lovelace"},"value":{},"label":"value"}',
-            ParentClassField::class,
+            $parentClassFieldTarget::class,
             'Could not create '
-                . ParentClassField::class
+                . $parentClassFieldTarget::class
                 . ' from the JSON object: Field value uses non-final class '
                 . ParentClassFieldBase::class
                 . '. Values may be subclasses, whose runtime class JSON does not identify.',

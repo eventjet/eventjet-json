@@ -106,6 +106,7 @@ scope decisions are made, and include a reason for every exclusion.
 | Non-JSON-encodable values, including resources, `INF`, `NAN`, invalid UTF-8, and circular references | JSON cannot represent these values without losing information or changing their meaning. They fall outside the round-trip contract. |
 | Implicit coercion of mismatched scalar types | Converting values such as `"42"` to `42` hides a type mismatch and changes the value's type. Decoding must validate the declared type. |
 | Member-name mapping, aliases, and naming strategies | Target classes are expected to match the JSON wire format exactly. Transforming decoded transport data into an application's domain model is the consumer's responsibility. |
+| `mixed`, untyped, `object`, and `stdClass` constructor fields | These declarations do not provide enough type information to restore every value's original PHP type and JSON shape. In particular, `object` omits the concrete class, while `mixed`, untyped fields, and `stdClass` members can contain PHP arrays that encode as JSON objects. |
 
 Other open decisions remain in the TODO list until their scope is settled.
 
@@ -140,7 +141,7 @@ must not be relied on, even if a particular value happens to decode.
 | Intersection types | Rejected | JSON does not identify a concrete class that satisfies the intersection. |
 | Interfaces and abstract classes | Rejected at the root and in field types | Root targets, direct constructor field declarations, and union members return dedicated errors because JSON does not identify a concrete implementation or subclass to instantiate. Rejection for collection item and value types remains to be added. |
 | Public properties outside the constructor, inherited properties, and classes without usable constructors | Not yet supported | Object construction currently uses named constructor arguments only. |
-| `mixed`, untyped fields, `object`, and `stdClass` | Not yet supported | Their decoding and round-trip policies have not been defined. |
+| `mixed`, untyped fields, `object`, and `stdClass` | Rejected | These declarations cannot preserve every value's original PHP type and JSON object/array shape, so they return a dedicated `DecodeError` whether or not the member is present. |
 | Root arrays, maps, scalars, enums, and `null` | Not yet supported | `Json::decode()` currently accepts only a JSON object and a class target. |
 | Classes implementing `JsonSerializable` | Rejected | A custom JSON representation may not correspond to constructor parameters, so these targets return a dedicated `DecodeError`. |
 
@@ -184,7 +185,7 @@ The round-trip contract also has these representation limits:
 - [x] Reject non-final class field types because JSON cannot preserve a value's runtime subclass.
 - [ ] Reject interface and abstract class collection item/value types with a clear `DecodeError`.
 - [ ] Define supported class shapes and report unsupported ones clearly, including inaccessible constructors and constructor arguments that cannot be recovered from encoded properties.
-- [ ] Define behavior for `mixed`, untyped fields, `object`, and `stdClass`.
+- [x] Define behavior for `mixed`, untyped fields, `object`, and `stdClass`.
 - [ ] Support unions with at most one concrete class and one backed enum, alongside scalar and null members whose types do not overlap the enum's backing type, such as `Foo|string|int` and `MyEnum|MyClass|null`.
 - [x] Reject unions containing multiple classes (such as `ClassA|ClassB`).
 - [ ] Select the single class member in supported unions by JSON value kind without discriminators or inspecting class fields.

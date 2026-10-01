@@ -34,6 +34,17 @@ final class ObjectTypeValidator
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $name = $parameter->getName();
             $type = $parameter->getType();
+
+            if ($type === null) {
+                return DecodeError::nonInstantiableField(
+                    $className,
+                    $name,
+                    'unsupported type',
+                    'untyped',
+                    'no type declaration. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
+                );
+            }
+
             $typeError = FieldTypeValidator::validate($className, $parameter);
 
             if ($typeError !== null) {
