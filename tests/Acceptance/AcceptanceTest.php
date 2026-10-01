@@ -26,6 +26,7 @@ final class AcceptanceTest extends TestCase
      * @throws JsonException
      */
     #[DataProviderExternal(RoundTripCases::class, 'objects')]
+    #[DataProviderExternal(RoundTripCases::class, 'scalarFields')]
     #[DataProviderExternal(RoundTripCases::class, 'stringFields')]
     #[DataProviderExternal(RoundTripCases::class, 'memberOrders')]
     #[DataProviderExternal(RoundTripCases::class, 'objectRootWhitespace')]

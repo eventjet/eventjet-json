@@ -31,7 +31,7 @@ their scope is settled.
 
 ### Scalar fields and validation
 
-- [ ] Test all scalar field types: `string`, `int`, `float`, and `bool`, plus `null`, nullable types, and literal `true`/`false` types.
+- [x] Test all scalar field types: `string`, `int`, `float`, and `bool`, plus `null`, nullable types, and literal `true`/`false` types.
 - [ ] Reject field values that do not match the declared type, including values that reflection would otherwise silently coerce.
 - [ ] Test numeric boundaries and define how to preserve whole-valued floats, large integers, and precision during round trips.
 - [x] Test strings containing Unicode, escaped characters, empty strings, and numeric-looking text.

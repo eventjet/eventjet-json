@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\MapHolder;
+use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
+use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use JsonException;
 
 use function array_keys;
@@ -70,6 +73,21 @@ final class RoundTripCases
         ] as $name => $value) {
             yield $name => [new Person($value, $value, $value)];
         }
+    }
+
+    /**
+     * @api Called by PHPUnit through DataProviderExternal.
+     * @return iterable<string, array{LiteralBooleanFields|NullableScalarFields|ScalarFields}>
+     */
+    public static function scalarFields(): iterable
+    {
+        yield 'scalar fields with positive values' => [new ScalarFields('value', 42, 3.25, true)];
+        yield 'scalar fields with zero and false' => [new ScalarFields('', 0, 0.5, false)];
+        yield 'nullable scalar fields with values' => [new NullableScalarFields('value', -42, -3.25, false, null)];
+        yield 'nullable scalar fields set to null' => [
+            new NullableScalarFields(null, null, null, null, null),
+        ];
+        yield 'literal boolean fields' => [new LiteralBooleanFields(true, false)];
     }
 
     /**
