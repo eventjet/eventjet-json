@@ -1,0 +1,90 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Eventjet\Json\Test\Acceptance\Cases;
+
+use Eventjet\Json\Test\Acceptance\Fixtures\Person;
+use JsonException;
+
+use function array_keys;
+use function implode;
+use function json_encode;
+
+use const JSON_THROW_ON_ERROR;
+
+/** @internal */
+final class RoundTripCases
+{
+    /**
+     * @api Called by PHPUnit through DataProviderExternal.
+     * @return iterable<string, array{Person}>
+     */
+    public static function objects(): iterable
+    {
+        yield 'required properties' => [new Person('Ada', 'Lovelace')];
+        yield 'middle name' => [new Person('John', 'Doe', 'Quincy')];
+        yield 'age' => [new Person('Jane', 'Doe', age: 42)];
+        yield 'all properties' => [new Person('Alice', 'Smith', 'Beth', 30)];
+    }
+
+    /**
+     * @api Called by PHPUnit through DataProviderExternal.
+     * @return iterable<string, array{Person}>
+     */
+    public static function stringFields(): iterable
+    {
+        foreach ([
+            'Unicode' => "Grüße, 世界, 😀, e\u{0301}",
+            'escaped characters' => "\"\\/\n\r\t\x08\x0c\0",
+            'empty string' => '',
+            'integer text' => '42',
+            'negative integer text' => '-42',
+            'decimal text' => '3.14',
+            'scientific notation text' => '1e3',
+            'leading zeros' => '00042',
+            'zero' => '0',
+        ] as $name => $value) {
+            yield $name => [new Person($value, $value, $value)];
+        }
+    }
+
+    /**
+     * @api Called by PHPUnit through DataProviderExternal.
+     * @return iterable<string, array{Person, string}>
+     * @throws JsonException
+     */
+    public static function memberOrders(): iterable
+    {
+        $person = new Person('Ada', 'Lovelace', 'Byron', 36);
+        $members = ['firstName' => 'Ada', 'lastName' => 'Lovelace', 'middleName' => 'Byron', 'age' => 36];
+
+        foreach (self::memberPermutations($members) as $permutation) {
+            yield 'member order: ' . implode(', ', array_keys($permutation)) => [
+                $person,
+                json_encode($permutation, JSON_THROW_ON_ERROR),
+            ];
+        }
+    }
+
+    /**
+     * @param array<string, string|int|null> $members
+     * @return iterable<array<string, string|int|null>>
+     */
+    private static function memberPermutations(array $members): iterable
+    {
+        if ($members === []) {
+            yield [];
+            return;
+        }
+
+        foreach ($members as $name => $value) {
+            $remaining = $members;
+            unset($remaining[$name]);
+
+            foreach (self::memberPermutations($remaining) as $permutation) {
+                yield [$name => $value, ...$permutation];
+            }
+        }
+    }
+}

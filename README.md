@@ -80,7 +80,7 @@ their scope is settled.
 - [ ] Keep every decoding failure on the returned `DecodeError` path, including nested conversion failures and exceptions thrown by constructors.
 - [ ] Include the failing field, list index, or map key path and expected/actual type in conversion errors.
 - [ ] Test stable error codes, useful messages, and preservation of underlying exceptions.
-- [ ] Expand invalid-JSON coverage to malformed syntax, trailing content, invalid UTF-8, and nesting-depth limits.
+- [x] Expand invalid-JSON coverage to malformed syntax, trailing content, invalid UTF-8, and nesting-depth limits.
 - [ ] Test rejection of incompatible root shapes; JSON arrays must not be passed to object constructors as positional arguments.
 - [ ] Add acceptance round trips for every supported type and combinations of nested objects, lists, maps, and enums; assert both value types and JSON shape.
 - [ ] Keep formatting, dependency checks, static analysis, PHPUnit, and mutation testing passing as support grows.
