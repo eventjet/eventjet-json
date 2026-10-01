@@ -9,6 +9,7 @@ use RuntimeException;
 use Throwable;
 
 use function get_debug_type;
+use function preg_replace;
 use function sprintf;
 
 final class DecodeError extends RuntimeException
@@ -32,11 +33,29 @@ final class DecodeError extends RuntimeException
     }
 
     /** @param class-string $class */
+    public static function fieldTypeMismatch(string $class, string $field, string $expectedType, mixed $value): self
+    {
+        return new self(DecodeErrorKind::CannotInstantiate, sprintf(
+            'Could not create %s from the JSON object: Field %s must be of type %s, %s given.',
+            $class,
+            $field,
+            $expectedType,
+            get_debug_type($value),
+        ));
+    }
+
+    /** @param class-string $class */
     public static function cannotInstantiate(string $class, Throwable $error): self
     {
+        $message = preg_replace(
+            pattern: '/ passed in .+ on line \d+ and /',
+            replacement: ' passed and ',
+            subject: $error->getMessage(),
+        ) ?? $error->getMessage();
+
         return new self(
             DecodeErrorKind::CannotInstantiate,
-            sprintf('Could not create %s from the JSON object: %s', $class, $error->getMessage()),
+            sprintf('Could not create %s from the JSON object: %s', $class, $message),
             $error,
         );
     }

@@ -9,6 +9,7 @@ use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootValueErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\RoundTripCases;
+use Eventjet\Json\Test\Acceptance\Cases\ScalarTypeMismatchCases;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
@@ -48,6 +49,7 @@ final class AcceptanceTest extends TestCase
     #[DataProviderExternal(DecodeErrorCases::class, 'documentsWithTrailingContent')]
     #[DataProviderExternal(DecodeErrorCases::class, 'invalidUtf8Documents')]
     #[DataProviderExternal(DecodeErrorCases::class, 'deeplyNestedDocuments')]
+    #[DataProviderExternal(ScalarTypeMismatchCases::class, 'mismatches')]
     public function testDecodeReturnsErrorsAsValues(string $json, string $class, string $message, int $code): void
     {
         $decoded = Json::decode($json, $class);
@@ -55,5 +57,15 @@ final class AcceptanceTest extends TestCase
         static::assertTrue($decoded instanceof DecodeError);
         static::assertSame($message, $decoded->getMessage());
         static::assertSame($code, $decoded->getCode());
+    }
+
+    /** @param class-string $class */
+    #[DataProviderExternal(ScalarTypeMismatchCases::class, 'numericKeyMismatches')]
+    public function testNumericObjectKeysCannotBypassScalarValidation(string $json, string $class): void
+    {
+        $decoded = Json::decode($json, $class);
+
+        static::assertTrue($decoded instanceof DecodeError);
+        static::assertSame(3, $decoded->getCode());
     }
 }

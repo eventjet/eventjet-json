@@ -82,6 +82,7 @@ final class RoundTripCases
     public static function scalarFields(): iterable
     {
         yield 'scalar fields with positive values' => [new ScalarFields('value', 42, 3.25, true)];
+        yield 'scalar fields with a whole-valued float' => [new ScalarFields('value', 42, 3.0, true)];
         yield 'scalar fields with zero and false' => [new ScalarFields('', 0, 0.5, false)];
         yield 'nullable scalar fields with values' => [new NullableScalarFields('value', -42, -3.25, false, null)];
         yield 'nullable scalar fields set to null' => [
