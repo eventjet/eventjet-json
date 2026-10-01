@@ -6,14 +6,10 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionClass;
-use ReflectionEnum;
-use ReflectionIntersectionType;
+use ReflectionException;
 use ReflectionNamedType;
-use ReflectionType;
-use ReflectionUnionType;
 
 use function array_key_exists;
-use function enum_exists;
 
 /** @internal */
 final class ObjectTypeValidator
@@ -22,6 +18,7 @@ final class ObjectTypeValidator
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<array-key, mixed> $values
+     * @throws ReflectionException
      */
     public static function validate(ReflectionClass $class, array $values): DecodeError|null
     {
@@ -36,19 +33,14 @@ final class ObjectTypeValidator
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $name = $parameter->getName();
             $type = $parameter->getType();
-            $intersection = self::intersection($type);
+            $typeError = FieldTypeValidator::validate($className, $name, $type);
 
-            if ($intersection !== null) {
-                return DecodeError::unsupportedIntersection($className, $name, (string) $intersection);
+            if ($typeError !== null) {
+                return $typeError;
             }
 
             if ($type instanceof ReflectionNamedType) {
                 $typeName = $type->getName();
-                $typeIsNonBackedEnum = self::isNonBackedEnum($typeName);
-
-                if ($typeIsNonBackedEnum) {
-                    return DecodeError::nonBackedEnum($className, $typeName, $name);
-                }
 
                 if (array_key_exists($name, $values)) {
                     /** @var mixed $value */
@@ -64,28 +56,6 @@ final class ObjectTypeValidator
 
                         return DecodeError::fieldTypeMismatch($className, $name, $expectedType, $value);
                     }
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private static function isNonBackedEnum(string $type): bool
-    {
-        return enum_exists($type) && !new ReflectionEnum($type)->isBacked();
-    }
-
-    private static function intersection(ReflectionType|null $type): ReflectionIntersectionType|null
-    {
-        if ($type instanceof ReflectionIntersectionType) {
-            return $type;
-        }
-
-        if ($type instanceof ReflectionUnionType) {
-            foreach ($type->getTypes() as $member) {
-                if ($member instanceof ReflectionIntersectionType) {
-                    return $member;
                 }
             }
         }

@@ -76,6 +76,18 @@ final class DecodeError extends RuntimeException
     }
 
     /** @param class-string $class */
+    public static function nonInstantiableField(string $class, string $field, string $typeKind, string $type): self
+    {
+        return new self(DecodeErrorKind::CannotInstantiate, sprintf(
+            'Could not create %s from the JSON object: Field %s uses %s %s, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            $class,
+            $field,
+            $typeKind,
+            $type,
+        ));
+    }
+
+    /** @param class-string $class */
     public static function unsupportedIntersection(string $class, string $field, string $intersection): self
     {
         return new self(DecodeErrorKind::CannotInstantiate, sprintf(

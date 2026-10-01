@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use ArrayIterator;
+use Eventjet\Json\Test\Acceptance\Fixtures\AbstractClassField;
 use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
+use Eventjet\Json\Test\Acceptance\Fixtures\InterfaceField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionTypeField;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionTypeField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
@@ -40,6 +42,43 @@ final class DecodeErrorCases
             '{}',
             AbstractRootTarget::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget from the JSON object: Target type is an abstract class. JSON does not identify a concrete subclass to instantiate.',
+            3,
+        ];
+
+        $interfaceFieldTarget = new InterfaceField(new class implements RootTargetInterface {});
+        $interfaceFieldMessage =
+            'Could not create '
+            . $interfaceFieldTarget::class
+            . ' from the JSON object: Field value uses interface '
+            . RootTargetInterface::class
+            . ', which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.';
+
+        yield 'interface field, member present' => [
+            '{"value":{}}',
+            $interfaceFieldTarget::class,
+            $interfaceFieldMessage,
+            3,
+        ];
+        yield 'interface field, member absent' => ['{}', $interfaceFieldTarget::class, $interfaceFieldMessage, 3];
+
+        $abstractClassFieldTarget = new AbstractClassField(new class extends AbstractRootTarget {});
+        $abstractClassFieldMessage =
+            'Could not create '
+            . $abstractClassFieldTarget::class
+            . ' from the JSON object: Field value uses abstract class '
+            . AbstractRootTarget::class
+            . ', which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.';
+
+        yield 'abstract class field, member present' => [
+            '{"value":{}}',
+            $abstractClassFieldTarget::class,
+            $abstractClassFieldMessage,
+            3,
+        ];
+        yield 'abstract class field, member absent' => [
+            '{}',
+            $abstractClassFieldTarget::class,
+            $abstractClassFieldMessage,
             3,
         ];
 
