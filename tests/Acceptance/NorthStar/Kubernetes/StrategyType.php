@@ -1,0 +1,12 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Eventjet\Json\Test\Acceptance\NorthStar\Kubernetes;
+
+/** @api Consumed dynamically by NorthStarTest. */
+enum StrategyType: string
+{
+    case Recreate = 'Recreate';
+    case RollingUpdate = 'RollingUpdate';
+}

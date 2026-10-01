@@ -15,6 +15,12 @@ composer require eventjet/json
 Pass a JSON object and the concrete class to construct to `Json::decode()`. JSON
 member names must match the class's constructor parameter names.
 
+This exact match is deliberate. Target classes model the JSON wire format, not
+the application's domain model. The library does not rename members or support
+aliases and naming strategies. Consumers should decode into transport classes
+that fit the JSON and then explicitly transfer the data into their domain
+objects.
+
 ```php
 <?php
 
@@ -98,6 +104,7 @@ scope decisions are made, and include a reason for every exclusion.
 | Object targets implementing `JsonSerializable` | Their custom JSON representation may not match their constructor parameters, so generic decoding cannot guarantee the round-trip contract. |
 | Non-JSON-encodable values, including resources, `INF`, `NAN`, invalid UTF-8, and circular references | JSON cannot represent these values without losing information or changing their meaning. They fall outside the round-trip contract. |
 | Implicit coercion of mismatched scalar types | Converting values such as `"42"` to `42` hides a type mismatch and changes the value's type. Decoding must validate the declared type. |
+| Member-name mapping, aliases, and naming strategies | Target classes are expected to match the JSON wire format exactly. Transforming decoded transport data into an application's domain model is the consumer's responsibility. |
 
 Other open decisions remain in the TODO list until their scope is settled.
 
@@ -165,9 +172,9 @@ The round-trip contract also has these representation limits:
 
 ### Objects and construction
 
-- [ ] Decode nested JSON objects into their declared classes, including readonly classes and nullable object fields.
-- [ ] Support public properties that are not promoted constructor parameters, including classes without constructors and inherited properties.
-- [ ] Decide and test how omitted JSON object members interact with required constructor arguments, optional arguments, defaults, and explicit `null`. Distinguish a missing member from a present null value, and decide whether re-encoding may include initialized default-valued properties or must preserve the original omissions, including whether that requires support beyond round trips that start with a PHP object.
+- [ ] Recursively decode nested JSON objects into their declared classes, including readonly classes and nullable object fields.
+- [ ] Support classes that combine constructor-bound members with public properties not represented by the constructor, including classes without constructors and inherited properties. Hydrate each JSON member once so promoted properties, including readonly properties, are not assigned a second time.
+- [ ] Decide and test how omitted JSON object members interact with required and optional constructor arguments, constructor defaults, initialized and uninitialized public properties, readonly properties, and explicit `null`. Distinguish a missing member from a present null value, and decide whether re-encoding may include initialized default-valued properties or must preserve the original omissions, including whether that requires support beyond round trips that start with a PHP object.
 - [x] Test that JSON member order does not affect constructor argument binding.
 - [ ] Preserve the distinction between JSON objects and arrays, especially `{}` versus `[]` and objects with numeric-looking keys.
 - [ ] Define and test the policy for unknown JSON fields and duplicate JSON member names.
