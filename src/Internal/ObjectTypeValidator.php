@@ -7,7 +7,10 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use ReflectionClass;
 use ReflectionEnum;
+use ReflectionIntersectionType;
 use ReflectionNamedType;
+use ReflectionType;
+use ReflectionUnionType;
 
 use function array_key_exists;
 use function enum_exists;
@@ -32,6 +35,11 @@ final class ObjectTypeValidator
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $name = $parameter->getName();
             $type = $parameter->getType();
+            $intersection = self::intersection($type);
+
+            if ($intersection !== null) {
+                return DecodeError::unsupportedIntersection($className, $name, (string) $intersection);
+            }
 
             if ($type instanceof ReflectionNamedType) {
                 $typeName = $type->getName();
@@ -65,5 +73,22 @@ final class ObjectTypeValidator
     private static function isNonBackedEnum(string $type): bool
     {
         return enum_exists($type) && !new ReflectionEnum($type)->isBacked();
+    }
+
+    private static function intersection(ReflectionType|null $type): ReflectionIntersectionType|null
+    {
+        if ($type instanceof ReflectionIntersectionType) {
+            return $type;
+        }
+
+        if ($type instanceof ReflectionUnionType) {
+            foreach ($type->getTypes() as $member) {
+                if ($member instanceof ReflectionIntersectionType) {
+                    return $member;
+                }
+            }
+        }
+
+        return null;
     }
 }

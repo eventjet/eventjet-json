@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use ArrayIterator;
+use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionTypeField;
+use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionTypeField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 
 use function str_repeat;
@@ -21,6 +24,44 @@ final class DecodeErrorCases
             '{}',
             Person::class,
             'Could not create Eventjet\\Json\\Test\\Acceptance\\Fixtures\\Person from the JSON object: Too few arguments to function Eventjet\\Json\\Test\\Acceptance\\Fixtures\\Person::__construct(), 0 passed and at least 2 expected',
+            3,
+        ];
+
+        $intersectionTarget = new IntersectionTypeField(new ArrayIterator([]));
+        $intersectionMessage =
+            'Could not create '
+            . IntersectionTypeField::class
+            . ' from the JSON object: Field value uses unsupported intersection type Countable&Iterator. JSON does not identify a concrete class to instantiate.';
+
+        yield 'intersection type field, member present' => [
+            '{"value":{}}',
+            $intersectionTarget::class,
+            $intersectionMessage,
+            3,
+        ];
+        yield 'intersection type field, member absent' => [
+            '{}',
+            $intersectionTarget::class,
+            $intersectionMessage,
+            3,
+        ];
+
+        $nullableIntersectionTarget = new NullableIntersectionTypeField(null);
+        $nullableIntersectionMessage =
+            'Could not create '
+            . NullableIntersectionTypeField::class
+            . ' from the JSON object: Field value uses unsupported intersection type Countable&Iterator. JSON does not identify a concrete class to instantiate.';
+
+        yield 'intersection type in nullable union, member null' => [
+            '{"value":null}',
+            $nullableIntersectionTarget::class,
+            $nullableIntersectionMessage,
+            3,
+        ];
+        yield 'intersection type in nullable union, member absent' => [
+            '{}',
+            $nullableIntersectionTarget::class,
+            $nullableIntersectionMessage,
             3,
         ];
     }
