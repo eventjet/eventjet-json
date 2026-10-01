@@ -90,7 +90,7 @@ scope decisions are made, and include a reason for every exclusion.
 | Feature or value | Why it is unsupported |
 | --- | --- |
 | Unions containing more than one class, such as `ClassA\|ClassB` | JSON objects do not identify their PHP class. Choosing a class would require a discriminator or inspecting class fields, adding complexity to decoding. |
-| Unions containing more than one enum | The union contract allows at most one enum. Multiple enums would need additional selection rules, especially when their backing values overlap. |
+| Unions containing multiple enums with overlapping backing values | The same JSON scalar would identify cases from more than one enum, so decoding could not recover the original enum type. |
 | Unions combining a backed enum with its backing scalar type, such as `MyStringBackedEnum\|string` or `MyIntBackedEnum\|int` (initially) | An enum case and its backing scalar encode to the same JSON value. Checking the enum first would turn an original scalar into an enum case; checking the scalar first would lose the enum case. JSON cannot recover the original PHP type, so these unions break the round-trip contract. |
 | Interface and abstract class type hints | They cannot be instantiated directly, and JSON does not identify which concrete implementation or subclass to create. Resolving one would require additional selection rules or metadata. |
 | Intersection type hints | JSON does not identify the concrete class that satisfies every member of an intersection. Resolving one would require additional selection rules or metadata. |
@@ -178,7 +178,9 @@ The round-trip contract also has these representation limits:
 - [ ] Define supported class shapes and report unsupported ones clearly, including inaccessible constructors and constructor arguments that cannot be recovered from encoded properties.
 - [ ] Define behavior for `mixed`, untyped fields, `object`, and `stdClass`.
 - [ ] Support unions with at most one concrete class and one backed enum, alongside scalar and null members whose types do not overlap the enum's backing type, such as `Foo|string|int` and `MyEnum|MyClass|null`.
-- [ ] Reject unions containing multiple classes (such as `ClassA|ClassB`) or multiple enums. Select the class member by JSON value kind without discriminators or inspecting class fields.
+- [ ] Reject unions containing multiple classes (such as `ClassA|ClassB`). Select the class member by JSON value kind without discriminators or inspecting class fields.
+- [x] Reject unions containing multiple enums.
+- [ ] Support unions containing multiple backed enums when each JSON scalar representation identifies exactly one enum case; continue rejecting declarations with overlapping backing values.
 - [x] Initially reject union declarations combining a backed enum with its backing scalar type, such as `MyStringBackedEnum|string` and `MyIntBackedEnum|int`, with a clear `DecodeError`. Apply this rule to larger and nullable unions and reject the declaration regardless of the input value.
 - [x] Test supported enum/scalar unions with distinct JSON types, such as `MyStringBackedEnum|int` and `MyIntBackedEnum|string`, without coercion.
 - [x] Define support or explicit rejection for intersection types.

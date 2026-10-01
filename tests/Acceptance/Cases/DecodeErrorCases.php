@@ -178,6 +178,7 @@ final class DecodeErrorCases
 
         yield from AmbiguousBackedEnumUnionErrorCases::errors();
         yield from BackedEnumErrorCases::errors();
+        yield from MultipleEnumUnionErrorCases::errors();
     }
 
     /**

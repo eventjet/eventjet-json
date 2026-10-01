@@ -63,10 +63,10 @@ final class FieldTypeValidator
      */
     private static function validateUnionType(string $class, string $field, ReflectionUnionType $type): DecodeError|null
     {
-        $ambiguousUnionError = BackedEnumUnionValidator::validate($class, $field, $type);
+        $enumUnionError = EnumUnionValidator::validate($class, $field, $type);
 
-        if ($ambiguousUnionError !== null) {
-            return $ambiguousUnionError;
+        if ($enumUnionError !== null) {
+            return $enumUnionError;
         }
 
         foreach ($type->getTypes() as $member) {

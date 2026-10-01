@@ -11,14 +11,18 @@ use ReflectionNamedType;
 use ReflectionType;
 use ReflectionUnionType;
 
+use function array_filter;
 use function array_map;
 use function array_shift;
+use function count;
 use function enum_exists;
+use function implode;
 use function in_array;
+use function sort;
 use function sprintf;
 
 /** @internal */
-final class BackedEnumUnionValidator
+final class EnumUnionValidator
 {
     /**
      * @param class-string $class
@@ -27,6 +31,21 @@ final class BackedEnumUnionValidator
     public static function validate(string $class, string $field, ReflectionUnionType $type): DecodeError|null
     {
         $memberNames = array_map(static fn(ReflectionType $member): string => (string) $member, $type->getTypes());
+        $enumNames = self::enumNames($memberNames);
+
+        if (count($enumNames) > 1) {
+            return DecodeError::nonInstantiableField(
+                $class,
+                $field,
+                'enum union',
+                implode('|', $enumNames),
+                sprintf(
+                    'multiple enum types: %s. Union declarations may contain at most one enum because selecting among multiple enums requires additional rules.',
+                    implode(', ', $enumNames),
+                ),
+            );
+        }
+
         $ambiguousPair = self::findAmbiguousPair($memberNames, $memberNames);
 
         if ($ambiguousPair !== null) {
@@ -46,6 +65,18 @@ final class BackedEnumUnionValidator
         }
 
         return null;
+    }
+
+    /**
+     * @param array<array-key, string> $memberNames
+     * @return list<string>
+     */
+    private static function enumNames(array $memberNames): array
+    {
+        $enumNames = array_filter($memberNames, static fn(string $memberName): bool => enum_exists($memberName));
+        sort($enumNames);
+
+        return $enumNames;
     }
 
     /**
