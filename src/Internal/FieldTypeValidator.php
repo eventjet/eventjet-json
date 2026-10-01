@@ -26,14 +26,26 @@ final class FieldTypeValidator
      */
     public static function validate(string $class, string $field, ReflectionType|null $type): DecodeError|null
     {
-        $intersection = self::intersection($type);
-
-        if ($intersection !== null) {
-            return DecodeError::unsupportedIntersection($class, $field, (string) $intersection);
+        if ($type instanceof ReflectionIntersectionType) {
+            return DecodeError::unsupportedIntersection($class, $field, (string) $type);
         }
 
         if ($type instanceof ReflectionNamedType) {
             return self::validateNamedType($class, $field, $type);
+        }
+
+        if ($type instanceof ReflectionUnionType) {
+            foreach ($type->getTypes() as $member) {
+                if ($member instanceof ReflectionIntersectionType) {
+                    return DecodeError::unsupportedIntersection($class, $field, (string) $member);
+                }
+
+                $error = self::validateNonInstantiableType($class, $field, $member->getName());
+
+                if ($error !== null) {
+                    return $error;
+                }
+            }
         }
 
         return null;
@@ -52,19 +64,28 @@ final class FieldTypeValidator
             return DecodeError::nonBackedEnum($class, $typeName, $field);
         }
 
-        if (interface_exists($typeName)) {
-            return DecodeError::nonInstantiableField($class, $field, 'interface', $typeName);
+        return self::validateNonInstantiableType($class, $field, $typeName);
+    }
+
+    /**
+     * @param class-string $class
+     * @throws ReflectionException
+     */
+    private static function validateNonInstantiableType(string $class, string $field, string $type): DecodeError|null
+    {
+        if (interface_exists($type)) {
+            return DecodeError::nonInstantiableField($class, $field, 'interface', $type);
         }
 
         $typeIsAbstractClass = false;
 
-        if (class_exists($typeName)) {
-            $typeReflection = new ReflectionClass($typeName);
+        if (class_exists($type)) {
+            $typeReflection = new ReflectionClass($type);
             $typeIsAbstractClass = $typeReflection->isAbstract();
         }
 
         if ($typeIsAbstractClass) {
-            return DecodeError::nonInstantiableField($class, $field, 'abstract class', $typeName);
+            return DecodeError::nonInstantiableField($class, $field, 'abstract class', $type);
         }
 
         return null;
@@ -73,22 +94,5 @@ final class FieldTypeValidator
     private static function isNonBackedEnum(string $type): bool
     {
         return enum_exists($type) && !new ReflectionEnum($type)->isBacked();
-    }
-
-    private static function intersection(ReflectionType|null $type): ReflectionIntersectionType|null
-    {
-        if ($type instanceof ReflectionIntersectionType) {
-            return $type;
-        }
-
-        if ($type instanceof ReflectionUnionType) {
-            foreach ($type->getTypes() as $member) {
-                if ($member instanceof ReflectionIntersectionType) {
-                    return $member;
-                }
-            }
-        }
-
-        return null;
     }
 }

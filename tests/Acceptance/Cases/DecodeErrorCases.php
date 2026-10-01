@@ -6,8 +6,10 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use ArrayIterator;
 use Eventjet\Json\Test\Acceptance\Fixtures\AbstractClassField;
+use Eventjet\Json\Test\Acceptance\Fixtures\AbstractClassUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\InterfaceField;
+use Eventjet\Json\Test\Acceptance\Fixtures\InterfaceUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionTypeField;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionTypeField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
@@ -79,6 +81,48 @@ final class DecodeErrorCases
             '{}',
             $abstractClassFieldTarget::class,
             $abstractClassFieldMessage,
+            3,
+        ];
+
+        $interfaceUnionTarget = new InterfaceUnionField('supported scalar');
+        $interfaceUnionMessage =
+            'Could not create '
+            . $interfaceUnionTarget::class
+            . ' from the JSON object: Field value uses interface '
+            . RootTargetInterface::class
+            . ', which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.';
+
+        yield 'interface union member, scalar value' => [
+            '{"value":"supported scalar"}',
+            $interfaceUnionTarget::class,
+            $interfaceUnionMessage,
+            3,
+        ];
+        yield 'interface union member, field absent' => [
+            '{}',
+            $interfaceUnionTarget::class,
+            $interfaceUnionMessage,
+            3,
+        ];
+
+        $abstractClassUnionTarget = new AbstractClassUnionField('supported scalar');
+        $abstractClassUnionMessage =
+            'Could not create '
+            . $abstractClassUnionTarget::class
+            . ' from the JSON object: Field value uses abstract class '
+            . AbstractRootTarget::class
+            . ', which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.';
+
+        yield 'abstract class union member, scalar value' => [
+            '{"value":"supported scalar"}',
+            $abstractClassUnionTarget::class,
+            $abstractClassUnionMessage,
+            3,
+        ];
+        yield 'abstract class union member, field absent' => [
+            '{}',
+            $abstractClassUnionTarget::class,
+            $abstractClassUnionMessage,
             3,
         ];
 

@@ -129,7 +129,7 @@ must not be relied on, even if a particular value happens to decode.
 | Backed enum fields | Not yet supported | Backing values are not yet converted to enum cases. Non-backed enums are rejected because they have no JSON representation. |
 | General union types | Not yet supported | Nullable scalar declarations are supported. Other unions do not yet have a supported selection policy. |
 | Intersection types | Rejected | JSON does not identify a concrete class that satisfies the intersection. |
-| Interfaces and abstract classes | Rejected at the root and for direct field types | Root targets and direct constructor field declarations return dedicated errors because JSON does not identify a concrete implementation or subclass to instantiate. Rejection for union members and collection item and value types remains to be added. |
+| Interfaces and abstract classes | Rejected at the root and in field types | Root targets, direct constructor field declarations, and union members return dedicated errors because JSON does not identify a concrete implementation or subclass to instantiate. Rejection for collection item and value types remains to be added. |
 | Public properties outside the constructor, inherited properties, and classes without usable constructors | Not yet supported | Object construction currently uses named constructor arguments only. |
 | `mixed`, untyped fields, `object`, and `stdClass` | Not yet supported | Their decoding and round-trip policies have not been defined. |
 | Root arrays, maps, scalars, enums, and `null` | Not yet supported | `Json::decode()` currently accepts only a JSON object and a class target. |
@@ -172,7 +172,7 @@ The round-trip contract also has these representation limits:
 - [ ] Define and test the policy for unknown JSON fields and duplicate JSON member names.
 - [x] Reject interface and abstract class root targets with a clear `DecodeError`.
 - [x] Reject direct interface and abstract class field types with a clear `DecodeError`.
-- [ ] Reject interface and abstract class union members with a clear `DecodeError`.
+- [x] Reject interface and abstract class union members with a clear `DecodeError`.
 - [ ] Reject interface and abstract class collection item/value types with a clear `DecodeError`.
 - [ ] Define supported class shapes and report unsupported ones clearly, including inaccessible constructors and constructor arguments that cannot be recovered from encoded properties.
 - [ ] Define behavior for `mixed`, untyped fields, `object`, and `stdClass`.
