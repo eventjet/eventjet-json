@@ -35,17 +35,7 @@ final class FieldTypeValidator
         }
 
         if ($type instanceof ReflectionUnionType) {
-            foreach ($type->getTypes() as $member) {
-                if ($member instanceof ReflectionIntersectionType) {
-                    return DecodeError::unsupportedIntersection($class, $field, (string) $member);
-                }
-
-                $error = self::validateNonInstantiableType($class, $field, $member->getName());
-
-                if ($error !== null) {
-                    return $error;
-                }
-            }
+            return self::validateUnionType($class, $field, $type);
         }
 
         return null;
@@ -65,6 +55,33 @@ final class FieldTypeValidator
         }
 
         return self::validateNonInstantiableType($class, $field, $typeName);
+    }
+
+    /**
+     * @param class-string $class
+     * @throws ReflectionException
+     */
+    private static function validateUnionType(string $class, string $field, ReflectionUnionType $type): DecodeError|null
+    {
+        $ambiguousUnionError = BackedEnumUnionValidator::validate($class, $field, $type);
+
+        if ($ambiguousUnionError !== null) {
+            return $ambiguousUnionError;
+        }
+
+        foreach ($type->getTypes() as $member) {
+            if ($member instanceof ReflectionIntersectionType) {
+                return DecodeError::unsupportedIntersection($class, $field, (string) $member);
+            }
+
+            $error = self::validateNamedType($class, $field, $member);
+
+            if ($error !== null) {
+                return $error;
+            }
+        }
+
+        return null;
     }
 
     /**

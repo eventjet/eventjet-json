@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedEnumField;
+use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 
 /** @internal */
@@ -28,5 +29,21 @@ final class NonBackedEnumErrorCases
             3,
         ];
         yield 'non-backed enum field, member absent' => ['{}', $fieldTarget::class, $fieldMessage, 3];
+
+        $unionTarget = new NonBackedEnumUnionField('supported scalar');
+        $unionMessage =
+            'Could not create '
+            . $unionTarget::class
+            . ' from the JSON object: Field value uses non-backed enum '
+            . NonBackedStatus::class
+            . ', which cannot be decoded because it has no backing value.';
+
+        yield 'non-backed enum union, scalar value' => [
+            '{"value":"supported scalar"}',
+            $unionTarget::class,
+            $unionMessage,
+            3,
+        ];
+        yield 'non-backed enum union, member absent' => ['{}', $unionTarget::class, $unionMessage, 3];
     }
 }

@@ -163,6 +163,8 @@ final class DecodeErrorCases
             $nullableIntersectionMessage,
             3,
         ];
+
+        yield from AmbiguousBackedEnumUnionErrorCases::errors();
     }
 
     /**

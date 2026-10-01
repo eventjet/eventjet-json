@@ -76,14 +76,26 @@ final class DecodeError extends RuntimeException
     }
 
     /** @param class-string $class */
-    public static function nonInstantiableField(string $class, string $field, string $typeKind, string $type): self
-    {
+    public static function nonInstantiableField(
+        string $class,
+        string $field,
+        string $typeKind,
+        string $type,
+        string|null $description = null,
+    ): self {
+        if ($description === null) {
+            $description = sprintf(
+                '%s %s, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+                $typeKind,
+                $type,
+            );
+        }
+
         return new self(DecodeErrorKind::CannotInstantiate, sprintf(
-            'Could not create %s from the JSON object: Field %s uses %s %s, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            'Could not create %s from the JSON object: Field %s uses %s',
             $class,
             $field,
-            $typeKind,
-            $type,
+            $description,
         ));
     }
 

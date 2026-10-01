@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\MapHolder;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
@@ -27,7 +28,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{Person|MapHolder}>
+     * @return iterable<string, array{DistinctEnumScalarUnionField|Person|MapHolder}>
      */
     public static function objects(): iterable
     {
@@ -36,6 +37,7 @@ final class RoundTripCases
         yield 'age' => [new Person('Jane', 'Doe', age: 42)];
         yield 'all properties' => [new Person('Alice', 'Smith', 'Beth', 30)];
         yield 'array-valued field encoded as an object' => [new MapHolder(['answer' => 42])];
+        yield 'enum and scalar union with distinct JSON types' => [new DistinctEnumScalarUnionField('ready')];
     }
 
     /**

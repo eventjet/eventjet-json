@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\BackedEnumUnionValidator;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\ObjectTypeValidator;
 use Eventjet\Json\Internal\RootTypeValidator;
@@ -26,6 +27,7 @@ use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(Json::class)]
 #[CoversClass(DecodeError::class)]
+#[CoversClass(BackedEnumUnionValidator::class)]
 #[CoversClass(FieldTypeValidator::class)]
 #[CoversClass(ObjectTypeValidator::class)]
 #[CoversClass(RootTypeValidator::class)]
