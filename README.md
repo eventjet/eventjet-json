@@ -59,7 +59,7 @@ their scope is settled.
 
 - [ ] Support string-backed and int-backed enums in object fields.
 - [ ] Reject unknown enum values and values of the wrong backing type without coercion.
-- [ ] Reject non-backed enums with a clear error.
+- [x] Reject non-backed enums with a clear error.
 - [ ] Test nullable enums and enums nested inside objects, lists, and maps.
 
 ### Lists, maps, and root values

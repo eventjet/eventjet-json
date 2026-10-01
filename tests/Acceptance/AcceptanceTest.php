@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\ObjectTypeValidator;
+use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
+use Eventjet\Json\Test\Acceptance\Cases\NonBackedEnumErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootValueErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\RoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\ScalarTypeMismatchCases;
@@ -21,6 +24,8 @@ use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(Json::class)]
 #[CoversClass(DecodeError::class)]
+#[CoversClass(ObjectTypeValidator::class)]
+#[CoversClass(ValueTypeMatcher::class)]
 final class AcceptanceTest extends TestCase
 {
     /**
@@ -49,6 +54,7 @@ final class AcceptanceTest extends TestCase
     #[DataProviderExternal(DecodeErrorCases::class, 'documentsWithTrailingContent')]
     #[DataProviderExternal(DecodeErrorCases::class, 'invalidUtf8Documents')]
     #[DataProviderExternal(DecodeErrorCases::class, 'deeplyNestedDocuments')]
+    #[DataProviderExternal(NonBackedEnumErrorCases::class, 'errors')]
     #[DataProviderExternal(ScalarTypeMismatchCases::class, 'mismatches')]
     public function testDecodeReturnsErrorsAsValues(string $json, string $class, string $message, int $code): void
     {

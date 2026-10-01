@@ -45,6 +45,19 @@ final class DecodeError extends RuntimeException
     }
 
     /** @param class-string $class */
+    public static function nonBackedEnum(string $class, string $enum, string|null $field = null): self
+    {
+        $location = $field === null ? 'Target type' : sprintf('Field %s uses', $field);
+
+        return new self(DecodeErrorKind::CannotInstantiate, sprintf(
+            'Could not create %s from the JSON object: %s non-backed enum %s, which cannot be decoded because it has no backing value.',
+            $class,
+            $location,
+            $enum,
+        ));
+    }
+
+    /** @param class-string $class */
     public static function cannotInstantiate(string $class, Throwable $error): self
     {
         $message = preg_replace(
