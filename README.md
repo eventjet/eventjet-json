@@ -41,8 +41,7 @@ their scope is settled.
 
 - [ ] Decode nested JSON objects into their declared classes, including readonly classes and nullable object fields.
 - [ ] Support public properties that are not promoted constructor parameters, including classes without constructors and inherited properties.
-- [ ] Test required constructor arguments, omitted optional arguments, defaults, and explicit `null`; distinguish a missing field from a present null value.
-- [ ] Define and test how omitted JSON object members interact with PHP constructor and property defaults. Decide whether re-encoding may include initialized default-valued properties or must preserve the original omissions, and whether this requires additional support beyond round trips that start with a PHP object.
+- [ ] Decide and test how omitted JSON object members interact with required constructor arguments, optional arguments, defaults, and explicit `null`. Distinguish a missing member from a present null value, and decide whether re-encoding may include initialized default-valued properties or must preserve the original omissions, including whether that requires support beyond round trips that start with a PHP object.
 - [x] Test that JSON member order does not affect constructor argument binding.
 - [ ] Preserve the distinction between JSON objects and arrays, especially `{}` versus `[]` and objects with numeric-looking keys.
 - [ ] Define and test the policy for unknown JSON fields and duplicate JSON member names.
