@@ -15,7 +15,9 @@ use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionTypeField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface;
+use Eventjet\Json\Test\Acceptance\Fixtures\ThrowingConstructor;
 use JsonException;
+use RuntimeException;
 
 use function str_repeat;
 
@@ -26,6 +28,7 @@ final class DecodeErrorCases
      * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{string, class-string, string, int}>
      * @throws JsonException
+     * @throws RuntimeException
      */
     public static function constructionFailures(): iterable
     {
@@ -33,6 +36,17 @@ final class DecodeErrorCases
             '{}',
             Person::class,
             'Could not create Eventjet\\Json\\Test\\Acceptance\\Fixtures\\Person from the JSON object: Too few arguments to function Eventjet\\Json\\Test\\Acceptance\\Fixtures\\Person::__construct(), 0 passed and at least 2 expected',
+            3,
+        ];
+
+        $throwingConstructorTarget = new ThrowingConstructor('accepted');
+
+        yield 'constructor throws an exception' => [
+            '{"value":"rejected"}',
+            $throwingConstructorTarget::class,
+            'Could not create '
+                . $throwingConstructorTarget::class
+                . ' from the JSON object: The constructor rejected the decoded value.',
             3,
         ];
 

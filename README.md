@@ -217,7 +217,7 @@ The round-trip contract also has these representation limits:
 
 ### Errors and acceptance coverage
 
-- [ ] Keep every decoding failure on the returned `DecodeError` path, including nested conversion failures and exceptions thrown by constructors.
+- [x] Keep every decoding failure on the returned `DecodeError` path, including nested conversion failures and exceptions thrown by constructors.
 - [ ] Include the failing field, list index, or map key path and expected/actual type in conversion errors.
 - [ ] Test stable error codes, useful messages, and preservation of underlying exceptions.
 - [x] Expand invalid-JSON coverage to malformed syntax, trailing content, invalid UTF-8, and nesting-depth limits.
