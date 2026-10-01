@@ -34,14 +34,14 @@ final class ObjectTypeValidator
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $name = $parameter->getName();
             $type = $parameter->getType();
-            $typeError = FieldTypeValidator::validate($className, $name, $type);
+            $typeError = FieldTypeValidator::validate($className, $parameter);
 
             if ($typeError !== null) {
                 return $typeError;
             }
 
             if ($type instanceof ReflectionNamedType) {
-                $typeName = $type->getName();
+                $typeName = ParameterTypeNameResolver::resolve($parameter, $type);
 
                 if (array_key_exists($name, $values) && !enum_exists($typeName)) {
                     /** @var mixed $value */

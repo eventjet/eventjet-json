@@ -48,7 +48,9 @@ final class MultipleClassUnionErrorCases
                 . $selfTarget::class
                 . ' from the JSON object: Field value uses multiple class types: '
                 . Person::class
-                . ', self. JSON does not identify which class to instantiate.',
+                . ', '
+                . SelfClassUnionField::class
+                . '. JSON does not identify which class to instantiate.',
             3,
         ];
     }

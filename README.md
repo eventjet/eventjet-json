@@ -99,6 +99,7 @@ scope decisions are made, and include a reason for every exclusion.
 | Unions containing multiple enums with overlapping backing values | The same JSON scalar would identify cases from more than one enum, so decoding could not recover the original enum type. |
 | Unions combining a backed enum with its backing scalar type, such as `MyStringBackedEnum\|string` or `MyIntBackedEnum\|int` (initially) | An enum case and its backing scalar encode to the same JSON value. Checking the enum first would turn an original scalar into an enum case; checking the scalar first would lose the enum case. JSON cannot recover the original PHP type, so these unions break the round-trip contract. |
 | Interface and abstract class type hints | They cannot be instantiated directly, and JSON does not identify which concrete implementation or subclass to create. Resolving one would require additional selection rules or metadata. |
+| Non-final class type hints in object fields | A field may contain a subclass of its declared type, but JSON does not identify that runtime class. Reconstructing the declared class could silently change the value. Root targets are unaffected because the caller supplies their exact class. |
 | Intersection type hints | JSON does not identify the concrete class that satisfies every member of an intersection. Resolving one would require additional selection rules or metadata. |
 | Non-backed enums | They have no scalar backing value and cannot round-trip through PHP's `json_encode()`. |
 | Object targets implementing `JsonSerializable` | Their custom JSON representation may not match their constructor parameters, so generic decoding cannot guarantee the round-trip contract. |
@@ -133,7 +134,7 @@ must not be relied on, even if a particular value happens to decode.
 | `string`, `int`, `float`, and `bool` constructor fields | Supported | Values must have the declared type. An integer JSON value is also valid for a `float` field because the declaration restores it as a PHP float. Other implicit scalar coercions are rejected. |
 | `null`, nullable scalar fields, and literal `true` and `false` fields | Supported | A non-null value must still match the non-null member of a nullable type. Literal Boolean fields accept only their declared value. |
 | `array` constructor fields | Limited | Decoded arrays are passed through, but PHPDoc item and value types are not read or validated. Only nonempty, string-keyed maps have round-trip coverage. |
-| Nested class fields | Not yet supported | JSON objects are not yet converted to the field's declared class. |
+| Nested class fields | Supported for final classes | JSON objects are recursively converted to final classes declared directly on constructor fields, including readonly classes, nullable fields, and `self` declarations that resolve to a final class. Non-final declarations, including `parent`, are rejected because their values may be subclasses. Class members of general unions, lists, and maps are not yet supported. |
 | Backed enum fields | Supported in direct constructor fields and distinct scalar unions | String-backed and int-backed values are converted without coercion, including nullable enum fields and unions where the scalar members use different JSON types from the enum backing type. Enum members of other unions, lists, maps, and nested objects are not yet supported. Non-backed enums are rejected because they have no JSON representation. |
 | General union types | Limited | Nullable scalar declarations and backed enum/scalar unions with distinct JSON types are supported. Other unions do not yet have a supported selection policy. |
 | Intersection types | Rejected | JSON does not identify a concrete class that satisfies the intersection. |
@@ -152,10 +153,9 @@ The round-trip contract also has these representation limits:
   possible classes without an additional discriminator or selection rule.
 - A backed enum case and its backing scalar encode to the same JSON value, so a
   union containing both cannot recover the original PHP type.
-- The current associative decoding step cannot preserve every nested object and
-  array distinction. In particular, empty objects and empty arrays both become
-  empty PHP arrays, and numeric-looking object keys may become integer array
-  keys.
+- Array-bound values are normalized from decoded `stdClass` objects to PHP
+  arrays. Within those values, empty objects and empty arrays both become empty
+  PHP arrays, and numeric-looking object keys may become integer array keys.
 - Missing object members and members explicitly set to `null` are distinct in
   JSON, but their construction and re-encoding policy is not yet defined for
   optional and defaulted parameters.
@@ -172,7 +172,7 @@ The round-trip contract also has these representation limits:
 
 ### Objects and construction
 
-- [ ] Recursively decode nested JSON objects into their declared classes, including readonly classes and nullable object fields.
+- [x] Recursively decode nested JSON objects into their declared final classes, including readonly classes and nullable object fields.
 - [ ] Support classes that combine constructor-bound members with public properties not represented by the constructor, including classes without constructors and inherited properties. Hydrate each JSON member once so promoted properties, including readonly properties, are not assigned a second time.
 - [ ] Decide and test how omitted JSON object members interact with required and optional constructor arguments, constructor defaults, initialized and uninitialized public properties, readonly properties, and explicit `null`. Distinguish a missing member from a present null value, and decide whether re-encoding may include initialized default-valued properties or must preserve the original omissions, including whether that requires support beyond round trips that start with a PHP object.
 - [x] Test that JSON member order does not affect constructor argument binding.
@@ -181,6 +181,7 @@ The round-trip contract also has these representation limits:
 - [x] Reject interface and abstract class root targets with a clear `DecodeError`.
 - [x] Reject direct interface and abstract class field types with a clear `DecodeError`.
 - [x] Reject interface and abstract class union members with a clear `DecodeError`.
+- [x] Reject non-final class field types because JSON cannot preserve a value's runtime subclass.
 - [ ] Reject interface and abstract class collection item/value types with a clear `DecodeError`.
 - [ ] Define supported class shapes and report unsupported ones clearly, including inaccessible constructors and constructor arguments that cannot be recovered from encoded properties.
 - [ ] Define behavior for `mixed`, untyped fields, `object`, and `stdClass`.

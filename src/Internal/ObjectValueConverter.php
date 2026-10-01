@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use BackedEnum;
 use Eventjet\Json\DecodeError;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionNamedType;
 use ReflectionParameter;
-use UnitEnum;
+use ReflectionUnionType;
+use stdClass;
 
 use function array_key_exists;
+use function array_map;
+use function class_exists;
+use function enum_exists;
+use function get_object_vars;
+use function is_array;
 
 /** @internal */
 final class ObjectValueConverter
@@ -29,15 +35,20 @@ final class ObjectValueConverter
 
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $field = $parameter->getName();
-            $converted = self::convertField($className, $parameter, $values);
+
+            if (!array_key_exists($field, $values)) {
+                continue;
+            }
+
+            /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
+            $value = $values[$field];
+            $converted = self::convertField($className, $parameter, $value);
 
             if ($converted instanceof DecodeError) {
                 return $converted;
             }
 
-            if ($converted instanceof BackedEnum) {
-                $values[$field] = $converted;
-            }
+            $values[$field] = $converted;
         }
 
         return $values;
@@ -45,23 +56,61 @@ final class ObjectValueConverter
 
     /**
      * @param class-string $class
-     * @param array<array-key, mixed> $values
+     * @param array<array-key, mixed>|bool|float|int|object|string|null $value
+     * @return array<array-key, mixed>|bool|float|int|object|string|null
      * @throws ReflectionException
      */
     private static function convertField(
         string $class,
         ReflectionParameter $parameter,
-        array $values,
-    ): UnitEnum|DecodeError|null {
-        $field = $parameter->getName();
+        mixed $value,
+    ): array|bool|float|int|object|string|null {
+        $type = $parameter->getType();
 
-        if (!array_key_exists($field, $values)) {
-            return null;
+        if ($type instanceof ReflectionNamedType) {
+            $typeName = ParameterTypeNameResolver::resolve($parameter, $type);
+
+            if (enum_exists($typeName)) {
+                return BackedEnumValueConverter::convert($class, $parameter, $value) ?? $value;
+            }
+
+            if (class_exists($typeName)) {
+                return ConcreteClassValueConverter::convert($class, $parameter, $typeName, $value);
+            }
         }
 
-        /** @var mixed $value */
-        $value = $values[$field];
+        if ($type instanceof ReflectionUnionType) {
+            $converted = BackedEnumValueConverter::convert($class, $parameter, $value);
 
-        return BackedEnumValueConverter::convert($class, $parameter, $value);
+            if ($converted !== null) {
+                return $converted;
+            }
+        }
+
+        return self::convertObjectsToArrays($value);
+    }
+
+    /** @return array<array-key, mixed>|bool|float|int|object|string|null */
+    private static function convertObjectsToArrays(mixed $value): array|bool|float|int|object|string|null
+    {
+        if ($value instanceof stdClass) {
+            return self::convertArray(get_object_vars($value));
+        }
+
+        if (is_array($value)) {
+            return self::convertArray($value);
+        }
+
+        /** @var bool|float|int|object|string|null $value */
+        return $value;
+    }
+
+    /**
+     * @param array<array-key, mixed> $values
+     * @return array<array-key, mixed>
+     */
+    private static function convertArray(array $values): array
+    {
+        return array_map(self::convertObjectsToArrays(...), $values);
     }
 }

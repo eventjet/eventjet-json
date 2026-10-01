@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionNamedType;
+use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
 
@@ -22,12 +23,15 @@ final class ClassUnionValidator
     /**
      * @param class-string $class
      */
-    public static function validate(string $class, string $field, ReflectionUnionType $type): DecodeError|null
-    {
+    public static function validate(
+        string $class,
+        ReflectionParameter $parameter,
+        ReflectionUnionType $type,
+    ): DecodeError|null {
         $classNames = [];
 
         foreach ($type->getTypes() as $member) {
-            $className = self::className($member);
+            $className = self::className($parameter, $member);
 
             if ($className !== null) {
                 $classNames[] = $className;
@@ -42,7 +46,7 @@ final class ClassUnionValidator
 
         return DecodeError::nonInstantiableField(
             $class,
-            $field,
+            $parameter->getName(),
             'class union',
             implode('|', $classNames),
             sprintf('multiple class types: %s. JSON does not identify which class to instantiate.', implode(
@@ -52,13 +56,13 @@ final class ClassUnionValidator
         );
     }
 
-    private static function className(ReflectionType $type): string|null
+    private static function className(ReflectionParameter $parameter, ReflectionType $type): string|null
     {
         if (!$type instanceof ReflectionNamedType || $type->isBuiltin()) {
             return null;
         }
 
-        $name = $type->getName();
+        $name = ParameterTypeNameResolver::resolve($parameter, $type);
 
         if (enum_exists($name) || interface_exists($name)) {
             return null;

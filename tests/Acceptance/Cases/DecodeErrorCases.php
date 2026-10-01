@@ -180,6 +180,7 @@ final class DecodeErrorCases
         yield from BackedEnumErrorCases::errors();
         yield from MultipleClassUnionErrorCases::errors();
         yield from MultipleEnumUnionErrorCases::errors();
+        yield from NestedObjectErrorCases::errors();
     }
 
     /**

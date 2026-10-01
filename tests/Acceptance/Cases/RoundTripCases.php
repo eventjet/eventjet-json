@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\Address;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctStringEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\MapHolder;
+use Eventjet\Json\Test\Acceptance\Fixtures\NestedObjectFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
+use Eventjet\Json\Test\Acceptance\Fixtures\RecursiveNode;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use JsonException;
@@ -32,7 +36,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{BackedEnumFields|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder}>
+     * @return iterable<string, array{BackedEnumFields|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|NestedObjectFields|RecursiveNode}>
      */
     public static function objects(): iterable
     {
@@ -41,6 +45,26 @@ final class RoundTripCases
         yield 'age' => [new Person('Jane', 'Doe', age: 42)];
         yield 'all properties' => [new Person('Alice', 'Smith', 'Beth', 30)];
         yield 'array-valued field encoded as an object' => [new MapHolder(['answer' => 42])];
+        yield 'array-valued field preserves nested objects and lists' => [
+            new MapHolder(['items' => [['answer' => 42]]]),
+        ];
+        yield 'recursively nested readonly objects with a null field' => [
+            new NestedObjectFields(
+                new Person('Ada', 'Lovelace'),
+                new Address('London', new Coordinates(51.507_351, -0.127_758)),
+                null,
+            ),
+        ];
+        yield 'recursively nested readonly objects with a non-null field' => [
+            new NestedObjectFields(
+                new Person('Ada', 'Lovelace'),
+                new Address('Paris', new Coordinates(48.856_613, 2.352_222)),
+                new Person('Charles', 'Babbage'),
+            ),
+        ];
+        yield 'recursively nested self type' => [
+            new RecursiveNode('root', new RecursiveNode('leaf', null)),
+        ];
         yield 'int-backed enum and string union with enum value Ready' => [
             new DistinctEnumScalarUnionField(IntBackedStatus::Ready),
         ];

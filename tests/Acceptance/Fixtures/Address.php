@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Fixtures;
 
-final readonly class MapHolder
+final readonly class Address
 {
-    /** @param array<string, int|list<array<string, int>>> $map */
     public function __construct(
-        public array $map,
+        public string $city,
+        public Coordinates $coordinates,
     ) {}
 }

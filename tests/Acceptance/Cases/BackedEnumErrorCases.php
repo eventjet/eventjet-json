@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
+use Eventjet\Json\Test\Acceptance\Fixtures\DistinctStringEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use JsonException;
@@ -43,6 +45,32 @@ final class BackedEnumErrorCases
                     . $enum
                     . ', '
                     . $message,
+                3,
+            ];
+        }
+
+        foreach ([
+            'int-backed enum union rejects an unknown integer' => [
+                DistinctEnumScalarUnionField::class,
+                IntBackedStatus::class,
+                2,
+            ],
+            'string-backed enum union rejects an unknown string' => [
+                DistinctStringEnumScalarUnionField::class,
+                StringBackedStatus::class,
+                'unknown',
+            ],
+        ] as $name => [$class, $enum, $value]) {
+            yield $name => [
+                json_encode(['value' => $value], JSON_THROW_ON_ERROR),
+                $class,
+                'Could not create '
+                    . $class
+                    . ' from the JSON object: Field value uses backed enum '
+                    . $enum
+                    . ', which has no case with backing value '
+                    . var_export($value, return: true)
+                    . '.',
                 3,
             ];
         }
