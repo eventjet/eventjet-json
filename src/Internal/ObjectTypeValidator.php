@@ -10,6 +10,7 @@ use ReflectionException;
 use ReflectionNamedType;
 
 use function array_key_exists;
+use function enum_exists;
 
 /** @internal */
 final class ObjectTypeValidator
@@ -42,7 +43,7 @@ final class ObjectTypeValidator
             if ($type instanceof ReflectionNamedType) {
                 $typeName = $type->getName();
 
-                if (array_key_exists($name, $values)) {
+                if (array_key_exists($name, $values) && !enum_exists($typeName)) {
                     /** @var mixed $value */
                     $value = $values[$name];
                     $valueMatchesType = ValueTypeMatcher::matches($value, $type);

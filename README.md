@@ -126,7 +126,7 @@ must not be relied on, even if a particular value happens to decode.
 | `null`, nullable scalar fields, and literal `true` and `false` fields | Supported | A non-null value must still match the non-null member of a nullable type. Literal Boolean fields accept only their declared value. |
 | `array` constructor fields | Limited | Decoded arrays are passed through, but PHPDoc item and value types are not read or validated. Only nonempty, string-keyed maps have round-trip coverage. |
 | Nested class fields | Not yet supported | JSON objects are not yet converted to the field's declared class. |
-| Backed enum fields | Not yet supported | Backing values are not yet converted to enum cases. Non-backed enums are rejected because they have no JSON representation. |
+| Backed enum fields | Supported in direct constructor fields | String-backed and int-backed values are converted without coercion, including nullable enum fields. Enum members of general unions, lists, maps, and nested objects are not yet supported. Non-backed enums are rejected because they have no JSON representation. |
 | General union types | Not yet supported | Nullable scalar declarations are supported. Other unions do not yet have a supported selection policy. |
 | Intersection types | Rejected | JSON does not identify a concrete class that satisfies the intersection. |
 | Interfaces and abstract classes | Rejected at the root and in field types | Root targets, direct constructor field declarations, and union members return dedicated errors because JSON does not identify a concrete implementation or subclass to instantiate. Rejection for collection item and value types remains to be added. |
@@ -185,10 +185,10 @@ The round-trip contract also has these representation limits:
 
 ### Enums
 
-- [ ] Support string-backed and int-backed enums in object fields.
-- [ ] Reject unknown enum values and values of the wrong backing type without coercion.
+- [x] Support string-backed and int-backed enums in direct object fields, including nullable fields.
+- [ ] Extend unknown-value and backing-type validation to enum members in unions and collections without coercion.
 - [x] Reject non-backed enums with a clear error.
-- [ ] Test nullable enums and enums nested inside objects, lists, and maps.
+- [ ] Test enums nested inside objects, lists, and maps.
 
 ### Lists, maps, and root values
 

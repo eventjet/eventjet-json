@@ -7,4 +7,5 @@ namespace Eventjet\Json\Test\Acceptance\Fixtures;
 enum StringBackedStatus: string
 {
     case Ready = 'ready';
+    case Pending = 'pending';
 }

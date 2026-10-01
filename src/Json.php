@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json;
 
 use Eventjet\Json\Internal\ObjectTypeValidator;
+use Eventjet\Json\Internal\ObjectValueConverter;
 use ReflectionClass;
 use Throwable;
 
@@ -48,11 +49,17 @@ final class Json
                 return $typeError;
             }
 
+            $convertedValues = ObjectValueConverter::convert($reflection, $values);
+
+            if ($convertedValues instanceof DecodeError) {
+                return $convertedValues;
+            }
+
             /**
              * @mago-expect analysis:unknown-class-instantiation The constructor target is intentionally dynamic.
              * @psalm-suppress MixedMethodCall PHP validates the intentionally dynamic constructor at runtime.
              */
-            return new $class(...$values);
+            return new $class(...$convertedValues);
         } catch (Throwable $error) {
             return DecodeError::cannotInstantiate($class, $error);
         }

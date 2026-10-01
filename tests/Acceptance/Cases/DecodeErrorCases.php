@@ -14,6 +14,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionTypeField;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionTypeField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface;
+use JsonException;
 
 use function str_repeat;
 
@@ -23,6 +24,7 @@ final class DecodeErrorCases
     /**
      * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{string, class-string, string, int}>
+     * @throws JsonException
      */
     public static function constructionFailures(): iterable
     {
@@ -165,6 +167,7 @@ final class DecodeErrorCases
         ];
 
         yield from AmbiguousBackedEnumUnionErrorCases::errors();
+        yield from BackedEnumErrorCases::errors();
     }
 
     /**

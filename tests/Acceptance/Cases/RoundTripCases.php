@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
+use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\MapHolder;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use JsonException;
 
 use function array_keys;
@@ -28,7 +31,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{DistinctEnumScalarUnionField|Person|MapHolder}>
+     * @return iterable<string, array{BackedEnumFields|DistinctEnumScalarUnionField|Person|MapHolder}>
      */
     public static function objects(): iterable
     {
@@ -38,6 +41,19 @@ final class RoundTripCases
         yield 'all properties' => [new Person('Alice', 'Smith', 'Beth', 30)];
         yield 'array-valued field encoded as an object' => [new MapHolder(['answer' => 42])];
         yield 'enum and scalar union with distinct JSON types' => [new DistinctEnumScalarUnionField('ready')];
+
+        yield 'backed enum fields: Ready, Ready' => [
+            new BackedEnumFields(StringBackedStatus::Ready, null, IntBackedStatus::Ready),
+        ];
+        yield 'backed enum fields: Ready, Pending' => [
+            new BackedEnumFields(StringBackedStatus::Ready, StringBackedStatus::Ready, IntBackedStatus::Pending),
+        ];
+        yield 'backed enum fields: Pending, Ready' => [
+            new BackedEnumFields(StringBackedStatus::Pending, StringBackedStatus::Pending, IntBackedStatus::Ready),
+        ];
+        yield 'backed enum fields: Pending, Pending' => [
+            new BackedEnumFields(StringBackedStatus::Pending, null, IntBackedStatus::Pending),
+        ];
     }
 
     /**

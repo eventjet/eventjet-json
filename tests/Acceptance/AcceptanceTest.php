@@ -8,6 +8,7 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\BackedEnumUnionValidator;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\ObjectTypeValidator;
+use Eventjet\Json\Internal\ObjectValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
@@ -30,6 +31,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(BackedEnumUnionValidator::class)]
 #[CoversClass(FieldTypeValidator::class)]
 #[CoversClass(ObjectTypeValidator::class)]
+#[CoversClass(ObjectValueConverter::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 final class AcceptanceTest extends TestCase
