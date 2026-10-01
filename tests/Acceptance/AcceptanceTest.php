@@ -33,6 +33,7 @@ final class AcceptanceTest extends TestCase
      */
     #[DataProviderExternal(RoundTripCases::class, 'objects')]
     #[DataProviderExternal(RoundTripCases::class, 'scalarFields')]
+    #[DataProviderExternal(RoundTripCases::class, 'numericBoundaries')]
     #[DataProviderExternal(RoundTripCases::class, 'stringFields')]
     #[DataProviderExternal(RoundTripCases::class, 'memberOrders')]
     #[DataProviderExternal(RoundTripCases::class, 'objectRootWhitespace')]
@@ -56,6 +57,7 @@ final class AcceptanceTest extends TestCase
     #[DataProviderExternal(DecodeErrorCases::class, 'deeplyNestedDocuments')]
     #[DataProviderExternal(NonBackedEnumErrorCases::class, 'errors')]
     #[DataProviderExternal(ScalarTypeMismatchCases::class, 'mismatches')]
+    #[DataProviderExternal(ScalarTypeMismatchCases::class, 'outOfRangeIntegers')]
     public function testDecodeReturnsErrorsAsValues(string $json, string $class, string $message, int $code): void
     {
         $decoded = Json::decode($json, $class);

@@ -27,13 +27,25 @@ scope decisions are made, and include a reason for every exclusion.
 Open decisions, including intersection types, remain in the TODO list until
 their scope is settled.
 
+## Numeric round trips
+
+Integer fields support values from `PHP_INT_MIN` through `PHP_INT_MAX`. PHP
+decodes JSON integers outside that platform range as floats, so they are
+rejected instead of being rounded or coerced back to integers.
+
+Float fields use PHP's native floating-point precision. The default
+`json_encode()` and `json_decode()` behavior preserves finite values, including
+subnormal values and precision-sensitive decimals. JSON does not distinguish a
+whole-valued float such as `3.0` from the integer `3`; the declared field type
+restores the value to a PHP float during construction.
+
 ## TODO
 
 ### Scalar fields and validation
 
 - [x] Test all scalar field types: `string`, `int`, `float`, and `bool`, plus `null`, nullable types, and literal `true`/`false` types.
 - [x] Reject field values that do not match the declared type, including values that reflection would otherwise silently coerce.
-- [ ] Test numeric boundaries and define how to preserve whole-valued floats, large integers, and precision during round trips.
+- [x] Test numeric boundaries and define how to preserve whole-valued floats, large integers, and precision during round trips.
 - [x] Test strings containing Unicode, escaped characters, empty strings, and numeric-looking text.
 - [ ] Test rejection of non-JSON-encodable object field values, including resources, `INF`, `NAN`, invalid UTF-8, and circular references. Define the validation boundary; the current API uses PHP's `json_encode()` for encoding.
 

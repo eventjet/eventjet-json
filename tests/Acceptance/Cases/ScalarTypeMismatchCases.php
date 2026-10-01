@@ -73,6 +73,27 @@ final class ScalarTypeMismatchCases
         ];
     }
 
+    /**
+     * @api Called by PHPUnit through DataProviderExternal.
+     * @return iterable<string, array{string, class-string, string, int}>
+     */
+    public static function outOfRangeIntegers(): iterable
+    {
+        foreach ([
+            'above platform maximum' => '9223372036854775808',
+            'below platform minimum' => '-9223372036854775809',
+        ] as $name => $integer) {
+            yield 'integer ' . $name => [
+                '{"string":"value","integer":' . $integer . ',"float":3.25,"boolean":true}',
+                ScalarFields::class,
+                'Could not create '
+                    . ScalarFields::class
+                    . ' from the JSON object: Field integer must be of type int, float given.',
+                3,
+            ];
+        }
+    }
+
     /** @return array<class-string, array{values: array<string, scalar|null>, types: array<string, string>}> */
     private static function fixtures(): array
     {
