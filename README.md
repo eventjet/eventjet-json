@@ -61,6 +61,46 @@ subnormal values and precision-sensitive decimals. JSON does not distinguish a
 whole-valued float such as `3.0` from the integer `3`; the declared field type
 restores the value to a PHP float during construction.
 
+## Supported types and limits
+
+The table describes the behavior that is currently covered by the acceptance
+suite. "Not yet supported" means that the behavior remains on the roadmap and
+must not be relied on, even if a particular value happens to decode.
+
+| Target or value | Status | Limits |
+| --- | --- | --- |
+| Concrete classes | Supported at the root | The JSON root must be an object. Its member names are passed as named constructor arguments, so they must match the constructor parameter names. |
+| Readonly classes | Supported at the root | The same constructor rules as other concrete classes apply. |
+| `string`, `int`, `float`, and `bool` constructor fields | Supported | Values must have the declared type. An integer JSON value is also valid for a `float` field because the declaration restores it as a PHP float. Other implicit scalar coercions are rejected. |
+| `null`, nullable scalar fields, and literal `true` and `false` fields | Supported | A non-null value must still match the non-null member of a nullable type. Literal Boolean fields accept only their declared value. |
+| `array` constructor fields | Limited | Decoded arrays are passed through, but PHPDoc item and value types are not read or validated. Only nonempty, string-keyed maps have round-trip coverage. |
+| Nested class fields | Not yet supported | JSON objects are not yet converted to the field's declared class. |
+| Backed enum fields | Not yet supported | Backing values are not yet converted to enum cases. Non-backed enums are rejected because they have no JSON representation. |
+| General union types | Not yet supported | Nullable scalar declarations are supported. Other unions do not yet have a supported selection policy. |
+| Intersection types | Rejected | JSON does not identify a concrete class that satisfies the intersection. |
+| Interfaces and abstract classes | Not supported | JSON does not identify a concrete implementation or subclass to instantiate. Dedicated declaration errors are still to be added. |
+| Public properties outside the constructor, inherited properties, and classes without usable constructors | Not yet supported | Object construction currently uses named constructor arguments only. |
+| `mixed`, untyped fields, `object`, and `stdClass` | Not yet supported | Their decoding and round-trip policies have not been defined. |
+| Root arrays, maps, scalars, enums, and `null` | Not yet supported | `Json::decode()` currently accepts only a JSON object and a class target. |
+| Classes implementing `JsonSerializable` | Not yet supported | A custom JSON representation may not correspond to constructor parameters or object properties. |
+
+The round-trip contract also has these representation limits:
+
+- The source object must be encodable by PHP's `json_encode()`. Resources,
+  non-finite floats, invalid UTF-8, and circular references are outside the
+  supported input domain.
+- JSON does not retain PHP class identity. It cannot choose between multiple
+  possible classes without an additional discriminator or selection rule.
+- A backed enum case and its backing scalar encode to the same JSON value, so a
+  union containing both cannot recover the original PHP type.
+- The current associative decoding step cannot preserve every nested object and
+  array distinction. In particular, empty objects and empty arrays both become
+  empty PHP arrays, and numeric-looking object keys may become integer array
+  keys.
+- Missing object members and members explicitly set to `null` are distinct in
+  JSON, but their construction and re-encoding policy is not yet defined for
+  optional and defaulted parameters.
+
 ## TODO
 
 ### Scalar fields and validation
@@ -121,4 +161,4 @@ restores the value to a PHP float during construction.
 ### Documentation
 
 - [ ] Document installation, object decoding, collection type declarations, root collections, and handling returned errors.
-- [ ] Publish the supported-type matrix and explicit limits, including any values whose original PHP type or shape cannot be recovered from JSON alone.
+- [x] Publish the supported-type matrix and explicit limits, including any values whose original PHP type or shape cannot be recovered from JSON alone.
