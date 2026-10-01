@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use ArrayIterator;
+use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionTypeField;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionTypeField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
+use Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface;
 
 use function str_repeat;
 
@@ -24,6 +26,20 @@ final class DecodeErrorCases
             '{}',
             Person::class,
             'Could not create Eventjet\\Json\\Test\\Acceptance\\Fixtures\\Person from the JSON object: Too few arguments to function Eventjet\\Json\\Test\\Acceptance\\Fixtures\\Person::__construct(), 0 passed and at least 2 expected',
+            3,
+        ];
+
+        yield 'interface root target' => [
+            '{}',
+            RootTargetInterface::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface from the JSON object: Target type is an interface. JSON does not identify a concrete implementation to instantiate.',
+            3,
+        ];
+
+        yield 'abstract class root target' => [
+            '{}',
+            AbstractRootTarget::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget from the JSON object: Target type is an abstract class. JSON does not identify a concrete subclass to instantiate.',
             3,
         ];
 

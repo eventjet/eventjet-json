@@ -25,12 +25,13 @@ final class ObjectTypeValidator
      */
     public static function validate(ReflectionClass $class, array $values): DecodeError|null
     {
-        $className = $class->getName();
-        $classIsNonBackedEnum = self::isNonBackedEnum($className);
+        $targetError = RootTypeValidator::validate($class);
 
-        if ($classIsNonBackedEnum) {
-            return DecodeError::nonBackedEnum($className, $className);
+        if ($targetError !== null) {
+            return $targetError;
         }
+
+        $className = $class->getName();
 
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $name = $parameter->getName();

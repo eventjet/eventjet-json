@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\ObjectTypeValidator;
+use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
@@ -25,6 +26,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(Json::class)]
 #[CoversClass(DecodeError::class)]
 #[CoversClass(ObjectTypeValidator::class)]
+#[CoversClass(RootTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 final class AcceptanceTest extends TestCase
 {

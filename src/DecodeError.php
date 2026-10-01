@@ -58,6 +58,24 @@ final class DecodeError extends RuntimeException
     }
 
     /** @param class-string $class */
+    public static function interfaceTarget(string $class): self
+    {
+        return new self(DecodeErrorKind::CannotInstantiate, sprintf(
+            'Could not create %s from the JSON object: Target type is an interface. JSON does not identify a concrete implementation to instantiate.',
+            $class,
+        ));
+    }
+
+    /** @param class-string $class */
+    public static function abstractClassTarget(string $class): self
+    {
+        return new self(DecodeErrorKind::CannotInstantiate, sprintf(
+            'Could not create %s from the JSON object: Target type is an abstract class. JSON does not identify a concrete subclass to instantiate.',
+            $class,
+        ));
+    }
+
+    /** @param class-string $class */
     public static function unsupportedIntersection(string $class, string $field, string $intersection): self
     {
         return new self(DecodeErrorKind::CannotInstantiate, sprintf(
