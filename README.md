@@ -104,6 +104,7 @@ scope decisions are made, and include a reason for every exclusion.
 | Intersection type hints | JSON does not identify the concrete class that satisfies every member of an intersection. Resolving one would require additional selection rules or metadata. |
 | Non-backed enums | They have no scalar backing value and cannot round-trip through PHP's `json_encode()`. |
 | Object targets implementing `JsonSerializable` | Their custom JSON representation may not match their constructor parameters, so generic decoding cannot guarantee the round-trip contract. |
+| Constructor parameters without same-named declared public instance properties | The class shape does not provide a stable JSON member from which decoding can recover those argument values. |
 | Non-JSON-encodable values, including resources, `INF`, `NAN`, invalid UTF-8, and circular references | JSON cannot represent these values without losing information or changing their meaning. They fall outside the round-trip contract. |
 | JSON objects with duplicate member names | They cannot be produced by `json_encode()` from supported PHP values. PHP's decoder does not report them separately, and detecting them would require reparsing every document. Callers must not rely on which duplicate value is retained. |
 | Implicit coercion of mismatched scalar types | Converting values such as `"42"` to `42` hides a type mismatch and changes the value's type. Decoding must validate the declared type. |
@@ -132,7 +133,7 @@ must not be relied on, even if a particular value happens to decode.
 
 | Target or value | Status | Limits |
 | --- | --- | --- |
-| Concrete classes | Supported at the root | The JSON root must be an object. Recognized member names are passed as named constructor arguments, so they must match the constructor parameter names. Additional members are ignored. |
+| Concrete classes | Supported at the root | The JSON root must be an object. Recognized member names are passed as named constructor arguments, so they must match the constructor parameter names. Each parameter must have a same-named public instance property so `json_encode()` can expose its value. Additional members are ignored. |
 | Readonly classes | Supported at the root | The same constructor rules as other concrete classes apply. |
 | `string`, `int`, `float`, and `bool` constructor fields | Supported | Values must have the declared type. An integer JSON value is also valid for a `float` field because the declaration restores it as a PHP float. Other implicit scalar coercions are rejected. |
 | `null`, nullable scalar fields, and literal `true` and `false` fields | Supported | A non-null value must still match the non-null member of a nullable type. Literal Boolean fields accept only their declared value. |
@@ -190,7 +191,8 @@ The round-trip contract also has these representation limits:
 - [x] Reject non-final class field types because JSON cannot preserve a value's runtime subclass.
 - [ ] Reject interface and abstract class collection item/value types with a clear `DecodeError`.
 - [x] Reject target classes with private or protected constructors with a clear `DecodeError`.
-- [ ] Define the remaining supported class shapes and report unsupported ones clearly, including constructor arguments that cannot be recovered from encoded properties.
+- [x] Reject constructor parameters without same-named declared public instance properties because the class shape provides no stable JSON member from which to recover their values.
+- [ ] Define the remaining supported class shapes and report unsupported ones clearly.
 - [x] Define behavior for `mixed`, untyped fields, `object`, and `stdClass`.
 - [x] Support unions that combine one concrete class and one backed enum, alongside scalar and null members whose types do not overlap the enum's backing type, such as `MyEnum|MyClass|null`.
 - [x] Reject unions containing multiple classes (such as `ClassA|ClassB`).

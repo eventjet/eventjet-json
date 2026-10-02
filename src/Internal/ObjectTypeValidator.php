@@ -11,6 +11,7 @@ use ReflectionNamedType;
 
 use function array_key_exists;
 use function enum_exists;
+use function sprintf;
 
 /** @internal */
 final class ObjectTypeValidator
@@ -51,6 +52,16 @@ final class ObjectTypeValidator
                 return $typeError;
             }
 
+            if (!$class->hasProperty($name)) {
+                return self::unrecoverableConstructorParameter($className, $name);
+            }
+
+            $property = $class->getProperty($name);
+
+            if (!$property->isPublic() || $property->isStatic()) {
+                return self::unrecoverableConstructorParameter($className, $name);
+            }
+
             if ($type instanceof ReflectionNamedType) {
                 $typeName = ParameterTypeNameResolver::resolve($parameter, $type);
 
@@ -73,5 +84,14 @@ final class ObjectTypeValidator
         }
 
         return null;
+    }
+
+    /** @param class-string $class */
+    private static function unrecoverableConstructorParameter(string $class, string $parameter): DecodeError
+    {
+        return DecodeError::nonInstantiableTarget($class, sprintf(
+            'Constructor parameter %s has no same-named declared public instance property. The target class does not expose a stable JSON member from which the argument can be recovered.',
+            $parameter,
+        ));
     }
 }
