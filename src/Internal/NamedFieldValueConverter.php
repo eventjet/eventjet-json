@@ -37,7 +37,7 @@ final class NamedFieldValueConverter
                 return $converted;
             }
 
-            $converted = BackedEnumMapValueConverter::convert($class, $parameter, $value);
+            $converted = MapValueConverter::convert($class, $parameter, $value);
 
             return $converted ?? ObjectValueConverter::convertArrayValue($value);
         }

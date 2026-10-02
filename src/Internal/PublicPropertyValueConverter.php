@@ -86,7 +86,7 @@ final class PublicPropertyValueConverter
         $converted = ListValueConverter::convert($class, $property, $value);
 
         if ($converted === null) {
-            $converted = BackedEnumMapValueConverter::convert($class, $property, $value);
+            $converted = MapValueConverter::convert($class, $property, $value);
         }
 
         if ($converted instanceof DecodeError) {

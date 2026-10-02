@@ -110,6 +110,7 @@ final class RoundTripCases
             'value',
         ])];
         yield from self::scalarLists();
+        yield from ScalarMapRoundTripCases::objects();
         yield 'empty backed enum lists' => [new BackedEnumListFields([], [])];
 
         $backedEnumLists = new BackedEnumListFields([StringBackedStatus::Ready, StringBackedStatus::Pending], [
