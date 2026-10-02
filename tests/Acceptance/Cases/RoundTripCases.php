@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\Address;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\ClassEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\DisjointStringBackedEnumUnionField;
@@ -41,7 +42,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{BackedEnumFields|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|RecursiveNode}>
+     * @return iterable<string, array{BackedEnumFields|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|RecursiveNode}>
      */
     public static function objects(): iterable
     {
@@ -76,6 +77,14 @@ final class RoundTripCases
         yield 'class and scalar union with a string value' => [new ClassScalarUnionField('Ada')];
         yield 'class and scalar union with an integer value' => [new ClassScalarUnionField(42)];
         yield 'class and scalar union with a null value' => [new ClassScalarUnionField(null)];
+        yield 'class, enum, and scalar union with an object value' => [
+            new ClassEnumScalarUnionField(new Person('Ada', 'Lovelace')),
+        ];
+        yield 'class, enum, and scalar union with an enum value' => [
+            new ClassEnumScalarUnionField(StringBackedStatus::Ready),
+        ];
+        yield 'class, enum, and scalar union with an integer value' => [new ClassEnumScalarUnionField(42)];
+        yield 'class, enum, and scalar union with a null value' => [new ClassEnumScalarUnionField(null)];
         yield 'int-backed enum and string union with enum value Ready' => [
             new DistinctEnumScalarUnionField(IntBackedStatus::Ready),
         ];

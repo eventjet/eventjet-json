@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\ClassEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DisjointStringBackedEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctStringEnumScalarUnionField;
@@ -99,6 +100,17 @@ final class BackedEnumErrorCases
                 . ' from the JSON object: Field value uses backed enum union '
                 . StringBackedOutcome::class
                 . '|'
+                . StringBackedStatus::class
+                . ", which has no case with backing value 'unknown'.",
+            3,
+        ];
+
+        yield 'class, enum, and scalar union rejects an unknown enum value' => [
+            '{"value":"unknown"}',
+            ClassEnumScalarUnionField::class,
+            'Could not create '
+                . ClassEnumScalarUnionField::class
+                . ' from the JSON object: Field value uses backed enum '
                 . StringBackedStatus::class
                 . ", which has no case with backing value 'unknown'.",
             3,
