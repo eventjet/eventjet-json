@@ -9,6 +9,13 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 
+use function class_exists;
+use function enum_exists;
+use function in_array;
+use function interface_exists;
+use function ltrim;
+use function str_starts_with;
+
 /** @internal */
 final class FieldTypeNameResolver
 {
@@ -29,5 +36,23 @@ final class FieldTypeNameResolver
         $parent = $declaringClass->getParentClass();
 
         return $parent === false ? $name : $parent->getName();
+    }
+
+    /** @return 'bool'|'float'|'int'|'string'|class-string|null */
+    public static function resolvePhpDoc(ReflectionParameter|ReflectionProperty $field, string $type): string|null
+    {
+        if (in_array($type, ['bool', 'float', 'int', 'string'], strict: true)) {
+            return $type;
+        }
+
+        /** @var ReflectionClass<object> $declaringClass */
+        $declaringClass = $field->getDeclaringClass();
+        $resolvedType = str_starts_with($type, '\\')
+            ? ltrim($type, characters: '\\')
+            : $declaringClass->getNamespaceName() . '\\' . $type;
+
+        return enum_exists($resolvedType) || class_exists($resolvedType) || interface_exists($resolvedType)
+            ? $resolvedType
+            : null;
     }
 }

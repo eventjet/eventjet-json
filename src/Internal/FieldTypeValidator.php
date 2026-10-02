@@ -78,6 +78,12 @@ final class FieldTypeValidator
             if ($listItemTypeError !== null) {
                 return $listItemTypeError;
             }
+
+            $mapValueType = CollectionTypeResolver::resolveMapValue($field);
+
+            if ($mapValueType !== null) {
+                return ClassFieldTypeValidator::validate($class, $fieldName, $mapValueType);
+            }
         }
 
         return ClassFieldTypeValidator::validate($class, $fieldName, $typeName);

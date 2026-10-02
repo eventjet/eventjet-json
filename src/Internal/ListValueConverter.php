@@ -34,7 +34,7 @@ final class ListValueConverter
         ReflectionParameter|ReflectionProperty $field,
         mixed $value,
     ): array|DecodeError|null {
-        $itemType = ListItemTypeResolver::resolve($field);
+        $itemType = CollectionTypeResolver::resolveListItem($field);
 
         if ($itemType === null) {
             return null;

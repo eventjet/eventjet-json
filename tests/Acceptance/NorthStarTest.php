@@ -10,12 +10,12 @@ use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassUnionValidator;
+use Eventjet\Json\Internal\CollectionTypeResolver;
 use Eventjet\Json\Internal\ConcreteClassUnionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
-use Eventjet\Json\Internal\ListItemTypeResolver;
 use Eventjet\Json\Internal\ListItemTypeValidator;
 use Eventjet\Json\Internal\ListValueConverter;
 use Eventjet\Json\Internal\NamedFieldValueConverter;
@@ -56,12 +56,12 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(BackedEnumValueConverter::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ClassUnionValidator::class)]
+#[CoversClass(CollectionTypeResolver::class)]
 #[CoversClass(ConcreteClassUnionValueConverter::class)]
 #[CoversClass(ConcreteClassValueConverter::class)]
 #[CoversClass(EnumUnionValidator::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
 #[CoversClass(FieldTypeValidator::class)]
-#[CoversClass(ListItemTypeResolver::class)]
 #[CoversClass(ListItemTypeValidator::class)]
 #[CoversClass(ListValueConverter::class)]
 #[CoversClass(NamedFieldValueConverter::class)]
