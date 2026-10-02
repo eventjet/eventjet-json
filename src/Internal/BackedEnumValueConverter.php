@@ -95,7 +95,7 @@ final class BackedEnumValueConverter
      * @param enum-string $enumName
      * @throws ReflectionException
      */
-    private static function convertValue(
+    public static function convertValue(
         string $class,
         string $field,
         string $enumName,

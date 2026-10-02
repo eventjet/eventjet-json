@@ -14,6 +14,8 @@ use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
+use Eventjet\Json\Internal\ListItemTypeResolver;
+use Eventjet\Json\Internal\ListValueConverter;
 use Eventjet\Json\Internal\NamedFieldValueConverter;
 use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\ObjectTypeValidator;
@@ -23,8 +25,6 @@ use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyUnionValueConverter;
 use Eventjet\Json\Internal\PublicPropertyValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
-use Eventjet\Json\Internal\ScalarListTypeResolver;
-use Eventjet\Json\Internal\ScalarListValueConverter;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\NorthStar\CanonicalJson;
@@ -58,6 +58,8 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(EnumUnionValidator::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
 #[CoversClass(FieldTypeValidator::class)]
+#[CoversClass(ListItemTypeResolver::class)]
+#[CoversClass(ListValueConverter::class)]
 #[CoversClass(NamedFieldValueConverter::class)]
 #[CoversClass(ObjectTypeValidator::class)]
 #[CoversClass(ObjectValueConverter::class)]
@@ -67,8 +69,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(PublicPropertyUnionValueConverter::class)]
 #[CoversClass(PublicPropertyValueConverter::class)]
 #[CoversClass(RootTypeValidator::class)]
-#[CoversClass(ScalarListTypeResolver::class)]
-#[CoversClass(ScalarListValueConverter::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 final class NorthStarTest extends TestCase
 {

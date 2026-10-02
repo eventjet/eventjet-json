@@ -7,6 +7,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 use Eventjet\Json\Test\Acceptance\Fixtures\Address;
 use Eventjet\Json\Test\Acceptance\Fixtures\ArrayPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumListFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassScalarUnionField;
@@ -50,7 +51,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{ArrayPublicProperty|BackedEnumFields|BackedEnumPublicProperties|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|NestedObjectPublicProperties|PublicPropertiesWithConstructor|RecursiveNode|ScalarListFields|ScalarListPublicProperty|UntypedArrayField}>
+     * @return iterable<string, array{ArrayPublicProperty|BackedEnumFields|BackedEnumListFields|BackedEnumPublicProperties|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|NestedObjectPublicProperties|PublicPropertiesWithConstructor|RecursiveNode|ScalarListFields|ScalarListPublicProperty|UntypedArrayField}>
      */
     public static function objects(): iterable
     {
@@ -105,6 +106,15 @@ final class RoundTripCases
             'value',
         ])];
         yield from self::scalarLists();
+        yield 'empty backed enum lists' => [new BackedEnumListFields([], [])];
+
+        $backedEnumLists = new BackedEnumListFields([StringBackedStatus::Ready, StringBackedStatus::Pending], [
+            IntBackedStatus::Pending,
+            IntBackedStatus::Ready,
+        ]);
+        $backedEnumLists->publicStatuses = [StringBackedStatus::Pending, StringBackedStatus::Ready];
+
+        yield 'backed enum lists preserve item types and values' => [$backedEnumLists];
         yield 'recursively nested readonly objects with a null field' => [
             new NestedObjectFields(
                 new Person('Ada', 'Lovelace'),

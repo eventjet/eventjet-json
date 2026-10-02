@@ -65,7 +65,7 @@ final class PublicPropertyValueConverter
         }
 
         if ($typeName === 'array') {
-            $converted = ScalarListValueConverter::convert($class, $property, $value);
+            $converted = ListValueConverter::convert($class, $property, $value);
 
             if ($converted instanceof DecodeError) {
                 return $converted;

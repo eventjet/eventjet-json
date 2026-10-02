@@ -31,7 +31,7 @@ final class NamedFieldValueConverter
         $typeName = FieldTypeNameResolver::resolve($parameter, $type);
 
         if ($typeName === 'array' && ($value instanceof stdClass || is_array($value))) {
-            $converted = ScalarListValueConverter::convert($class, $parameter, $value);
+            $converted = ListValueConverter::convert($class, $parameter, $value);
 
             return $converted ?? ObjectValueConverter::convertArrayValue($value);
         }
