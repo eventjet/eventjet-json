@@ -19,6 +19,7 @@ use Eventjet\Json\Internal\ParameterTypeNameResolver;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
+use Eventjet\Json\Test\Acceptance\Cases\ConstructorDefaultCases;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\NonBackedEnumErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootValueErrorCases;
@@ -70,6 +71,7 @@ final class AcceptanceTest extends TestCase
         static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
     }
 
+    #[DataProviderExternal(ConstructorDefaultCases::class, 'objects')]
     #[DataProviderExternal(UnknownFieldCases::class, 'objects')]
     public function testDecodeReturnsExpectedObject(string $json, object $expected): void
     {

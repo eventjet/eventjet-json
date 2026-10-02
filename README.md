@@ -162,9 +162,12 @@ The round-trip contract also has these representation limits:
   PHP arrays, and numeric-looking object keys may become integer array keys.
 - JSON object members without matching constructor parameters are ignored and
   do not appear when the decoded object is re-encoded.
-- Missing object members and members explicitly set to `null` are distinct in
-  JSON, but their construction and re-encoding policy is not yet defined for
-  optional and defaulted parameters.
+- A missing required constructor-bound member produces a construction error. A
+  missing optional member uses its constructor default. A present `null` is
+  passed to the constructor and therefore overrides a nullable non-null default.
+  Re-encoding may include a default-valued public property whose member was
+  absent from the input. Exact preservation of omissions is outside the
+  object-to-JSON-to-object round-trip contract.
 
 ## TODO
 
@@ -180,7 +183,8 @@ The round-trip contract also has these representation limits:
 
 - [x] Recursively decode nested JSON objects into their declared final classes, including readonly classes and nullable object fields.
 - [ ] Support classes that combine constructor-bound members with public properties not represented by the constructor, including classes without constructors and inherited properties. Hydrate each JSON member once so promoted properties, including readonly properties, are not assigned a second time.
-- [ ] Decide and test how omitted JSON object members interact with required and optional constructor arguments, constructor defaults, initialized and uninitialized public properties, readonly properties, and explicit `null`. Distinguish a missing member from a present null value, and decide whether re-encoding may include initialized default-valued properties or must preserve the original omissions, including whether that requires support beyond round trips that start with a PHP object.
+- [x] Define and test how omitted constructor-bound members interact with required and optional arguments, constructor defaults, promoted readonly properties, and explicit `null`. Missing optional members use their defaults, present `null` overrides nullable defaults, and re-encoding may include default-valued properties that were absent from the input.
+- [ ] Decide and test how omitted JSON object members interact with initialized and uninitialized public properties outside the constructor, including readonly properties.
 - [x] Test that JSON member order does not affect constructor argument binding.
 - [ ] Preserve the distinction between JSON objects and arrays, especially `{}` versus `[]` and objects with numeric-looking keys.
 - [x] Ignore unknown JSON fields at the root and in nested objects.
