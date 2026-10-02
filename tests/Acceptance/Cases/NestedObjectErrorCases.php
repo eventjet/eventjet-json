@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\Address;
+use Eventjet\Json\Test\Acceptance\Fixtures\ClassEnumScalarUnionPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedObjectFields;
@@ -114,6 +115,15 @@ final class NestedObjectErrorCases
         yield 'class and scalar union rejects an invalid nested field value' => [
             '{"value":{"firstName":42,"lastName":"Lovelace"}}',
             ClassScalarUnionField::class,
+            'Could not create '
+                . Person::class
+                . ' from the JSON object: Field firstName must be of type string, int given.',
+            3,
+        ];
+
+        yield 'class union public property rejects an invalid nested field value' => [
+            '{"value":{"firstName":42,"lastName":"Lovelace"}}',
+            ClassEnumScalarUnionPublicProperty::class,
             'Could not create '
                 . Person::class
                 . ' from the JSON object: Field firstName must be of type string, int given.',

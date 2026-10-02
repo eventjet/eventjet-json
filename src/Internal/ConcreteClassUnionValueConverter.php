@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionProperty;
 use ReflectionUnionType;
 use stdClass;
 
@@ -18,16 +19,16 @@ final class ConcreteClassUnionValueConverter
     /** @param class-string $class */
     public static function convert(
         string $class,
-        ReflectionParameter $parameter,
+        ReflectionParameter|ReflectionProperty $field,
         ReflectionUnionType $type,
         stdClass $value,
     ): object|null {
         foreach ($type->getTypes() as $member) {
             /** @var ReflectionNamedType $member Supported unions contain only named types. */
-            $typeName = FieldTypeNameResolver::resolve($parameter, $member);
+            $typeName = FieldTypeNameResolver::resolve($field, $member);
 
             if (!enum_exists($typeName) && class_exists($typeName)) {
-                return ConcreteClassValueConverter::convert($class, $parameter, $typeName, $value);
+                return ConcreteClassValueConverter::convert($class, $field, $typeName, $value);
             }
         }
 

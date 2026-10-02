@@ -9,6 +9,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\UnionPublicProperty;
 use LogicException;
 
 use function explode;
@@ -60,6 +61,25 @@ final class ScalarTypeMismatchCases
                     ];
                 }
             }
+        }
+
+        foreach ([
+            'float' => ['1.5', 'float'],
+            'Boolean' => ['true', 'bool'],
+            'null' => ['null', 'null'],
+            'array' => ['[]', 'array'],
+            'object' => ['{}', 'stdClass'],
+        ] as $name => [$value, $actualType]) {
+            yield 'scalar union public property rejects ' . $name => [
+                '{"value":' . $value . '}',
+                UnionPublicProperty::class,
+                'Could not create '
+                    . UnionPublicProperty::class
+                    . ' from the JSON object: Field value must be of type string|int, '
+                    . $actualType
+                    . ' given.',
+                3,
+            ];
         }
     }
 

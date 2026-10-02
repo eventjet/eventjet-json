@@ -7,6 +7,7 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use ReflectionException;
 use ReflectionProperty;
+use ReflectionUnionType;
 use stdClass;
 
 use function class_exists;
@@ -28,6 +29,10 @@ final class PublicPropertyValueConverter
 
         if ($type instanceof DecodeError) {
             return $type;
+        }
+
+        if ($type instanceof ReflectionUnionType) {
+            return PublicPropertyUnionValueConverter::convert($class, $property, $type, $value);
         }
 
         $typeName = FieldTypeNameResolver::resolve($property, $type);

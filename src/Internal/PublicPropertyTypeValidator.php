@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use ReflectionEnum;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionProperty;
+use ReflectionUnionType;
 use stdClass;
 
 use function class_exists;
@@ -23,33 +23,37 @@ final class PublicPropertyTypeValidator
      * @param class-string $class
      * @throws ReflectionException
      */
-    public static function validate(string $class, ReflectionProperty $property): ReflectionNamedType|DecodeError
-    {
+    public static function validate(
+        string $class,
+        ReflectionProperty $property,
+    ): ReflectionNamedType|ReflectionUnionType|DecodeError {
         $field = $property->getName();
         $type = $property->getType();
 
-        if (!$type instanceof ReflectionNamedType) {
+        if (!$type instanceof ReflectionNamedType && !$type instanceof ReflectionUnionType) {
             return self::unsupportedType($class, $field, $type === null ? 'none' : (string) $type);
         }
 
-        $typeName = FieldTypeNameResolver::resolve($property, $type);
-        $typeIsSupported = self::isSupportedType($typeName);
+        foreach ($type instanceof ReflectionNamedType ? [$type] : $type->getTypes() as $member) {
+            if (!$member instanceof ReflectionNamedType) {
+                return self::unsupportedType($class, $field, (string) $type);
+            }
 
-        if (!$typeIsSupported) {
-            return self::unsupportedType($class, $field, (string) $type);
-        }
+            $typeName = FieldTypeNameResolver::resolve($property, $member);
+            $typeIsSupported = self::isSupportedType($typeName);
 
-        if (enum_exists($typeName)) {
-            $enum = new ReflectionEnum($typeName);
-
-            if (!$enum->isBacked()) {
-                return DecodeError::nonBackedEnum($class, $typeName, $field);
+            if (!$typeIsSupported) {
+                return self::unsupportedType($class, $field, (string) $type);
             }
         }
 
-        $classTypeError = FieldTypeValidator::validateClassType($class, $field, $typeName);
+        $typeError = FieldTypeValidator::validate($class, $property);
 
-        return $classTypeError ?? $type;
+        if ($typeError !== null) {
+            return $typeError;
+        }
+
+        return $type;
     }
 
     /** @param class-string $class */
@@ -60,7 +64,7 @@ final class PublicPropertyTypeValidator
             $field,
             'unsupported public property type',
             $type,
-            '. Public properties outside the constructor currently support declared scalar, array, backed enum, and final class types only.',
+            '. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
         );
     }
 

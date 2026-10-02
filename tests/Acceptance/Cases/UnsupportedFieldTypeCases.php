@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use DatePeriod;
+use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\MixedField;
+use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\ObjectField;
 use Eventjet\Json\Test\Acceptance\Fixtures\ObjectPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\StdClassField;
-use Eventjet\Json\Test\Acceptance\Fixtures\UnionPublicProperty;
+use php_user_filter;
 use stdClass;
 
 use function is_string;
@@ -43,12 +45,32 @@ final class UnsupportedFieldTypeCases
             yield $name . ' field, member absent' => ['{}', $class, $message, 3];
         }
 
-        foreach ([
-            'object public property' => [new ObjectPublicProperty(), '{}', 'object'],
-            'union public property' => [UnionPublicProperty::class, '"value"', 'string|int'],
-        ] as $name => [$target, $value, $type]) {
-            $class = is_string($target) ? $target : $target::class;
+        yield 'object public property' => [
+            '{"value":{}}',
+            ObjectPublicProperty::class,
+            'Could not create '
+                . ObjectPublicProperty::class
+                . ' from the JSON object: Field value uses unsupported public property type object. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
+            3,
+        ];
 
+        yield 'untyped public property' => [
+            '{"stream":null}',
+            php_user_filter::class,
+            'Could not create php_user_filter from the JSON object: Field stream uses unsupported public property type none. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
+            3,
+        ];
+
+        $intersectionPublicProperty = new IntersectionPublicProperty();
+
+        foreach ([
+            'intersection public property' => [$intersectionPublicProperty::class, '{}', 'Countable&Iterator'],
+            'intersection union public property' => [
+                NullableIntersectionPublicProperty::class,
+                'null',
+                '(Countable&Iterator)|null',
+            ],
+        ] as $name => [$class, $value, $type]) {
             yield $name => [
                 '{"value":' . $value . '}',
                 $class,
@@ -56,7 +78,7 @@ final class UnsupportedFieldTypeCases
                     . $class
                     . ' from the JSON object: Field value uses unsupported public property type '
                     . $type
-                    . '. Public properties outside the constructor currently support declared scalar, array, backed enum, and final class types only.',
+                    . '. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
                 3,
             ];
         }

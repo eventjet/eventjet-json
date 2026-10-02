@@ -11,6 +11,7 @@ use ReflectionException;
 use ReflectionIntersectionType;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionProperty;
 use ReflectionUnionType;
 use stdClass;
 
@@ -26,21 +27,21 @@ final class FieldTypeValidator
      * @param class-string $class
      * @throws ReflectionException
      */
-    public static function validate(string $class, ReflectionParameter $parameter): DecodeError|null
+    public static function validate(string $class, ReflectionParameter|ReflectionProperty $field): DecodeError|null
     {
-        $field = $parameter->getName();
-        $type = $parameter->getType();
+        $fieldName = $field->getName();
+        $type = $field->getType();
 
         if ($type instanceof ReflectionIntersectionType) {
-            return DecodeError::unsupportedIntersection($class, $field, (string) $type);
+            return DecodeError::unsupportedIntersection($class, $fieldName, (string) $type);
         }
 
         if ($type instanceof ReflectionNamedType) {
-            return self::validateNamedType($class, $parameter, $type);
+            return self::validateNamedType($class, $field, $type);
         }
 
         if ($type instanceof ReflectionUnionType) {
-            return self::validateUnionType($class, $parameter, $type);
+            return self::validateUnionType($class, $field, $type);
         }
 
         return null;
@@ -52,16 +53,16 @@ final class FieldTypeValidator
      */
     private static function validateNamedType(
         string $class,
-        ReflectionParameter $parameter,
+        ReflectionParameter|ReflectionProperty $field,
         ReflectionNamedType $type,
     ): DecodeError|null {
-        $field = $parameter->getName();
-        $typeName = FieldTypeNameResolver::resolve($parameter, $type);
+        $fieldName = $field->getName();
+        $typeName = FieldTypeNameResolver::resolve($field, $type);
 
         if (in_array($typeName, ['mixed', 'object', stdClass::class], strict: true)) {
             return DecodeError::nonInstantiableField(
                 $class,
-                $field,
+                $fieldName,
                 'unsupported type',
                 $typeName,
                 '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
@@ -71,10 +72,10 @@ final class FieldTypeValidator
         $typeIsNonBackedEnum = self::isNonBackedEnum($typeName);
 
         if ($typeIsNonBackedEnum) {
-            return DecodeError::nonBackedEnum($class, $typeName, $field);
+            return DecodeError::nonBackedEnum($class, $typeName, $fieldName);
         }
 
-        return self::validateClassType($class, $field, $typeName);
+        return self::validateClassType($class, $fieldName, $typeName);
     }
 
     /**
@@ -83,17 +84,17 @@ final class FieldTypeValidator
      */
     private static function validateUnionType(
         string $class,
-        ReflectionParameter $parameter,
+        ReflectionParameter|ReflectionProperty $field,
         ReflectionUnionType $type,
     ): DecodeError|null {
-        $field = $parameter->getName();
-        $classUnionError = ClassUnionValidator::validate($class, $parameter, $type);
+        $fieldName = $field->getName();
+        $classUnionError = ClassUnionValidator::validate($class, $field, $type);
 
         if ($classUnionError !== null) {
             return $classUnionError;
         }
 
-        $enumUnionError = EnumUnionValidator::validate($class, $field, $type);
+        $enumUnionError = EnumUnionValidator::validate($class, $fieldName, $type);
 
         if ($enumUnionError !== null) {
             return $enumUnionError;
@@ -101,10 +102,10 @@ final class FieldTypeValidator
 
         foreach ($type->getTypes() as $member) {
             if ($member instanceof ReflectionIntersectionType) {
-                return DecodeError::unsupportedIntersection($class, $field, (string) $member);
+                return DecodeError::unsupportedIntersection($class, $fieldName, (string) $member);
             }
 
-            $error = self::validateNamedType($class, $parameter, $member);
+            $error = self::validateNamedType($class, $field, $member);
 
             if ($error !== null) {
                 return $error;
@@ -118,7 +119,7 @@ final class FieldTypeValidator
      * @param class-string $class
      * @throws ReflectionException
      */
-    public static function validateClassType(string $class, string $field, string $type): DecodeError|null
+    private static function validateClassType(string $class, string $field, string $type): DecodeError|null
     {
         if (interface_exists($type)) {
             return DecodeError::nonInstantiableField($class, $field, 'interface', $type);

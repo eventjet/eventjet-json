@@ -19,6 +19,7 @@ use Eventjet\Json\Internal\ObjectTypeValidator;
 use Eventjet\Json\Internal\ObjectValueConverter;
 use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
+use Eventjet\Json\Internal\PublicPropertyUnionValueConverter;
 use Eventjet\Json\Internal\PublicPropertyValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
@@ -59,6 +60,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ObjectHydrator::class)]
 #[CoversClass(PublicPropertyHydrator::class)]
 #[CoversClass(PublicPropertyTypeValidator::class)]
+#[CoversClass(PublicPropertyUnionValueConverter::class)]
 #[CoversClass(PublicPropertyValueConverter::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]

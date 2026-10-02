@@ -18,6 +18,7 @@ use Eventjet\Json\Internal\ObjectTypeValidator;
 use Eventjet\Json\Internal\ObjectValueConverter;
 use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
+use Eventjet\Json\Internal\PublicPropertyUnionValueConverter;
 use Eventjet\Json\Internal\PublicPropertyValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
@@ -25,6 +26,7 @@ use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\Cases\ConstructorDefaultCases;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\NonBackedEnumErrorCases;
+use Eventjet\Json\Test\Acceptance\Cases\PublicPropertyUnionRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootValueErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\RoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\ScalarTypeMismatchCases;
@@ -53,6 +55,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ObjectHydrator::class)]
 #[CoversClass(PublicPropertyHydrator::class)]
 #[CoversClass(PublicPropertyTypeValidator::class)]
+#[CoversClass(PublicPropertyUnionValueConverter::class)]
 #[CoversClass(PublicPropertyValueConverter::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]
@@ -67,6 +70,7 @@ final class AcceptanceTest extends TestCase
     #[DataProviderExternal(RoundTripCases::class, 'stringFields')]
     #[DataProviderExternal(RoundTripCases::class, 'memberOrders')]
     #[DataProviderExternal(RoundTripCases::class, 'objectRootWhitespace')]
+    #[DataProviderExternal(PublicPropertyUnionRoundTripCases::class, 'objects')]
     public function testDecodeIsTheExactInverseOfJsonEncode(object $original, string|null $json = null): void
     {
         $json ??= json_encode($original, JSON_THROW_ON_ERROR);

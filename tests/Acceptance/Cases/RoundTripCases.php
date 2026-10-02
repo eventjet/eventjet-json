@@ -93,6 +93,7 @@ final class RoundTripCases
         $nullableNestedPublicProperty->person = new Person('Ada', 'Lovelace');
 
         yield 'nullable nested final class public property with null' => [$nullableNestedPublicProperty];
+
         yield 'array-valued field encoded as an object' => [new MapHolder(['answer' => 42])];
         yield 'array-valued field preserves nested objects and lists' => [
             new MapHolder(['items' => [['answer' => 42]]]),
