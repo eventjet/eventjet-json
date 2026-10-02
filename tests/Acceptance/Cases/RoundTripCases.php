@@ -123,6 +123,7 @@ final class RoundTripCases
         yield from self::backedEnumMaps();
 
         yield from self::finalClassLists();
+        yield from FinalClassMapRoundTripCases::objects();
         yield 'recursively nested readonly objects with a null field' => [
             new NestedObjectFields(
                 new Person('Ada', 'Lovelace'),

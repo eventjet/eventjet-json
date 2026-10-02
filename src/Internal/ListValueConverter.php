@@ -91,7 +91,7 @@ final class ListValueConverter
         }
 
         if (class_exists($type)) {
-            return ConcreteClassValueConverter::convertListItem($class, $path, $type, $value);
+            return ConcreteClassValueConverter::convertCollectionItem($class, $path, $type, $value);
         }
 
         $converted = match ($type) {

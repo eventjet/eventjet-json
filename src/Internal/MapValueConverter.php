@@ -15,6 +15,7 @@ use UnitEnum;
 use function array_key_exists;
 use function array_keys;
 use function assert;
+use function class_exists;
 use function enum_exists;
 use function get_object_vars;
 use function is_bool;
@@ -29,7 +30,7 @@ final class MapValueConverter
     /**
      * @param class-string $class
      * @param array<array-key, mixed>|stdClass $value
-     * @return array<array-key, bool|float|int|string|UnitEnum>|DecodeError|null
+     * @return array<array-key, bool|float|int|object|string|UnitEnum>|DecodeError|null
      * @throws ReflectionException
      */
     public static function convert(
@@ -45,6 +46,10 @@ final class MapValueConverter
 
         if (enum_exists($valueType)) {
             return self::convertEnumValues($class, $field, $valueType, $value);
+        }
+
+        if (class_exists($valueType)) {
+            return ConcreteClassMapValueConverter::convert($class, $field, $valueType, $value);
         }
 
         return match ($valueType) {

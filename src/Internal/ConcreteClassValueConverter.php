@@ -41,7 +41,7 @@ final class ConcreteClassValueConverter
      * @param class-string $class
      * @param class-string $typeName
      */
-    public static function convertListItem(string $class, string $path, string $typeName, mixed $value): object
+    public static function convertCollectionItem(string $class, string $path, string $typeName, mixed $value): object
     {
         return self::convertValue($class, $path, $typeName, $typeName, $value);
     }

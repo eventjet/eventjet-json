@@ -7,6 +7,8 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 use Eventjet\Json\Test\Acceptance\Fixtures\AbstractClassMapField;
 use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\InterfaceMapField;
+use Eventjet\Json\Test\Acceptance\Fixtures\NonFinalClassMapField;
+use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase;
 use Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface;
 
 /** @internal */
@@ -21,6 +23,7 @@ final class NonInstantiableMapValueErrorCases
         foreach ([
             'interface' => [new InterfaceMapField([]), RootTargetInterface::class],
             'abstract class' => [new AbstractClassMapField([]), AbstractRootTarget::class],
+            'non-final class' => [new NonFinalClassMapField([]), ParentClassFieldBase::class],
         ] as $typeKind => [$target, $valueType]) {
             $class = $target::class;
             $message =
@@ -30,7 +33,11 @@ final class NonInstantiableMapValueErrorCases
                 . $typeKind
                 . ' '
                 . $valueType
-                . ', which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.';
+                . (
+                    $typeKind === 'non-final class'
+                        ? '. Values may be subclasses, whose runtime class JSON does not identify.'
+                        : ', which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.'
+                );
 
             yield $typeKind . ' map value type, member present' => ['{"values":{}}', $class, $message, 3];
             yield $typeKind . ' map value type, member absent' => ['{}', $class, $message, 3];
