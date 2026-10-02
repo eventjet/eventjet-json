@@ -32,6 +32,7 @@ final class ObjectValueConverter
     public static function convert(ReflectionClass $class, array $values): array|DecodeError
     {
         $className = $class->getName();
+        $convertedValues = [];
 
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $field = $parameter->getName();
@@ -48,10 +49,10 @@ final class ObjectValueConverter
                 return $converted;
             }
 
-            $values[$field] = $converted;
+            $convertedValues[$field] = $converted;
         }
 
-        return $values;
+        return $convertedValues;
     }
 
     /**

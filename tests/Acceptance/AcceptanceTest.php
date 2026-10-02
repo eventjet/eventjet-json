@@ -23,6 +23,7 @@ use Eventjet\Json\Test\Acceptance\Cases\NonBackedEnumErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootValueErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\RoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\ScalarTypeMismatchCases;
+use Eventjet\Json\Test\Acceptance\Cases\UnknownFieldCases;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
@@ -65,6 +66,14 @@ final class AcceptanceTest extends TestCase
 
         static::assertEquals($original, $decoded);
         static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
+    }
+
+    #[DataProviderExternal(UnknownFieldCases::class, 'objects')]
+    public function testDecodeReturnsExpectedObject(string $json, object $expected): void
+    {
+        $decoded = Json::decode($json, $expected::class);
+
+        static::assertEquals($expected, $decoded);
     }
 
     /** @param class-string $class */

@@ -12,14 +12,15 @@ composer require eventjet/json
 
 ## Object decoding
 
-Pass a JSON object and the concrete class to construct to `Json::decode()`. JSON
-member names must match the class's constructor parameter names.
+Pass a JSON object and the concrete class to construct to `Json::decode()`.
+Members used to construct the class must match its constructor parameter names;
+additional JSON members are ignored.
 
-This exact match is deliberate. Target classes model the JSON wire format, not
-the application's domain model. The library does not rename members or support
-aliases and naming strategies. Consumers should decode into transport classes
-that fit the JSON and then explicitly transfer the data into their domain
-objects.
+The exact match for recognized members is deliberate. Target classes model the
+JSON wire format, not the application's domain model. The library does not
+rename members or support aliases and naming strategies. Consumers should
+decode into transport classes that fit the JSON and then explicitly transfer
+the data into their domain objects.
 
 ```php
 <?php
@@ -130,7 +131,7 @@ must not be relied on, even if a particular value happens to decode.
 
 | Target or value | Status | Limits |
 | --- | --- | --- |
-| Concrete classes | Supported at the root | The JSON root must be an object. Its member names are passed as named constructor arguments, so they must match the constructor parameter names. |
+| Concrete classes | Supported at the root | The JSON root must be an object. Recognized member names are passed as named constructor arguments, so they must match the constructor parameter names. Additional members are ignored. |
 | Readonly classes | Supported at the root | The same constructor rules as other concrete classes apply. |
 | `string`, `int`, `float`, and `bool` constructor fields | Supported | Values must have the declared type. An integer JSON value is also valid for a `float` field because the declaration restores it as a PHP float. Other implicit scalar coercions are rejected. |
 | `null`, nullable scalar fields, and literal `true` and `false` fields | Supported | A non-null value must still match the non-null member of a nullable type. Literal Boolean fields accept only their declared value. |
@@ -157,6 +158,8 @@ The round-trip contract also has these representation limits:
 - Array-bound values are normalized from decoded `stdClass` objects to PHP
   arrays. Within those values, empty objects and empty arrays both become empty
   PHP arrays, and numeric-looking object keys may become integer array keys.
+- JSON object members without matching constructor parameters are ignored and
+  do not appear when the decoded object is re-encoded.
 - Missing object members and members explicitly set to `null` are distinct in
   JSON, but their construction and re-encoding policy is not yet defined for
   optional and defaulted parameters.
@@ -178,7 +181,8 @@ The round-trip contract also has these representation limits:
 - [ ] Decide and test how omitted JSON object members interact with required and optional constructor arguments, constructor defaults, initialized and uninitialized public properties, readonly properties, and explicit `null`. Distinguish a missing member from a present null value, and decide whether re-encoding may include initialized default-valued properties or must preserve the original omissions, including whether that requires support beyond round trips that start with a PHP object.
 - [x] Test that JSON member order does not affect constructor argument binding.
 - [ ] Preserve the distinction between JSON objects and arrays, especially `{}` versus `[]` and objects with numeric-looking keys.
-- [ ] Define and test the policy for unknown JSON fields and duplicate JSON member names.
+- [x] Ignore unknown JSON fields at the root and in nested objects.
+- [ ] Define and test the policy for duplicate JSON member names.
 - [x] Reject interface and abstract class root targets with a clear `DecodeError`.
 - [x] Reject direct interface and abstract class field types with a clear `DecodeError`.
 - [x] Reject interface and abstract class union members with a clear `DecodeError`.
