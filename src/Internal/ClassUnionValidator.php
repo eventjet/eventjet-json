@@ -58,7 +58,7 @@ final class ClassUnionValidator
             return null;
         }
 
-        $name = ParameterTypeNameResolver::resolve($parameter, $type);
+        $name = FieldTypeNameResolver::resolve($parameter, $type);
 
         if (enum_exists($name) || interface_exists($name)) {
             return null;

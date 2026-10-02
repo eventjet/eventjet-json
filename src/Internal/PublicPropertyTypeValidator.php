@@ -9,9 +9,12 @@ use ReflectionEnum;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionProperty;
+use stdClass;
 
+use function class_exists;
 use function enum_exists;
 use function in_array;
+use function interface_exists;
 
 /** @internal */
 final class PublicPropertyTypeValidator
@@ -24,41 +27,51 @@ final class PublicPropertyTypeValidator
     {
         $field = $property->getName();
         $type = $property->getType();
-        $typeIsSupported = $type instanceof ReflectionNamedType && self::isSupportedType($type);
 
-        if (!$type instanceof ReflectionNamedType || !$typeIsSupported) {
-            return DecodeError::nonInstantiableField(
-                $class,
-                $field,
-                'unsupported public property type',
-                $type === null ? 'none' : (string) $type,
-                '. Public properties outside the constructor currently support declared scalar, array, and backed enum types only.',
-            );
+        if (!$type instanceof ReflectionNamedType) {
+            return self::unsupportedType($class, $field, $type === null ? 'none' : (string) $type);
         }
 
-        $typeName = $type->getName();
+        $typeName = FieldTypeNameResolver::resolve($property, $type);
+        $typeIsSupported = self::isSupportedType($typeName);
+
+        if (!$typeIsSupported) {
+            return self::unsupportedType($class, $field, (string) $type);
+        }
 
         if (enum_exists($typeName)) {
             $enum = new ReflectionEnum($typeName);
-            $enumIsBacked = $enum->isBacked();
 
-            if (!$enumIsBacked) {
+            if (!$enum->isBacked()) {
                 return DecodeError::nonBackedEnum($class, $typeName, $field);
             }
         }
 
-        return $type;
+        $classTypeError = FieldTypeValidator::validateClassType($class, $field, $typeName);
+
+        return $classTypeError ?? $type;
     }
 
-    private static function isSupportedType(ReflectionNamedType $type): bool
+    /** @param class-string $class */
+    private static function unsupportedType(string $class, string $field, string $type): DecodeError
     {
-        if (enum_exists($type->getName())) {
+        return DecodeError::nonInstantiableField(
+            $class,
+            $field,
+            'unsupported public property type',
+            $type,
+            '. Public properties outside the constructor currently support declared scalar, array, backed enum, and final class types only.',
+        );
+    }
+
+    private static function isSupportedType(string $type): bool
+    {
+        if ($type !== stdClass::class && (enum_exists($type) || class_exists($type) || interface_exists($type))) {
             return true;
         }
 
-        return $type->isBuiltin()
-        && in_array(
-            $type->getName(),
+        return in_array(
+            $type,
             [
                 'array',
                 'bool',

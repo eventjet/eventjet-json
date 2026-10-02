@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionParameter;
+use ReflectionProperty;
 use stdClass;
 
 /** @internal */
@@ -17,22 +18,24 @@ final class ConcreteClassValueConverter
      */
     public static function convert(
         string $class,
-        ReflectionParameter $parameter,
+        ReflectionParameter|ReflectionProperty $field,
         string $typeName,
         mixed $value,
     ): object|null {
-        if ($value === null && $parameter->allowsNull()) {
+        $allowsNull = (bool) $field->getType()?->allowsNull();
+
+        if ($value === null && $allowsNull) {
             return null;
         }
 
         if (!$value instanceof stdClass) {
             $expectedType = $typeName;
 
-            if ($parameter->allowsNull()) {
+            if ($allowsNull) {
                 $expectedType .= '|null';
             }
 
-            return DecodeError::fieldTypeMismatch($class, $parameter->getName(), $expectedType, $value);
+            return DecodeError::fieldTypeMismatch($class, $field->getName(), $expectedType, $value);
         }
 
         return ObjectHydrator::hydrate($typeName, $value);

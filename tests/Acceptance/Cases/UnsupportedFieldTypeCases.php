@@ -56,7 +56,7 @@ final class UnsupportedFieldTypeCases
                     . $class
                     . ' from the JSON object: Field value uses unsupported public property type '
                     . $type
-                    . '. Public properties outside the constructor currently support declared scalar, array, and backed enum types only.',
+                    . '. Public properties outside the constructor currently support declared scalar, array, backed enum, and final class types only.',
                 3,
             ];
         }

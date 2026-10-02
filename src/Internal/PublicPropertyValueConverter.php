@@ -9,6 +9,7 @@ use ReflectionException;
 use ReflectionProperty;
 use stdClass;
 
+use function class_exists;
 use function enum_exists;
 use function is_array;
 
@@ -29,7 +30,7 @@ final class PublicPropertyValueConverter
             return $type;
         }
 
-        $typeName = $type->getName();
+        $typeName = FieldTypeNameResolver::resolve($property, $type);
 
         if (enum_exists($typeName)) {
             $converted = BackedEnumValueConverter::convert($class, $property, $value);
@@ -39,6 +40,12 @@ final class PublicPropertyValueConverter
                     ? $converted
                     : ['property' => $property, 'value' => $converted ?? $value]
             );
+        }
+
+        if (class_exists($typeName)) {
+            $converted = ConcreteClassValueConverter::convert($class, $property, $typeName, $value);
+
+            return $converted instanceof DecodeError ? $converted : ['property' => $property, 'value' => $converted];
         }
 
         $valueMatchesType = ValueTypeMatcher::matches($value, $type);

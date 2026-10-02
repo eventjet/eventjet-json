@@ -24,7 +24,7 @@ final class ConcreteClassUnionValueConverter
     ): object|null {
         foreach ($type->getTypes() as $member) {
             /** @var ReflectionNamedType $member Supported unions contain only named types. */
-            $typeName = ParameterTypeNameResolver::resolve($parameter, $member);
+            $typeName = FieldTypeNameResolver::resolve($parameter, $member);
 
             if (!enum_exists($typeName) && class_exists($typeName)) {
                 return ConcreteClassValueConverter::convert($class, $parameter, $typeName, $value);

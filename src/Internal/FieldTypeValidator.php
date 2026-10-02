@@ -56,7 +56,7 @@ final class FieldTypeValidator
         ReflectionNamedType $type,
     ): DecodeError|null {
         $field = $parameter->getName();
-        $typeName = ParameterTypeNameResolver::resolve($parameter, $type);
+        $typeName = FieldTypeNameResolver::resolve($parameter, $type);
 
         if (in_array($typeName, ['mixed', 'object', stdClass::class], strict: true)) {
             return DecodeError::nonInstantiableField(
@@ -118,7 +118,7 @@ final class FieldTypeValidator
      * @param class-string $class
      * @throws ReflectionException
      */
-    private static function validateClassType(string $class, string $field, string $type): DecodeError|null
+    public static function validateClassType(string $class, string $field, string $type): DecodeError|null
     {
         if (interface_exists($type)) {
             return DecodeError::nonInstantiableField($class, $field, 'interface', $type);

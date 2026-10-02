@@ -69,7 +69,7 @@ final class ObjectValueConverter
         $type = $parameter->getType();
 
         if ($type instanceof ReflectionNamedType) {
-            $typeName = ParameterTypeNameResolver::resolve($parameter, $type);
+            $typeName = FieldTypeNameResolver::resolve($parameter, $type);
 
             if (enum_exists($typeName)) {
                 return BackedEnumValueConverter::convert($class, $parameter, $value) ?? $value;

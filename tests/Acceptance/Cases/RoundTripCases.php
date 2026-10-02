@@ -21,6 +21,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\MapHolder;
 use Eventjet\Json\Test\Acceptance\Fixtures\MultipleEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedBackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedObjectFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\NestedObjectPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\PublicPropertiesWithConstructor;
@@ -46,7 +47,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{ArrayPublicProperty|BackedEnumFields|BackedEnumPublicProperties|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|PublicPropertiesWithConstructor|RecursiveNode}>
+     * @return iterable<string, array{ArrayPublicProperty|BackedEnumFields|BackedEnumPublicProperties|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|NestedObjectPublicProperties|PublicPropertiesWithConstructor|RecursiveNode}>
      */
     public static function objects(): iterable
     {
@@ -79,6 +80,19 @@ final class RoundTripCases
         $backedEnumPublicPropertiesWithNull->intStatus = IntBackedStatus::Pending;
 
         yield 'backed enum public properties with null' => [$backedEnumPublicPropertiesWithNull];
+
+        $nestedPublicProperties = new NestedObjectPublicProperties();
+        $nestedPublicProperties->person = new Person('Ada', 'Lovelace');
+        $nestedPublicProperties->alternate = new Person('Charles', 'Babbage');
+        $nestedPublicProperties->child = new NestedObjectPublicProperties();
+        $nestedPublicProperties->child->person = new Person('Grace', 'Hopper');
+
+        yield 'nested final class public properties' => [$nestedPublicProperties];
+
+        $nullableNestedPublicProperty = new NestedObjectPublicProperties();
+        $nullableNestedPublicProperty->person = new Person('Ada', 'Lovelace');
+
+        yield 'nullable nested final class public property with null' => [$nullableNestedPublicProperty];
         yield 'array-valued field encoded as an object' => [new MapHolder(['answer' => 42])];
         yield 'array-valued field preserves nested objects and lists' => [
             new MapHolder(['items' => [['answer' => 42]]]),

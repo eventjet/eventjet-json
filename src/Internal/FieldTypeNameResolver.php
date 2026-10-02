@@ -7,15 +7,16 @@ namespace Eventjet\Json\Internal;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionProperty;
 
 /** @internal */
-final class ParameterTypeNameResolver
+final class FieldTypeNameResolver
 {
-    public static function resolve(ReflectionParameter $parameter, ReflectionNamedType $type): string
+    public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
     {
         $name = $type->getName();
         /** @var ReflectionClass<object> $declaringClass */
-        $declaringClass = $parameter->getDeclaringClass();
+        $declaringClass = $field->getDeclaringClass();
 
         if ($name === 'self') {
             return $declaringClass->getName();
