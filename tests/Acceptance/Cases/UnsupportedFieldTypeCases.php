@@ -45,9 +45,11 @@ final class UnsupportedFieldTypeCases
             yield $name . ' field, member absent' => ['{}', $class, $message, 3];
         }
 
+        $objectPublicProperty = new ObjectPublicProperty();
+
         yield 'object public property' => [
             '{"value":{}}',
-            ObjectPublicProperty::class,
+            $objectPublicProperty::class,
             'Could not create '
                 . ObjectPublicProperty::class
                 . ' from the JSON object: Field value uses unsupported public property type object. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',

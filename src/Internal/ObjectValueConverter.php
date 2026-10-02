@@ -14,8 +14,6 @@ use stdClass;
 
 use function array_key_exists;
 use function array_map;
-use function class_exists;
-use function enum_exists;
 use function get_object_vars;
 use function is_array;
 
@@ -69,15 +67,7 @@ final class ObjectValueConverter
         $type = $parameter->getType();
 
         if ($type instanceof ReflectionNamedType) {
-            $typeName = FieldTypeNameResolver::resolve($parameter, $type);
-
-            if (enum_exists($typeName)) {
-                return BackedEnumValueConverter::convert($class, $parameter, $value) ?? $value;
-            }
-
-            if (class_exists($typeName)) {
-                return ConcreteClassValueConverter::convert($class, $parameter, $typeName, $value);
-            }
+            return NamedFieldValueConverter::convert($class, $parameter, $type, $value);
         }
 
         if ($type instanceof ReflectionUnionType) {

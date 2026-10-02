@@ -197,6 +197,7 @@ final class DecodeErrorCases
         yield from MultipleClassUnionErrorCases::errors();
         yield from MultipleEnumUnionErrorCases::errors();
         yield from NestedObjectErrorCases::errors();
+        yield from ScalarListErrorCases::errors();
         yield from UnsupportedFieldTypeCases::errors();
     }
 

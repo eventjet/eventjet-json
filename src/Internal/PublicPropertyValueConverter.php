@@ -12,7 +12,6 @@ use stdClass;
 
 use function class_exists;
 use function enum_exists;
-use function is_array;
 
 /** @internal */
 final class PublicPropertyValueConverter
@@ -65,12 +64,20 @@ final class PublicPropertyValueConverter
             return DecodeError::fieldTypeMismatch($class, $field, $expectedType, $value);
         }
 
-        return [
-            'property' => $property,
-            'value' =>
-                $typeName === 'array' && ($value instanceof stdClass || is_array($value))
-                    ? ObjectValueConverter::convertArrayValue($value)
-                    : $value,
-        ];
+        if ($typeName === 'array') {
+            $converted = ScalarListValueConverter::convert($class, $property, $value);
+
+            if ($converted instanceof DecodeError) {
+                return $converted;
+            }
+
+            /** @var array<array-key, mixed>|stdClass $value */
+            return [
+                'property' => $property,
+                'value' => $converted ?? ObjectValueConverter::convertArrayValue($value),
+            ];
+        }
+
+        return ['property' => $property, 'value' => $value];
     }
 }

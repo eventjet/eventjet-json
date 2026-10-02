@@ -27,8 +27,11 @@ use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\PublicPropertiesWithConstructor;
 use Eventjet\Json\Test\Acceptance\Fixtures\RecursiveNode;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
+use Eventjet\Json\Test\Acceptance\Fixtures\UntypedArrayField;
 use JsonException;
 
 use function array_keys;
@@ -47,7 +50,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{ArrayPublicProperty|BackedEnumFields|BackedEnumPublicProperties|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|NestedObjectPublicProperties|PublicPropertiesWithConstructor|RecursiveNode}>
+     * @return iterable<string, array{ArrayPublicProperty|BackedEnumFields|BackedEnumPublicProperties|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|NestedObjectPublicProperties|PublicPropertiesWithConstructor|RecursiveNode|ScalarListFields|ScalarListPublicProperty|UntypedArrayField}>
      */
     public static function objects(): iterable
     {
@@ -98,6 +101,10 @@ final class RoundTripCases
         yield 'array-valued field preserves nested objects and lists' => [
             new MapHolder(['items' => [['answer' => 42]]]),
         ];
+        yield 'array field without a PHPDoc parameter declaration is passed through' => [new UntypedArrayField([
+            'value',
+        ])];
+        yield from self::scalarLists();
         yield 'recursively nested readonly objects with a null field' => [
             new NestedObjectFields(
                 new Person('Ada', 'Lovelace'),
@@ -201,6 +208,20 @@ final class RoundTripCases
                 IntBackedStatus::Pending,
             )),
         ];
+    }
+
+    /** @return iterable<string, array{ScalarListFields|ScalarListPublicProperty}> */
+    private static function scalarLists(): iterable
+    {
+        yield 'empty scalar lists' => [new ScalarListFields([], [], [], [])];
+        yield 'scalar lists preserve item types and values' => [
+            new ScalarListFields(['', '42', 'Grüße, 世界, 😀'], [0, -42, 42], [0.0, 3.0, -3.25], [true, false]),
+        ];
+
+        $publicProperty = new ScalarListPublicProperty();
+        $publicProperty->values = ['', '42', 'Grüße, 世界, 😀'];
+
+        yield 'scalar list public property' => [$publicProperty];
     }
 
     /**
