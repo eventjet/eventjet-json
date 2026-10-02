@@ -84,18 +84,14 @@ final class DecodeError extends RuntimeException
         string $type,
         string|null $description = null,
     ): self {
-        if ($description === null) {
-            $description = sprintf(
-                '%s %s, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
-                $typeKind,
-                $type,
-            );
-        }
+        $description ??= ', which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.';
 
         return new self(DecodeErrorKind::CannotInstantiate, sprintf(
-            'Could not create %s from the JSON object: Field %s uses %s',
+            'Could not create %s from the JSON object: Field %s uses %s %s%s',
             $class,
             $field,
+            $typeKind,
+            $type,
             $description,
         ));
     }

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\DisjointStringBackedEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctStringEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedBackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use JsonException;
 
@@ -88,6 +90,19 @@ final class BackedEnumErrorCases
                 3,
             ];
         }
+
+        yield 'multiple string-backed enum union rejects an unknown string' => [
+            '{"value":"unknown"}',
+            DisjointStringBackedEnumUnionField::class,
+            'Could not create '
+                . DisjointStringBackedEnumUnionField::class
+                . ' from the JSON object: Field value uses backed enum union '
+                . StringBackedOutcome::class
+                . '|'
+                . StringBackedStatus::class
+                . ", which has no case with backing value 'unknown'.",
+            3,
+        ];
     }
 
     /** @return iterable<string, array{string, class-string, 'int'|'string', scalar|array<never, never>|null, array<string, int|string|null>}> */

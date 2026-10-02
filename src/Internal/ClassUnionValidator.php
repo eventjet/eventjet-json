@@ -15,7 +15,6 @@ use function enum_exists;
 use function implode;
 use function interface_exists;
 use function sort;
-use function sprintf;
 
 /** @internal */
 final class ClassUnionValidator
@@ -47,12 +46,9 @@ final class ClassUnionValidator
         return DecodeError::nonInstantiableField(
             $class,
             $parameter->getName(),
-            'class union',
-            implode('|', $classNames),
-            sprintf('multiple class types: %s. JSON does not identify which class to instantiate.', implode(
-                ', ',
-                $classNames,
-            )),
+            'multiple class types:',
+            implode(', ', $classNames),
+            '. JSON does not identify which class to instantiate.',
         );
     }
 

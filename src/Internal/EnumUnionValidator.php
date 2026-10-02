@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionEnum;
+use ReflectionEnumBackedCase;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionType;
@@ -14,12 +15,11 @@ use ReflectionUnionType;
 use function array_filter;
 use function array_map;
 use function array_shift;
-use function count;
 use function enum_exists;
-use function implode;
 use function in_array;
 use function sort;
 use function sprintf;
+use function var_export;
 
 /** @internal */
 final class EnumUnionValidator
@@ -31,20 +31,7 @@ final class EnumUnionValidator
     public static function validate(string $class, string $field, ReflectionUnionType $type): DecodeError|null
     {
         $memberNames = array_map(static fn(ReflectionType $member): string => (string) $member, $type->getTypes());
-        $enumNames = self::enumNames($memberNames);
-
-        if (count($enumNames) > 1) {
-            return DecodeError::nonInstantiableField(
-                $class,
-                $field,
-                'enum union',
-                implode('|', $enumNames),
-                sprintf(
-                    'multiple enum types: %s. Union declarations may contain at most one enum because selecting among multiple enums requires additional rules.',
-                    implode(', ', $enumNames),
-                ),
-            );
-        }
+        $enumNames = self::backedEnumNames($memberNames);
 
         $ambiguousPair = self::findAmbiguousPair($memberNames, $memberNames);
 
@@ -57,10 +44,26 @@ final class EnumUnionValidator
                 'backed enum',
                 $enum,
                 sprintf(
-                    'backed enum %s together with its backing type %s. JSON cannot distinguish an enum case from the scalar value.',
-                    $enum,
+                    ' together with its backing type %s. JSON cannot distinguish an enum case from the scalar value.',
                     $backingType,
                 ),
+            );
+        }
+
+        $overlap = self::findOverlappingBackingValue($enumNames);
+
+        if ($overlap !== null) {
+            [$firstEnum, $secondEnum, $value] = $overlap;
+
+            return DecodeError::nonInstantiableField(
+                $class,
+                $field,
+                'multiple backed enums',
+                $firstEnum . ' and ' . $secondEnum,
+                sprintf(' with overlapping backing value %s. JSON cannot identify which enum case to instantiate.', var_export(
+                    $value,
+                    return: true,
+                )),
             );
         }
 
@@ -69,14 +72,56 @@ final class EnumUnionValidator
 
     /**
      * @param array<array-key, string> $memberNames
-     * @return list<string>
+     * @return list<enum-string>
+     * @throws ReflectionException
      */
-    private static function enumNames(array $memberNames): array
+    private static function backedEnumNames(array $memberNames): array
     {
-        $enumNames = array_filter($memberNames, static fn(string $memberName): bool => enum_exists($memberName));
+        /** @var list<enum-string> $enumNames */
+        $enumNames = array_filter($memberNames, self::isBackedEnum(...));
         sort($enumNames);
 
         return $enumNames;
+    }
+
+    /** @throws ReflectionException */
+    private static function isBackedEnum(string $type): bool
+    {
+        if (!enum_exists($type)) {
+            return false;
+        }
+
+        return new ReflectionEnum($type)->isBacked();
+    }
+
+    /**
+     * @param list<enum-string> $enumNames
+     * @return array{enum-string, enum-string, int|string}|null
+     * @throws ReflectionException
+     */
+    private static function findOverlappingBackingValue(array $enumNames): array|null
+    {
+        /** @var list<array{enum: enum-string, value: int|string}> $seen */
+        $seen = [];
+
+        foreach ($enumNames as $enumName) {
+            $enum = new ReflectionEnum($enumName);
+
+            foreach ($enum->getCases() as $case) {
+                /** @var ReflectionEnumBackedCase $case */
+                $value = $case->getBackingValue();
+
+                foreach ($seen as $existing) {
+                    if ($existing['value'] === $value) {
+                        return [$existing['enum'], $enumName, $value];
+                    }
+                }
+
+                $seen[] = ['enum' => $enumName, 'value' => $value];
+            }
+        }
+
+        return null;
     }
 
     /**

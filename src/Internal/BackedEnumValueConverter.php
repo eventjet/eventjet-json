@@ -6,15 +6,17 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionEnum;
-use ReflectionEnumBackedCase;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionUnionType;
 use UnitEnum;
 
+use function count;
 use function enum_exists;
 use function get_debug_type;
+use function implode;
+use function sort;
 use function sprintf;
 use function var_export;
 
@@ -43,20 +45,44 @@ final class BackedEnumValueConverter
         }
 
         if ($type instanceof ReflectionUnionType) {
+            /** @var list<enum-string> $matchingBackingEnums */
+            $matchingBackingEnums = [];
+
             foreach ($type->getTypes() as $member) {
                 /** @var ReflectionNamedType $member */
                 $enumName = $member->getName();
 
                 if (enum_exists($enumName)) {
                     $enum = new ReflectionEnum($enumName);
-                    /** @var ReflectionNamedType $backingType */
                     $backingType = $enum->getBackingType();
-                    $valueMatchesBackingType = ValueTypeMatcher::matches($value, $backingType);
+                    $valueMatchesBackingType =
+                        $backingType instanceof ReflectionNamedType && ValueTypeMatcher::matches($value, $backingType);
 
                     if ($valueMatchesBackingType) {
-                        return self::convertValue($class, $parameter->getName(), $enumName, $value);
+                        $matchingBackingEnums[] = $enumName;
+                        $case = BackedEnumCaseFinder::find($enumName, $value);
+
+                        if ($case !== null) {
+                            return $case;
+                        }
                     }
                 }
+            }
+
+            if ($matchingBackingEnums !== []) {
+                sort($matchingBackingEnums);
+
+                if (count($matchingBackingEnums) === 1) {
+                    return self::unknownValue($class, $parameter->getName(), $matchingBackingEnums[0], $value);
+                }
+
+                return DecodeError::nonInstantiableField(
+                    $class,
+                    $parameter->getName(),
+                    'backed enum union',
+                    implode('|', $matchingBackingEnums),
+                    sprintf(', which has no case with backing value %s.', var_export($value, return: true)),
+                );
             }
         }
 
@@ -86,30 +112,34 @@ final class BackedEnumValueConverter
                 'backed enum',
                 $enumName,
                 sprintf(
-                    'backed enum %s, which expects a %s backing value; %s given.',
-                    $enumName,
+                    ', which expects a %s backing value; %s given.',
                     $backingType->getName(),
                     get_debug_type($value),
                 ),
             );
         }
 
-        foreach ($enum->getCases() as $case) {
-            if ($case instanceof ReflectionEnumBackedCase && $case->getBackingValue() === $value) {
-                return $case->getValue();
-            }
+        $case = BackedEnumCaseFinder::find($enumName, $value);
+
+        if ($case !== null) {
+            return $case;
         }
 
+        return self::unknownValue($class, $field, $enumName, $value);
+    }
+
+    /**
+     * @param class-string $class
+     * @param enum-string $enumName
+     */
+    private static function unknownValue(string $class, string $field, string $enumName, mixed $value): DecodeError
+    {
         return DecodeError::nonInstantiableField(
             $class,
             $field,
             'backed enum',
             $enumName,
-            sprintf(
-                'backed enum %s, which has no case with backing value %s.',
-                $enumName,
-                var_export($value, return: true),
-            ),
+            sprintf(', which has no case with backing value %s.', var_export($value, return: true)),
         );
     }
 }

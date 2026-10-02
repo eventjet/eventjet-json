@@ -18,7 +18,6 @@ use function class_exists;
 use function enum_exists;
 use function in_array;
 use function interface_exists;
-use function sprintf;
 
 /** @internal */
 final class FieldTypeValidator
@@ -65,10 +64,7 @@ final class FieldTypeValidator
                 $field,
                 'unsupported type',
                 $typeName,
-                sprintf(
-                    'unsupported type %s. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
-                    $typeName,
-                ),
+                '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
             );
         }
 
@@ -144,10 +140,7 @@ final class FieldTypeValidator
                 $field,
                 'non-final class',
                 $type,
-                sprintf(
-                    'non-final class %s. Values may be subclasses, whose runtime class JSON does not identify.',
-                    $type,
-                ),
+                '. Values may be subclasses, whose runtime class JSON does not identify.',
             );
         }
 

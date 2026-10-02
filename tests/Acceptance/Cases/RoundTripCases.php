@@ -8,17 +8,20 @@ use Eventjet\Json\Test\Acceptance\Fixtures\Address;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
+use Eventjet\Json\Test\Acceptance\Fixtures\DisjointStringBackedEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctStringEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\MapHolder;
+use Eventjet\Json\Test\Acceptance\Fixtures\MultipleEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedBackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedObjectFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\RecursiveNode;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use JsonException;
 
@@ -38,7 +41,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{BackedEnumFields|ClassScalarUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|NestedBackedEnumFields|NestedObjectFields|RecursiveNode}>
+     * @return iterable<string, array{BackedEnumFields|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|RecursiveNode}>
      */
     public static function objects(): iterable
     {
@@ -93,6 +96,30 @@ final class RoundTripCases
         ];
         yield 'string-backed enum and int union with integer value' => [
             new DistinctStringEnumScalarUnionField(42),
+        ];
+        yield 'multiple enums with different backing types select string-backed Ready' => [
+            new MultipleEnumUnionField(StringBackedStatus::Ready),
+        ];
+        yield 'multiple enums with different backing types select string-backed Pending' => [
+            new MultipleEnumUnionField(StringBackedStatus::Pending),
+        ];
+        yield 'multiple enums with different backing types select int-backed Ready' => [
+            new MultipleEnumUnionField(IntBackedStatus::Ready),
+        ];
+        yield 'multiple enums with different backing types select int-backed Pending' => [
+            new MultipleEnumUnionField(IntBackedStatus::Pending),
+        ];
+        yield 'multiple string-backed enums with disjoint values select status Ready' => [
+            new DisjointStringBackedEnumUnionField(StringBackedStatus::Ready),
+        ];
+        yield 'multiple string-backed enums with disjoint values select status Pending' => [
+            new DisjointStringBackedEnumUnionField(StringBackedStatus::Pending),
+        ];
+        yield 'multiple string-backed enums with disjoint values select outcome Complete' => [
+            new DisjointStringBackedEnumUnionField(StringBackedOutcome::Complete),
+        ];
+        yield 'multiple string-backed enums with disjoint values select outcome Failed' => [
+            new DisjointStringBackedEnumUnionField(StringBackedOutcome::Failed),
         ];
 
         yield 'backed enum fields: Ready, Ready' => [

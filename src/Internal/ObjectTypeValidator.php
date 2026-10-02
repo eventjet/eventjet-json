@@ -39,9 +39,9 @@ final class ObjectTypeValidator
                 return DecodeError::nonInstantiableField(
                     $className,
                     $name,
-                    'unsupported type',
-                    'untyped',
-                    'no type declaration. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
+                    'no type',
+                    'declaration',
+                    '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
                 );
             }
 
