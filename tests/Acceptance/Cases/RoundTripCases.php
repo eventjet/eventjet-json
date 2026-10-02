@@ -7,6 +7,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 use Eventjet\Json\Test\Acceptance\Fixtures\Address;
 use Eventjet\Json\Test\Acceptance\Fixtures\ArrayPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties;
@@ -45,7 +46,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{ArrayPublicProperty|BackedEnumFields|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|PublicPropertiesWithConstructor|RecursiveNode}>
+     * @return iterable<string, array{ArrayPublicProperty|BackedEnumFields|BackedEnumPublicProperties|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|PublicPropertiesWithConstructor|RecursiveNode}>
      */
     public static function objects(): iterable
     {
@@ -65,6 +66,19 @@ final class RoundTripCases
         $arrayPublicProperty->value = ['items' => [['answer' => 42]]];
 
         yield 'array public property preserves nested objects and lists' => [$arrayPublicProperty];
+
+        $backedEnumPublicProperties = new BackedEnumPublicProperties();
+        $backedEnumPublicProperties->stringStatus = StringBackedStatus::Pending;
+        $backedEnumPublicProperties->nullableStatus = StringBackedStatus::Ready;
+        $backedEnumPublicProperties->intStatus = IntBackedStatus::Pending;
+
+        yield 'backed enum public properties' => [$backedEnumPublicProperties];
+
+        $backedEnumPublicPropertiesWithNull = new BackedEnumPublicProperties();
+        $backedEnumPublicPropertiesWithNull->stringStatus = StringBackedStatus::Pending;
+        $backedEnumPublicPropertiesWithNull->intStatus = IntBackedStatus::Pending;
+
+        yield 'backed enum public properties with null' => [$backedEnumPublicPropertiesWithNull];
         yield 'array-valued field encoded as an object' => [new MapHolder(['answer' => 42])];
         yield 'array-valued field preserves nested objects and lists' => [
             new MapHolder(['items' => [['answer' => 42]]]),

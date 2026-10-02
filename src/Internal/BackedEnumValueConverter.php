@@ -9,6 +9,7 @@ use ReflectionEnum;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionProperty;
 use ReflectionUnionType;
 use UnitEnum;
 
@@ -29,10 +30,10 @@ final class BackedEnumValueConverter
      */
     public static function convert(
         string $class,
-        ReflectionParameter $parameter,
+        ReflectionParameter|ReflectionProperty $field,
         mixed $value,
     ): UnitEnum|DecodeError|null {
-        $type = $parameter->getType();
+        $type = $field->getType();
 
         if ($type instanceof ReflectionNamedType) {
             $enumName = $type->getName();
@@ -41,7 +42,7 @@ final class BackedEnumValueConverter
                 return null;
             }
 
-            return self::convertValue($class, $parameter->getName(), $enumName, $value);
+            return self::convertValue($class, $field->getName(), $enumName, $value);
         }
 
         if ($type instanceof ReflectionUnionType) {
@@ -73,12 +74,12 @@ final class BackedEnumValueConverter
                 sort($matchingBackingEnums);
 
                 if (count($matchingBackingEnums) === 1) {
-                    return self::unknownValue($class, $parameter->getName(), $matchingBackingEnums[0], $value);
+                    return self::unknownValue($class, $field->getName(), $matchingBackingEnums[0], $value);
                 }
 
                 return DecodeError::nonInstantiableField(
                     $class,
-                    $parameter->getName(),
+                    $field->getName(),
                     'backed enum union',
                     implode('|', $matchingBackingEnums),
                     sprintf(', which has no case with backing value %s.', var_export($value, return: true)),

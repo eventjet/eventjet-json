@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DisjointStringBackedEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
@@ -43,6 +44,19 @@ final class BackedEnumErrorCases
                 BackedEnumFields::class,
                 'Could not create '
                     . BackedEnumFields::class
+                    . ' from the JSON object: Field '
+                    . $field
+                    . ' uses backed enum '
+                    . $enum
+                    . ', '
+                    . $message,
+                3,
+            ];
+            yield 'public property ' . $name => [
+                json_encode([$field => $value], JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
+                BackedEnumPublicProperties::class,
+                'Could not create '
+                    . BackedEnumPublicProperties::class
                     . ' from the JSON object: Field '
                     . $field
                     . ' uses backed enum '

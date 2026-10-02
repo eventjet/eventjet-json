@@ -6,14 +6,13 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionClass;
-use ReflectionNamedType;
+use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
 
 use function array_fill_keys;
 use function array_key_exists;
 use function array_map;
-use function in_array;
 
 /** @internal */
 final class PublicPropertyHydrator
@@ -23,6 +22,7 @@ final class PublicPropertyHydrator
      * @param ReflectionClass<T> $class
      * @param T $object
      * @param array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values
+     * @throws ReflectionException
      */
     public static function hydrate(ReflectionClass $class, object $object, array $values): DecodeError|null
     {
@@ -46,52 +46,17 @@ final class PublicPropertyHydrator
                 continue;
             }
 
-            $field = $property->getName();
-
-            if (array_key_exists($field, $constructorFields)) {
+            if (array_key_exists($property->getName(), $constructorFields)) {
                 continue;
             }
 
-            $type = $property->getType();
+            $assignment = PublicPropertyValueConverter::convert($class->getName(), $property, $value);
 
-            if (!$type instanceof ReflectionNamedType) {
-                return DecodeError::nonInstantiableField(
-                    $class->getName(),
-                    $field,
-                    'unsupported public property type',
-                    $type === null ? 'none' : (string) $type,
-                    '. Public properties outside the constructor currently support declared scalar and array types only.',
-                );
+            if ($assignment instanceof DecodeError) {
+                return $assignment;
             }
 
-            $typeIsSupported = self::isSupportedType($type);
-
-            if (!$typeIsSupported) {
-                return DecodeError::nonInstantiableField(
-                    $class->getName(),
-                    $field,
-                    'unsupported public property type',
-                    (string) $type,
-                    '. Public properties outside the constructor currently support declared scalar and array types only.',
-                );
-            }
-
-            $valueMatchesType = ValueTypeMatcher::matches($value, $type);
-
-            if (!$valueMatchesType) {
-                $expectedType = $type->getName();
-
-                if ($type->allowsNull() && $expectedType !== 'null') {
-                    $expectedType .= '|null';
-                }
-
-                return DecodeError::fieldTypeMismatch($class->getName(), $field, $expectedType, $value);
-            }
-
-            $assignments[] = [
-                'property' => $property,
-                'value' => PublicPropertyValueConverter::convert($type, $value),
-            ];
+            $assignments[] = $assignment;
         }
 
         foreach ($assignments as $assignment) {
@@ -99,24 +64,5 @@ final class PublicPropertyHydrator
         }
 
         return null;
-    }
-
-    private static function isSupportedType(ReflectionNamedType $type): bool
-    {
-        return $type->isBuiltin()
-        && in_array(
-            $type->getName(),
-            [
-                'array',
-                'bool',
-                'false',
-                'float',
-                'int',
-                'null',
-                'string',
-                'true',
-            ],
-            strict: true,
-        );
     }
 }
