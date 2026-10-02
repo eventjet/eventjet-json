@@ -60,7 +60,7 @@ final class PublicPropertyHydrator
                     $field,
                     'unsupported public property type',
                     $type === null ? 'none' : (string) $type,
-                    '. Public properties outside the constructor currently support declared scalar types only.',
+                    '. Public properties outside the constructor currently support declared scalar and array types only.',
                 );
             }
 
@@ -72,7 +72,7 @@ final class PublicPropertyHydrator
                     $field,
                     'unsupported public property type',
                     (string) $type,
-                    '. Public properties outside the constructor currently support declared scalar types only.',
+                    '. Public properties outside the constructor currently support declared scalar and array types only.',
                 );
             }
 
@@ -88,7 +88,10 @@ final class PublicPropertyHydrator
                 return DecodeError::fieldTypeMismatch($class->getName(), $field, $expectedType, $value);
             }
 
-            $assignments[] = ['property' => $property, 'value' => $value];
+            $assignments[] = [
+                'property' => $property,
+                'value' => PublicPropertyValueConverter::convert($type, $value),
+            ];
         }
 
         foreach ($assignments as $assignment) {
@@ -104,6 +107,7 @@ final class PublicPropertyHydrator
         && in_array(
             $type->getName(),
             [
+                'array',
                 'bool',
                 'false',
                 'float',

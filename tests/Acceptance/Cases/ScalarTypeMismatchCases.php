@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\ArrayPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
@@ -95,10 +96,14 @@ final class ScalarTypeMismatchCases
         }
     }
 
-    /** @return array<class-string, array{values: array<string, scalar|null>, types: array<string, string>}> */
+    /** @return array<class-string, array{values: array<string, array<array-key, mixed>|scalar|null>, types: array<string, string>}> */
     private static function fixtures(): array
     {
         return [
+            ArrayPublicProperty::class => [
+                'values' => ['value' => ['answer' => 42]],
+                'types' => ['value' => 'array'],
+            ],
             ScalarFields::class => [
                 'values' => ['string' => 'value', 'integer' => 42, 'float' => 3.25, 'boolean' => true],
                 'types' => ['string' => 'string', 'integer' => 'int', 'float' => 'float', 'boolean' => 'bool'],
@@ -146,6 +151,7 @@ final class ScalarTypeMismatchCases
     private static function mismatchedValues(): array
     {
         return [
+            'array' => ['string' => 'value', 'int' => 42, 'float' => 3.25, 'bool' => true, 'null' => null],
             'string' => ['int' => 42, 'float' => 3.25, 'bool' => true, 'null' => null, 'array' => []],
             'int' => ['string' => '42', 'float' => 42.5, 'bool' => true, 'null' => null, 'array' => []],
             'float' => ['string' => '3.25', 'bool' => true, 'null' => null, 'array' => []],

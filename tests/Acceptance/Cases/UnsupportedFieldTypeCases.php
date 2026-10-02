@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use DatePeriod;
-use Eventjet\Json\Test\Acceptance\Fixtures\ArrayPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\MixedField;
 use Eventjet\Json\Test\Acceptance\Fixtures\ObjectField;
+use Eventjet\Json\Test\Acceptance\Fixtures\ObjectPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\StdClassField;
 use Eventjet\Json\Test\Acceptance\Fixtures\UnionPublicProperty;
 use stdClass;
@@ -44,9 +44,11 @@ final class UnsupportedFieldTypeCases
         }
 
         foreach ([
-            'array public property' => [ArrayPublicProperty::class, '[]', 'array'],
+            'object public property' => [new ObjectPublicProperty(), '{}', 'object'],
             'union public property' => [UnionPublicProperty::class, '"value"', 'string|int'],
-        ] as $name => [$class, $value, $type]) {
+        ] as $name => [$target, $value, $type]) {
+            $class = is_string($target) ? $target : $target::class;
+
             yield $name => [
                 '{"value":' . $value . '}',
                 $class,
@@ -54,7 +56,7 @@ final class UnsupportedFieldTypeCases
                     . $class
                     . ' from the JSON object: Field value uses unsupported public property type '
                     . $type
-                    . '. Public properties outside the constructor currently support declared scalar types only.',
+                    . '. Public properties outside the constructor currently support declared scalar and array types only.',
                 3,
             ];
         }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\Address;
+use Eventjet\Json\Test\Acceptance\Fixtures\ArrayPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassScalarUnionField;
@@ -44,7 +45,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{BackedEnumFields|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|PublicPropertiesWithConstructor|RecursiveNode}>
+     * @return iterable<string, array{ArrayPublicProperty|BackedEnumFields|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|PublicPropertiesWithConstructor|RecursiveNode}>
      */
     public static function objects(): iterable
     {
@@ -59,6 +60,11 @@ final class RoundTripCases
         $publicProperties->inherited = 42;
 
         yield 'constructor-bound, direct, and inherited public properties' => [$publicProperties];
+
+        $arrayPublicProperty = new ArrayPublicProperty();
+        $arrayPublicProperty->value = ['items' => [['answer' => 42]]];
+
+        yield 'array public property preserves nested objects and lists' => [$arrayPublicProperty];
         yield 'array-valued field encoded as an object' => [new MapHolder(['answer' => 42])];
         yield 'array-valued field preserves nested objects and lists' => [
             new MapHolder(['items' => [['answer' => 42]]]),
