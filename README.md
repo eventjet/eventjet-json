@@ -219,7 +219,7 @@ The round-trip contract also has these representation limits:
 ### Enums
 
 - [x] Support string-backed and int-backed enums in direct object fields, including nullable fields.
-- [ ] Extend unknown-value and backing-type validation to enum members in unions and collections without coercion.
+- [x] Extend unknown-value and backing-type validation to enum members in unions and collections without coercion.
 - [x] Reject non-backed enums with a clear error.
 - [x] Test enums nested inside objects.
 - [x] Test enums nested inside lists.
