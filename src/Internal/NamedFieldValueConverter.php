@@ -33,6 +33,12 @@ final class NamedFieldValueConverter
         if ($typeName === 'array' && ($value instanceof stdClass || is_array($value))) {
             $converted = ListValueConverter::convert($class, $parameter, $value);
 
+            if ($converted !== null) {
+                return $converted;
+            }
+
+            $converted = BackedEnumMapValueConverter::convert($class, $parameter, $value);
+
             return $converted ?? ObjectValueConverter::convertArrayValue($value);
         }
 

@@ -65,19 +65,37 @@ final class PublicPropertyValueConverter
         }
 
         if ($typeName === 'array') {
-            $converted = ListValueConverter::convert($class, $property, $value);
-
-            if ($converted instanceof DecodeError) {
-                return $converted;
-            }
-
             /** @var array<array-key, mixed>|stdClass $value */
-            return [
-                'property' => $property,
-                'value' => $converted ?? ObjectValueConverter::convertArrayValue($value),
-            ];
+            return self::convertArray($class, $property, $value);
         }
 
         return ['property' => $property, 'value' => $value];
+    }
+
+    /**
+     * @param class-string $class
+     * @param array<array-key, mixed>|stdClass $value
+     * @return array{property: ReflectionProperty, value: mixed}|DecodeError
+     * @throws ReflectionException
+     */
+    private static function convertArray(
+        string $class,
+        ReflectionProperty $property,
+        array|stdClass $value,
+    ): array|DecodeError {
+        $converted = ListValueConverter::convert($class, $property, $value);
+
+        if ($converted === null) {
+            $converted = BackedEnumMapValueConverter::convert($class, $property, $value);
+        }
+
+        if ($converted instanceof DecodeError) {
+            return $converted;
+        }
+
+        return [
+            'property' => $property,
+            'value' => $converted ?? ObjectValueConverter::convertArrayValue($value),
+        ];
     }
 }

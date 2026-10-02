@@ -8,6 +8,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\Address;
 use Eventjet\Json\Test\Acceptance\Fixtures\ArrayPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumListFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumMapFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassScalarUnionField;
@@ -118,6 +119,7 @@ final class RoundTripCases
         $backedEnumLists->publicStatuses = [StringBackedStatus::Pending, StringBackedStatus::Ready];
 
         yield 'backed enum lists preserve item types and values' => [$backedEnumLists];
+        yield from self::backedEnumMaps();
 
         yield from self::finalClassLists();
         yield 'recursively nested readonly objects with a null field' => [
@@ -239,6 +241,21 @@ final class RoundTripCases
         $publicProperty->values = ['', '42', 'Grüße, 世界, 😀'];
 
         yield 'scalar list public property' => [$publicProperty];
+    }
+
+    /** @return iterable<string, array{BackedEnumMapFields}> */
+    private static function backedEnumMaps(): iterable
+    {
+        $fields = new BackedEnumMapFields([
+            'primary' => StringBackedStatus::Ready,
+            'secondary' => StringBackedStatus::Pending,
+        ], ['primary' => IntBackedStatus::Ready, 'secondary' => IntBackedStatus::Pending]);
+        $fields->publicStatuses = [
+            'primary' => StringBackedStatus::Pending,
+            'secondary' => StringBackedStatus::Ready,
+        ];
+
+        yield 'backed enum maps preserve value types, keys, and values' => [$fields];
     }
 
     /** @return iterable<string, array{FinalClassListFields}> */
