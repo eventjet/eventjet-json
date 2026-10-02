@@ -9,10 +9,10 @@ use ReflectionEnum;
 use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
-use UnitEnum;
 
 use function array_is_list;
 use function array_key_exists;
+use function class_exists;
 use function enum_exists;
 use function is_array;
 use function is_bool;
@@ -26,7 +26,7 @@ final class ListValueConverter
 {
     /**
      * @param class-string $class
-     * @return list<bool|float|int|string|UnitEnum>|DecodeError|null
+     * @return list<bool|float|int|object|string>|DecodeError|null
      * @throws ReflectionException
      */
     public static function convert(
@@ -85,9 +85,13 @@ final class ListValueConverter
         string $path,
         string $type,
         mixed $value,
-    ): bool|float|int|string|UnitEnum|DecodeError {
+    ): bool|float|int|object|string {
         if (enum_exists($type)) {
             return BackedEnumValueConverter::convertValue($class, $path, $type, $value);
+        }
+
+        if (class_exists($type)) {
+            return ConcreteClassValueConverter::convertListItem($class, $path, $type, $value);
         }
 
         $converted = match ($type) {

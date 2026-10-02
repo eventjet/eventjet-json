@@ -16,6 +16,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\DisjointStringBackedEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctStringEnumScalarUnionField;
+use Eventjet\Json\Test\Acceptance\Fixtures\FinalClassListFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\MapHolder;
@@ -34,6 +35,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\UntypedArrayField;
 use JsonException;
+use RuntimeException;
 
 use function array_keys;
 use function implode;
@@ -51,7 +53,8 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{ArrayPublicProperty|BackedEnumFields|BackedEnumListFields|BackedEnumPublicProperties|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|NestedObjectPublicProperties|PublicPropertiesWithConstructor|RecursiveNode|ScalarListFields|ScalarListPublicProperty|UntypedArrayField}>
+     * @return iterable<string, array{0: object, 1?: string}>
+     * @throws RuntimeException
      */
     public static function objects(): iterable
     {
@@ -115,6 +118,8 @@ final class RoundTripCases
         $backedEnumLists->publicStatuses = [StringBackedStatus::Pending, StringBackedStatus::Ready];
 
         yield 'backed enum lists preserve item types and values' => [$backedEnumLists];
+
+        yield from self::finalClassLists();
         yield 'recursively nested readonly objects with a null field' => [
             new NestedObjectFields(
                 new Person('Ada', 'Lovelace'),
@@ -218,6 +223,8 @@ final class RoundTripCases
                 IntBackedStatus::Pending,
             )),
         ];
+
+        yield from SupportedDocumentRoundTripCases::objects();
     }
 
     /** @return iterable<string, array{ScalarListFields|ScalarListPublicProperty}> */
@@ -232,6 +239,20 @@ final class RoundTripCases
         $publicProperty->values = ['', '42', 'Grüße, 世界, 😀'];
 
         yield 'scalar list public property' => [$publicProperty];
+    }
+
+    /** @return iterable<string, array{FinalClassListFields}> */
+    private static function finalClassLists(): iterable
+    {
+        yield 'empty final class lists' => [new FinalClassListFields([])];
+
+        $fields = new FinalClassListFields([
+            new Person('Ada', 'Lovelace'),
+            new Person('Grace', 'Hopper', age: 85),
+        ]);
+        $fields->publicPeople = [new Person('Margaret', 'Hamilton')];
+
+        yield 'final class lists preserve item types and values' => [$fields];
     }
 
     /**

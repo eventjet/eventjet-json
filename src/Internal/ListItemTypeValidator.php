@@ -37,8 +37,18 @@ final class ListItemTypeValidator
         assert(class_exists($itemType), description: 'Resolved list item type must name a class or enum.');
         $itemTypeReflection = new ReflectionClass($itemType);
 
-        return $itemTypeReflection->isAbstract()
-            ? DecodeError::nonInstantiableField($class, $field->getName(), 'abstract class', $itemType)
+        if ($itemTypeReflection->isAbstract()) {
+            return DecodeError::nonInstantiableField($class, $field->getName(), 'abstract class', $itemType);
+        }
+
+        return !$itemTypeReflection->isFinal()
+            ? DecodeError::nonInstantiableField(
+                $class,
+                $field->getName(),
+                'non-final class',
+                $itemType,
+                '. Values may be subclasses, whose runtime class JSON does not identify.',
+            )
             : null;
     }
 }

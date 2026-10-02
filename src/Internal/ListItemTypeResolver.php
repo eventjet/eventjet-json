@@ -20,16 +20,10 @@ use function str_starts_with;
 /** @internal */
 final class ListItemTypeResolver
 {
-    /** @return 'bool'|'float'|'int'|'string'|enum-string|null */
+    /** @return 'bool'|'float'|'int'|'string'|class-string|null */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): string|null
     {
-        $type = self::resolveDeclaration($field);
-
-        if ($type === null || in_array($type, ['bool', 'float', 'int', 'string'], strict: true)) {
-            return $type;
-        }
-
-        return enum_exists($type) ? $type : null;
+        return self::resolveDeclaration($field);
     }
 
     /** @return 'bool'|'float'|'int'|'string'|class-string|null */

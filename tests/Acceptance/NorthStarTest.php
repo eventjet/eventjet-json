@@ -29,11 +29,11 @@ use Eventjet\Json\Internal\PublicPropertyValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
+use Eventjet\Json\Test\Acceptance\NorthStar\AwsMsk\Hydration as AwsMskHydration;
+use Eventjet\Json\Test\Acceptance\NorthStar\AwsMsk\MskEvent;
 use Eventjet\Json\Test\Acceptance\NorthStar\CanonicalJson;
-use Eventjet\Json\Test\Acceptance\NorthStar\GitHub\Hydration as GitHubHydration;
-use Eventjet\Json\Test\Acceptance\NorthStar\GitHub\PullRequestEvent;
-use Eventjet\Json\Test\Acceptance\NorthStar\Kubernetes\Deployment;
-use Eventjet\Json\Test\Acceptance\NorthStar\Kubernetes\Hydration as KubernetesHydration;
+use Eventjet\Json\Test\Acceptance\NorthStar\JsonApi\Document as JsonApiDocument;
+use Eventjet\Json\Test\Acceptance\NorthStar\JsonApi\Hydration as JsonApiHydration;
 use Eventjet\Json\Test\Acceptance\NorthStar\Stripe\Hydration as StripeHydration;
 use Eventjet\Json\Test\Acceptance\NorthStar\Stripe\Invoice;
 use JsonException;
@@ -82,16 +82,16 @@ final class NorthStarTest extends TestCase
      */
     public static function documents(): iterable
     {
-        yield 'GitHub pull request webhook' => [
-            __DIR__ . '/NorthStar/GitHub/pull-request-opened.json',
-            PullRequestEvent::class,
-            GitHubHydration::isComplete(...),
+        yield 'JSON:API compound document' => [
+            __DIR__ . '/NorthStar/JsonApi/compound-document.json',
+            JsonApiDocument::class,
+            JsonApiHydration::isComplete(...),
         ];
 
-        yield 'Kubernetes deployment' => [
-            __DIR__ . '/NorthStar/Kubernetes/deployment.json',
-            Deployment::class,
-            KubernetesHydration::isComplete(...),
+        yield 'AWS Lambda Amazon MSK event' => [
+            __DIR__ . '/NorthStar/AwsMsk/event.json',
+            MskEvent::class,
+            AwsMskHydration::isComplete(...),
         ];
 
         yield 'Stripe invoice' => [

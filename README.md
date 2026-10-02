@@ -137,7 +137,7 @@ must not be relied on, even if a particular value happens to decode.
 | Readonly classes | Supported at the root | The same constructor rules as other concrete classes apply. |
 | `string`, `int`, `float`, and `bool` constructor fields | Supported | Values must have the declared type. An integer JSON value is also valid for a `float` field because the declaration restores it as a PHP float. Other implicit scalar coercions are rejected. |
 | `null`, nullable scalar fields, and literal `true` and `false` fields | Supported | A non-null value must still match the non-null member of a nullable type. Literal Boolean fields accept only their declared value. |
-| `array` constructor fields | Limited | PHPDoc `list<string>`, `list<int>`, `list<float>`, `list<bool>`, and `list<BackedEnum>` declarations are decoded and validated for constructor fields and public properties. Whole-valued JSON integers in `list<float>` are restored as floats. Backed enum names may be fully qualified or in the declaring class's named namespace; imported aliases and global-namespace shorthand are not yet resolved. Other PHPDoc item and value types are not yet read or validated. Untyped arrays are passed through, and only nonempty, string-keyed maps have round-trip coverage. |
+| `array` constructor fields | Limited | PHPDoc `list<string>`, `list<int>`, `list<float>`, `list<bool>`, `list<BackedEnum>`, and `list<FinalClass>` declarations are decoded and validated for constructor fields and public properties. Whole-valued JSON integers in `list<float>` are restored as floats. Class and enum names may be fully qualified or in the declaring class's named namespace; imported aliases and global-namespace shorthand are not yet resolved. Other PHPDoc item and value types are not yet read or validated. Untyped arrays are passed through, and only nonempty, string-keyed maps have round-trip coverage. |
 | Nested class fields | Supported for final classes | JSON objects are recursively converted to final classes declared directly on constructor fields, including readonly classes, nullable fields, `self` declarations that resolve to a final class, and unions with backed enums, scalar, and null members. Non-final declarations, including `parent`, are rejected because their values may be subclasses. Class members of unions that also contain lists and maps are not yet supported. |
 | Backed enum fields | Supported in direct constructor fields, public properties, unambiguous unions, and lists | String-backed and int-backed values are converted without coercion, including nullable enum fields, lists, unions where scalar members use different JSON types from the enum backing type, and unions of backed enums whose case values do not overlap. Enum members of maps are not yet supported. Non-backed enums are rejected because they have no JSON representation. |
 | General union types | Limited | Nullable scalar declarations, one final class alongside a backed enum and scalar or null members, backed enum/scalar unions with distinct JSON types, and unambiguous unions of backed enums are supported. Scalar members must use JSON types distinct from the enum's backing type. Other unions do not yet have a supported selection policy. |
@@ -205,6 +205,7 @@ The round-trip contract also has these representation limits:
 - [x] Reject constructor parameters without same-named declared public instance properties because the class shape provides no stable JSON member from which to recover their values.
 - [ ] Define the remaining supported class shapes and report unsupported ones clearly.
 - [x] Define behavior for `mixed`, untyped fields, `object`, and `stdClass`.
+- [ ] Investigate parsing JSON directly into target objects instead of decoding to generic PHP values and then mapping those values onto objects.
 - [x] Support unions that combine one concrete class and one backed enum, alongside scalar and null members whose types do not overlap the enum's backing type, such as `MyEnum|MyClass|null`.
 - [x] Reject unions containing multiple classes (such as `ClassA|ClassB`).
 - [x] Select the single class member in supported unions by JSON value kind without discriminators or inspecting class fields.
@@ -227,9 +228,11 @@ The round-trip contract also has these representation limits:
 
 - [x] Decode JSON array fields declared as PHPDoc `list<T>` for `string`, `int`, `float`, and `bool` items.
 - [x] Extend PHPDoc `list<T>` decoding to backed-enum items.
-- [ ] Extend PHPDoc `list<T>` decoding to final-class items.
+- [x] Extend PHPDoc `list<T>` decoding to final-class items.
 - [ ] Decode JSON array fields into fixed-shape PHPDoc tuples such as `array{int, string}`, validating each position independently.
 - [ ] Decode JSON object fields into PHPDoc `array<array-key, T>`, supporting scalar, enum, and object values.
+- [ ] Support unions with array-shaped members, such as `list<Foo>|Foo|null`.
+- [ ] Support unions inside collection declarations, such as `list<string|int|Foo>`.
 - [ ] Support recursively nested lists and maps, including nullable items and values and unions that follow the same rules as object fields.
 - [ ] Support arbitrary nesting of different array shapes, such as `list<array<string, list<Foo>>>`.
 - [ ] Validate collection items against their declared types and reject object/array shape mismatches.

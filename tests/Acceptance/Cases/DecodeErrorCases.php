@@ -194,6 +194,7 @@ final class DecodeErrorCases
         yield from BackedEnumErrorCases::errors();
         yield from BackedEnumListErrorCases::errors();
         yield from ConstructorParameterErrorCases::errors();
+        yield from FinalClassListErrorCases::errors();
         yield from InaccessibleConstructorErrorCases::errors();
         yield from MultipleClassUnionErrorCases::errors();
         yield from MultipleEnumUnionErrorCases::errors();

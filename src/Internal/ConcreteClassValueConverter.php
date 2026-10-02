@@ -28,16 +28,37 @@ final class ConcreteClassValueConverter
             return null;
         }
 
-        if (!$value instanceof stdClass) {
-            $expectedType = $typeName;
+        $expectedType = $typeName;
 
-            if ($allowsNull) {
-                $expectedType .= '|null';
-            }
-
-            return DecodeError::fieldTypeMismatch($class, $field->getName(), $expectedType, $value);
+        if ($allowsNull) {
+            $expectedType .= '|null';
         }
 
-        return ObjectHydrator::hydrate($typeName, $value);
+        return self::convertValue($class, $field->getName(), $typeName, $expectedType, $value);
+    }
+
+    /**
+     * @param class-string $class
+     * @param class-string $typeName
+     */
+    public static function convertListItem(string $class, string $path, string $typeName, mixed $value): object
+    {
+        return self::convertValue($class, $path, $typeName, $typeName, $value);
+    }
+
+    /**
+     * @param class-string $class
+     * @param class-string $typeName
+     */
+    private static function convertValue(
+        string $class,
+        string $path,
+        string $typeName,
+        string $expectedType,
+        mixed $value,
+    ): object {
+        return $value instanceof stdClass
+            ? ObjectHydrator::hydrate($typeName, $value)
+            : DecodeError::fieldTypeMismatch($class, $path, $expectedType, $value);
     }
 }
