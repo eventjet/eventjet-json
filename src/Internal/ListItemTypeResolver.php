@@ -8,8 +8,10 @@ use ReflectionClass;
 use ReflectionParameter;
 use ReflectionProperty;
 
+use function class_exists;
 use function enum_exists;
 use function in_array;
+use function interface_exists;
 use function is_string;
 use function ltrim;
 use function preg_match;
@@ -20,6 +22,18 @@ final class ListItemTypeResolver
 {
     /** @return 'bool'|'float'|'int'|'string'|enum-string|null */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): string|null
+    {
+        $type = self::resolveDeclaration($field);
+
+        if ($type === null || in_array($type, ['bool', 'float', 'int', 'string'], strict: true)) {
+            return $type;
+        }
+
+        return enum_exists($type) ? $type : null;
+    }
+
+    /** @return 'bool'|'float'|'int'|'string'|class-string|null */
+    public static function resolveDeclaration(ReflectionParameter|ReflectionProperty $field): string|null
     {
         $docComment = $field instanceof ReflectionParameter
             ? $field->getDeclaringFunction()->getDocComment()
@@ -58,6 +72,8 @@ final class ListItemTypeResolver
             ? ltrim($type, characters: '\\')
             : $declaringClass->getNamespaceName() . '\\' . $type;
 
-        return enum_exists($resolvedType) ? $resolvedType : null;
+        return enum_exists($resolvedType) || class_exists($resolvedType) || interface_exists($resolvedType)
+            ? $resolvedType
+            : null;
     }
 }

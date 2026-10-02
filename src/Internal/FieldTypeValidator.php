@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use ReflectionClass;
 use ReflectionEnum;
 use ReflectionException;
 use ReflectionIntersectionType;
@@ -15,10 +14,8 @@ use ReflectionProperty;
 use ReflectionUnionType;
 use stdClass;
 
-use function class_exists;
 use function enum_exists;
 use function in_array;
-use function interface_exists;
 
 /** @internal */
 final class FieldTypeValidator
@@ -75,7 +72,15 @@ final class FieldTypeValidator
             return DecodeError::nonBackedEnum($class, $typeName, $fieldName);
         }
 
-        return self::validateClassType($class, $fieldName, $typeName);
+        if ($typeName === 'array') {
+            $listItemTypeError = ListItemTypeValidator::validate($class, $field);
+
+            if ($listItemTypeError !== null) {
+                return $listItemTypeError;
+            }
+        }
+
+        return ClassFieldTypeValidator::validate($class, $fieldName, $typeName);
     }
 
     /**
@@ -110,39 +115,6 @@ final class FieldTypeValidator
             if ($error !== null) {
                 return $error;
             }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param class-string $class
-     * @throws ReflectionException
-     */
-    private static function validateClassType(string $class, string $field, string $type): DecodeError|null
-    {
-        if (interface_exists($type)) {
-            return DecodeError::nonInstantiableField($class, $field, 'interface', $type);
-        }
-
-        if (!class_exists($type)) {
-            return null;
-        }
-
-        $typeReflection = new ReflectionClass($type);
-
-        if ($typeReflection->isAbstract()) {
-            return DecodeError::nonInstantiableField($class, $field, 'abstract class', $type);
-        }
-
-        if (!$typeReflection->isFinal()) {
-            return DecodeError::nonInstantiableField(
-                $class,
-                $field,
-                'non-final class',
-                $type,
-                '. Values may be subclasses, whose runtime class JSON does not identify.',
-            );
         }
 
         return null;
