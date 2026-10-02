@@ -222,7 +222,8 @@ The round-trip contract also has these representation limits:
 - [ ] Extend unknown-value and backing-type validation to enum members in unions and collections without coercion.
 - [x] Reject non-backed enums with a clear error.
 - [x] Test enums nested inside objects.
-- [ ] Test enums nested inside lists and maps.
+- [x] Test enums nested inside lists.
+- [ ] Test enums nested inside maps.
 
 ### Lists, maps, and root values
 
