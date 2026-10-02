@@ -105,6 +105,7 @@ scope decisions are made, and include a reason for every exclusion.
 | Non-backed enums | They have no scalar backing value and cannot round-trip through PHP's `json_encode()`. |
 | Object targets implementing `JsonSerializable` | Their custom JSON representation may not match their constructor parameters, so generic decoding cannot guarantee the round-trip contract. |
 | Non-JSON-encodable values, including resources, `INF`, `NAN`, invalid UTF-8, and circular references | JSON cannot represent these values without losing information or changing their meaning. They fall outside the round-trip contract. |
+| JSON objects with duplicate member names | They cannot be produced by `json_encode()` from supported PHP values. PHP's decoder does not report them separately, and detecting them would require reparsing every document. Callers must not rely on which duplicate value is retained. |
 | Implicit coercion of mismatched scalar types | Converting values such as `"42"` to `42` hides a type mismatch and changes the value's type. Decoding must validate the declared type. |
 | Member-name mapping, aliases, and naming strategies | Target classes are expected to match the JSON wire format exactly. Transforming decoded transport data into an application's domain model is the consumer's responsibility. |
 | `mixed`, untyped, `object`, and `stdClass` constructor fields | These declarations do not provide enough type information to restore every value's original PHP type and JSON shape. In particular, `object` omits the concrete class, while `mixed`, untyped fields, and `stdClass` members can contain PHP arrays that encode as JSON objects. |
@@ -182,7 +183,7 @@ The round-trip contract also has these representation limits:
 - [x] Test that JSON member order does not affect constructor argument binding.
 - [ ] Preserve the distinction between JSON objects and arrays, especially `{}` versus `[]` and objects with numeric-looking keys.
 - [x] Ignore unknown JSON fields at the root and in nested objects.
-- [ ] Define and test the policy for duplicate JSON member names.
+- [x] Define the policy for duplicate JSON member names.
 - [x] Reject interface and abstract class root targets with a clear `DecodeError`.
 - [x] Reject direct interface and abstract class field types with a clear `DecodeError`.
 - [x] Reject interface and abstract class union members with a clear `DecodeError`.
