@@ -212,6 +212,7 @@ The round-trip contract also has these representation limits:
 ### Lists, maps, and root values
 
 - [ ] Decode JSON array fields into PHPDoc `list<T>`, supporting scalar, enum, and object items.
+- [ ] Decode JSON array fields into fixed-shape PHPDoc tuples such as `array{int, string}`, validating each position independently.
 - [ ] Decode JSON object fields into PHPDoc `array<array-key, T>`, supporting scalar, enum, and object values.
 - [ ] Support recursively nested lists and maps, including nullable items and values and unions that follow the same rules as object fields.
 - [ ] Validate collection items against their declared types and reject object/array shape mismatches.
