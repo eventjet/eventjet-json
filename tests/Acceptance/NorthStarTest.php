@@ -14,6 +14,7 @@ use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\ObjectTypeValidator;
 use Eventjet\Json\Internal\ObjectValueConverter;
 use Eventjet\Json\Internal\ParameterTypeNameResolver;
+use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
@@ -48,6 +49,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ObjectValueConverter::class)]
 #[CoversClass(ObjectHydrator::class)]
 #[CoversClass(ParameterTypeNameResolver::class)]
+#[CoversClass(PublicPropertyHydrator::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 final class NorthStarTest extends TestCase

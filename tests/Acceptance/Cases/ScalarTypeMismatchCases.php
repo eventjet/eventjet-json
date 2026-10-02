@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
@@ -121,6 +122,22 @@ final class ScalarTypeMismatchCases
             LiteralBooleanFields::class => [
                 'values' => ['true' => true, 'false' => false],
                 'types' => ['true' => 'true', 'false' => 'false'],
+            ],
+            ConstructorlessPublicProperties::class => [
+                'values' => [
+                    'string' => 'value',
+                    'integer' => 42,
+                    'float' => 3.25,
+                    'boolean' => true,
+                    'nullable' => 'value',
+                ],
+                'types' => [
+                    'string' => 'string',
+                    'integer' => 'int',
+                    'float' => 'float',
+                    'boolean' => 'bool',
+                    'nullable' => 'string|null',
+                ],
             ],
         ];
     }

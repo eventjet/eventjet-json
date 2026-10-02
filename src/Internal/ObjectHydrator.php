@@ -23,6 +23,7 @@ final class ObjectHydrator
     {
         try {
             $reflection = new ReflectionClass($class);
+            /** @var array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values */
             $values = get_object_vars($object);
             $typeError = ObjectTypeValidator::validate($reflection, $values);
 
@@ -40,7 +41,10 @@ final class ObjectHydrator
              * @mago-expect analysis:unknown-class-instantiation The constructor target is intentionally dynamic.
              * @psalm-suppress MixedMethodCall PHP validates the intentionally dynamic constructor at runtime.
              */
-            return new $class(...$convertedValues);
+            $object = new $class(...$convertedValues);
+            $propertyError = PublicPropertyHydrator::hydrate($reflection, $object, $values);
+
+            return $propertyError ?? $object;
         } catch (Throwable $error) {
             return DecodeError::cannotInstantiate($class, $error);
         }

@@ -8,6 +8,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\Address;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassScalarUnionField;
+use Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\DisjointStringBackedEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
@@ -20,6 +21,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\NestedBackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedObjectFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
+use Eventjet\Json\Test\Acceptance\Fixtures\PublicPropertiesWithConstructor;
 use Eventjet\Json\Test\Acceptance\Fixtures\RecursiveNode;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome;
@@ -42,7 +44,7 @@ final class RoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{BackedEnumFields|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|RecursiveNode}>
+     * @return iterable<string, array{BackedEnumFields|ClassEnumScalarUnionField|ClassScalarUnionField|DisjointStringBackedEnumUnionField|DistinctEnumScalarUnionField|DistinctStringEnumScalarUnionField|Person|MapHolder|MultipleEnumUnionField|NestedBackedEnumFields|NestedObjectFields|PublicPropertiesWithConstructor|RecursiveNode}>
      */
     public static function objects(): iterable
     {
@@ -50,6 +52,13 @@ final class RoundTripCases
         yield 'middle name' => [new Person('John', 'Doe', 'Quincy')];
         yield 'age' => [new Person('Jane', 'Doe', age: 42)];
         yield 'all properties' => [new Person('Alice', 'Smith', 'Beth', 30)];
+
+        $publicProperties = new PublicPropertiesWithConstructor('constructor value');
+        $publicProperties->label = 'property value';
+        $publicProperties->active = true;
+        $publicProperties->inherited = 42;
+
+        yield 'constructor-bound, direct, and inherited public properties' => [$publicProperties];
         yield 'array-valued field encoded as an object' => [new MapHolder(['answer' => 42])];
         yield 'array-valued field preserves nested objects and lists' => [
             new MapHolder(['items' => [['answer' => 42]]]),
@@ -203,7 +212,7 @@ final class RoundTripCases
 
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{LiteralBooleanFields|NullableScalarFields|ScalarFields}>
+     * @return iterable<string, array{ConstructorlessPublicProperties|LiteralBooleanFields|NullableScalarFields|ScalarFields}>
      */
     public static function scalarFields(): iterable
     {
@@ -215,6 +224,15 @@ final class RoundTripCases
             new NullableScalarFields(null, null, null, null, null),
         ];
         yield 'literal boolean fields' => [new LiteralBooleanFields(true, false)];
+
+        $constructorless = new ConstructorlessPublicProperties();
+        $constructorless->string = 'value';
+        $constructorless->integer = 42;
+        $constructorless->float = 3.0;
+        $constructorless->boolean = true;
+        $constructorless->nullable = null;
+
+        yield 'constructorless public scalar properties' => [$constructorless];
     }
 
     /**
