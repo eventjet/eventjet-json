@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use ArrayObject;
 use Eventjet\Json\DecodeError;
 use ReflectionEnum;
 use ReflectionException;
@@ -55,6 +56,15 @@ final class FieldTypeValidator
     ): DecodeError|null {
         $fieldName = $field->getName();
         $typeName = FieldTypeNameResolver::resolve($field, $type);
+        $mapTypeError = MapTypeValidator::validate($class, $field, $typeName);
+
+        if ($mapTypeError !== null) {
+            return $mapTypeError;
+        }
+
+        if ($typeName === ArrayObject::class) {
+            return null;
+        }
 
         if (in_array($typeName, ['mixed', 'object', stdClass::class], strict: true)) {
             return DecodeError::nonInstantiableField(
@@ -77,12 +87,6 @@ final class FieldTypeValidator
 
             if ($listItemTypeError !== null) {
                 return $listItemTypeError;
-            }
-
-            $mapValueType = CollectionTypeResolver::resolveMapValue($field);
-
-            if ($mapValueType !== null) {
-                return ClassFieldTypeValidator::validate($class, $fieldName, $mapValueType);
             }
         }
 

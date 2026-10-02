@@ -6,7 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Fixtures;
 
 final readonly class InterfaceMapField
 {
-    /** @param array<string, RootTargetInterface> $values */
+    /** @param non-empty-array<string, RootTargetInterface> $values */
     public function __construct(
         public array $values,
     ) {}

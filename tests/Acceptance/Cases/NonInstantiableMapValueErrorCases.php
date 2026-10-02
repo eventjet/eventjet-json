@@ -21,9 +21,18 @@ final class NonInstantiableMapValueErrorCases
     public static function errors(): iterable
     {
         foreach ([
-            'interface' => [new InterfaceMapField([]), RootTargetInterface::class],
-            'abstract class' => [new AbstractClassMapField([]), AbstractRootTarget::class],
-            'non-final class' => [new NonFinalClassMapField([]), ParentClassFieldBase::class],
+            'interface' => [
+                new InterfaceMapField(['value' => new class implements RootTargetInterface {}]),
+                RootTargetInterface::class,
+            ],
+            'abstract class' => [
+                new AbstractClassMapField(['value' => new class extends AbstractRootTarget {}]),
+                AbstractRootTarget::class,
+            ],
+            'non-final class' => [
+                new NonFinalClassMapField(['value' => new ParentClassFieldBase()]),
+                ParentClassFieldBase::class,
+            ],
         ] as $typeKind => [$target, $valueType]) {
             $class = $target::class;
             $message =

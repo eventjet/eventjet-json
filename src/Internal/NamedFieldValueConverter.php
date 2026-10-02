@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use ArrayObject;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -30,7 +31,7 @@ final class NamedFieldValueConverter
     ): array|bool|float|int|object|string|null {
         $typeName = FieldTypeNameResolver::resolve($parameter, $type);
 
-        if ($typeName === 'array' && ($value instanceof stdClass || is_array($value))) {
+        if ($typeName === 'array') {
             $converted = ListValueConverter::convert($class, $parameter, $value);
 
             if ($converted !== null) {
@@ -39,7 +40,17 @@ final class NamedFieldValueConverter
 
             $converted = MapValueConverter::convert($class, $parameter, $value);
 
-            return $converted ?? ObjectValueConverter::convertArrayValue($value);
+            if ($converted !== null) {
+                return $converted;
+            }
+
+            return $value instanceof stdClass || is_array($value)
+                ? ObjectValueConverter::convertArrayValue($value)
+                : $value;
+        }
+
+        if ($typeName === ArrayObject::class) {
+            return ArrayObjectMapValueConverter::convert($class, $parameter, $value);
         }
 
         if (enum_exists($typeName)) {

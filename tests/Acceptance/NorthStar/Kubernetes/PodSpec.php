@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\NorthStar\Kubernetes;
 
+use ArrayObject;
+
 /** @api Consumed dynamically by NorthStarTest. */
 final class PodSpec
 {
@@ -23,9 +25,16 @@ final class PodSpec
 
     public string $dnsPolicy = '';
 
-    /** @var array<string, string> */
-    public array $nodeSelector = [];
+    /** @var ArrayObject<string, string> */
+    public ArrayObject $nodeSelector;
 
     /** @var list<Toleration> */
     public array $tolerations = [];
+
+    public function __construct()
+    {
+        /** @var ArrayObject<string, string> $nodeSelector */
+        $nodeSelector = new ArrayObject();
+        $this->nodeSelector = $nodeSelector;
+    }
 }

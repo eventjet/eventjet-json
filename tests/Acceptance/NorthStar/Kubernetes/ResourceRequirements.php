@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\NorthStar\Kubernetes;
 
+use ArrayObject;
+
 /** @api Consumed dynamically by NorthStarTest. */
 final readonly class ResourceRequirements
 {
     /**
-     * @param array<string, string> $limits
-     * @param array<string, string> $requests
+     * @param ArrayObject<string, string> $limits
+     * @param ArrayObject<string, string> $requests
      */
     public function __construct(
-        public array $limits,
-        public array $requests,
+        public ArrayObject $limits,
+        public ArrayObject $requests,
     ) {}
 }

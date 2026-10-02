@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\ArrayObjectMapValueConverter;
 use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
@@ -18,12 +19,17 @@ use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\ListItemTypeValidator;
 use Eventjet\Json\Internal\ListValueConverter;
+use Eventjet\Json\Internal\MapDecodeError;
+use Eventjet\Json\Internal\MapInputNormalizer;
+use Eventjet\Json\Internal\MapTypeResolver;
+use Eventjet\Json\Internal\MapTypeValidator;
 use Eventjet\Json\Internal\MapValueConverter;
 use Eventjet\Json\Internal\NamedFieldValueConverter;
 use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\ObjectTypeValidator;
 use Eventjet\Json\Internal\ObjectValueConverter;
 use Eventjet\Json\Internal\PublicPropertyHydrator;
+use Eventjet\Json\Internal\PublicPropertyNamedValueConverter;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyUnionValueConverter;
 use Eventjet\Json\Internal\PublicPropertyValueConverter;
@@ -51,6 +57,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(DecodeError::class)]
 #[CoversClass(BackedEnumCaseFinder::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
+#[CoversClass(ArrayObjectMapValueConverter::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ClassUnionValidator::class)]
 #[CoversClass(CollectionTypeResolver::class)]
@@ -62,12 +69,17 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(FieldTypeNameResolver::class)]
 #[CoversClass(ListItemTypeValidator::class)]
 #[CoversClass(ListValueConverter::class)]
+#[CoversClass(MapDecodeError::class)]
+#[CoversClass(MapInputNormalizer::class)]
+#[CoversClass(MapTypeResolver::class)]
+#[CoversClass(MapTypeValidator::class)]
 #[CoversClass(MapValueConverter::class)]
 #[CoversClass(NamedFieldValueConverter::class)]
 #[CoversClass(ObjectTypeValidator::class)]
 #[CoversClass(ObjectValueConverter::class)]
 #[CoversClass(ObjectHydrator::class)]
 #[CoversClass(PublicPropertyHydrator::class)]
+#[CoversClass(PublicPropertyNamedValueConverter::class)]
 #[CoversClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(PublicPropertyUnionValueConverter::class)]
 #[CoversClass(PublicPropertyValueConverter::class)]

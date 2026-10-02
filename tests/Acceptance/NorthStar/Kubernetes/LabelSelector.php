@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\NorthStar\Kubernetes;
 
+use ArrayObject;
+
 /** @api Consumed dynamically by NorthStarTest. */
 final readonly class LabelSelector
 {
     /**
-     * @param array<string, string> $matchLabels
+     * @param ArrayObject<string, string> $matchLabels
      * @param list<LabelSelectorRequirement> $matchExpressions
      */
     public function __construct(
-        public array $matchLabels,
+        public ArrayObject $matchLabels,
         public array $matchExpressions,
     ) {}
 }

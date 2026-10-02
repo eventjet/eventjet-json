@@ -21,31 +21,31 @@ final class BackedEnumMapErrorCases
     {
         foreach ([
             'string-backed enum map rejects an integer' => [
-                '{"stringStatuses":{"primary":1},"intStatuses":{}}',
+                '{"stringStatuses":{"primary":1},"intStatuses":{"primary":1}}',
                 'stringStatuses[primary]',
                 StringBackedStatus::class,
                 'expects a string backing value; int given',
             ],
             'string-backed enum map rejects an unknown value' => [
-                '{"stringStatuses":{"primary":"unknown"},"intStatuses":{}}',
+                '{"stringStatuses":{"primary":"unknown"},"intStatuses":{"primary":1}}',
                 'stringStatuses[primary]',
                 StringBackedStatus::class,
                 "has no case with backing value 'unknown'",
             ],
             'int-backed enum map rejects a string' => [
-                '{"stringStatuses":{},"intStatuses":{"primary":"1"}}',
+                '{"stringStatuses":{"primary":"ready"},"intStatuses":{"primary":"1"}}',
                 'intStatuses[primary]',
                 IntBackedStatus::class,
                 'expects a int backing value; string given',
             ],
             'int-backed enum map rejects an unknown value' => [
-                '{"stringStatuses":{},"intStatuses":{"primary":2}}',
+                '{"stringStatuses":{"primary":"ready"},"intStatuses":{"primary":2}}',
                 'intStatuses[primary]',
                 IntBackedStatus::class,
                 'has no case with backing value 2',
             ],
             'public property enum map rejects an unknown value' => [
-                '{"stringStatuses":{},"intStatuses":{},"publicStatuses":{"primary":"unknown"}}',
+                '{"stringStatuses":{"primary":"ready"},"intStatuses":{"primary":1},"publicStatuses":{"primary":"unknown"}}',
                 'publicStatuses[primary]',
                 StringBackedStatus::class,
                 "has no case with backing value 'unknown'",
@@ -69,8 +69,8 @@ final class BackedEnumMapErrorCases
 
         $nonBackedEnumMap = new NonBackedEnumMapField(['primary' => NonBackedStatus::Ready]);
 
-        yield 'empty non-backed enum map is rejected' => [
-            '{"values":{}}',
+        yield 'non-backed enum map is rejected' => [
+            '{"values":{"primary":"ready"}}',
             $nonBackedEnumMap::class,
             'Could not create '
                 . $nonBackedEnumMap::class

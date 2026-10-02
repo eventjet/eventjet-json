@@ -9,7 +9,6 @@ use ReflectionEnum;
 use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
-use stdClass;
 use UnitEnum;
 
 use function array_key_exists;
@@ -17,10 +16,8 @@ use function array_keys;
 use function assert;
 use function class_exists;
 use function enum_exists;
-use function get_object_vars;
 use function is_bool;
 use function is_float;
-use function is_int;
 use function is_string;
 use function sprintf;
 
@@ -29,31 +26,36 @@ final class MapValueConverter
 {
     /**
      * @param class-string $class
-     * @param array<array-key, mixed>|stdClass $value
-     * @return array<array-key, bool|float|int|object|string|UnitEnum>|DecodeError|null
+     * @return array<array-key, mixed>|DecodeError|null
      * @throws ReflectionException
      */
     public static function convert(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
-        array|stdClass $value,
+        mixed $value,
     ): array|DecodeError|null {
-        $valueType = CollectionTypeResolver::resolveMapValue($field);
+        $values = MapInputNormalizer::normalize($class, $field, $value);
+
+        if ($values === null || $values instanceof DecodeError) {
+            return $values;
+        }
+
+        $valueType = MapTypeResolver::resolveValue($field);
 
         if ($valueType === null) {
-            return null;
+            return ObjectValueConverter::convertArrayValue($values);
         }
 
         if (enum_exists($valueType)) {
-            return self::convertEnumValues($class, $field, $valueType, $value);
+            return self::convertEnumValues($class, $field, $valueType, $values);
         }
 
         if (class_exists($valueType)) {
-            return ConcreteClassMapValueConverter::convert($class, $field, $valueType, $value);
+            return ConcreteClassMapValueConverter::convert($class, $field, $valueType, $values);
         }
 
         return match ($valueType) {
-            'bool', 'float', 'int', 'string' => self::convertScalarValues($class, $field, $valueType, $value),
+            'bool', 'float', 'int', 'string' => self::convertScalarValues($class, $field, $valueType, $values),
             default => null,
         };
     }
@@ -61,7 +63,7 @@ final class MapValueConverter
     /**
      * @param class-string $class
      * @param enum-string $type
-     * @param array<array-key, mixed>|stdClass $value
+     * @param array<array-key, mixed> $value
      * @return array<array-key, UnitEnum>|DecodeError
      * @throws ReflectionException
      */
@@ -69,7 +71,7 @@ final class MapValueConverter
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         string $type,
-        array|stdClass $value,
+        array $value,
     ): array|DecodeError {
         $enum = new ReflectionEnum($type);
 
@@ -77,13 +79,12 @@ final class MapValueConverter
             return DecodeError::nonBackedEnum($class, $type, $field->getName());
         }
 
-        $values = $value instanceof stdClass ? get_object_vars($value) : $value;
         $converted = [];
 
-        foreach (array_keys($values) as $key) {
-            assert(array_key_exists($key, $values), description: 'A key returned by array_keys() must exist.');
+        foreach (array_keys($value) as $key) {
+            assert(array_key_exists($key, $value), description: 'A key returned by array_keys() must exist.');
             $path = sprintf('%s[%s]', $field->getName(), $key);
-            $convertedValue = BackedEnumValueConverter::convertValue($class, $path, $type, $values[$key]);
+            $convertedValue = BackedEnumValueConverter::convertValue($class, $path, $type, $value[$key]);
 
             if ($convertedValue instanceof DecodeError) {
                 return $convertedValue;
@@ -98,22 +99,21 @@ final class MapValueConverter
     /**
      * @param class-string $class
      * @param 'bool'|'float'|'int'|'string' $type
-     * @param array<array-key, mixed>|stdClass $value
+     * @param array<array-key, mixed> $value
      * @return array<array-key, bool|float|int|string>|DecodeError
      */
     private static function convertScalarValues(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         string $type,
-        array|stdClass $value,
+        array $value,
     ): array|DecodeError {
-        $values = $value instanceof stdClass ? get_object_vars($value) : $value;
         $converted = [];
 
-        foreach (array_keys($values) as $key) {
-            assert(array_key_exists($key, $values), description: 'A key returned by array_keys() must exist.');
+        foreach (array_keys($value) as $key) {
+            assert(array_key_exists($key, $value), description: 'A key returned by array_keys() must exist.');
             $path = sprintf('%s[%s]', $field->getName(), $key);
-            $convertedValue = self::convertScalar($class, $path, $type, $values[$key]);
+            $convertedValue = self::convertScalar($class, $path, $type, $value[$key]);
 
             if ($convertedValue instanceof DecodeError) {
                 return $convertedValue;

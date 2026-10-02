@@ -20,7 +20,6 @@ use Eventjet\Json\Test\Acceptance\Fixtures\DistinctStringEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\FinalClassListFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
-use Eventjet\Json\Test\Acceptance\Fixtures\MapHolder;
 use Eventjet\Json\Test\Acceptance\Fixtures\MultipleEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedBackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedObjectFields;
@@ -34,7 +33,6 @@ use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
-use Eventjet\Json\Test\Acceptance\Fixtures\UntypedArrayField;
 use JsonException;
 use RuntimeException;
 
@@ -102,13 +100,7 @@ final class RoundTripCases
 
         yield 'nullable nested final class public property with null' => [$nullableNestedPublicProperty];
 
-        yield 'array-valued field encoded as an object' => [new MapHolder(['answer' => 42])];
-        yield 'array-valued field preserves nested objects and lists' => [
-            new MapHolder(['items' => [['answer' => 42]]]),
-        ];
-        yield 'array field without a PHPDoc parameter declaration is passed through' => [new UntypedArrayField([
-            'value',
-        ])];
+        yield from MapRoundTripCases::objects();
         yield from self::scalarLists();
         yield from ScalarMapRoundTripCases::objects();
         yield 'empty backed enum lists' => [new BackedEnumListFields([], [])];
@@ -124,6 +116,7 @@ final class RoundTripCases
 
         yield from self::finalClassLists();
         yield from FinalClassMapRoundTripCases::objects();
+        yield from ArrayObjectMapRoundTripCases::objects();
         yield 'recursively nested readonly objects with a null field' => [
             new NestedObjectFields(
                 new Person('Ada', 'Lovelace'),

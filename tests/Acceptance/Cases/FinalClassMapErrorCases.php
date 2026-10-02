@@ -28,7 +28,7 @@ final class FinalClassMapErrorCases
                 'array',
             ],
             'final class map public property rejects a scalar value' => [
-                '{"people":{},"publicPeople":{"author":"Ada"}}',
+                '{"people":{"valid":{"firstName":"Ada","lastName":"Lovelace"}},"publicPeople":{"author":"Ada"}}',
                 'publicPeople[author]',
                 'string',
             ],
@@ -64,7 +64,7 @@ final class FinalClassMapErrorCases
         ];
 
         yield 'final class map public property rejects an invalid nested value' => [
-            '{"people":{},"publicPeople":{"author":{"firstName":"Ada","lastName":42}}}',
+            '{"people":{"valid":{"firstName":"Ada","lastName":"Lovelace"}},"publicPeople":{"author":{"firstName":"Ada","lastName":42}}}',
             FinalClassMapFields::class,
             'Could not create '
                 . Person::class

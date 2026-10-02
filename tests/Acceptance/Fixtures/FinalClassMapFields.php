@@ -6,11 +6,13 @@ namespace Eventjet\Json\Test\Acceptance\Fixtures;
 
 final class FinalClassMapFields
 {
-    /** @var array<array-key, Person> */
-    public array $publicPeople = [];
+    /** @var non-empty-array<string, Person> */
+    public array $publicPeople;
 
-    /** @param array<array-key, Person> $people */
+    /** @param non-empty-array<string, Person> $people */
     public function __construct(
         public array $people,
-    ) {}
+    ) {
+        $this->publicPeople = ['default' => new Person('Default', 'Person')];
+    }
 }

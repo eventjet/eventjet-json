@@ -6,7 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Fixtures;
 
 final readonly class NonFinalClassMapField
 {
-    /** @param array<array-key, ParentClassFieldBase> $values */
+    /** @param non-empty-array<string, ParentClassFieldBase> $values */
     public function __construct(
         public array $values,
     ) {}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\ArrayObjectMapFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarMapFields;
 use JsonException;
 use stdClass;
@@ -27,10 +28,10 @@ final class ScalarMapErrorCases
         foreach (self::invalidValues() as $name => [$field, $expectedType, $value]) {
             yield 'scalar map ' . $name => [
                 json_encode([
-                    'strings' => [],
-                    'integers' => [],
-                    'floats' => [],
-                    'booleans' => [],
+                    'strings' => ['valid' => 'value'],
+                    'integers' => ['valid' => 42],
+                    'floats' => ['valid' => 3.25],
+                    'booleans' => ['valid' => true],
                     $field => ['invalid' => $value],
                 ], JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
                 ScalarMapFields::class,
@@ -48,11 +49,74 @@ final class ScalarMapErrorCases
         }
 
         yield 'public property scalar map rejects an invalid value' => [
-            '{"strings":{},"integers":{},"floats":{},"booleans":{},"publicStrings":{"invalid":42}}',
+            '{"strings":{"valid":"value"},"integers":{"valid":42},"floats":{"valid":3.25},"booleans":{"valid":true},"publicStrings":{"invalid":42}}',
             ScalarMapFields::class,
             'Could not create '
                 . ScalarMapFields::class
                 . ' from the JSON object: Field publicStrings[invalid] must be of type string, int given.',
+            3,
+        ];
+
+        yield 'non-empty map rejects an empty JSON object' => [
+            '{"strings":{},"integers":{"valid":42},"floats":{"valid":3.25},"booleans":{"valid":true}}',
+            ScalarMapFields::class,
+            'Could not create '
+                . ScalarMapFields::class
+                . ' from the JSON object: Field strings uses non-empty-array<string, TValue> and cannot accept an empty JSON object. Use ArrayObject<string, TValue> when the map may be empty.',
+            3,
+        ];
+
+        yield 'non-empty map rejects a JSON array' => [
+            '{"strings":["value"],"integers":{"valid":42},"floats":{"valid":3.25},"booleans":{"valid":true}}',
+            ScalarMapFields::class,
+            'Could not create '
+                . ScalarMapFields::class
+                . ' from the JSON object: Field strings must be of type JSON object, array given.',
+            3,
+        ];
+
+        yield 'public property non-empty map rejects an empty JSON object' => [
+            '{"strings":{"valid":"value"},"integers":{"valid":42},"floats":{"valid":3.25},"booleans":{"valid":true},"publicStrings":{}}',
+            ScalarMapFields::class,
+            'Could not create '
+                . ScalarMapFields::class
+                . ' from the JSON object: Field publicStrings uses non-empty-array<string, TValue> and cannot accept an empty JSON object. Use ArrayObject<string, TValue> when the map may be empty.',
+            3,
+        ];
+
+        yield 'ArrayObject map rejects a JSON array' => [
+            '{"strings":[],"people":{},"statuses":{}}',
+            ArrayObjectMapFields::class,
+            'Could not create '
+                . ArrayObjectMapFields::class
+                . ' from the JSON object: Field strings must be of type JSON object, array given.',
+            3,
+        ];
+
+        yield 'ArrayObject scalar map rejects an invalid value' => [
+            '{"strings":{"invalid":42},"people":{},"statuses":{}}',
+            ArrayObjectMapFields::class,
+            'Could not create '
+                . ArrayObjectMapFields::class
+                . ' from the JSON object: Field strings[invalid] must be of type string, int given.',
+            3,
+        ];
+
+        yield 'non-empty map rejects a numeric-looking member name' => [
+            '{"strings":{"0":"value"},"integers":{"valid":42},"floats":{"valid":3.25},"booleans":{"valid":true}}',
+            ScalarMapFields::class,
+            'Could not create '
+                . ScalarMapFields::class
+                . ' from the JSON object: Field strings has numeric-looking member name 0, which PHP converts to an integer array key. Supported maps require member names that remain strings.',
+            3,
+        ];
+
+        yield 'ArrayObject map rejects a numeric-looking member name' => [
+            '{"strings":{"0":"value"},"people":{},"statuses":{}}',
+            ArrayObjectMapFields::class,
+            'Could not create '
+                . ArrayObjectMapFields::class
+                . ' from the JSON object: Field strings has numeric-looking member name 0, which PHP converts to an integer array key. Supported maps require member names that remain strings.',
             3,
         ];
     }

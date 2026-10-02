@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use ArrayObject;
 use DatePeriod;
+use Eventjet\Json\Test\Acceptance\Fixtures\AmbiguousMapField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\MixedField;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\ObjectField;
 use Eventjet\Json\Test\Acceptance\Fixtures\ObjectPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\StdClassField;
+use Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedArrayObjectMapField;
+use Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedNonEmptyMapKeyField;
 use php_user_filter;
 use stdClass;
 
@@ -43,6 +47,51 @@ final class UnsupportedFieldTypeCases
 
             yield $name . ' field, member present' => ['{"' . $field . '":' . $value . '}', $class, $message, 3];
             yield $name . ' field, member absent' => ['{}', $class, $message, 3];
+        }
+
+        $ambiguousMap = new AmbiguousMapField(['key' => 'value']);
+        $ambiguousMapMessage =
+            'Could not create '
+            . $ambiguousMap::class
+            . ' from the JSON object: Field values uses array<TKey, TValue>, whose empty value encodes as a JSON array and cannot represent an empty JSON object. Use non-empty-array<string, TValue> for a non-empty map or ArrayObject<string, TValue> for a map that may be empty.';
+
+        yield 'ambiguous array map, member present' => [
+            '{"values":{"key":"value"}}',
+            $ambiguousMap::class,
+            $ambiguousMapMessage,
+            3,
+        ];
+        yield 'ambiguous array map, member absent' => [
+            '{}',
+            $ambiguousMap::class,
+            $ambiguousMapMessage,
+            3,
+        ];
+
+        foreach ([
+            'ArrayObject map with integer key type' => [
+                new UnsupportedArrayObjectMapField(new ArrayObject([0 => 'value'])),
+                'ArrayObject',
+            ],
+            'non-empty array map with integer key type' => [
+                new UnsupportedNonEmptyMapKeyField([0 => 'value']),
+                'non-empty-array',
+            ],
+        ] as $name => [$map, $declaration]) {
+            $message =
+                'Could not create '
+                . $map::class
+                . ' from the JSON object: Field values uses unsupported map declaration '
+                . $declaration
+                . '. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.';
+
+            yield $name . ', member present' => [
+                '{"values":{"key":"value"}}',
+                $map::class,
+                $message,
+                3,
+            ];
+            yield $name . ', member absent' => ['{}', $map::class, $message, 3];
         }
 
         $objectPublicProperty = new ObjectPublicProperty();

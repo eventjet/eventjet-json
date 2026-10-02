@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\NorthStar\GitHub;
 
+use ArrayObject;
+
 /** @api Consumed dynamically by NorthStarTest. */
 final class Repository extends RepositoryFeatures
 {
@@ -16,6 +18,13 @@ final class Repository extends RepositoryFeatures
     public array $topics = [];
     public RepositoryVisibility|null $visibility = null;
     public string $default_branch = '';
-    /** @var array<string, bool> */
-    public array $permissions = [];
+    /** @var ArrayObject<string, bool> */
+    public ArrayObject $permissions;
+
+    public function __construct()
+    {
+        /** @var ArrayObject<string, bool> $permissions */
+        $permissions = new ArrayObject();
+        $this->permissions = $permissions;
+    }
 }

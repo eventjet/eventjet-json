@@ -9,17 +9,17 @@ use function get_debug_type;
 
 final class ScalarMapFields
 {
-    /** @var array<array-key, string> */
-    public array $publicStrings = [];
+    /** @var non-empty-array<string, string> */
+    public array $publicStrings = ['default' => ''];
 
-    /** @var array<array-key, string> */
+    /** @var non-empty-array<string, string> */
     private array $floatValueTypes;
 
     /**
-     * @param array<array-key, string> $strings
-     * @param array<array-key, int> $integers
-     * @param array<array-key, float> $floats
-     * @param array<array-key, bool> $booleans
+     * @param non-empty-array<string, string> $strings
+     * @param non-empty-array<string, int> $integers
+     * @param non-empty-array<string, float> $floats
+     * @param non-empty-array<string, bool> $booleans
      */
     public function __construct(
         public array $strings,
@@ -30,7 +30,7 @@ final class ScalarMapFields
         $this->floatValueTypes = array_map(static fn(mixed $value): string => get_debug_type($value), $floats);
     }
 
-    /** @return array<array-key, string> */
+    /** @return non-empty-array<string, string> */
     public function floatValueTypes(): array
     {
         return $this->floatValueTypes;
