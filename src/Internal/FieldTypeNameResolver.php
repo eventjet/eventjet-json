@@ -41,6 +41,10 @@ final class FieldTypeNameResolver
     /** @return 'bool'|'float'|'int'|'string'|class-string|null */
     public static function resolvePhpDoc(ReflectionParameter|ReflectionProperty $field, string $type): string|null
     {
+        if ($type === 'non-empty-string' || $type === 'numeric-string') {
+            return 'string';
+        }
+
         if (in_array($type, ['bool', 'float', 'int', 'string'], strict: true)) {
             return $type;
         }

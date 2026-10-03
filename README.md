@@ -169,6 +169,12 @@ a backed enum, or a final class. Whole-valued integers are restored as floats
 when `T` is `float`. The same declarations work on public properties outside the
 constructor.
 
+Collection items and values may also use `non-empty-string` or `numeric-string`,
+such as `list<non-empty-string>` or `ArrayObject<string, numeric-string>`.
+Both declarations validate values as strings without coercion and preserve the
+collection's shape rules. The narrower nonempty and numeric constraints are not
+validated at runtime. Errors report the underlying `string` type.
+
 Map member names must remain PHP string keys. Integer names such as `"0"`,
 `"-1"`, and `"42"` are rejected because PHP converts them to integer array keys,
 even when the keys are non-sequential. Numeric-looking names that remain
@@ -296,7 +302,8 @@ The round-trip contract also has these representation limits:
 - [ ] Support arbitrary nesting of different array shapes, such as `list<array<string, list<Foo>>>`.
 - [ ] Validate collection items against their declared types and reject object/array shape mismatches.
 - [x] Recognize and enforce `non-empty-list<T>` declarations.
-- [ ] Recognize other narrower PHPDoc types such as `non-empty-string`, `numeric-string`, `non-empty-map<TKey, TValue>`, and integer ranges such as `int<5, max>` without rejecting otherwise supported declarations. Runtime enforcement of the narrower constraints is optional.
+- [x] Recognize `non-empty-string` and `numeric-string` collection items and values, validating their underlying string type while preserving collection shape rules. Runtime enforcement of the narrower constraints is optional.
+- [ ] Recognize other narrower PHPDoc types such as `non-empty-map<TKey, TValue>` and integer ranges such as `int<5, max>` without rejecting otherwise supported declarations. Runtime enforcement of the narrower constraints is optional.
 - [x] Define and test empty-map behavior: reject `{}` for `non-empty-array<string, T>` and preserve it with `ArrayObject<string, T>`.
 - [x] Test map keys, including integer keys, numeric-looking string keys, and non-sequential keys; preserve JSON shape during round trips.
 - [ ] Resolve PHPDoc collection types using the declaring namespace and imported or aliased class names.

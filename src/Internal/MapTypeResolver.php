@@ -24,7 +24,8 @@ final class MapTypeResolver
 
         return self::resolveDeclaration(
             $field,
-            $declaration . '\\s*<\\s*string\\s*,\\s*(?<type>\\\\?[A-Za-z_][A-Za-z0-9_\\\\]*)\\s*>',
+            $declaration
+            . '\\s*<\\s*string\\s*,\\s*(?<type>non-empty-string|numeric-string|\\\\?[A-Za-z_][A-Za-z0-9_\\\\]*)\\s*>',
         );
     }
 

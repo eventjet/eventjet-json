@@ -206,6 +206,7 @@ final class DecodeErrorCases
         yield from ScalarMapErrorCases::errors();
         yield from MapKeyCases::errors();
         yield from ScalarListErrorCases::errors();
+        yield from RefinedStringCollectionCases::errors();
         yield from UnsupportedFieldTypeCases::errors();
     }
 
