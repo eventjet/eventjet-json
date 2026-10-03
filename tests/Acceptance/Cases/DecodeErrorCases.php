@@ -204,6 +204,7 @@ final class DecodeErrorCases
         yield from NonInstantiableListItemErrorCases::errors();
         yield from NonInstantiableMapValueErrorCases::errors();
         yield from ScalarMapErrorCases::errors();
+        yield from MapKeyCases::errors();
         yield from ScalarListErrorCases::errors();
         yield from UnsupportedFieldTypeCases::errors();
     }

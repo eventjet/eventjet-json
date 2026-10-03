@@ -169,9 +169,13 @@ a backed enum, or a final class. Whole-valued integers are restored as floats
 when `T` is `float`. The same declarations work on public properties outside the
 constructor.
 
-Map member names must remain PHP string keys. Numeric-looking names such as
-`"0"` are rejected because PHP converts them to integer array keys. Imported
-aliases and more complex value declarations are not yet resolved or validated.
+Map member names must remain PHP string keys. Integer names such as `"0"`,
+`"-1"`, and `"42"` are rejected because PHP converts them to integer array keys,
+even when the keys are non-sequential. Numeric-looking names that remain
+strings, such as `"01"`, `"+1"`, `"1.0"`, and `"1e0"`, are supported and preserved.
+This rule applies to both map forms in constructor fields and public properties.
+Imported aliases and more complex value declarations are not yet resolved or
+validated.
 Plain `array<TKey, TValue>` declarations are rejected with a `DecodeError`;
 choose one of the two map declarations above to state whether the map may be
 empty.
@@ -188,7 +192,7 @@ must not be relied on, even if a particular value happens to decode.
 | Readonly classes | Supported at the root | The same constructor rules as other concrete classes apply. |
 | `string`, `int`, `float`, and `bool` constructor fields | Supported | Values must have the declared type. An integer JSON value is also valid for a `float` field because the declaration restores it as a PHP float. Other implicit scalar coercions are rejected. |
 | `null`, nullable scalar fields, and literal `true` and `false` fields | Supported | A non-null value must still match the non-null member of a nullable type. Literal Boolean fields accept only their declared value. |
-| Collection fields | Limited | PHPDoc `list<T>` and `non-empty-list<T>` declarations are decoded and validated for constructor fields and public properties, where `T` is `string`, `int`, `float`, `bool`, a backed enum, or a final class. Empty JSON arrays are rejected for `non-empty-list<T>`. Nonempty maps use `non-empty-array<string, T>`; maps that may be empty use `ArrayObject<string, T>`. For either map form, `T` supports the same declarations. JSON arrays are rejected for maps, `{}` is rejected for nonempty-array maps, and numeric-looking member names are rejected. Whole-valued JSON integers in float collections are restored as floats. Class and enum names may be fully qualified or in the declaring class's named namespace; imported aliases and global-namespace shorthand are not yet resolved. Other PHPDoc item and value types are not yet read or validated. Native arrays without a collection PHPDoc declaration are passed through. |
+| Collection fields | Limited | PHPDoc `list<T>` and `non-empty-list<T>` declarations are decoded and validated for constructor fields and public properties, where `T` is `string`, `int`, `float`, `bool`, a backed enum, or a final class. Empty JSON arrays are rejected for `non-empty-list<T>`. Nonempty maps use `non-empty-array<string, T>`; maps that may be empty use `ArrayObject<string, T>`. For either map form, `T` supports the same declarations. JSON arrays are rejected for maps, `{}` is rejected for nonempty-array maps, and member names that PHP converts to integer keys are rejected. Whole-valued JSON integers in float collections are restored as floats. Class and enum names may be fully qualified or in the declaring class's named namespace; imported aliases and global-namespace shorthand are not yet resolved. Other PHPDoc item and value types are not yet read or validated. Native arrays without a collection PHPDoc declaration are passed through. |
 | Nested class fields | Supported for final classes | JSON objects are recursively converted to final classes declared directly on constructor fields, including readonly classes, nullable fields, `self` declarations that resolve to a final class, and unions with backed enums, scalar, and null members. Non-final declarations, including `parent`, are rejected because their values may be subclasses. Class members of unions that also contain lists and maps are not yet supported. |
 | Backed enum fields | Supported in direct constructor fields, public properties, unambiguous unions, lists, and maps | String-backed and int-backed values are converted without coercion, including nullable enum fields, lists, `non-empty-array<string, BackedEnum>` and `ArrayObject<string, BackedEnum>` maps, unions where scalar members use different JSON types from the enum backing type, and unions of backed enums whose case values do not overlap. Non-backed enums are rejected because they have no JSON representation. |
 | General union types | Limited | Nullable scalar declarations, one final class alongside a backed enum and scalar or null members, backed enum/scalar unions with distinct JSON types, and unambiguous unions of backed enums are supported. Scalar members must use JSON types distinct from the enum's backing type. Other unions do not yet have a supported selection policy. |
@@ -294,7 +298,7 @@ The round-trip contract also has these representation limits:
 - [x] Recognize and enforce `non-empty-list<T>` declarations.
 - [ ] Recognize other narrower PHPDoc types such as `non-empty-string`, `numeric-string`, `non-empty-map<TKey, TValue>`, and integer ranges such as `int<5, max>` without rejecting otherwise supported declarations. Runtime enforcement of the narrower constraints is optional.
 - [x] Define and test empty-map behavior: reject `{}` for `non-empty-array<string, T>` and preserve it with `ArrayObject<string, T>`.
-- [ ] Test map keys, including integer keys, numeric-looking string keys, and non-sequential keys; preserve JSON shape during round trips.
+- [x] Test map keys, including integer keys, numeric-looking string keys, and non-sequential keys; preserve JSON shape during round trips.
 - [ ] Resolve PHPDoc collection types using the declaring namespace and imported or aliased class names.
 - [ ] Report missing, malformed, unknown, or unsupported collection type declarations clearly.
 - [ ] Add an API for typed JSON arrays at the root, with accurate generic return types for static analysis.
