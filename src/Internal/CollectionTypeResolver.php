@@ -9,6 +9,7 @@ use ReflectionProperty;
 
 use function is_string;
 use function preg_match;
+use function sprintf;
 
 /** @internal */
 final class CollectionTypeResolver
@@ -16,7 +17,23 @@ final class CollectionTypeResolver
     /** @return 'bool'|'float'|'int'|'string'|class-string|null */
     public static function resolveListItem(ReflectionParameter|ReflectionProperty $field): string|null
     {
-        return self::resolveDeclaration($field, 'list\\s*<\\s*(?<type>\\\\?[A-Za-z_][A-Za-z0-9_\\\\]*)\\s*>');
+        return self::resolveDeclaration(
+            $field,
+            '(?:non-empty-)?list\\s*<\\s*(?<type>\\\\?[A-Za-z_][A-Za-z0-9_\\\\]*)\\s*>',
+        );
+    }
+
+    public static function isNonEmptyList(ReflectionParameter|ReflectionProperty $field): bool
+    {
+        return self::matchesDeclaration($field, 'non-empty-list\\s*<.+>');
+    }
+
+    public static function listDeclaration(ReflectionParameter|ReflectionProperty $field, string $itemType): string
+    {
+        $isNonEmpty = self::isNonEmptyList($field);
+        $declaration = $isNonEmpty ? 'non-empty-list' : 'list';
+
+        return sprintf('%s<%s>', $declaration, $itemType);
     }
 
     /**
@@ -35,6 +52,13 @@ final class CollectionTypeResolver
         $type = $matched === 1 ? $matches['type'] ?? null : null;
 
         return is_string($type) ? FieldTypeNameResolver::resolvePhpDoc($field, $type) : null;
+    }
+
+    private static function matchesDeclaration(
+        ReflectionParameter|ReflectionProperty $field,
+        string $declarationPattern,
+    ): bool {
+        return preg_match(self::declarationPattern($field, $declarationPattern), self::docComment($field)) === 1;
     }
 
     /** @return non-empty-string */

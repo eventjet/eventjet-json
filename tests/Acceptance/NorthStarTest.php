@@ -17,6 +17,7 @@ use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
+use Eventjet\Json\Internal\ListInputNormalizer;
 use Eventjet\Json\Internal\ListItemTypeValidator;
 use Eventjet\Json\Internal\ListValueConverter;
 use Eventjet\Json\Internal\MapDecodeError;
@@ -71,6 +72,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(FieldTypeNameResolver::class)]
 #[CoversClass(FieldTypeValidator::class)]
 #[CoversClass(ListItemTypeValidator::class)]
+#[CoversClass(ListInputNormalizer::class)]
 #[CoversClass(ListValueConverter::class)]
 #[CoversClass(MapDecodeError::class)]
 #[CoversClass(MapInputNormalizer::class)]

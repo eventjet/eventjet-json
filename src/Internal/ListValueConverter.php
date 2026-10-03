@@ -10,11 +10,9 @@ use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
 
-use function array_is_list;
 use function array_key_exists;
 use function class_exists;
 use function enum_exists;
-use function is_array;
 use function is_bool;
 use function is_float;
 use function is_int;
@@ -48,10 +46,11 @@ final class ListValueConverter
             }
         }
 
-        $expectedType = sprintf('list<%s>', $itemType);
+        $expectedType = CollectionTypeResolver::listDeclaration($field, $itemType);
+        $value = ListInputNormalizer::normalize($class, $field, $expectedType, $value);
 
-        if (!is_array($value) || !array_is_list($value)) {
-            return DecodeError::fieldTypeMismatch($class, $field->getName(), $expectedType, $value);
+        if ($value instanceof DecodeError) {
+            return $value;
         }
 
         $converted = [];

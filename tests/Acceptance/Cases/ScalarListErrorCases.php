@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\NonEmptyListFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListPublicProperty;
 use JsonException;
@@ -82,6 +83,51 @@ final class ScalarListErrorCases
             'Could not create '
                 . ScalarListFields::class
                 . ' from the JSON object: Field strings[1] must be of type string, int given.',
+            3,
+        ];
+
+        yield 'non-empty constructor list rejects an empty list' => [
+            '{"values":[]}',
+            NonEmptyListFields::class,
+            'Could not create '
+                . NonEmptyListFields::class
+                . ' from the JSON object: Field values must be of type non-empty-list<int>, empty list given.',
+            3,
+        ];
+
+        yield 'non-empty public property list rejects an empty list' => [
+            '{"values":[1],"labels":[]}',
+            NonEmptyListFields::class,
+            'Could not create '
+                . NonEmptyListFields::class
+                . ' from the JSON object: Field labels must be of type non-empty-list<string>, empty list given.',
+            3,
+        ];
+
+        yield 'non-empty constructor list validates each item' => [
+            '{"values":[1,"2"]}',
+            NonEmptyListFields::class,
+            'Could not create '
+                . NonEmptyListFields::class
+                . ' from the JSON object: Field values[1] must be of type int, string given.',
+            3,
+        ];
+
+        yield 'non-empty public property list validates each item' => [
+            '{"values":[1],"labels":["valid",2]}',
+            NonEmptyListFields::class,
+            'Could not create '
+                . NonEmptyListFields::class
+                . ' from the JSON object: Field labels[1] must be of type string, int given.',
+            3,
+        ];
+
+        yield 'non-empty list rejects a JSON object' => [
+            '{"values":{}}',
+            NonEmptyListFields::class,
+            'Could not create '
+                . NonEmptyListFields::class
+                . ' from the JSON object: Field values must be of type non-empty-list<int>, stdClass given.',
             3,
         ];
     }
