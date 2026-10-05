@@ -293,11 +293,12 @@ The round-trip contract also has these representation limits:
   possible classes without an additional discriminator or selection rule.
 - A backed enum case and its backing scalar encode to the same JSON value, so a
   union containing both cannot recover the original PHP type.
-- Native arrays without a supported collection declaration are normalized from
-  decoded `stdClass` objects to PHP arrays. Within those values, empty objects
-  and empty arrays both become empty PHP arrays, and numeric-looking object keys
-  may become integer array keys. Supported typed maps avoid that ambiguity by
-  requiring either `non-empty-array<string, T>` or `ArrayObject<string, T>`.
+- Collection declarations enforce both item types and JSON shape. Lists require
+  JSON arrays; maps require JSON objects. Scalar and enum items are validated
+  without coercion, except that integer JSON values are restored as floats when
+  declared as `float`. Final-class items require JSON objects and are validated
+  recursively. The same rules apply to constructor fields and public properties.
+  Native arrays without a supported collection declaration are rejected.
 - JSON object members without matching constructor parameters or supported
   public properties are ignored and do not appear when the decoded object is
   re-encoded.
@@ -313,6 +314,7 @@ The round-trip contract also has these representation limits:
 
 ### Scalar fields and validation
 
+- [ ] Let users choose whether to enable runtime type checks. Provide an opt-out path with fewer guarantees for workloads such as decoding many documents in a loop; benchmark the performance difference and document which checks and guarantees each mode provides.
 - [x] Test all scalar field types: `string`, `int`, `float`, and `bool`, plus `null`, nullable types, and literal `true`/`false` types.
 - [x] Reject field values that do not match the declared type, including values that reflection would otherwise silently coerce.
 - [x] Test numeric boundaries and define how to preserve whole-valued floats, large integers, and precision during round trips.
@@ -376,7 +378,7 @@ The round-trip contract also has these representation limits:
 - [ ] Support unions inside collection declarations, such as `list<string|int|Foo>`.
 - [ ] Support recursively nested lists and maps, including nullable items and values and unions that follow the same rules as object fields.
 - [ ] Support arbitrary nesting of different array shapes, such as `list<array<string, list<Foo>>>`.
-- [ ] Validate collection items against their declared types and reject object/array shape mismatches.
+- [x] Validate collection items against their declared types and reject object/array shape mismatches.
 - [x] Recognize and enforce `non-empty-list<T>` declarations.
 - [x] Recognize `non-empty-string` and `numeric-string` collection items and values, validating their underlying string type while preserving collection shape rules. Runtime enforcement of the narrower constraints is optional.
 - [x] Recognize integer-range collection items and values such as `int<5, max>`, validating their underlying integer type while preserving collection shape rules. Runtime enforcement of range bounds is optional.

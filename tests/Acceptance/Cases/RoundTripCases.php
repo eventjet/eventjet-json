@@ -57,6 +57,8 @@ final class RoundTripCases
      */
     public static function objects(): iterable
     {
+        yield from CollectionValidationInputs::objects();
+
         yield 'required properties' => [new Person('Ada', 'Lovelace')];
         yield 'middle name' => [new Person('John', 'Doe', 'Quincy')];
         yield 'age' => [new Person('Jane', 'Doe', age: 42)];
