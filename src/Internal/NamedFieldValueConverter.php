@@ -8,11 +8,9 @@ use ArrayObject;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
-use stdClass;
 
 use function class_exists;
 use function enum_exists;
-use function is_array;
 
 /** @internal */
 final class NamedFieldValueConverter
@@ -38,15 +36,7 @@ final class NamedFieldValueConverter
                 return $converted;
             }
 
-            $converted = MapValueConverter::convert($class, $parameter, $value);
-
-            if ($converted !== null) {
-                return $converted;
-            }
-
-            return $value instanceof stdClass || is_array($value)
-                ? ObjectValueConverter::convertArrayValue($value)
-                : $value;
+            return MapValueConverter::convert($class, $parameter, $value);
         }
 
         if ($typeName === ArrayObject::class) {

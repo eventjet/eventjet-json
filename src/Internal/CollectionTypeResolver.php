@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use Eventjet\Json\DecodeError;
 use ReflectionParameter;
 use ReflectionProperty;
 
@@ -14,6 +15,16 @@ use function sprintf;
 /** @internal */
 final class CollectionTypeResolver
 {
+    /** @param class-string $class */
+    public static function invalidDeclaration(string $class, ReflectionParameter|ReflectionProperty $field): DecodeError
+    {
+        return DecodeError::nonInstantiableTarget($class, sprintf(
+            'Field %s has a missing or unrecognized collection declaration. Use @%s with list<T>, non-empty-list<T>, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            $field->getName(),
+            $field instanceof ReflectionParameter ? 'param' : 'var',
+        ));
+    }
+
     /** @return 'bool'|'float'|'int'|'string'|class-string|null */
     public static function resolveListItem(ReflectionParameter|ReflectionProperty $field): string|null
     {
@@ -68,7 +79,7 @@ final class CollectionTypeResolver
     ): string {
         $fieldPattern = $field instanceof ReflectionParameter
             ? '\\s+\\$' . $field->getName() . '(?:\\s|$)'
-            : '(?:\\s|$)';
+            : '(?!\\s*[|&<>\\[\\],?])(?:\\s|$)';
 
         return (
             '/@'

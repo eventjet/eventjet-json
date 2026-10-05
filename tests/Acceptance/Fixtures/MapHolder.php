@@ -6,7 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Fixtures;
 
 final readonly class MapHolder
 {
-    /** @param non-empty-array<string, int|list<array<string, int>>> $map */
+    /** @param non-empty-array<string, int> $map */
     public function __construct(
         public array $map,
     ) {}

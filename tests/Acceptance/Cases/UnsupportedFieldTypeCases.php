@@ -15,7 +15,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\ObjectPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\StdClassField;
 use Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedArrayObjectMapField;
 use Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedNonEmptyMapKeyField;
-use php_user_filter;
+use RuntimeException;
 use stdClass;
 
 use function is_string;
@@ -25,6 +25,7 @@ final class UnsupportedFieldTypeCases
 {
     /**
      * @api Called by DecodeErrorCases.
+     * @throws RuntimeException
      * @return iterable<string, array{string, class-string, string, int}>
      */
     public static function errors(): iterable
@@ -105,12 +106,7 @@ final class UnsupportedFieldTypeCases
             3,
         ];
 
-        yield 'untyped public property' => [
-            '{"stream":null}',
-            php_user_filter::class,
-            'Could not create php_user_filter from the JSON object: Field stream uses unsupported public property type none. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
-            3,
-        ];
+        yield from self::untypedPublicProperty();
 
         $intersectionPublicProperty = new IntersectionPublicProperty();
 
@@ -133,5 +129,23 @@ final class UnsupportedFieldTypeCases
                 3,
             ];
         }
+    }
+
+    /**
+     * @return iterable<string, array{string, class-string, string, int}>
+     * @throws RuntimeException
+     */
+    private static function untypedPublicProperty(): iterable
+    {
+        $untypedClass = CollectionDeclarationFixture::create('', '', 'var');
+
+        yield 'untyped public property' => [
+            '{"value":null}',
+            $untypedClass,
+            'Could not create '
+                . $untypedClass
+                . ' from the JSON object: Field value uses unsupported public property type none. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
+            3,
+        ];
     }
 }

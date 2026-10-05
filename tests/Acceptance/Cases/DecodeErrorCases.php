@@ -32,6 +32,7 @@ final class DecodeErrorCases
      */
     public static function constructionFailures(): iterable
     {
+        yield from CollectionDeclarationErrorCases::errors();
         yield from SelfCollectionCases::errors();
         yield from VariadicConstructorErrorCases::errors();
 

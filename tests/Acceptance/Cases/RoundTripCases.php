@@ -70,9 +70,9 @@ final class RoundTripCases
         yield 'constructor-bound, direct, and inherited public properties' => [$publicProperties];
 
         $arrayPublicProperty = new ArrayPublicProperty();
-        $arrayPublicProperty->value = ['items' => [['answer' => 42]]];
+        $arrayPublicProperty->value = ['answer' => 42];
 
-        yield 'array public property preserves nested objects and lists' => [$arrayPublicProperty];
+        yield 'array public property preserves a typed map' => [$arrayPublicProperty];
 
         $backedEnumPublicProperties = new BackedEnumPublicProperties();
         $backedEnumPublicProperties->stringStatus = StringBackedStatus::Pending;

@@ -6,6 +6,6 @@ namespace Eventjet\Json\Test\Acceptance\Fixtures;
 
 final class ArrayPublicProperty
 {
-    /** @var non-empty-array<string, int|list<array<string, int>>> */
+    /** @var non-empty-array<string, int> */
     public array $value = ['default' => 0];
 }

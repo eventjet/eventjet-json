@@ -16,6 +16,7 @@ use function array_keys;
 use function assert;
 use function class_exists;
 use function enum_exists;
+use function in_array;
 use function is_bool;
 use function is_float;
 use function is_string;
@@ -26,25 +27,23 @@ final class MapValueConverter
 {
     /**
      * @param class-string $class
-     * @return array<array-key, mixed>|DecodeError|null
+     * @return array<array-key, mixed>|DecodeError
      * @throws ReflectionException
      */
     public static function convert(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         mixed $value,
-    ): array|DecodeError|null {
+    ): array|DecodeError {
         $values = MapInputNormalizer::normalize($class, $field, $value);
 
-        if ($values === null || $values instanceof DecodeError) {
+        if ($values instanceof DecodeError) {
             return $values;
         }
 
         $valueType = MapTypeResolver::resolveValue($field);
 
-        if ($valueType === null) {
-            return ObjectValueConverter::convertArrayValue($values);
-        }
+        assert($valueType !== null, description: 'Map declarations are validated before conversion.');
 
         if (enum_exists($valueType)) {
             return self::convertEnumValues($class, $field, $valueType, $values);
@@ -54,10 +53,12 @@ final class MapValueConverter
             return ConcreteClassMapValueConverter::convert($class, $field, $valueType, $values);
         }
 
-        return match ($valueType) {
-            'bool', 'float', 'int', 'string' => self::convertScalarValues($class, $field, $valueType, $values),
-            default => null,
-        };
+        assert(
+            in_array($valueType, ['bool', 'float', 'int', 'string'], strict: true),
+            description: 'Map value types are validated before conversion.',
+        );
+
+        return self::convertScalarValues($class, $field, $valueType, $values);
     }
 
     /**

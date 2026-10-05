@@ -33,24 +33,35 @@ final class PublicPropertyHydrator
         $publicProperties = [];
 
         foreach ($class->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
-            $publicProperties[$property->getName()] = $property;
+            if ($property->isStatic() || array_key_exists($property->getName(), $constructorFields)) {
+                continue;
+            }
+
+            $type = PublicPropertyTypeValidator::validate($class->getName(), $property);
+
+            if ($type instanceof DecodeError) {
+                return $type;
+            }
+
+            $publicProperties[$property->getName()] = ['property' => $property, 'type' => $type];
         }
 
         /** @var list<array{property: ReflectionProperty, value: mixed}> $assignments */
         $assignments = [];
 
         foreach ($values as $inputField => $value) {
-            $property = $publicProperties[$inputField] ?? null;
+            $field = $publicProperties[$inputField] ?? null;
 
-            if ($property === null || $property->isStatic()) {
+            if ($field === null) {
                 continue;
             }
 
-            if (array_key_exists($property->getName(), $constructorFields)) {
-                continue;
-            }
-
-            $assignment = PublicPropertyValueConverter::convert($class->getName(), $property, $value);
+            $assignment = PublicPropertyValueConverter::convert(
+                $class->getName(),
+                $field['property'],
+                $field['type'],
+                $value,
+            );
 
             if ($assignment instanceof DecodeError) {
                 return $assignment;

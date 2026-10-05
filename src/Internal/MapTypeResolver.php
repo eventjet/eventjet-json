@@ -100,7 +100,7 @@ final class MapTypeResolver
     ): string {
         $fieldPattern = $field instanceof ReflectionParameter
             ? '\\s+\\$' . $field->getName() . '(?:\\s|$)'
-            : '(?:\\s|$)';
+            : '(?!\\s*[|&<>\\[\\],?])(?:\\s|$)';
 
         return (
             '/@'

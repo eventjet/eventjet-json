@@ -93,9 +93,6 @@ final class PublicPropertyNamedValueConverter
             return $converted;
         }
 
-        return [
-            'property' => $property,
-            'value' => $converted ?? ObjectValueConverter::convertArrayValue($value),
-        ];
+        return ['property' => $property, 'value' => $converted];
     }
 }

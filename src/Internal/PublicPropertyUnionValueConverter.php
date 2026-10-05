@@ -11,8 +11,6 @@ use ReflectionProperty;
 use ReflectionUnionType;
 use stdClass;
 
-use function is_array;
-
 /** @internal */
 final class PublicPropertyUnionValueConverter
 {
@@ -92,13 +90,7 @@ final class PublicPropertyUnionValueConverter
             return DecodeError::fieldTypeMismatch($class, $property->getName(), (string) $type, $value);
         }
 
-        return [
-            'property' => $property,
-            'value' =>
-                $matchingType->getName() === 'array' && ($value instanceof stdClass || is_array($value))
-                    ? ObjectValueConverter::convertArrayValue($value)
-                    : $value,
-        ];
+        return ['property' => $property, 'value' => $value];
     }
 
     /** @return array{property: ReflectionProperty, value: object}|DecodeError|null */

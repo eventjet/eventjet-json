@@ -6,9 +6,11 @@ namespace Eventjet\Json\Test\Acceptance\Fixtures;
 
 final readonly class PrefixedMapField
 {
-    /** @param non-empty-array<string, string> $values */
+    /**
+     * @param list<int> $value
+     * @param non-empty-array<string, string> $values
+     */
     public function __construct(
-        /** @var array<array-key, mixed> */
         public array $value,
         public array $values,
     ) {}

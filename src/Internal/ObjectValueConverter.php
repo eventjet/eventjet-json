@@ -13,9 +13,6 @@ use ReflectionUnionType;
 use stdClass;
 
 use function array_key_exists;
-use function array_map;
-use function get_object_vars;
-use function is_array;
 
 /** @internal */
 final class ObjectValueConverter
@@ -86,29 +83,6 @@ final class ObjectValueConverter
             }
         }
 
-        return self::convertObjectsToArrays($value);
-    }
-
-    /**
-     * @param array<array-key, mixed>|stdClass $value
-     * @return array<array-key, mixed>
-     */
-    public static function convertArrayValue(array|stdClass $value): array
-    {
-        return array_map(
-            self::convertObjectsToArrays(...),
-            $value instanceof stdClass ? get_object_vars($value) : $value,
-        );
-    }
-
-    /** @return array<array-key, mixed>|bool|float|int|object|string|null */
-    private static function convertObjectsToArrays(mixed $value): array|bool|float|int|object|string|null
-    {
-        if ($value instanceof stdClass || is_array($value)) {
-            return self::convertArrayValue($value);
-        }
-
-        /** @var bool|float|int|object|string|null $value */
         return $value;
     }
 }

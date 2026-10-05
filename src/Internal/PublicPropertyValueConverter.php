@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionException;
+use ReflectionNamedType;
 use ReflectionProperty;
 use ReflectionUnionType;
 
@@ -17,14 +18,12 @@ final class PublicPropertyValueConverter
      * @return array{property: ReflectionProperty, value: mixed}|DecodeError
      * @throws ReflectionException
      */
-    public static function convert(string $class, ReflectionProperty $property, mixed $value): array|DecodeError
-    {
-        $type = PublicPropertyTypeValidator::validate($class, $property);
-
-        if ($type instanceof DecodeError) {
-            return $type;
-        }
-
+    public static function convert(
+        string $class,
+        ReflectionProperty $property,
+        ReflectionNamedType|ReflectionUnionType $type,
+        mixed $value,
+    ): array|DecodeError {
         if ($type instanceof ReflectionUnionType) {
             return PublicPropertyUnionValueConverter::convert($class, $property, $type, $value);
         }

@@ -7,6 +7,7 @@ namespace Eventjet\Json\Internal;
 use ArrayObject;
 use Eventjet\Json\DecodeError;
 use ReflectionException;
+use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 
@@ -37,6 +38,16 @@ final class MapTypeValidator
         string $class,
         ReflectionParameter|ReflectionProperty $field,
     ): DecodeError|null {
+        if (!$field->getType() instanceof ReflectionNamedType) {
+            return CollectionTypeResolver::invalidDeclaration($class, $field);
+        }
+
+        $listItem = CollectionTypeResolver::resolveListItem($field);
+
+        if ($listItem !== null) {
+            return null;
+        }
+
         $hasAmbiguousArray = MapTypeResolver::hasAmbiguousArray($field);
 
         if ($hasAmbiguousArray) {
@@ -79,6 +90,8 @@ final class MapTypeValidator
     ): DecodeError|null {
         $value = MapTypeResolver::resolveValue($field);
 
-        return $value === null ? null : ClassFieldTypeValidator::validate($class, $field->getName(), $value);
+        return $value === null
+            ? CollectionTypeResolver::invalidDeclaration($class, $field)
+            : ClassFieldTypeValidator::validate($class, $field->getName(), $value);
     }
 }

@@ -25,6 +25,6 @@ final class ArrayObjectMapValueConverter
     ): ArrayObject|DecodeError {
         $converted = MapValueConverter::convert($class, $field, $value);
 
-        return $converted instanceof DecodeError ? $converted : new ArrayObject($converted ?? []);
+        return $converted instanceof DecodeError ? $converted : new ArrayObject($converted);
     }
 }
