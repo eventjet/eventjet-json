@@ -23,7 +23,8 @@ final class FieldTypeNameResolver
     private const string REFINED_INTEGER_PATTERN = '(?:int\\s*<\\s*(?:min|-?[0-9]+)\\s*,\\s*(?:max|-?[0-9]+)\\s*>|(?:non-)?(?:positive|negative)-int)';
 
     public const string COLLECTION_TYPE_PATTERN =
-        self::REFINED_INTEGER_PATTERN . '|non-empty-string|numeric-string|\\\\?[A-Za-z_][A-Za-z0-9_\\\\]*';
+        self::REFINED_INTEGER_PATTERN
+            . '|non-empty-string|numeric-string|literal-string|\\\\?[A-Za-z_][A-Za-z0-9_\\\\]*';
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
     {
@@ -47,7 +48,7 @@ final class FieldTypeNameResolver
     /** @return 'bool'|'float'|'int'|'string'|class-string|null */
     public static function resolvePhpDoc(ReflectionParameter|ReflectionProperty $field, string $type): string|null
     {
-        if ($type === 'non-empty-string' || $type === 'numeric-string') {
+        if ($type === 'non-empty-string' || $type === 'numeric-string' || $type === 'literal-string') {
             return 'string';
         }
 

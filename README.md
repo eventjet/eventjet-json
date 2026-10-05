@@ -172,11 +172,12 @@ constructor. Collection items and values may use `self` to refer to the class
 that declares the field, such as `list<self>` or `ArrayObject<string, self>`.
 That class must be final, including when the declaration is inherited.
 
-Collection items and values may also use `non-empty-string` or `numeric-string`,
-such as `list<non-empty-string>` or `ArrayObject<string, numeric-string>`.
-Both declarations validate values as strings without coercion and preserve the
-collection's shape rules. The narrower nonempty and numeric constraints are not
-validated at runtime. Errors report the underlying `string` type.
+Collection items and values may also use `non-empty-string`, `numeric-string`,
+or `literal-string`, such as `list<non-empty-string>` or `ArrayObject<string, numeric-string>`.
+These declarations validate values as strings without coercion and preserve the
+collection's shape rules. The narrower nonempty, numeric, and literal-string
+constraints are not validated at runtime. Errors report the underlying `string`
+type.
 
 Integer-range items and values, such as `list<int<5, max>>`,
 `non-empty-array<string, int<min, -1>>`, and `ArrayObject<string, int<-5, 5>>`,
@@ -322,6 +323,7 @@ The round-trip contract also has these representation limits:
 - [x] Recognize `non-empty-string` and `numeric-string` collection items and values, validating their underlying string type while preserving collection shape rules. Runtime enforcement of the narrower constraints is optional.
 - [x] Recognize integer-range collection items and values such as `int<5, max>`, validating their underlying integer type while preserving collection shape rules. Runtime enforcement of range bounds is optional.
 - [x] Recognize `positive-int`, `negative-int`, `non-negative-int`, and `non-positive-int` collection items and values, validating their underlying integer type while preserving collection shape rules. Runtime enforcement of sign constraints is optional.
+- [x] Recognize `literal-string` collection items and values, validating their underlying string type while preserving collection shape rules. Runtime enforcement of the narrower constraint is optional.
 - [ ] Recognize other narrower PHPDoc types such as `non-zero-int` and `non-empty-map<TKey, TValue>` without rejecting otherwise supported declarations. Runtime enforcement of the narrower constraints is optional.
 - [x] Define and test empty-map behavior: reject `{}` for `non-empty-array<string, T>` and preserve it with `ArrayObject<string, T>`.
 - [x] Test map keys, including integer keys, numeric-looking string keys, and non-sequential keys; preserve JSON shape during round trips.

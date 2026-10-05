@@ -10,6 +10,7 @@ use JsonException;
 use stdClass;
 
 use function get_debug_type;
+use function in_array;
 use function json_encode;
 
 use const JSON_PRESERVE_ZERO_FRACTION;
@@ -22,6 +23,16 @@ final class RefinedStringCollectionCases
     public static function objects(): iterable
     {
         yield 'refined string collections preserve empty lists and maps' => [new RefinedStringCollectionFields()];
+
+        foreach (['', '0', 'Grüße, 世界, 😀', "quoted \"text\"\n", ' '] as $literal) {
+            $fields = new RefinedStringCollectionFields(literalList: [$literal], literalMap: ['value' => $literal]);
+            $fields->literalNonEmptyList = [$literal];
+            /** @var ArrayObject<string, literal-string> $literalMap */
+            $literalMap = new ArrayObject(['value' => $literal]);
+            $fields->literalObjectMap = $literalMap;
+
+            yield 'literal string collections: ' . $literal => [$fields];
+        }
 
         foreach (['0', '-42', '01', '+1', '3.25', '1e3'] as $number) {
             foreach (['value', 'Grüße, 世界, 😀', ' '] as $label) {
@@ -42,9 +53,22 @@ final class RefinedStringCollectionCases
      */
     public static function errors(): iterable
     {
-        foreach (['labels', 'numericList', 'numbers', 'labelMap'] as $field) {
+        foreach ([
+            'labels',
+            'numericList',
+            'numbers',
+            'labelMap',
+            'literalList',
+            'literalNonEmptyList',
+            'literalMap',
+            'literalObjectMap',
+        ] as $field) {
             foreach ([42, 3.25, true, null, [], new stdClass()] as $value) {
-                $isList = $field === 'labels' || $field === 'numericList';
+                $isList = in_array(
+                    $field,
+                    ['labels', 'numericList', 'literalList', 'literalNonEmptyList'],
+                    strict: true,
+                );
                 $collection = $isList ? ['1', $value] : ['valid' => '1', 'invalid' => $value];
                 $path = $field . ($isList ? '[1]' : '[invalid]');
 
