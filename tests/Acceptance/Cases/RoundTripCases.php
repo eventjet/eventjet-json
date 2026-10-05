@@ -103,6 +103,7 @@ final class RoundTripCases
         yield from SelfCollectionCases::objects();
         yield from CombinedCollectionRoundTripCases::objects();
         yield from UnionCollectionRoundTripCases::objects();
+        yield from MultipleEnumUnionCollectionRoundTripCases::objects();
         yield from MapRoundTripCases::objects();
         yield from MapKeyCases::objects();
         yield from self::scalarLists();
