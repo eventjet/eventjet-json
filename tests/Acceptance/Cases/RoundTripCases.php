@@ -101,6 +101,7 @@ final class RoundTripCases
         yield 'nullable nested final class public property with null' => [$nullableNestedPublicProperty];
 
         yield from SelfCollectionCases::objects();
+        yield from CombinedCollectionRoundTripCases::objects();
         yield from MapRoundTripCases::objects();
         yield from MapKeyCases::objects();
         yield from self::scalarLists();

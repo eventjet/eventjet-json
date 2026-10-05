@@ -389,7 +389,8 @@ The round-trip contract also has these representation limits:
 - [ ] Test stable error codes, useful messages, and preservation of underlying exceptions.
 - [x] Expand invalid-JSON coverage to malformed syntax, trailing content, invalid UTF-8, and nesting-depth limits.
 - [x] Test rejection of incompatible root shapes; JSON arrays must not be passed to object constructors as positional arguments.
-- [ ] Add acceptance round trips for every supported type and combinations of nested objects, lists, maps, and enums; assert both value types and JSON shape.
+- [x] Add generated acceptance round trips combining nested objects with nullable backed-enum fields, lists, nonempty maps, and public-property `ArrayObject` maps, including empty collections and numeric-looking string keys; assert object equality and JSON round trips.
+- [ ] Extend acceptance round trips to every remaining supported type combination; assert both value types and JSON shape.
 - [ ] Keep formatting, dependency checks, static analysis, PHPUnit, and mutation testing passing as support grows.
 
 ### Documentation
