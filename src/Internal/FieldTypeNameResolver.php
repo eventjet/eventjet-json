@@ -13,18 +13,17 @@ use function class_exists;
 use function enum_exists;
 use function in_array;
 use function interface_exists;
-use function ltrim;
 use function preg_match;
-use function str_starts_with;
 
 /** @internal */
 final class FieldTypeNameResolver
 {
     private const string REFINED_INTEGER_PATTERN = '(?:int\\s*<\\s*(?:min|-?[0-9]+)\\s*,\\s*(?:max|-?[0-9]+)\\s*>|(?:non-)?(?:positive|negative)-int)';
 
+    public const string CLASS_NAME_PATTERN = '\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff\\\\]*';
+
     public const string COLLECTION_TYPE_PATTERN =
-        self::REFINED_INTEGER_PATTERN
-            . '|non-empty-string|numeric-string|literal-string|\\\\?[A-Za-z_][A-Za-z0-9_\\\\]*';
+        self::REFINED_INTEGER_PATTERN . '|non-empty-string|numeric-string|literal-string|' . self::CLASS_NAME_PATTERN;
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
     {
@@ -69,9 +68,7 @@ final class FieldTypeNameResolver
             return $declaringClass->getName();
         }
 
-        $resolvedType = str_starts_with($type, '\\')
-            ? ltrim($type, characters: '\\')
-            : $declaringClass->getNamespaceName() . '\\' . $type;
+        $resolvedType = PhpDocClassNameResolver::resolve($declaringClass, $type);
 
         return enum_exists($resolvedType) || class_exists($resolvedType) || interface_exists($resolvedType)
             ? $resolvedType

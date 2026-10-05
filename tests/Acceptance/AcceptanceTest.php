@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\ArrayObjectMapValueConverter;
+use Eventjet\Json\Internal\ArrayObjectTypeResolver;
 use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
@@ -30,6 +31,12 @@ use Eventjet\Json\Internal\NamedFieldValueConverter;
 use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\ObjectTypeValidator;
 use Eventjet\Json\Internal\ObjectValueConverter;
+use Eventjet\Json\Internal\PhpDocClassNameResolver;
+use Eventjet\Json\Internal\PhpDocImports;
+use Eventjet\Json\Internal\PhpDocImportScanner;
+use Eventjet\Json\Internal\PhpDocImportStatement;
+use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
+use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\PublicPropertyNamedValueConverter;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
@@ -74,6 +81,13 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(EnumUnionValidator::class)]
 #[CoversClass(FieldTypeValidator::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
+#[CoversClass(PhpDocImportScanner::class)]
+#[CoversClass(PhpDocImportStatement::class)]
+#[CoversClass(PhpDocClassNameResolver::class)]
+#[CoversClass(ArrayObjectTypeResolver::class)]
+#[CoversClass(PhpDocImports::class)]
+#[CoversClass(PhpDocTokenStream::class)]
+#[CoversClass(PhpDocNamespaceDeclaration::class)]
 #[CoversClass(ListItemTypeValidator::class)]
 #[CoversClass(ListInputNormalizer::class)]
 #[CoversClass(ListValueConverter::class)]

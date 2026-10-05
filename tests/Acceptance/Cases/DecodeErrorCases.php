@@ -17,6 +17,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface;
 use Eventjet\Json\Test\Acceptance\Fixtures\ThrowingConstructor;
 use JsonException;
+use ReflectionException;
 use RuntimeException;
 
 use function str_repeat;
@@ -28,10 +29,12 @@ final class DecodeErrorCases
      * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{string, class-string, string, int}>
      * @throws JsonException
+     * @throws ReflectionException
      * @throws RuntimeException
      */
     public static function constructionFailures(): iterable
     {
+        yield from CollectionNameErrorCases::errors();
         yield from TupleErrorCases::errors();
         yield from IndexedTupleErrorCases::errors();
         yield from TupleDeclarationErrorCases::errors();

@@ -99,7 +99,7 @@ final class CollectionTypeResolver
     }
 
     /** @return non-empty-string */
-    private static function declarationPattern(
+    public static function declarationPattern(
         ReflectionParameter|ReflectionProperty $field,
         string $declarationPattern,
     ): string {
@@ -117,7 +117,7 @@ final class CollectionTypeResolver
         );
     }
 
-    private static function docComment(ReflectionParameter|ReflectionProperty $field): string
+    public static function docComment(ReflectionParameter|ReflectionProperty $field): string
     {
         $docComment = $field instanceof ReflectionParameter
             ? $field->getDeclaringFunction()->getDocComment()

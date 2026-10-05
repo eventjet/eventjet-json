@@ -34,6 +34,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use JsonException;
+use ReflectionException;
 use RuntimeException;
 
 use function array_keys;
@@ -54,9 +55,11 @@ final class RoundTripCases
      * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{0: object, 1?: string}>
      * @throws RuntimeException
+     * @throws ReflectionException
      */
     public static function objects(): iterable
     {
+        yield from CollectionNameCases::objects();
         yield from TupleRoundTripCases::objects();
         yield from IndexedTupleRoundTripCases::objects();
         yield from EmptyObjectShapeCases::objects();

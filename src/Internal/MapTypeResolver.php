@@ -20,7 +20,7 @@ final class MapTypeResolver
     {
         $type = $field->getType();
         $typeName = $type instanceof ReflectionNamedType ? FieldTypeNameResolver::resolve($field, $type) : null;
-        $declaration = $typeName === ArrayObject::class ? '(?:\\\\?ArrayObject)' : 'non-empty-array';
+        $declaration = $typeName === ArrayObject::class ? FieldTypeNameResolver::CLASS_NAME_PATTERN : 'non-empty-array';
 
         return self::resolveDeclaration(
             $field,
@@ -39,12 +39,9 @@ final class MapTypeResolver
         );
     }
 
-    public static function isArrayObject(ReflectionParameter|ReflectionProperty $field): bool
+    public static function hasArrayObjectDeclaration(ReflectionParameter|ReflectionProperty $field): bool
     {
-        return (
-            self::hasNativeType($field, ArrayObject::class)
-            && self::matchesDeclaration($field, '(?:\\\\?ArrayObject)\\s*<\\s*string\\s*,.+>')
-        );
+        return ArrayObjectTypeResolver::matches($field);
     }
 
     public static function hasAmbiguousArray(ReflectionParameter|ReflectionProperty $field): bool

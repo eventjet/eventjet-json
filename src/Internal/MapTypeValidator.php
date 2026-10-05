@@ -77,7 +77,7 @@ final class MapTypeValidator
         string $class,
         ReflectionParameter|ReflectionProperty $field,
     ): DecodeError|null {
-        $isArrayObject = MapTypeResolver::isArrayObject($field);
+        $isArrayObject = MapTypeResolver::hasArrayObjectDeclaration($field);
 
         if (!$isArrayObject) {
             return MapDecodeError::unsupportedDeclaration($class, $field->getName(), ArrayObject::class);
