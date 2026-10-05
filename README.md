@@ -127,6 +127,21 @@ subnormal values and precision-sensitive decimals. JSON does not distinguish a
 whole-valued float such as `3.0` from the integer `3`; the declared field type
 restores the value to a PHP float during construction.
 
+## JSON objects and arrays
+
+Decoding keeps JSON objects and arrays distinct, including empty values. An
+empty concrete object round-trips as `{}`, an empty `list<T>` as `[]`, and an
+empty `ArrayObject<string, T>` as `{}`. This also applies to empty concrete
+objects inside lists and maps. A JSON array cannot stand in for a concrete
+object or map, and a JSON object cannot stand in for a list, even when its
+member names are sequential integers such as `"0"` and `"1"`.
+
+Maps preserve numeric-looking member names that remain PHP string keys, such
+as `"01"` and `"1e0"`. They reject names that PHP converts to integer keys, such
+as `"0"` and `"42"`. For concrete class targets, numeric-looking names are
+unknown fields and follow the same ignore policy as other unknown members.
+These rules cover the supported field types; root collections remain unsupported.
+
 ## Collection declarations
 
 Use `list<T>` for JSON arrays. Lists may be empty and preserve the `[]` shape.
@@ -332,7 +347,7 @@ The round-trip contract also has these representation limits:
 - [x] Define and test how omitted constructor-bound members interact with required and optional arguments, constructor defaults, promoted readonly properties, and explicit `null`. Missing optional members use their defaults, present `null` overrides nullable defaults, and re-encoding may include default-valued properties that were absent from the input.
 - [x] Decide and test how omitted JSON object members interact with initialized and uninitialized public properties outside the constructor, including readonly properties.
 - [x] Test that JSON member order does not affect constructor argument binding.
-- [ ] Preserve the distinction between JSON objects and arrays, especially `{}` versus `[]` and objects with numeric-looking keys.
+- [x] Preserve the distinction between JSON objects and arrays, especially `{}` versus `[]` and objects with numeric-looking keys.
 - [x] Ignore unknown JSON fields at the root and in nested objects.
 - [x] Define the policy for duplicate JSON member names.
 - [x] Reject interface and abstract class root targets with a clear `DecodeError`.
