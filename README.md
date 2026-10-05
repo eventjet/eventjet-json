@@ -182,6 +182,12 @@ or `max` for the upper bound. These declarations validate values as integers
 without coercion and preserve collection shape rules. Range bounds are not
 enforced at runtime. Errors report the underlying `int` type.
 
+The integer refinements `positive-int`, `negative-int`, `non-negative-int`, and
+`non-positive-int` are recognized in collection items and values as well. They
+validate the underlying `int` type without coercion and retain the same
+collection shape rules. Their sign constraints are not enforced at runtime.
+These names follow [PHPStan's integer range declarations](https://phpstan.org/writing-php-code/phpdoc-types#integer-ranges).
+
 Map member names must remain PHP string keys. Integer names such as `"0"`,
 `"-1"`, and `"42"` are rejected because PHP converts them to integer array keys,
 even when the keys are non-sequential. Numeric-looking names that remain
@@ -311,7 +317,8 @@ The round-trip contract also has these representation limits:
 - [x] Recognize and enforce `non-empty-list<T>` declarations.
 - [x] Recognize `non-empty-string` and `numeric-string` collection items and values, validating their underlying string type while preserving collection shape rules. Runtime enforcement of the narrower constraints is optional.
 - [x] Recognize integer-range collection items and values such as `int<5, max>`, validating their underlying integer type while preserving collection shape rules. Runtime enforcement of range bounds is optional.
-- [ ] Recognize other narrower PHPDoc types such as `non-empty-map<TKey, TValue>` without rejecting otherwise supported declarations. Runtime enforcement of the narrower constraints is optional.
+- [x] Recognize `positive-int`, `negative-int`, `non-negative-int`, and `non-positive-int` collection items and values, validating their underlying integer type while preserving collection shape rules. Runtime enforcement of sign constraints is optional.
+- [ ] Recognize other narrower PHPDoc types such as `non-zero-int` and `non-empty-map<TKey, TValue>` without rejecting otherwise supported declarations. Runtime enforcement of the narrower constraints is optional.
 - [x] Define and test empty-map behavior: reject `{}` for `non-empty-array<string, T>` and preserve it with `ArrayObject<string, T>`.
 - [x] Test map keys, including integer keys, numeric-looking string keys, and non-sequential keys; preserve JSON shape during round trips.
 - [ ] Resolve PHPDoc collection types using the declaring namespace and imported or aliased class names.

@@ -106,6 +106,7 @@ final class RoundTripCases
         yield from NonEmptyListRoundTripCases::objects();
         yield from RefinedStringCollectionCases::objects();
         yield from IntegerRangeCollectionCases::objects();
+        yield from RefinedIntegerCollectionRoundTripCases::objects();
         yield from ScalarMapRoundTripCases::objects();
         yield 'empty backed enum lists' => [new BackedEnumListFields([], [])];
 

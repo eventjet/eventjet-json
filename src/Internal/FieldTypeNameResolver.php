@@ -20,10 +20,10 @@ use function str_starts_with;
 /** @internal */
 final class FieldTypeNameResolver
 {
-    private const string INTEGER_RANGE_PATTERN = 'int\\s*<\\s*(?:min|-?[0-9]+)\\s*,\\s*(?:max|-?[0-9]+)\\s*>';
+    private const string REFINED_INTEGER_PATTERN = '(?:int\\s*<\\s*(?:min|-?[0-9]+)\\s*,\\s*(?:max|-?[0-9]+)\\s*>|(?:non-)?(?:positive|negative)-int)';
 
     public const string COLLECTION_TYPE_PATTERN =
-        self::INTEGER_RANGE_PATTERN . '|non-empty-string|numeric-string|\\\\?[A-Za-z_][A-Za-z0-9_\\\\]*';
+        self::REFINED_INTEGER_PATTERN . '|non-empty-string|numeric-string|\\\\?[A-Za-z_][A-Za-z0-9_\\\\]*';
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
     {
@@ -51,9 +51,9 @@ final class FieldTypeNameResolver
             return 'string';
         }
 
-        $isIntegerRange = preg_match('/\\A' . self::INTEGER_RANGE_PATTERN . '\\z/', $type) === 1;
+        $isRefinedInteger = preg_match('/\\A' . self::REFINED_INTEGER_PATTERN . '\\z/', $type) === 1;
 
-        if ($isIntegerRange) {
+        if ($isRefinedInteger) {
             return 'int';
         }
 
