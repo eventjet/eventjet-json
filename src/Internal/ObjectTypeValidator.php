@@ -36,6 +36,13 @@ final class ObjectTypeValidator
             $name = $parameter->getName();
             $type = $parameter->getType();
 
+            if ($parameter->isVariadic()) {
+                return DecodeError::nonInstantiableTarget($className, sprintf(
+                    'Constructor parameter %s is variadic. JSON members bind to individual named arguments, not variadic argument lists.',
+                    $name,
+                ));
+            }
+
             if ($type === null) {
                 return DecodeError::nonInstantiableField(
                     $className,

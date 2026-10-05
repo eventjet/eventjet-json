@@ -104,6 +104,7 @@ scope decisions are made, and include a reason for every exclusion.
 | Intersection type hints | JSON does not identify the concrete class that satisfies every member of an intersection. Resolving one would require additional selection rules or metadata. |
 | Non-backed enums | They have no scalar backing value and cannot round-trip through PHP's `json_encode()`. |
 | Object targets implementing `JsonSerializable` | Their custom JSON representation may not match their constructor parameters, so generic decoding cannot guarantee the round-trip contract. |
+| Variadic constructors | JSON members bind to individual named constructor arguments. Reconstructing a variadic argument list would require separate unpacking and key-binding rules. |
 | Constructor parameters without same-named declared public instance properties | The class shape does not provide a stable JSON member from which decoding can recover those argument values. |
 | Non-JSON-encodable values, including resources, `INF`, `NAN`, invalid UTF-8, and circular references | JSON cannot represent these values without losing information or changing their meaning. They fall outside the round-trip contract. |
 | JSON objects with duplicate member names | They cannot be produced by `json_encode()` from supported PHP values. PHP's decoder does not report them separately, and detecting them would require reparsing every document. Callers must not rely on which duplicate value is retained. |
@@ -279,6 +280,7 @@ The round-trip contract also has these representation limits:
 - [x] Reject interface and abstract class map value types with a clear `DecodeError`.
 - [x] Reject target classes with private or protected constructors with a clear `DecodeError`.
 - [x] Reject constructor parameters without same-named declared public instance properties because the class shape provides no stable JSON member from which to recover their values.
+- [x] Reject variadic constructors with a clear `DecodeError`, including when their member is omitted.
 - [ ] Define the remaining supported class shapes and report unsupported ones clearly.
 - [x] Define behavior for `mixed`, untyped fields, `object`, and `stdClass`.
 - [ ] Investigate parsing JSON directly into target objects instead of decoding to generic PHP values and then mapping those values onto objects.
