@@ -36,6 +36,7 @@ use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyUnionValueConverter;
 use Eventjet\Json\Internal\PublicPropertyValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\TupleTypeResolver;
 use Eventjet\Json\Internal\TupleValueConverter;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
@@ -66,6 +67,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(CollectionTypeResolver::class)]
 #[CoversClass(CollectionItemValueConverter::class)]
 #[CoversClass(TupleValueConverter::class)]
+#[CoversClass(TupleTypeResolver::class)]
 #[CoversClass(ConcreteClassMapValueConverter::class)]
 #[CoversClass(ConcreteClassUnionValueConverter::class)]
 #[CoversClass(ConcreteClassValueConverter::class)]

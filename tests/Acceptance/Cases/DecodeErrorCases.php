@@ -33,6 +33,7 @@ final class DecodeErrorCases
     public static function constructionFailures(): iterable
     {
         yield from TupleErrorCases::errors();
+        yield from IndexedTupleErrorCases::errors();
         yield from TupleDeclarationErrorCases::errors();
         yield from EmptyObjectShapeCases::errors();
         yield from CollectionValidationErrorCases::errors();

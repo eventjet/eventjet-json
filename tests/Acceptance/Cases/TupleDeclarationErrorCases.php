@@ -21,15 +21,17 @@ final class TupleDeclarationErrorCases
     {
         foreach (['param', 'var'] as $tag) {
             foreach (self::unsupportedTypes() as $type => $detail) {
-                $class = CollectionDeclarationFixture::create('array', 'array{int, \\' . $type . '}', $tag);
+                foreach (['array{int, \\' . $type . '}', 'array{0: int, 1?: \\' . $type . '}'] as $declaration) {
+                    $class = CollectionDeclarationFixture::create('array', $declaration, $tag);
 
-                foreach (['{}', '{"value":[]}', '{"value":[1,{}]}'] as $json) {
-                    yield 'tuple unsupported ' . $tag . $type . $json => [
-                        $json,
-                        $class,
-                        'Could not create ' . $class . ' from the JSON object: Field value[1] uses ' . $detail,
-                        3,
-                    ];
+                    foreach (['{}', '{"value":[]}', '{"value":[1,{}]}'] as $json) {
+                        yield 'tuple unsupported ' . $tag . $declaration . $json => [
+                            $json,
+                            $class,
+                            'Could not create ' . $class . ' from the JSON object: Field value[1] uses ' . $detail,
+                            3,
+                        ];
+                    }
                 }
             }
         }

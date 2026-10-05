@@ -11,6 +11,7 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function array_key_exists;
+use function array_keys;
 use function assert;
 use function count;
 use function enum_exists;
@@ -60,39 +61,51 @@ final class TupleValueConverter
         ReflectionParameter|ReflectionProperty $field,
         mixed $value,
     ): array|DecodeError|null {
-        $types = CollectionTypeResolver::resolveTupleItems($field);
+        $tuple = CollectionTypeResolver::resolveTuple($field);
 
-        if ($types === null) {
+        if ($tuple === null) {
             return null;
         }
 
-        $expectedType = 'array{' . implode(', ', $types) . '}';
+        $types = $tuple['types'];
+        $required = $tuple['required'];
+        $positions = [];
+
+        foreach ($types as $index => $type) {
+            $positions[] = $index < $required ? $type : sprintf('%d?: %s', $index, $type);
+        }
+
+        $expectedType = 'array{' . implode(', ', $positions) . '}';
 
         if (!is_array($value)) {
             return DecodeError::fieldTypeMismatch($class, $field->getName(), $expectedType, $value);
         }
 
-        if (count($value) !== count($types)) {
+        if (count($value) < $required || count($value) > count($types)) {
+            $length = $required === count($types)
+                ? sprintf('exactly %d', $required)
+                : sprintf('between %d and %d', $required, count($types));
             return DecodeError::nonInstantiableTarget($class, sprintf(
-                'Field %s must be of type %s with exactly %d items, %d given.',
+                'Field %s must be of type %s with %s items, %d given.',
                 $field->getName(),
                 $expectedType,
-                count($types),
+                $length,
                 count($value),
             ));
         }
 
         $converted = [];
 
-        foreach ($types as $index => $type) {
+        foreach (array_keys($value) as $index) {
+            assert(array_key_exists($index, $value), description: 'A key returned by array_keys() must exist.');
             assert(
-                array_key_exists($index, $value),
-                description: 'A JSON array with the tuple length contains every tuple index.',
+                array_key_exists($index, $types),
+                description: 'A JSON array within the tuple length has a type for every item.',
             );
             $item = CollectionItemValueConverter::convert(
                 $class,
                 sprintf('%s[%d]', $field->getName(), $index),
-                $type,
+                $types[$index],
                 $value[$index],
             );
 

@@ -10,10 +10,7 @@ use ReflectionProperty;
 
 use function is_string;
 use function preg_match;
-use function preg_match_all;
 use function sprintf;
-
-use const PREG_SET_ORDER;
 
 /** @internal */
 final class CollectionTypeResolver
@@ -37,10 +34,11 @@ final class CollectionTypeResolver
         );
     }
 
-    /** @return list<'bool'|'float'|'int'|'string'|class-string>|null */
-    public static function resolveTupleItems(ReflectionParameter|ReflectionProperty $field): array|null
+    /** @return array{types: list<'bool'|'float'|'int'|'string'|class-string>, required: int}|null */
+    public static function resolveTuple(ReflectionParameter|ReflectionProperty $field): array|null
     {
-        $itemPattern = '(?:' . FieldTypeNameResolver::COLLECTION_TYPE_PATTERN . ')';
+        $typePattern = '(?:' . FieldTypeNameResolver::COLLECTION_TYPE_PATTERN . ')';
+        $itemPattern = '(?:[0-9]+\\??\\s*:\\s*)?' . $typePattern;
         $types = self::declarationType(
             $field,
             'array\\s*\\{\\s*(?<type>(?:' . $itemPattern . '\\s*(?:,\\s*' . $itemPattern . '\\s*)*,?)?)\\s*\\}',
@@ -50,22 +48,7 @@ final class CollectionTypeResolver
             return null;
         }
 
-        $matches = [];
-        preg_match_all('/' . $itemPattern . '/', $types, $matches, PREG_SET_ORDER);
-        $resolved = [];
-
-        /** @var array{string} $match */
-        foreach ($matches as $match) {
-            $item = FieldTypeNameResolver::resolvePhpDoc($field, $match[0]);
-
-            if ($item === null) {
-                return null;
-            }
-
-            $resolved[] = $item;
-        }
-
-        return $resolved;
+        return TupleTypeResolver::resolve($field, $types);
     }
 
     public static function isNonEmptyList(ReflectionParameter|ReflectionProperty $field): bool
