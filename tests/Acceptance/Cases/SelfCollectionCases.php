@@ -28,6 +28,34 @@ final class SelfCollectionCases
 
             $node = $parent;
         }
+
+        yield from self::branchingObjects();
+    }
+
+    /** @return iterable<string, array{SelfCollectionNode}> */
+    private static function branchingObjects(): iterable
+    {
+        $child = new SelfCollectionNode();
+
+        for ($depth = 1; $depth <= 3; ++$depth) {
+            $fields = 0;
+            do {
+                $leaf = new SelfCollectionNode();
+                $parent = new SelfCollectionNode(
+                    ($fields & 1) === 0 ? [] : [$child, $leaf],
+                    new ArrayObject(($fields & 2) === 0 ? [] : ['01' => $leaf, '+1' => $child]),
+                );
+                $parent->publicList = ($fields & 4) === 0 ? [] : [$leaf, $child];
+                $parent->publicObjectMap = new ArrayObject(
+                    ($fields & 8) === 0 ? [] : ['1.0' => $child, '1e0' => $leaf],
+                );
+
+                yield 'branching self collections ' . $depth . '/' . $fields => [$parent];
+                ++$fields;
+            } while ($fields < 16);
+
+            $child = $parent;
+        }
     }
 
     /** @return iterable<string, array{string, class-string, string, int}> */
