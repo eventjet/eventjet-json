@@ -175,6 +175,13 @@ Both declarations validate values as strings without coercion and preserve the
 collection's shape rules. The narrower nonempty and numeric constraints are not
 validated at runtime. Errors report the underlying `string` type.
 
+Integer-range items and values, such as `list<int<5, max>>`,
+`non-empty-array<string, int<min, -1>>`, and `ArrayObject<string, int<-5, 5>>`,
+are also recognized. Bounds may be decimal integers, `min` for the lower bound,
+or `max` for the upper bound. These declarations validate values as integers
+without coercion and preserve collection shape rules. Range bounds are not
+enforced at runtime. Errors report the underlying `int` type.
+
 Map member names must remain PHP string keys. Integer names such as `"0"`,
 `"-1"`, and `"42"` are rejected because PHP converts them to integer array keys,
 even when the keys are non-sequential. Numeric-looking names that remain
@@ -303,7 +310,8 @@ The round-trip contract also has these representation limits:
 - [ ] Validate collection items against their declared types and reject object/array shape mismatches.
 - [x] Recognize and enforce `non-empty-list<T>` declarations.
 - [x] Recognize `non-empty-string` and `numeric-string` collection items and values, validating their underlying string type while preserving collection shape rules. Runtime enforcement of the narrower constraints is optional.
-- [ ] Recognize other narrower PHPDoc types such as `non-empty-map<TKey, TValue>` and integer ranges such as `int<5, max>` without rejecting otherwise supported declarations. Runtime enforcement of the narrower constraints is optional.
+- [x] Recognize integer-range collection items and values such as `int<5, max>`, validating their underlying integer type while preserving collection shape rules. Runtime enforcement of range bounds is optional.
+- [ ] Recognize other narrower PHPDoc types such as `non-empty-map<TKey, TValue>` without rejecting otherwise supported declarations. Runtime enforcement of the narrower constraints is optional.
 - [x] Define and test empty-map behavior: reject `{}` for `non-empty-array<string, T>` and preserve it with `ArrayObject<string, T>`.
 - [x] Test map keys, including integer keys, numeric-looking string keys, and non-sequential keys; preserve JSON shape during round trips.
 - [ ] Resolve PHPDoc collection types using the declaring namespace and imported or aliased class names.

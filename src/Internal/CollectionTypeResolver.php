@@ -19,7 +19,7 @@ final class CollectionTypeResolver
     {
         return self::resolveDeclaration(
             $field,
-            '(?:non-empty-)?list\\s*<\\s*(?<type>non-empty-string|numeric-string|\\\\?[A-Za-z_][A-Za-z0-9_\\\\]*)\\s*>',
+            '(?:non-empty-)?list\\s*<\\s*(?<type>' . FieldTypeNameResolver::COLLECTION_TYPE_PATTERN . ')\\s*>',
         );
     }
 

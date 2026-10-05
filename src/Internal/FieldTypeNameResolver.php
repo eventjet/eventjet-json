@@ -14,11 +14,17 @@ use function enum_exists;
 use function in_array;
 use function interface_exists;
 use function ltrim;
+use function preg_match;
 use function str_starts_with;
 
 /** @internal */
 final class FieldTypeNameResolver
 {
+    private const string INTEGER_RANGE_PATTERN = 'int\\s*<\\s*(?:min|-?[0-9]+)\\s*,\\s*(?:max|-?[0-9]+)\\s*>';
+
+    public const string COLLECTION_TYPE_PATTERN =
+        self::INTEGER_RANGE_PATTERN . '|non-empty-string|numeric-string|\\\\?[A-Za-z_][A-Za-z0-9_\\\\]*';
+
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
     {
         $name = $type->getName();
@@ -43,6 +49,12 @@ final class FieldTypeNameResolver
     {
         if ($type === 'non-empty-string' || $type === 'numeric-string') {
             return 'string';
+        }
+
+        $isIntegerRange = preg_match('/\\A' . self::INTEGER_RANGE_PATTERN . '\\z/', $type) === 1;
+
+        if ($isIntegerRange) {
+            return 'int';
         }
 
         if (in_array($type, ['bool', 'float', 'int', 'string'], strict: true)) {
