@@ -458,7 +458,8 @@ The round-trip contract also has these representation limits:
 - [x] Test map keys, including integer keys, numeric-looking string keys, and non-sequential keys; preserve JSON shape during round trips.
 - [x] Resolve `self` in PHPDoc collection items and values to the declaring class, retaining final-class validation.
 - [x] Resolve remaining PHPDoc collection names, including imported or aliased names and global-namespace shorthand.
-- [ ] Investigate replacing regular-expression parsing of types inside PHPDoc blocks with a custom type parser, considering correctness, maintainability, and support for nested type declarations.
+- [x] Investigate replacing regular-expression parsing of types inside PHPDoc blocks with a custom type parser, considering correctness, maintainability, and support for nested type declarations.
+- [ ] Replace collection type regular expressions with an internal recursive parser without adding runtime dependencies. Parse nested declarations into a syntax tree, keep tag selection, name resolution, and decoding validation separate, preserve existing supported behavior and error contracts, and continue rejecting types whose decoding is not yet supported. Cover parser boundaries and malformed declarations with generated tests.
 - [x] Report missing, malformed, unknown, or unsupported collection type declarations clearly.
 - [ ] Add an API for typed JSON arrays at the root, with accurate generic return types for static analysis.
 - [ ] Support typed maps at the root and define whether scalar, enum, and null root values are supported.
