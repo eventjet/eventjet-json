@@ -63,6 +63,11 @@ final class FieldTypeNameResolver
 
         /** @var ReflectionClass<object> $declaringClass */
         $declaringClass = $field->getDeclaringClass();
+
+        if ($type === 'self') {
+            return $declaringClass->getName();
+        }
+
         $resolvedType = str_starts_with($type, '\\')
             ? ltrim($type, characters: '\\')
             : $declaringClass->getNamespaceName() . '\\' . $type;
