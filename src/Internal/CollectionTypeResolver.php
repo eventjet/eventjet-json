@@ -10,7 +10,10 @@ use ReflectionProperty;
 
 use function is_string;
 use function preg_match;
+use function preg_match_all;
 use function sprintf;
+
+use const PREG_SET_ORDER;
 
 /** @internal */
 final class CollectionTypeResolver
@@ -19,7 +22,7 @@ final class CollectionTypeResolver
     public static function invalidDeclaration(string $class, ReflectionParameter|ReflectionProperty $field): DecodeError
     {
         return DecodeError::nonInstantiableTarget($class, sprintf(
-            'Field %s has a missing or unrecognized collection declaration. Use @%s with list<T>, non-empty-list<T>, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            'Field %s has a missing or unrecognized collection declaration. Use @%s with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             $field->getName(),
             $field instanceof ReflectionParameter ? 'param' : 'var',
         ));
@@ -32,6 +35,37 @@ final class CollectionTypeResolver
             $field,
             '(?:non-empty-)?list\\s*<\\s*(?<type>' . FieldTypeNameResolver::COLLECTION_TYPE_PATTERN . ')\\s*>',
         );
+    }
+
+    /** @return list<'bool'|'float'|'int'|'string'|class-string>|null */
+    public static function resolveTupleItems(ReflectionParameter|ReflectionProperty $field): array|null
+    {
+        $itemPattern = '(?:' . FieldTypeNameResolver::COLLECTION_TYPE_PATTERN . ')';
+        $types = self::declarationType(
+            $field,
+            'array\\s*\\{\\s*(?<type>(?:' . $itemPattern . '\\s*(?:,\\s*' . $itemPattern . '\\s*)*,?)?)\\s*\\}',
+        );
+
+        if ($types === null) {
+            return null;
+        }
+
+        $matches = [];
+        preg_match_all('/' . $itemPattern . '/', $types, $matches, PREG_SET_ORDER);
+        $resolved = [];
+
+        /** @var array{string} $match */
+        foreach ($matches as $match) {
+            $item = FieldTypeNameResolver::resolvePhpDoc($field, $match[0]);
+
+            if ($item === null) {
+                return null;
+            }
+
+            $resolved[] = $item;
+        }
+
+        return $resolved;
     }
 
     public static function isNonEmptyList(ReflectionParameter|ReflectionProperty $field): bool
@@ -54,6 +88,15 @@ final class CollectionTypeResolver
         ReflectionParameter|ReflectionProperty $field,
         string $declarationPattern,
     ): string|null {
+        $type = self::declarationType($field, $declarationPattern);
+
+        return $type === null ? null : FieldTypeNameResolver::resolvePhpDoc($field, $type);
+    }
+
+    private static function declarationType(
+        ReflectionParameter|ReflectionProperty $field,
+        string $declarationPattern,
+    ): string|null {
         $matches = [];
         $matched = preg_match(
             self::declarationPattern($field, $declarationPattern),
@@ -62,7 +105,7 @@ final class CollectionTypeResolver
         );
         $type = $matched === 1 ? $matches['type'] ?? null : null;
 
-        return is_string($type) ? FieldTypeNameResolver::resolvePhpDoc($field, $type) : null;
+        return is_string($type) ? $type : null;
     }
 
     private static function matchesDeclaration(

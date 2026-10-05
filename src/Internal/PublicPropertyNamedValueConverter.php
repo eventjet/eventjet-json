@@ -86,7 +86,11 @@ final class PublicPropertyNamedValueConverter
         $converted = ListValueConverter::convert($class, $property, $value);
 
         if ($converted === null) {
-            $converted = MapValueConverter::convert($class, $property, $value);
+            $converted = TupleValueConverter::convert($class, $property, $value) ?? MapValueConverter::convert(
+                $class,
+                $property,
+                $value,
+            );
         }
 
         if ($converted instanceof DecodeError) {

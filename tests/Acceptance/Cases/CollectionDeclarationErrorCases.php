@@ -56,7 +56,7 @@ final class CollectionDeclarationErrorCases
         $detail ??=
             'Field value has a missing or unrecognized collection declaration. Use @'
             . $tag
-            . ' with list<T>, non-empty-list<T>, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.';
+            . ' with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.';
 
         return 'Could not create ' . $class . ' from the JSON object: ' . $detail;
     }

@@ -10,6 +10,7 @@ use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassUnionValidator;
+use Eventjet\Json\Internal\CollectionItemValueConverter;
 use Eventjet\Json\Internal\CollectionTypeResolver;
 use Eventjet\Json\Internal\ConcreteClassMapValueConverter;
 use Eventjet\Json\Internal\ConcreteClassUnionValueConverter;
@@ -35,6 +36,7 @@ use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyUnionValueConverter;
 use Eventjet\Json\Internal\PublicPropertyValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\TupleValueConverter;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\Cases\ConstructorDefaultCases;
@@ -62,6 +64,8 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ClassUnionValidator::class)]
 #[CoversClass(CollectionTypeResolver::class)]
+#[CoversClass(CollectionItemValueConverter::class)]
+#[CoversClass(TupleValueConverter::class)]
 #[CoversClass(ConcreteClassMapValueConverter::class)]
 #[CoversClass(ConcreteClassUnionValueConverter::class)]
 #[CoversClass(ConcreteClassValueConverter::class)]

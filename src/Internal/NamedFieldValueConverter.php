@@ -36,7 +36,13 @@ final class NamedFieldValueConverter
                 return $converted;
             }
 
-            return MapValueConverter::convert($class, $parameter, $value);
+            return (
+                TupleValueConverter::convert($class, $parameter, $value) ?? MapValueConverter::convert(
+                    $class,
+                    $parameter,
+                    $value,
+                )
+            );
         }
 
         if ($typeName === ArrayObject::class) {

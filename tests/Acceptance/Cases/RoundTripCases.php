@@ -57,6 +57,7 @@ final class RoundTripCases
      */
     public static function objects(): iterable
     {
+        yield from TupleRoundTripCases::objects();
         yield from EmptyObjectShapeCases::objects();
         yield from CollectionValidationInputs::objects();
 

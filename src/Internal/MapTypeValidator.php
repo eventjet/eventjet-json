@@ -48,6 +48,12 @@ final class MapTypeValidator
             return null;
         }
 
+        $tupleItems = CollectionTypeResolver::resolveTupleItems($field);
+
+        if ($tupleItems !== null) {
+            return TupleValueConverter::validateTypes($class, $field, $tupleItems);
+        }
+
         $hasAmbiguousArray = MapTypeResolver::hasAmbiguousArray($field);
 
         if ($hasAmbiguousArray) {
