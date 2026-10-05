@@ -145,25 +145,74 @@ treats it as a map container rather than as an ordinary non-final class and
 always constructs an exact `ArrayObject`; subclasses are outside the supported
 round-trip domain.
 
+Declare constructor collections with `@param` on the constructor. This complete
+example uses all four collection forms and restores map values as `Product`
+objects:
+
 ```php
 <?php
 
 declare(strict_types=1);
 
+namespace Example;
+
 use ArrayObject;
+use Eventjet\Json\DecodeError;
+use Eventjet\Json\Json;
+
+final readonly class Product
+{
+    public function __construct(public string $name) {}
+}
 
 final readonly class Catalog
 {
     /**
+     * @param list<string> $tags
+     * @param non-empty-list<int> $quantities
      * @param non-empty-array<string, Product> $featured
      * @param ArrayObject<string, Product> $products
      */
     public function __construct(
+        public array $tags,
+        public array $quantities,
         public array $featured,
         public ArrayObject $products,
     ) {}
 }
+
+$catalog = Json::decode(
+    '{"tags":[],"quantities":[1,2],"featured":{"primary":{"name":"Notebook"}},"products":{}}',
+    Catalog::class,
+);
+
+if ($catalog instanceof DecodeError) {
+    throw $catalog;
+}
+
+echo $catalog->featured['primary']->name;
 ```
+
+The example prints `Notebook`. Re-encoding `$catalog` preserves `tags` as `[]`
+and `products` as `{}`. Changing `quantities` to `[]`, `featured` to `{}`, or
+either map to a JSON array returns a `DecodeError`.
+
+For public properties outside the constructor, put `@var` on the property:
+
+```php
+final class Labels
+{
+    /** @var list<string> */
+    public array $values = [];
+}
+```
+
+Decoding `{"values":["new","sale"]}` into `Labels::class` hydrates the list.
+An omitted `values` member leaves its default `[]` unchanged. An item of the
+wrong type, such as `{"values":[42]}`, returns a `DecodeError`.
+
+These declarations describe fields inside a root object. Passing a JSON array
+or a collection PHPDoc declaration as the root target is not supported.
 
 The currently supported `T` declarations are `string`, `int`, `float`, `bool`,
 a backed enum, or a final class. Whole-valued integers are restored as floats
@@ -346,5 +395,6 @@ The round-trip contract also has these representation limits:
 ### Documentation
 
 - [x] Document installation, object decoding, and handling returned errors.
-- [ ] Document collection type declarations and root collections when they are supported.
+- [x] Document supported collection field declarations with complete decoding examples and public-property PHPDoc placement.
+- [ ] Document root collections when they are supported.
 - [x] Publish the supported-type matrix and explicit limits, including any values whose original PHP type or shape cannot be recovered from JSON alone.
