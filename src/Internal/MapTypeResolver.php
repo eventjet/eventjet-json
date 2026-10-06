@@ -11,6 +11,7 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function count;
+use function in_array;
 use function strcasecmp;
 
 /** @internal */
@@ -46,11 +47,11 @@ final class MapTypeResolver
         if ($type->name === 'array') {
             return MapDecodeError::ambiguousDeclaration($class, $field->getName());
         }
-        if ($type->name !== 'non-empty-array') {
+        if (!in_array($type->name, ['non-empty-array', 'non-empty-map'], strict: true)) {
             return null;
         }
         if (!$hasStringKey) {
-            return MapDecodeError::unsupportedDeclaration($class, $field->getName(), 'non-empty-array');
+            return MapDecodeError::unsupportedDeclaration($class, $field->getName(), $type->name);
         }
         return self::map($field, $arguments, $arrayObject);
     }

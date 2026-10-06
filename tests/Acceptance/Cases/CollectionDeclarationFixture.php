@@ -27,6 +27,12 @@ final class CollectionDeclarationFixture
         yield 'wrong field' => ['array', '/** @param list<int> $values */'];
 
         foreach ([
+            'non-empty-map<string, int',
+            'non-empty-map<string>',
+            'non-empty-map<string, int, bool>',
+            'non-empty-map<string, UnknownCollectionItem>',
+            'non-empty-map<string, list<int>>',
+            'list<non-zero-int<string>>',
             'non-empty-list<>',
             'non-empty-list<int',
             'non-empty-list<UnknownCollectionItem>',

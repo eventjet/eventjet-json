@@ -45,7 +45,7 @@ final class FieldTypeNameResolver
 
         $isRefinedInteger = in_array(
             $type,
-            ['positive-int', 'negative-int', 'non-positive-int', 'non-negative-int'],
+            ['positive-int', 'negative-int', 'non-positive-int', 'non-negative-int', 'non-zero-int'],
             strict: true,
         );
 

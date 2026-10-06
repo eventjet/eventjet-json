@@ -20,7 +20,7 @@ final class CollectionUnionInputs
         foreach ($values as $value) {
             yield self::collection($shape, [$value]);
         }
-        if (in_array($shape, ['list', 'non-empty-list', 'map', 'ArrayObject'], strict: true)) {
+        if (in_array($shape, ['list', 'non-empty-list', 'map', 'non-empty-map', 'ArrayObject'], strict: true)) {
             yield self::collection($shape, $values);
         }
         if (in_array($shape, ['list', 'optional tuple', 'ArrayObject'], strict: true)) {
@@ -39,7 +39,7 @@ final class CollectionUnionInputs
             $map[$index === 0 ? '01' : 'key' . $index] = $value;
         }
         return match ($shape) {
-            'map' => $map,
+            'map', 'non-empty-map' => $map,
             'ArrayObject' => new ArrayObject($map),
             default => $values,
         };

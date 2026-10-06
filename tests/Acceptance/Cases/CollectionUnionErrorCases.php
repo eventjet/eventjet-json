@@ -31,7 +31,7 @@ final class CollectionUnionErrorCases
                 foreach (['param', 'var'] as $tag) {
                     $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
                     foreach ($values as $value => $actual) {
-                        $map = $shape === 'map' || $shape === 'ArrayObject';
+                        $map = $shape === 'map' || $shape === 'non-empty-map' || $shape === 'ArrayObject';
                         $json = '{"value":' . ($map ? '{"key":' . $value . '}' : '[' . $value . ']') . '}';
                         $path = $map ? 'value[key]' : 'value[0]';
                         yield 'union mismatch ' . $declaration . $tag . $value => [

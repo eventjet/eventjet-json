@@ -34,6 +34,8 @@ final class DecodeErrorCases
      */
     public static function constructionFailures(): iterable
     {
+        yield from NonZeroIntegerErrorCases::errors();
+        yield from NonEmptyMapErrorCases::errors();
         yield from CollectionNameErrorCases::errors();
         yield from CollectionUnionErrorCases::errors();
         yield from ParserMalformedCases::errors();

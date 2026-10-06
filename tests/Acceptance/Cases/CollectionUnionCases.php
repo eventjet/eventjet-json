@@ -67,6 +67,8 @@ final class CollectionUnionCases
         yield 'false|string' => [false, '', 'false'];
         yield 'non-empty-string|int<0, max>' => ['answer', 42];
         yield 'int|positive-int' => [0, 42];
+        yield 'int|non-zero-int' => [PHP_INT_MIN, 0, PHP_INT_MAX];
+        yield 'non-zero-int|null' => [PHP_INT_MIN, -1, 0, 1, PHP_INT_MAX, null];
         yield '\\' . Coordinates::class . '|string|int|null' => [new Coordinates(1.25, 2.5), 'text', 42, null];
         yield '\\'
             . StringBackedStatus::class
@@ -103,6 +105,7 @@ final class CollectionUnionCases
         yield 'tuple' => ['array', 'array{' . $type . '}'];
         yield 'optional tuple' => ['array', 'array{0?: ' . $type . '}'];
         yield 'map' => ['array', 'non-empty-array<string, ' . $type . '>'];
+        yield 'non-empty-map' => ['array', 'non-empty-map<string, ' . $type . '>'];
         yield 'ArrayObject' => ['\\ArrayObject', 'ArrayObject<string, ' . $type . '>'];
     }
 }

@@ -22,7 +22,7 @@ final class CollectionUnionEnumErrors
             foreach (CollectionUnionCases::shapes($type) as $shape => [$native, $declaration]) {
                 foreach (['param', 'var'] as $tag) {
                     $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
-                    $map = $shape === 'map' || $shape === 'ArrayObject';
+                    $map = $shape === 'map' || $shape === 'non-empty-map' || $shape === 'ArrayObject';
                     $json = '{"value":' . ($map ? '{"01":' . $value . '}' : '[' . $value . ']') . '}';
                     $path = $map ? 'value[01]' : 'value[0]';
                     yield 'collection enum union ' . $declaration . $tag => [
