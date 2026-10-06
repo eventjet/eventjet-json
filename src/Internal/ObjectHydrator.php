@@ -19,19 +19,19 @@ final class ObjectHydrator
      * @param class-string<T> $class
      * @return T|DecodeError
      */
-    public static function hydrate(string $class, stdClass $object): object
+    public static function hydrate(string $class, stdClass $object, string $path = ''): object
     {
         try {
             $reflection = new ReflectionClass($class);
             /** @var array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values */
             $values = get_object_vars($object);
-            $collections = ObjectTypeValidator::validate($reflection, $values);
+            $collections = ObjectTypeValidator::validate($reflection, $values, $path);
 
             if ($collections instanceof DecodeError) {
                 return $collections;
             }
 
-            $convertedValues = ObjectValueConverter::convert($reflection, $values, $collections);
+            $convertedValues = ObjectValueConverter::convert($reflection, $values, $collections, $path);
 
             if ($convertedValues instanceof DecodeError) {
                 return $convertedValues;
@@ -42,7 +42,7 @@ final class ObjectHydrator
              * @psalm-suppress MixedMethodCall PHP validates the intentionally dynamic constructor at runtime.
              */
             $object = new $class(...$convertedValues);
-            $propertyError = PublicPropertyHydrator::hydrate($reflection, $object, $values);
+            $propertyError = PublicPropertyHydrator::hydrate($reflection, $object, $values, $path);
 
             return $propertyError ?? $object;
         } catch (Throwable $error) {

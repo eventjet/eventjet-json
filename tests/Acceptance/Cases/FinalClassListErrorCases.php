@@ -59,7 +59,7 @@ final class FinalClassListErrorCases
             FinalClassListFields::class,
             'Could not create '
                 . Person::class
-                . ' from the JSON object: Field firstName must be of type string, int given.',
+                . ' from the JSON object: Field people[0].firstName must be of type string, int given.',
             3,
         ];
 
@@ -68,7 +68,7 @@ final class FinalClassListErrorCases
             FinalClassListFields::class,
             'Could not create '
                 . Person::class
-                . ' from the JSON object: Field lastName must be of type string, int given.',
+                . ' from the JSON object: Field publicPeople[0].lastName must be of type string, int given.',
             3,
         ];
     }

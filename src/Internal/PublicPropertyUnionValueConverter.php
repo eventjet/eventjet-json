@@ -6,7 +6,6 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionException;
-use ReflectionNamedType;
 use ReflectionProperty;
 use ReflectionUnionType;
 use stdClass;
@@ -24,20 +23,21 @@ final class PublicPropertyUnionValueConverter
         ReflectionProperty $property,
         ReflectionUnionType $type,
         mixed $value,
+        string $path,
     ): array|DecodeError {
-        $converted = self::convertBackedEnum($class, $property, $value);
+        $converted = self::convertBackedEnum($class, $property, $value, $path);
 
         if ($converted !== null) {
             return $converted;
         }
 
-        $converted = self::convertConcreteClass($class, $property, $type, $value);
+        $converted = self::convertConcreteClass($class, $property, $type, $value, $path);
 
         if ($converted !== null) {
             return $converted;
         }
 
-        return self::convertBuiltin($class, $property, $type, $value);
+        return self::convertBuiltin($class, $property, $type, $value, $path);
     }
 
     /**
@@ -49,8 +49,9 @@ final class PublicPropertyUnionValueConverter
         string $class,
         ReflectionProperty $property,
         mixed $value,
+        string $path,
     ): array|DecodeError|null {
-        $converted = BackedEnumValueConverter::convert($class, $property, $value);
+        $converted = BackedEnumValueConverter::convert($class, $property, $value, $path);
 
         return self::assignment($property, $converted);
     }
@@ -64,12 +65,13 @@ final class PublicPropertyUnionValueConverter
         ReflectionProperty $property,
         ReflectionUnionType $type,
         mixed $value,
+        string $path,
     ): array|DecodeError|null {
         if (!$value instanceof stdClass) {
             return null;
         }
 
-        $converted = ConcreteClassUnionValueConverter::convert($class, $property, $type, $value);
+        $converted = ConcreteClassUnionValueConverter::convert($class, $property, $type, $value, $path);
 
         return self::assignment($property, $converted);
     }
@@ -83,11 +85,12 @@ final class PublicPropertyUnionValueConverter
         ReflectionProperty $property,
         ReflectionUnionType $type,
         mixed $value,
+        string $path,
     ): array|DecodeError {
-        $matchingType = self::matchingBuiltinType($type, $value);
+        $matches = ValueTypeMatcher::matchesBuiltinUnion($value, $type);
 
-        if (!$matchingType instanceof ReflectionNamedType) {
-            return DecodeError::fieldTypeMismatch($class, $property->getName(), (string) $type, $value);
+        if (!$matches) {
+            return DecodeError::fieldTypeMismatch($class, $path, (string) $type, $value);
         }
 
         return ['property' => $property, 'value' => $value];
@@ -101,22 +104,5 @@ final class PublicPropertyUnionValueConverter
         }
 
         return ['property' => $property, 'value' => $value];
-    }
-
-    private static function matchingBuiltinType(ReflectionUnionType $type, mixed $value): ReflectionNamedType|null
-    {
-        foreach ($type->getTypes() as $member) {
-            if (!$member instanceof ReflectionNamedType || !$member->isBuiltin()) {
-                continue;
-            }
-
-            $valueMatchesType = ValueTypeMatcher::matches($value, $member);
-
-            if ($valueMatchesType) {
-                return $member;
-            }
-        }
-
-        return null;
     }
 }

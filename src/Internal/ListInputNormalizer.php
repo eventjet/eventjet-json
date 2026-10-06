@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use ReflectionParameter;
-use ReflectionProperty;
 
 use function array_is_list;
 use function is_array;
@@ -21,19 +19,19 @@ final class ListInputNormalizer
      */
     public static function normalize(
         string $class,
-        ReflectionParameter|ReflectionProperty $field,
+        string $path,
         string $expectedType,
         ListType $collection,
         mixed $value,
     ): array|DecodeError {
         if (!is_array($value) || !array_is_list($value)) {
-            return DecodeError::fieldTypeMismatch($class, $field->getName(), $expectedType, $value);
+            return DecodeError::fieldTypeMismatch($class, $path, $expectedType, $value);
         }
 
         if ($collection->nonEmpty && $value === []) {
             return DecodeError::nonInstantiableTarget($class, sprintf(
                 'Field %s must be of type %s, empty list given.',
-                $field->getName(),
+                $path,
                 $expectedType,
             ));
         }

@@ -71,7 +71,7 @@ final class BackedEnumErrorCases
                 NestedBackedEnumFields::class,
                 'Could not create '
                     . BackedEnumFields::class
-                    . ' from the JSON object: Field '
+                    . ' from the JSON object: Field fields.'
                     . $field
                     . ' uses backed enum '
                     . $enum

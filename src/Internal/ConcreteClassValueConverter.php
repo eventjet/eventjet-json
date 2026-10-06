@@ -21,6 +21,7 @@ final class ConcreteClassValueConverter
         ReflectionParameter|ReflectionProperty $field,
         string $typeName,
         mixed $value,
+        string $path,
     ): object|null {
         $allowsNull = (bool) $field->getType()?->allowsNull();
 
@@ -34,7 +35,7 @@ final class ConcreteClassValueConverter
             $expectedType .= '|null';
         }
 
-        return self::convertValue($class, $field->getName(), $typeName, $expectedType, $value);
+        return self::convertValue($class, $path, $typeName, $expectedType, $value);
     }
 
     /**
@@ -58,7 +59,7 @@ final class ConcreteClassValueConverter
         mixed $value,
     ): object {
         return $value instanceof stdClass
-            ? ObjectHydrator::hydrate($typeName, $value)
+            ? ObjectHydrator::hydrate($typeName, $value, $path)
             : DecodeError::fieldTypeMismatch($class, $path, $expectedType, $value);
     }
 }

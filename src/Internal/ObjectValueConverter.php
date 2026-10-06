@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use JsonException;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
@@ -23,15 +24,21 @@ final class ObjectValueConverter
      * @param array<array-key, mixed> $values
      * @param array<string, ListType|MapType|TupleType|null> $collections
      * @return array<array-key, mixed>|DecodeError
+     * @throws JsonException
      * @throws ReflectionException
      */
-    public static function convert(ReflectionClass $class, array $values, array $collections): array|DecodeError
-    {
+    public static function convert(
+        ReflectionClass $class,
+        array $values,
+        array $collections,
+        string $path,
+    ): array|DecodeError {
         $className = $class->getName();
         $convertedValues = [];
 
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $field = $parameter->getName();
+            $fieldPath = FieldPath::field($path, $field);
 
             if (!array_key_exists($field, $values)) {
                 continue;
@@ -41,8 +48,8 @@ final class ObjectValueConverter
             $value = $values[$field];
             $collection = $collections[$field] ?? null;
             $converted = $collection === null
-                ? self::convertField($className, $parameter, $value)
-                : CollectionValueConverter::convert($className, $parameter, $collection, $value);
+                ? self::convertField($className, $parameter, $value, $fieldPath)
+                : CollectionValueConverter::convert($className, $fieldPath, $collection, $value);
 
             if ($converted instanceof DecodeError) {
                 return $converted;
@@ -64,27 +71,51 @@ final class ObjectValueConverter
         string $class,
         ReflectionParameter $parameter,
         mixed $value,
+        string $path,
     ): array|bool|float|int|object|string|null {
         $type = $parameter->getType();
 
         if ($type instanceof ReflectionNamedType) {
-            return NamedFieldValueConverter::convert($class, $parameter, $type, $value);
+            return NamedFieldValueConverter::convert($class, $parameter, $type, $value, $path);
         }
 
         if ($type instanceof ReflectionUnionType) {
-            $converted = BackedEnumValueConverter::convert($class, $parameter, $value);
+            return self::convertUnion($class, $parameter, $type, $value, $path);
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param class-string $class
+     * @param array<array-key, mixed>|bool|float|int|object|string|null $value
+     * @return array<array-key, mixed>|bool|float|int|object|string|null
+     * @throws ReflectionException
+     */
+    private static function convertUnion(
+        string $class,
+        ReflectionParameter $parameter,
+        ReflectionUnionType $type,
+        mixed $value,
+        string $path,
+    ): array|bool|float|int|object|string|null {
+        $converted = BackedEnumValueConverter::convert($class, $parameter, $value, $path);
+
+        if ($converted !== null) {
+            return $converted;
+        }
+
+        if ($value instanceof stdClass) {
+            $converted = ConcreteClassUnionValueConverter::convert($class, $parameter, $type, $value, $path);
 
             if ($converted !== null) {
                 return $converted;
             }
+        }
 
-            if ($value instanceof stdClass) {
-                $converted = ConcreteClassUnionValueConverter::convert($class, $parameter, $type, $value);
-
-                if ($converted !== null) {
-                    return $converted;
-                }
-            }
+        $matches = ValueTypeMatcher::matchesBuiltinUnion($value, $type);
+        if (!$matches) {
+            return DecodeError::fieldTypeMismatch($class, $path, (string) $type, $value);
         }
 
         return $value;

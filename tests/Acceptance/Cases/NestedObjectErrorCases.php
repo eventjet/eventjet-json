@@ -79,7 +79,7 @@ final class NestedObjectErrorCases
             NestedObjectFields::class,
             'Could not create '
                 . Person::class
-                . ' from the JSON object: Field firstName must be of type string, int given.',
+                . ' from the JSON object: Field person.firstName must be of type string, int given.',
             3,
         ];
 
@@ -88,7 +88,7 @@ final class NestedObjectErrorCases
             NestedObjectFields::class,
             'Could not create '
                 . Coordinates::class
-                . ' from the JSON object: Field latitude must be of type float, string given.',
+                . ' from the JSON object: Field address.coordinates.latitude must be of type float, string given.',
             3,
         ];
 
@@ -108,7 +108,7 @@ final class NestedObjectErrorCases
             NestedObjectPublicProperties::class,
             'Could not create '
                 . Person::class
-                . ' from the JSON object: Field firstName must be of type string, int given.',
+                . ' from the JSON object: Field person.firstName must be of type string, int given.',
             3,
         ];
 
@@ -117,7 +117,7 @@ final class NestedObjectErrorCases
             ClassScalarUnionField::class,
             'Could not create '
                 . Person::class
-                . ' from the JSON object: Field firstName must be of type string, int given.',
+                . ' from the JSON object: Field value.firstName must be of type string, int given.',
             3,
         ];
 
@@ -126,7 +126,7 @@ final class NestedObjectErrorCases
             ClassEnumScalarUnionPublicProperty::class,
             'Could not create '
                 . Person::class
-                . ' from the JSON object: Field firstName must be of type string, int given.',
+                . ' from the JSON object: Field value.firstName must be of type string, int given.',
             3,
         ];
 

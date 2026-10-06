@@ -6,8 +6,6 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionException;
-use ReflectionParameter;
-use ReflectionProperty;
 
 use function array_key_exists;
 use function array_keys;
@@ -25,12 +23,8 @@ final class TupleValueConverter
      * @return list<bool|float|int|object|string|null>|DecodeError
      * @throws ReflectionException
      */
-    public static function convert(
-        string $class,
-        ReflectionParameter|ReflectionProperty $field,
-        TupleType $collection,
-        mixed $value,
-    ): array|DecodeError {
+    public static function convert(string $class, string $path, TupleType $collection, mixed $value): array|DecodeError
+    {
         $types = $collection->types;
         $required = $collection->required;
         $positions = [];
@@ -42,7 +36,7 @@ final class TupleValueConverter
         $expectedType = 'array{' . implode(', ', $positions) . '}';
 
         if (!is_array($value)) {
-            return DecodeError::fieldTypeMismatch($class, $field->getName(), $expectedType, $value);
+            return DecodeError::fieldTypeMismatch($class, $path, $expectedType, $value);
         }
 
         if (count($value) < $required || count($value) > count($types)) {
@@ -51,7 +45,7 @@ final class TupleValueConverter
                 : sprintf('between %d and %d', $required, count($types));
             return DecodeError::nonInstantiableTarget($class, sprintf(
                 'Field %s must be of type %s with %s items, %d given.',
-                $field->getName(),
+                $path,
                 $expectedType,
                 $length,
                 count($value),
@@ -68,7 +62,7 @@ final class TupleValueConverter
             );
             $item = CollectionItemValueConverter::convert(
                 $class,
-                sprintf('%s[%d]', $field->getName(), $index),
+                sprintf('%s[%d]', $path, $index),
                 $types[$index],
                 $value[$index],
             );

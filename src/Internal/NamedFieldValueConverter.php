@@ -25,15 +25,16 @@ final class NamedFieldValueConverter
         ReflectionParameter $parameter,
         ReflectionNamedType $type,
         mixed $value,
+        string $path,
     ): array|bool|float|int|object|string|null {
         $typeName = FieldTypeNameResolver::resolve($parameter, $type);
 
         if (enum_exists($typeName)) {
-            return BackedEnumValueConverter::convert($class, $parameter, $value) ?? $value;
+            return BackedEnumValueConverter::convert($class, $parameter, $value, $path) ?? $value;
         }
 
         if (class_exists($typeName)) {
-            return ConcreteClassValueConverter::convert($class, $parameter, $typeName, $value);
+            return ConcreteClassValueConverter::convert($class, $parameter, $typeName, $value, $path);
         }
 
         return $value;

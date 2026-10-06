@@ -57,6 +57,16 @@ message describes the invalid JSON, unexpected root value, type mismatch, or
 construction failure; `getPrevious()` retains an underlying construction
 exception when one exists.
 
+Value conversion errors identify the full path from the root object, such as
+`address.coordinates.latitude`, `people[1].firstName`, or
+`people[author].firstName`. Type mismatches report the expected and actual
+PHP types; collection shape and length errors describe the expected shape or
+item count and the value received. Enum errors identify the expected enum and
+either the incorrect backing type or the unknown backing value. Map keys
+use bare names only for ASCII letters, digits, underscores, and hyphens. Other
+keys are quoted and escaped as JSON strings in paths, such as `people["a.b"].firstName`.
+The class named in an error is the class whose field failed validation.
+
 Only the types and class shapes marked as supported below are part of the
 current contract. In particular, the root value must be a JSON object.
 
@@ -576,7 +586,7 @@ Until then, any speed or memory improvement remains a hypothesis.
 ### Errors and acceptance coverage
 
 - [x] Keep every decoding failure on the returned `DecodeError` path, including nested conversion failures and exceptions thrown by constructors.
-- [ ] Include the failing field, list index, or map key path and expected/actual type in conversion errors.
+- [x] Include the failing field, list index, or map key path and expected/actual type in conversion errors.
 - [ ] Test stable error codes, useful messages, and preservation of underlying exceptions.
 - [x] Expand invalid-JSON coverage to malformed syntax, trailing content, invalid UTF-8, and nesting-depth limits.
 - [x] Test rejection of incompatible root shapes; JSON arrays must not be passed to object constructors as positional arguments.

@@ -23,7 +23,7 @@ final class ObjectTypeValidator
      * @return array<string, ListType|MapType|TupleType|null>|DecodeError
      * @throws ReflectionException
      */
-    public static function validate(ReflectionClass $class, array $values): array|DecodeError
+    public static function validate(ReflectionClass $class, array $values, string $path): array|DecodeError
     {
         $targetError = RootTypeValidator::validate($class);
 
@@ -88,7 +88,12 @@ final class ObjectTypeValidator
                             $expectedType .= '|null';
                         }
 
-                        return DecodeError::fieldTypeMismatch($className, $name, $expectedType, $value);
+                        return DecodeError::fieldTypeMismatch(
+                            $className,
+                            FieldPath::field($path, $name),
+                            $expectedType,
+                            $value,
+                        );
                     }
                 }
             }

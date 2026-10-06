@@ -34,6 +34,7 @@ final class BackedEnumValueConverter
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         mixed $value,
+        string $path,
     ): UnitEnum|DecodeError|null {
         $type = $field->getType();
 
@@ -44,12 +45,12 @@ final class BackedEnumValueConverter
                 return null;
             }
 
-            return self::convertValue($class, $field->getName(), $enumName, $value);
+            return self::convertValue($class, $path, $enumName, $value);
         }
 
         if ($type instanceof ReflectionUnionType) {
             $names = array_map(static fn(ReflectionType $member): string => (string) $member, $type->getTypes());
-            return self::convertUnion($class, $field->getName(), $names, $value);
+            return self::convertUnion($class, $path, $names, $value);
         }
 
         return null;

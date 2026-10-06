@@ -18,6 +18,7 @@ use Eventjet\Json\Internal\CollectionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassUnionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\EnumUnionValidator;
+use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\ListInputNormalizer;
@@ -96,6 +97,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ConcreteClassValueConverter::class)]
 #[CoversClass(EnumUnionValidator::class)]
 #[CoversClass(FieldTypeValidator::class)]
+#[CoversClass(FieldPath::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
 #[CoversClass(PhpDocImportScanner::class)]
 #[CoversClass(PhpDocImportStatement::class)]

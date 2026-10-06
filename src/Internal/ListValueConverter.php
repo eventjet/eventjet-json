@@ -6,8 +6,6 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionException;
-use ReflectionParameter;
-use ReflectionProperty;
 
 use function array_key_exists;
 use function sprintf;
@@ -20,16 +18,12 @@ final class ListValueConverter
      * @return list<bool|float|int|object|string|null>|DecodeError
      * @throws ReflectionException
      */
-    public static function convert(
-        string $class,
-        ReflectionParameter|ReflectionProperty $field,
-        ListType $collection,
-        mixed $value,
-    ): array|DecodeError {
+    public static function convert(string $class, string $path, ListType $collection, mixed $value): array|DecodeError
+    {
         $itemType = $collection->itemType;
 
         $expectedType = sprintf('%s<%s>', $collection->nonEmpty ? 'non-empty-list' : 'list', $itemType);
-        $value = ListInputNormalizer::normalize($class, $field, $expectedType, $collection, $value);
+        $value = ListInputNormalizer::normalize($class, $path, $expectedType, $collection, $value);
 
         if ($value instanceof DecodeError) {
             return $value;
@@ -41,7 +35,7 @@ final class ListValueConverter
         while (array_key_exists($index, $value)) {
             $convertedItem = CollectionItemValueConverter::convert(
                 $class,
-                sprintf('%s[%d]', $field->getName(), $index),
+                sprintf('%s[%d]', $path, $index),
                 $itemType,
                 $value[$index],
             );
