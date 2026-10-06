@@ -24,9 +24,13 @@ final class CollectionItemValueConverter
     public static function convert(
         string $class,
         string $path,
-        string $type,
+        string|CollectionUnionType $type,
         mixed $value,
-    ): bool|float|int|object|string {
+    ): bool|float|int|object|string|null {
+        if ($type instanceof CollectionUnionType) {
+            return CollectionUnionValueConverter::convert($class, $path, $type, $value);
+        }
+
         if (enum_exists($type)) {
             return BackedEnumValueConverter::convertValue($class, $path, $type, $value);
         }

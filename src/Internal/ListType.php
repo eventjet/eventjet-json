@@ -7,9 +7,9 @@ namespace Eventjet\Json\Internal;
 /** @internal */
 final readonly class ListType
 {
-    /** @param 'bool'|'float'|'int'|'string'|class-string $itemType */
+    /** @param 'bool'|'float'|'int'|'string'|class-string|CollectionUnionType $itemType */
     public function __construct(
-        public string $itemType,
+        public string|CollectionUnionType $itemType,
         public bool $nonEmpty,
     ) {}
 }

@@ -47,7 +47,10 @@ final class CollectionTypeResolver
         return $error ?? $collection;
     }
 
-    /** @param class-string $class */
+    /**
+     * @param class-string $class
+     * @throws ReflectionException
+     */
     private static function array(
         string $class,
         ReflectionParameter|ReflectionProperty $field,

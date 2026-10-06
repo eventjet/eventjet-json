@@ -10,9 +10,11 @@ use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
+use ReflectionType;
 use ReflectionUnionType;
 use UnitEnum;
 
+use function array_map;
 use function count;
 use function enum_exists;
 use function get_debug_type;
@@ -46,47 +48,61 @@ final class BackedEnumValueConverter
         }
 
         if ($type instanceof ReflectionUnionType) {
-            /** @var list<enum-string> $matchingBackingEnums */
-            $matchingBackingEnums = [];
+            $names = array_map(static fn(ReflectionType $member): string => (string) $member, $type->getTypes());
+            return self::convertUnion($class, $field->getName(), $names, $value);
+        }
 
-            foreach ($type->getTypes() as $member) {
-                /** @var ReflectionNamedType $member */
-                $enumName = $member->getName();
+        return null;
+    }
 
-                if (enum_exists($enumName)) {
-                    $enum = new ReflectionEnum($enumName);
-                    $backingType = $enum->getBackingType();
-                    $valueMatchesBackingType =
-                        $backingType instanceof ReflectionNamedType && ValueTypeMatcher::matches($value, $backingType);
+    /**
+     * @param class-string $class
+     * @param array<array-key, string> $enumNames
+     * @throws ReflectionException
+     */
+    public static function convertUnion(
+        string $class,
+        string $field,
+        array $enumNames,
+        mixed $value,
+    ): UnitEnum|DecodeError|null {
+        /** @var list<enum-string> $matchingBackingEnums */
+        $matchingBackingEnums = [];
 
-                    if ($valueMatchesBackingType) {
-                        $matchingBackingEnums[] = $enumName;
-                        $case = BackedEnumCaseFinder::find($enumName, $value);
-
-                        if ($case !== null) {
-                            return $case;
-                        }
-                    }
-                }
+        foreach ($enumNames as $enumName) {
+            if (!enum_exists($enumName)) {
+                continue;
             }
+            $enum = new ReflectionEnum($enumName);
+            $backingType = $enum->getBackingType();
+            $valueMatchesBackingType =
+                $backingType instanceof ReflectionNamedType && ValueTypeMatcher::matches($value, $backingType);
 
-            if ($matchingBackingEnums !== []) {
-                sort($matchingBackingEnums);
+            if ($valueMatchesBackingType) {
+                $matchingBackingEnums[] = $enumName;
+                $case = BackedEnumCaseFinder::find($enumName, $value);
 
-                if (count($matchingBackingEnums) === 1) {
-                    return self::unknownValue($class, $field->getName(), $matchingBackingEnums[0], $value);
+                if ($case !== null) {
+                    return $case;
                 }
-
-                return DecodeError::nonInstantiableField(
-                    $class,
-                    $field->getName(),
-                    'backed enum union',
-                    implode('|', $matchingBackingEnums),
-                    sprintf(', which has no case with backing value %s.', var_export($value, return: true)),
-                );
             }
         }
 
+        if ($matchingBackingEnums !== []) {
+            sort($matchingBackingEnums);
+
+            if (count($matchingBackingEnums) === 1) {
+                return self::unknownValue($class, $field, $matchingBackingEnums[0], $value);
+            }
+
+            return DecodeError::nonInstantiableField(
+                $class,
+                $field,
+                'backed enum union',
+                implode('|', $matchingBackingEnums),
+                sprintf(', which has no case with backing value %s.', var_export($value, return: true)),
+            );
+        }
         return null;
     }
 

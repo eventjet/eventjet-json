@@ -38,6 +38,15 @@ final class ClassUnionValidator
             }
         }
 
+        return self::validateNames($class, $field->getName(), $classNames);
+    }
+
+    /**
+     * @param class-string $class
+     * @param list<string> $classNames
+     */
+    public static function validateNames(string $class, string $field, array $classNames): DecodeError|null
+    {
         sort($classNames);
 
         if (count($classNames) < 2) {
@@ -46,7 +55,7 @@ final class ClassUnionValidator
 
         return DecodeError::nonInstantiableField(
             $class,
-            $field->getName(),
+            $field,
             'multiple class types:',
             implode(', ', $classNames),
             '. JSON does not identify which class to instantiate.',

@@ -17,7 +17,7 @@ final class ListValueConverter
 {
     /**
      * @param class-string $class
-     * @return list<bool|float|int|object|string>|DecodeError
+     * @return list<bool|float|int|object|string|null>|DecodeError
      * @throws ReflectionException
      */
     public static function convert(

@@ -69,7 +69,7 @@ final class ParserMalformedCases
             }
         }
         foreach ([
-            'non-empty-array<string, int|string>',
+            'non-empty-array<string, int|list<string>>',
             'non-empty-array<string, int&string>',
             'list<>',
             'list<int,>',

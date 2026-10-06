@@ -31,6 +31,16 @@ final class EnumUnionValidator
     public static function validate(string $class, string $field, ReflectionUnionType $type): DecodeError|null
     {
         $memberNames = array_map(static fn(ReflectionType $member): string => (string) $member, $type->getTypes());
+        return self::validateNames($class, $field, $memberNames);
+    }
+
+    /**
+     * @param class-string $class
+     * @param array<array-key, string> $memberNames
+     * @throws ReflectionException
+     */
+    public static function validateNames(string $class, string $field, array $memberNames): DecodeError|null
+    {
         $enumNames = self::backedEnumNames($memberNames);
 
         $ambiguousPair = self::findAmbiguousPair($memberNames, $memberNames);

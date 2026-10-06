@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
 
@@ -15,6 +16,7 @@ final class TupleTypeResolver
     /**
      * @param list<PhpDocTupleEntry> $types
      * @return TupleType|null
+     * @throws ReflectionException
      */
     public static function resolve(ReflectionParameter|ReflectionProperty $field, array $types): TupleType|null
     {

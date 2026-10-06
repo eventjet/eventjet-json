@@ -12,6 +12,7 @@ use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassUnionValidator;
 use Eventjet\Json\Internal\CollectionTypeResolver;
 use Eventjet\Json\Internal\CollectionTypeValidator;
+use Eventjet\Json\Internal\CollectionUnionType;
 use Eventjet\Json\Internal\CollectionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassUnionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
@@ -78,6 +79,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(BackedEnumValueConverter::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ClassUnionValidator::class)]
+#[CoversClass(CollectionUnionType::class)]
 #[CoversClass(CollectionTypeResolver::class)]
 #[CoversClass(CollectionTypeValidator::class)]
 #[CoversClass(PhpDocTupleEntry::class)]

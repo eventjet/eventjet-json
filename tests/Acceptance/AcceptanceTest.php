@@ -12,6 +12,8 @@ use Eventjet\Json\Internal\ClassUnionValidator;
 use Eventjet\Json\Internal\CollectionItemValueConverter;
 use Eventjet\Json\Internal\CollectionTypeResolver;
 use Eventjet\Json\Internal\CollectionTypeValidator;
+use Eventjet\Json\Internal\CollectionUnionType;
+use Eventjet\Json\Internal\CollectionUnionValueConverter;
 use Eventjet\Json\Internal\CollectionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassUnionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
@@ -76,6 +78,8 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(BackedEnumCaseFinder::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
+#[CoversClass(CollectionUnionValueConverter::class)]
+#[CoversClass(CollectionUnionType::class)]
 #[CoversClass(ClassUnionValidator::class)]
 #[CoversClass(CollectionTypeResolver::class)]
 #[CoversClass(CollectionTypeValidator::class)]

@@ -7,7 +7,7 @@ namespace Eventjet\Json\Internal;
 /** @internal */
 final readonly class TupleType
 {
-    /** @param list<'bool'|'float'|'int'|'string'|class-string> $types */
+    /** @param list<'bool'|'float'|'int'|'string'|class-string|CollectionUnionType> $types */
     public function __construct(
         public array $types,
         public int $required,

@@ -21,7 +21,11 @@ final class TupleDeclarationErrorCases
     {
         foreach (['param', 'var'] as $tag) {
             foreach (self::unsupportedTypes() as $type => $detail) {
-                foreach (['array{int, \\' . $type . '}', 'array{0: int, 1?: \\' . $type . '}'] as $declaration) {
+                foreach ([
+                    'array{int, \\' . $type . '}',
+                    'array{int, \\' . $type . '|int}',
+                    'array{0: int, 1?: \\' . $type . '}',
+                ] as $declaration) {
                     $class = CollectionDeclarationFixture::create('array', $declaration, $tag);
 
                     foreach (['{}', '{"value":[]}', '{"value":[1,{}]}'] as $json) {

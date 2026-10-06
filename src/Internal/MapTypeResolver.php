@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
+use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
 
@@ -15,7 +16,10 @@ use function strcasecmp;
 /** @internal */
 final class MapTypeResolver
 {
-    /** @param class-string $class */
+    /**
+     * @param class-string $class
+     * @throws ReflectionException
+     */
     public static function resolve(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
@@ -51,7 +55,10 @@ final class MapTypeResolver
         return self::map($field, $arguments, $arrayObject);
     }
 
-    /** @param list<PhpDocType> $arguments */
+    /**
+     * @param list<PhpDocType> $arguments
+     * @throws ReflectionException
+     */
     private static function map(
         ReflectionParameter|ReflectionProperty $field,
         array $arguments,
