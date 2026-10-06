@@ -5,116 +5,63 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use ArrayObject;
-use ReflectionNamedType;
+use Eventjet\Json\DecodeError;
 use ReflectionParameter;
 use ReflectionProperty;
 
-use function is_string;
-use function preg_match;
+use function count;
+use function strcasecmp;
 
 /** @internal */
 final class MapTypeResolver
 {
-    /** @return 'bool'|'float'|'int'|'string'|class-string|null */
-    public static function resolveValue(ReflectionParameter|ReflectionProperty $field): string|null
-    {
-        $type = $field->getType();
-        $typeName = $type instanceof ReflectionNamedType ? FieldTypeNameResolver::resolve($field, $type) : null;
-        $declaration = $typeName === ArrayObject::class ? FieldTypeNameResolver::CLASS_NAME_PATTERN : 'non-empty-array';
-
-        return self::resolveDeclaration(
-            $field,
-            $declaration
-            . '\\s*<\\s*string\\s*,\\s*(?<type>'
-            . FieldTypeNameResolver::COLLECTION_TYPE_PATTERN
-            . ')\\s*>',
-        );
-    }
-
-    public static function isNonEmptyArray(ReflectionParameter|ReflectionProperty $field): bool
-    {
-        return (
-            self::hasNativeType($field, 'array')
-            && self::matchesDeclaration($field, 'non-empty-array\\s*<\\s*string\\s*,.+>')
-        );
-    }
-
-    public static function hasArrayObjectDeclaration(ReflectionParameter|ReflectionProperty $field): bool
-    {
-        return ArrayObjectTypeResolver::matches($field);
-    }
-
-    public static function hasAmbiguousArray(ReflectionParameter|ReflectionProperty $field): bool
-    {
-        return (
-            self::hasNativeType($field, 'array') && self::matchesDeclaration($field, '(?<!non-empty-)array\\s*<.+,.+>')
-        );
-    }
-
-    public static function hasUnsupportedNonEmptyKey(ReflectionParameter|ReflectionProperty $field): bool
-    {
-        return (
-            self::hasNativeType($field, 'array')
-            && self::matchesDeclaration($field, 'non-empty-array\\s*<.+,.+>')
-            && !self::isNonEmptyArray($field)
-        );
-    }
-
-    private static function hasNativeType(ReflectionParameter|ReflectionProperty $field, string $expected): bool
-    {
-        $type = $field->getType();
-
-        return $type instanceof ReflectionNamedType && FieldTypeNameResolver::resolve($field, $type) === $expected;
-    }
-
-    /** @return 'bool'|'float'|'int'|'string'|class-string|null */
-    private static function resolveDeclaration(
+    /** @param class-string $class */
+    public static function resolve(
+        string $class,
         ReflectionParameter|ReflectionProperty $field,
-        string $declarationPattern,
-    ): string|null {
-        $matches = [];
-        $matched = preg_match(
-            self::declarationPattern($field, $declarationPattern),
-            self::docComment($field),
-            $matches,
-        );
-        $type = $matched === 1 ? $matches['type'] ?? null : null;
+        PhpDocType|null $type,
+        string $nativeType,
+    ): MapType|DecodeError|null {
+        $arrayObject = $nativeType === ArrayObject::class;
+        if ($type === null || count($type->arguments) < 2) {
+            return $arrayObject
+                ? MapDecodeError::unsupportedDeclaration($class, $field->getName(), ArrayObject::class)
+                : null;
+        }
+        $arguments = $type->arguments;
+        $key = $arguments[0];
+        $hasStringKey = $key->name === 'string' && $key->arguments === [];
 
-        return is_string($type) ? FieldTypeNameResolver::resolvePhpDoc($field, $type) : null;
+        if ($arrayObject) {
+            $container = FieldTypeNameResolver::resolvePhpDoc($field, $type->name);
+            if (!$hasStringKey || strcasecmp($container ?? $type->name, ArrayObject::class) !== 0) {
+                return MapDecodeError::unsupportedDeclaration($class, $field->getName(), ArrayObject::class);
+            }
+            return self::map($field, $arguments, $arrayObject);
+        }
+        if ($type->name === 'array') {
+            return MapDecodeError::ambiguousDeclaration($class, $field->getName());
+        }
+        if ($type->name !== 'non-empty-array') {
+            return null;
+        }
+        if (!$hasStringKey) {
+            return MapDecodeError::unsupportedDeclaration($class, $field->getName(), 'non-empty-array');
+        }
+        return self::map($field, $arguments, $arrayObject);
     }
 
-    private static function matchesDeclaration(
+    /** @param list<PhpDocType> $arguments */
+    private static function map(
         ReflectionParameter|ReflectionProperty $field,
-        string $declarationPattern,
-    ): bool {
-        return preg_match(self::declarationPattern($field, $declarationPattern), self::docComment($field)) === 1;
-    }
-
-    /** @return non-empty-string */
-    private static function declarationPattern(
-        ReflectionParameter|ReflectionProperty $field,
-        string $declarationPattern,
-    ): string {
-        $fieldPattern = $field instanceof ReflectionParameter
-            ? '\\s+\\$' . $field->getName() . '(?:\\s|$)'
-            : '(?!\\s*[|&<>\\[\\],?])(?:\\s|$)';
-
-        return (
-            '/@'
-            . ($field instanceof ReflectionParameter ? 'param' : 'var')
-            . '\\s+'
-            . $declarationPattern
-            . $fieldPattern
-            . '/'
-        );
-    }
-
-    private static function docComment(ReflectionParameter|ReflectionProperty $field): string
-    {
-        $docComment = $field instanceof ReflectionParameter
-            ? $field->getDeclaringFunction()->getDocComment()
-            : $field->getDocComment();
-
-        return $docComment === false ? '' : $docComment;
+        array $arguments,
+        bool $arrayObject,
+    ): MapType|null {
+        $valueType = $arguments[1] ?? null;
+        if ($valueType === null || count($arguments) !== 2) {
+            return null;
+        }
+        $value = PhpDocItemTypeResolver::resolve($field, $valueType);
+        return $value === null ? null : new MapType($value, $arrayObject);
     }
 }

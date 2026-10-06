@@ -273,6 +273,24 @@ conversion is not yet supported, such as nested collections and unions
 inside collections or containing collections. Existing dedicated errors for
 ambiguous map declarations and unsupported class types still apply.
 
+Collection types may span multiple PHPDoc lines, including lines with the
+usual leading `*` and either LF or CRLF line endings:
+
+```php
+/**
+ * @param array{
+ *     0: int,
+ *     1?: string
+ * } $value
+ */
+```
+
+The internal parser builds a syntax tree for nested list, map, and tuple
+syntax, including unions and intersections, without runtime dependencies. Parsing a nested declaration does not
+enable its decoding: the supported collection forms and item types above
+still apply. Declarations are limited to 64 type levels, counting the outer
+collection and its innermost item, to bound parser recursion.
+
 These declarations describe fields inside a root object. Passing a JSON array
 or a collection PHPDoc declaration as the root target is not supported.
 
@@ -384,7 +402,7 @@ Keep native `json_decode()` followed by typed hydration for now. Direct parsing
 could avoid the intermediate generic object tree, but no performance comparison
 has established a benefit for this package. Replacing the JSON parser would also
 make this package responsible for maintaining JSON syntax and numeric behavior.
-This decision is separate from the planned internal parser for PHPDoc types.
+This decision is separate from the internal parser for PHPDoc types.
 
 The current [decode entry point](src/Json.php) validates the complete document
 before [hydration](src/Internal/ObjectHydrator.php) invokes any target constructor.
@@ -525,7 +543,7 @@ Until then, any speed or memory improvement remains a hypothesis.
 - [x] Resolve `self` in PHPDoc collection items and values to the declaring class, retaining final-class validation.
 - [x] Resolve remaining PHPDoc collection names, including imported or aliased names and global-namespace shorthand.
 - [x] Investigate replacing regular-expression parsing of types inside PHPDoc blocks with a custom type parser, considering correctness, maintainability, and support for nested type declarations.
-- [ ] Replace collection type regular expressions with an internal recursive parser without adding runtime dependencies. Parse nested declarations into a syntax tree, keep tag selection, name resolution, and decoding validation separate, preserve existing supported behavior and error contracts, and continue rejecting types whose decoding is not yet supported. Cover parser boundaries and malformed declarations with generated tests.
+- [x] Replace collection type regular expressions with an internal recursive parser without adding runtime dependencies. Parse nested declarations into a syntax tree, keep tag selection, name resolution, and decoding validation separate, preserve existing supported behavior and error contracts, and continue rejecting types whose decoding is not yet supported. Cover parser boundaries and malformed declarations with generated tests.
 - [x] Report missing, malformed, unknown, or unsupported collection type declarations clearly.
 - [ ] Add an API for typed JSON arrays at the root, with accurate generic return types for static analysis.
 - [ ] Support typed maps at the root and define whether scalar, enum, and null root values are supported.

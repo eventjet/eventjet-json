@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use ReflectionEnum;
 use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
@@ -14,7 +13,6 @@ use function array_key_exists;
 use function array_keys;
 use function assert;
 use function count;
-use function enum_exists;
 use function implode;
 use function is_array;
 use function sprintf;
@@ -24,51 +22,17 @@ final class TupleValueConverter
 {
     /**
      * @param class-string $class
-     * @param list<string> $types
-     * @throws ReflectionException
-     */
-    public static function validateTypes(
-        string $class,
-        ReflectionParameter|ReflectionProperty $field,
-        array $types,
-    ): DecodeError|null {
-        foreach ($types as $index => $type) {
-            $path = sprintf('%s[%d]', $field->getName(), $index);
-
-            $isNonBackedEnum = enum_exists($type) && !new ReflectionEnum($type)->isBacked();
-
-            if ($isNonBackedEnum) {
-                return DecodeError::nonBackedEnum($class, $type, $path);
-            }
-
-            $error = ClassFieldTypeValidator::validate($class, $path, $type);
-
-            if ($error !== null) {
-                return $error;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param class-string $class
-     * @return list<bool|float|int|object|string>|DecodeError|null
+     * @return list<bool|float|int|object|string>|DecodeError
      * @throws ReflectionException
      */
     public static function convert(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
+        TupleType $collection,
         mixed $value,
-    ): array|DecodeError|null {
-        $tuple = CollectionTypeResolver::resolveTuple($field);
-
-        if ($tuple === null) {
-            return null;
-        }
-
-        $types = $tuple['types'];
-        $required = $tuple['required'];
+    ): array|DecodeError {
+        $types = $collection->types;
+        $required = $collection->required;
         $positions = [];
 
         foreach ($types as $index => $type) {

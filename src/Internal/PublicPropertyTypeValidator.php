@@ -21,12 +21,11 @@ final class PublicPropertyTypeValidator
 {
     /**
      * @param class-string $class
+     * @return array{type: ReflectionNamedType|ReflectionUnionType, collection: ListType|MapType|TupleType|null}|DecodeError
      * @throws ReflectionException
      */
-    public static function validate(
-        string $class,
-        ReflectionProperty $property,
-    ): ReflectionNamedType|ReflectionUnionType|DecodeError {
+    public static function validate(string $class, ReflectionProperty $property): array|DecodeError
+    {
         $field = $property->getName();
         $type = $property->getType();
 
@@ -47,13 +46,13 @@ final class PublicPropertyTypeValidator
             }
         }
 
-        $typeError = FieldTypeValidator::validate($class, $property);
+        $collection = FieldTypeValidator::validate($class, $property);
 
-        if ($typeError !== null) {
-            return $typeError;
+        if ($collection instanceof DecodeError) {
+            return $collection;
         }
 
-        return $type;
+        return ['type' => $type, 'collection' => $collection];
     }
 
     /** @param class-string $class */

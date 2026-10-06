@@ -60,6 +60,7 @@ final class RoundTripCases
     public static function objects(): iterable
     {
         yield from CollectionNameCases::objects();
+        yield from ParserBoundaryCases::objects();
         yield from TupleRoundTripCases::objects();
         yield from IndexedTupleRoundTripCases::objects();
         yield from EmptyObjectShapeCases::objects();

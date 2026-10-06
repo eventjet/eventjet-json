@@ -20,9 +20,10 @@ final class ObjectTypeValidator
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<array-key, mixed> $values
+     * @return array<string, ListType|MapType|TupleType|null>|DecodeError
      * @throws ReflectionException
      */
-    public static function validate(ReflectionClass $class, array $values): DecodeError|null
+    public static function validate(ReflectionClass $class, array $values): array|DecodeError
     {
         $targetError = RootTypeValidator::validate($class);
 
@@ -31,6 +32,7 @@ final class ObjectTypeValidator
         }
 
         $className = $class->getName();
+        $collections = [];
 
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $name = $parameter->getName();
@@ -53,11 +55,13 @@ final class ObjectTypeValidator
                 );
             }
 
-            $typeError = FieldTypeValidator::validate($className, $parameter);
+            $collection = FieldTypeValidator::validate($className, $parameter);
 
-            if ($typeError !== null) {
-                return $typeError;
+            if ($collection instanceof DecodeError) {
+                return $collection;
             }
+
+            $collections[$name] = $collection;
 
             if (!$class->hasProperty($name)) {
                 return self::unrecoverableConstructorParameter($className, $name);
@@ -90,7 +94,7 @@ final class ObjectTypeValidator
             }
         }
 
-        return null;
+        return $collections;
     }
 
     /** @param class-string $class */

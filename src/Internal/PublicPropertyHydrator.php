@@ -43,7 +43,7 @@ final class PublicPropertyHydrator
                 return $type;
             }
 
-            $publicProperties[$property->getName()] = ['property' => $property, 'type' => $type];
+            $publicProperties[$property->getName()] = ['property' => $property, ...$type];
         }
 
         /** @var list<array{property: ReflectionProperty, value: mixed}> $assignments */
@@ -60,6 +60,7 @@ final class PublicPropertyHydrator
                 $class->getName(),
                 $field['property'],
                 $field['type'],
+                $field['collection'],
                 $value,
             );
 

@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use ArrayObject;
 use Eventjet\Json\DecodeError;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionProperty;
-use stdClass;
 
 use function class_exists;
 use function enum_exists;
@@ -19,6 +17,7 @@ final class PublicPropertyNamedValueConverter
 {
     /**
      * @param class-string $class
+     * @param array<array-key, mixed>|bool|float|int|object|string|null $value
      * @return array{property: ReflectionProperty, value: mixed}|DecodeError
      * @throws ReflectionException
      */
@@ -26,77 +25,43 @@ final class PublicPropertyNamedValueConverter
         string $class,
         ReflectionProperty $property,
         ReflectionNamedType $type,
+        ListType|MapType|TupleType|null $collection,
         mixed $value,
     ): array|DecodeError {
         $typeName = FieldTypeNameResolver::resolve($property, $type);
-
-        if ($typeName === ArrayObject::class) {
-            $converted = ArrayObjectMapValueConverter::convert($class, $property, $value);
-
-            return $converted instanceof DecodeError ? $converted : ['property' => $property, 'value' => $converted];
+        $error = self::validateBuiltin($class, $property, $type, $value);
+        if ($error !== null) {
+            return $error;
         }
 
-        if (enum_exists($typeName)) {
-            $converted = BackedEnumValueConverter::convert($class, $property, $value);
+        $converted = match (true) {
+            $collection !== null => CollectionValueConverter::convert($class, $property, $collection, $value),
+            enum_exists($typeName) => BackedEnumValueConverter::convert($class, $property, $value) ?? $value,
+            class_exists($typeName) => ConcreteClassValueConverter::convert($class, $property, $typeName, $value),
+            default => $value,
+        };
 
-            return (
-                $converted instanceof DecodeError
-                    ? $converted
-                    : ['property' => $property, 'value' => $converted ?? $value]
-            );
-        }
-
-        if (class_exists($typeName)) {
-            $converted = ConcreteClassValueConverter::convert($class, $property, $typeName, $value);
-
-            return $converted instanceof DecodeError ? $converted : ['property' => $property, 'value' => $converted];
-        }
-
-        $valueMatchesType = ValueTypeMatcher::matches($value, $type);
-
-        if (!$valueMatchesType) {
-            $expectedType = $typeName;
-
-            if ($type->allowsNull() && $expectedType !== 'null') {
-                $expectedType .= '|null';
-            }
-
-            return DecodeError::fieldTypeMismatch($class, $property->getName(), $expectedType, $value);
-        }
-
-        if ($typeName === 'array') {
-            /** @var array<array-key, mixed>|stdClass $value */
-            return self::convertArray($class, $property, $value);
-        }
-
-        return ['property' => $property, 'value' => $value];
+        return $converted instanceof DecodeError ? $converted : ['property' => $property, 'value' => $converted];
     }
 
-    /**
-     * @param class-string $class
-     * @param array<array-key, mixed>|stdClass $value
-     * @return array{property: ReflectionProperty, value: mixed}|DecodeError
-     * @throws ReflectionException
-     */
-    private static function convertArray(
+    /** @param class-string $class */
+    private static function validateBuiltin(
         string $class,
         ReflectionProperty $property,
-        array|stdClass $value,
-    ): array|DecodeError {
-        $converted = ListValueConverter::convert($class, $property, $value);
-
-        if ($converted === null) {
-            $converted = TupleValueConverter::convert($class, $property, $value) ?? MapValueConverter::convert(
-                $class,
-                $property,
-                $value,
-            );
+        ReflectionNamedType $type,
+        mixed $value,
+    ): DecodeError|null {
+        if (!$type->isBuiltin()) {
+            return null;
         }
-
-        if ($converted instanceof DecodeError) {
-            return $converted;
+        $matches = ValueTypeMatcher::matches($value, $type);
+        if ($matches) {
+            return null;
         }
-
-        return ['property' => $property, 'value' => $converted];
+        $expectedType = $type->getName();
+        if ($type->allowsNull() && $expectedType !== 'null') {
+            $expectedType .= '|null';
+        }
+        return DecodeError::fieldTypeMismatch($class, $property->getName(), $expectedType, $value);
     }
 }

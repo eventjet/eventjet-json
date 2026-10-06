@@ -22,9 +22,9 @@ final class MapInputNormalizer
     public static function normalize(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
+        MapType $collection,
         mixed $value,
     ): array|DecodeError {
-        $isNonEmptyArray = MapTypeResolver::isNonEmptyArray($field);
         if (!$value instanceof stdClass) {
             return DecodeError::fieldTypeMismatch($class, $field->getName(), 'JSON object', $value);
         }
@@ -36,7 +36,7 @@ final class MapInputNormalizer
             return MapDecodeError::numericKey($class, $field->getName(), $numericKey);
         }
 
-        if ($isNonEmptyArray && $values === []) {
+        if (!$collection->arrayObject && $values === []) {
             return MapDecodeError::empty($class, $field->getName());
         }
 

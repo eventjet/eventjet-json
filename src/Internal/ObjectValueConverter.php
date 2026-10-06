@@ -21,10 +21,11 @@ final class ObjectValueConverter
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<array-key, mixed> $values
+     * @param array<string, ListType|MapType|TupleType|null> $collections
      * @return array<array-key, mixed>|DecodeError
      * @throws ReflectionException
      */
-    public static function convert(ReflectionClass $class, array $values): array|DecodeError
+    public static function convert(ReflectionClass $class, array $values, array $collections): array|DecodeError
     {
         $className = $class->getName();
         $convertedValues = [];
@@ -38,7 +39,10 @@ final class ObjectValueConverter
 
             /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
             $value = $values[$field];
-            $converted = self::convertField($className, $parameter, $value);
+            $collection = $collections[$field] ?? null;
+            $converted = $collection === null
+                ? self::convertField($className, $parameter, $value)
+                : CollectionValueConverter::convert($className, $parameter, $collection, $value);
 
             if ($converted instanceof DecodeError) {
                 return $converted;

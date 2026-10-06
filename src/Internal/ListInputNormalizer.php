@@ -23,15 +23,14 @@ final class ListInputNormalizer
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         string $expectedType,
+        ListType $collection,
         mixed $value,
     ): array|DecodeError {
         if (!is_array($value) || !array_is_list($value)) {
             return DecodeError::fieldTypeMismatch($class, $field->getName(), $expectedType, $value);
         }
 
-        $isNonEmpty = CollectionTypeResolver::isNonEmptyList($field);
-
-        if ($isNonEmpty && $value === []) {
+        if ($collection->nonEmpty && $value === []) {
             return DecodeError::nonInstantiableTarget($class, sprintf(
                 'Field %s must be of type %s, empty list given.',
                 $field->getName(),

@@ -8,43 +8,32 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function count;
-use function preg_match_all;
-
-use const PREG_SET_ORDER;
 
 /** @internal */
 final class TupleTypeResolver
 {
-    /** @return array{types: list<'bool'|'float'|'int'|'string'|class-string>, required: int}|null */
-    public static function resolve(ReflectionParameter|ReflectionProperty $field, string $types): array|null
+    /**
+     * @param list<PhpDocTupleEntry> $types
+     * @return TupleType|null
+     */
+    public static function resolve(ReflectionParameter|ReflectionProperty $field, array $types): TupleType|null
     {
-        $matches = [];
-        preg_match_all(
-            '/(?:([0-9]+)(\\?)?\\s*:\\s*)?(' . FieldTypeNameResolver::COLLECTION_TYPE_PATTERN . ')/',
-            $types,
-            $matches,
-            PREG_SET_ORDER,
-        );
         $resolved = [];
         $required = 0;
         $hasOptional = false;
 
-        /** @var array{string, ''|numeric-string, ''|'?', non-falsy-string} $match */
-        foreach ($matches as $match) {
-            [, $index, $optionalMarker, $type] = $match;
-            if ($index !== '' && $index !== (string) count($resolved)) {
+        foreach ($types as $type) {
+            if ($type->key !== null && $type->key !== (string) count($resolved)) {
                 return null;
             }
 
-            $optional = $optionalMarker === '?';
-
-            if ($hasOptional && !$optional) {
+            if ($hasOptional && !$type->optional) {
                 return null;
             }
 
-            $hasOptional = $optional;
-            $required += $optional ? 0 : 1;
-            $item = FieldTypeNameResolver::resolvePhpDoc($field, $type);
+            $hasOptional = $type->optional;
+            $required += $type->optional ? 0 : 1;
+            $item = PhpDocItemTypeResolver::resolve($field, $type->type);
 
             if ($item === null) {
                 return null;
@@ -53,6 +42,6 @@ final class TupleTypeResolver
             $resolved[] = $item;
         }
 
-        return ['types' => $resolved, 'required' => $required];
+        return new TupleType($resolved, $required);
     }
 }

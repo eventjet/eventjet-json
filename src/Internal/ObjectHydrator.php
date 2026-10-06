@@ -25,13 +25,13 @@ final class ObjectHydrator
             $reflection = new ReflectionClass($class);
             /** @var array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values */
             $values = get_object_vars($object);
-            $typeError = ObjectTypeValidator::validate($reflection, $values);
+            $collections = ObjectTypeValidator::validate($reflection, $values);
 
-            if ($typeError !== null) {
-                return $typeError;
+            if ($collections instanceof DecodeError) {
+                return $collections;
             }
 
-            $convertedValues = ObjectValueConverter::convert($reflection, $values);
+            $convertedValues = ObjectValueConverter::convert($reflection, $values, $collections);
 
             if ($convertedValues instanceof DecodeError) {
                 return $convertedValues;

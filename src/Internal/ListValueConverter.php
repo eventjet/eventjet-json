@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use ReflectionEnum;
 use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
 
 use function array_key_exists;
-use function enum_exists;
 use function sprintf;
 
 /** @internal */
@@ -19,30 +17,19 @@ final class ListValueConverter
 {
     /**
      * @param class-string $class
-     * @return list<bool|float|int|object|string>|DecodeError|null
+     * @return list<bool|float|int|object|string>|DecodeError
      * @throws ReflectionException
      */
     public static function convert(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
+        ListType $collection,
         mixed $value,
-    ): array|DecodeError|null {
-        $itemType = CollectionTypeResolver::resolveListItem($field);
+    ): array|DecodeError {
+        $itemType = $collection->itemType;
 
-        if ($itemType === null) {
-            return null;
-        }
-
-        if (enum_exists($itemType)) {
-            $enum = new ReflectionEnum($itemType);
-
-            if (!$enum->isBacked()) {
-                return DecodeError::nonBackedEnum($class, $itemType, $field->getName());
-            }
-        }
-
-        $expectedType = CollectionTypeResolver::listDeclaration($field, $itemType);
-        $value = ListInputNormalizer::normalize($class, $field, $expectedType, $value);
+        $expectedType = sprintf('%s<%s>', $collection->nonEmpty ? 'non-empty-list' : 'list', $itemType);
+        $value = ListInputNormalizer::normalize($class, $field, $expectedType, $collection, $value);
 
         if ($value instanceof DecodeError) {
             return $value;

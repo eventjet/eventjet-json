@@ -6,42 +6,49 @@ namespace Eventjet\Json\Test\Acceptance;
 
 use Closure;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\ArrayObjectMapValueConverter;
-use Eventjet\Json\Internal\ArrayObjectTypeResolver;
 use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassUnionValidator;
 use Eventjet\Json\Internal\CollectionTypeResolver;
+use Eventjet\Json\Internal\CollectionTypeValidator;
+use Eventjet\Json\Internal\CollectionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassUnionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\ListInputNormalizer;
-use Eventjet\Json\Internal\ListItemTypeValidator;
+use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\ListValueConverter;
 use Eventjet\Json\Internal\MapDecodeError;
 use Eventjet\Json\Internal\MapInputNormalizer;
+use Eventjet\Json\Internal\MapType;
 use Eventjet\Json\Internal\MapTypeResolver;
-use Eventjet\Json\Internal\MapTypeValidator;
 use Eventjet\Json\Internal\MapValueConverter;
 use Eventjet\Json\Internal\NamedFieldValueConverter;
 use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\ObjectTypeValidator;
 use Eventjet\Json\Internal\ObjectValueConverter;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
+use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
 use Eventjet\Json\Internal\PhpDocImportStatement;
+use Eventjet\Json\Internal\PhpDocItemTypeResolver;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
 use Eventjet\Json\Internal\PhpDocTokenStream;
+use Eventjet\Json\Internal\PhpDocTupleEntry;
+use Eventjet\Json\Internal\PhpDocType;
+use Eventjet\Json\Internal\PhpDocTypeParser;
+use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\PublicPropertyNamedValueConverter;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyUnionValueConverter;
 use Eventjet\Json\Internal\PublicPropertyValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\TupleType;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\NorthStar\AwsMsk\Hydration as AwsMskHydration;
@@ -69,29 +76,36 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(DecodeError::class)]
 #[CoversClass(BackedEnumCaseFinder::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
-#[CoversClass(ArrayObjectMapValueConverter::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ClassUnionValidator::class)]
 #[CoversClass(CollectionTypeResolver::class)]
+#[CoversClass(CollectionTypeValidator::class)]
+#[CoversClass(PhpDocTupleEntry::class)]
+#[CoversClass(TupleType::class)]
+#[CoversClass(MapType::class)]
+#[CoversClass(MapTypeResolver::class)]
+#[CoversClass(ListType::class)]
+#[CoversClass(CollectionValueConverter::class)]
 #[CoversClass(ConcreteClassUnionValueConverter::class)]
 #[CoversClass(ConcreteClassValueConverter::class)]
 #[CoversClass(EnumUnionValidator::class)]
 #[CoversClass(PhpDocImportScanner::class)]
 #[CoversClass(PhpDocImportStatement::class)]
 #[CoversClass(PhpDocClassNameResolver::class)]
+#[CoversClass(PhpDocFieldType::class)]
+#[CoversClass(PhpDocType::class)]
+#[CoversClass(PhpDocTypeParser::class)]
+#[CoversClass(PhpDocTypeTokens::class)]
+#[CoversClass(PhpDocItemTypeResolver::class)]
 #[CoversClass(PhpDocImports::class)]
 #[CoversClass(PhpDocTokenStream::class)]
 #[CoversClass(PhpDocNamespaceDeclaration::class)]
-#[CoversClass(ArrayObjectTypeResolver::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
 #[CoversClass(FieldTypeValidator::class)]
-#[CoversClass(ListItemTypeValidator::class)]
 #[CoversClass(ListInputNormalizer::class)]
 #[CoversClass(ListValueConverter::class)]
 #[CoversClass(MapDecodeError::class)]
 #[CoversClass(MapInputNormalizer::class)]
-#[CoversClass(MapTypeResolver::class)]
-#[CoversClass(MapTypeValidator::class)]
 #[CoversClass(MapValueConverter::class)]
 #[CoversClass(NamedFieldValueConverter::class)]
 #[CoversClass(ObjectTypeValidator::class)]

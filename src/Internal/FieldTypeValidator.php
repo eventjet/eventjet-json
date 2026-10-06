@@ -25,8 +25,10 @@ final class FieldTypeValidator
      * @param class-string $class
      * @throws ReflectionException
      */
-    public static function validate(string $class, ReflectionParameter|ReflectionProperty $field): DecodeError|null
-    {
+    public static function validate(
+        string $class,
+        ReflectionParameter|ReflectionProperty $field,
+    ): ListType|MapType|TupleType|DecodeError|null {
         $fieldName = $field->getName();
         $type = $field->getType();
 
@@ -53,17 +55,11 @@ final class FieldTypeValidator
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionNamedType $type,
-    ): DecodeError|null {
+    ): ListType|MapType|TupleType|DecodeError|null {
         $fieldName = $field->getName();
         $typeName = FieldTypeNameResolver::resolve($field, $type);
-        $mapTypeError = MapTypeValidator::validate($class, $field, $typeName);
-
-        if ($mapTypeError !== null) {
-            return $mapTypeError;
-        }
-
-        if ($typeName === ArrayObject::class) {
-            return null;
+        if ($typeName === 'array' || $typeName === ArrayObject::class) {
+            return CollectionTypeResolver::resolve($class, $field, $typeName);
         }
 
         if (in_array($typeName, ['mixed', 'object', stdClass::class], strict: true)) {
@@ -80,14 +76,6 @@ final class FieldTypeValidator
 
         if ($typeIsNonBackedEnum) {
             return DecodeError::nonBackedEnum($class, $typeName, $fieldName);
-        }
-
-        if ($typeName === 'array') {
-            $listItemTypeError = ListItemTypeValidator::validate($class, $field);
-
-            if ($listItemTypeError !== null) {
-                return $listItemTypeError;
-            }
         }
 
         return ClassFieldTypeValidator::validate($class, $fieldName, $typeName);
@@ -122,7 +110,7 @@ final class FieldTypeValidator
 
             $error = self::validateNamedType($class, $field, $member);
 
-            if ($error !== null) {
+            if ($error instanceof DecodeError) {
                 return $error;
             }
         }
