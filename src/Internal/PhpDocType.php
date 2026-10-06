@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use function array_pop;
+use function count;
+
 /** @internal */
 final readonly class PhpDocType
 {
@@ -16,4 +19,21 @@ final readonly class PhpDocType
         public array $arguments = [],
         public array $entries = [],
     ) {}
+
+    /** @return array{self, self}|null */
+    public function argumentPair(): array|null
+    {
+        $arguments = $this->arguments;
+        if (count($arguments) !== 2) {
+            return null;
+        }
+        $first = $arguments[0];
+        $second = array_pop($arguments);
+        return [$first, $second];
+    }
+
+    public function isPlainName(string $name): bool
+    {
+        return $this->name === $name && $this->arguments === [];
+    }
 }

@@ -76,7 +76,6 @@ final class ParserMalformedCases
             'list<int,,string>',
             'list<int{string}>',
             'list<array{}>',
-            'list<non-empty-array<string, list<int>>>',
             'array{0?: int, 1: string}',
             'array{999999999999999999999999: int}',
             'array{0?:}',
@@ -98,7 +97,7 @@ final class ParserMalformedCases
         ] as $declaration) {
             yield 'parser malformed or unsupported ' . $declaration => ['array', $declaration];
         }
-        foreach ([2, 63, 64, 65] as $depth) {
+        foreach ([64, 65] as $depth) {
             yield 'parser nesting ' . $depth => [
                 'array',
                 str_repeat('list<', $depth) . 'int' . str_repeat('>', $depth),

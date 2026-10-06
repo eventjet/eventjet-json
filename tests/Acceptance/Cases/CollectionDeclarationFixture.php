@@ -31,11 +31,21 @@ final class CollectionDeclarationFixture
             'non-empty-map<string>',
             'non-empty-map<string, int, bool>',
             'non-empty-map<string, UnknownCollectionItem>',
-            'non-empty-map<string, list<int>>',
             'list<non-zero-int<string>>',
             'non-empty-list<>',
             'non-empty-list<int',
             'non-empty-list<UnknownCollectionItem>',
+            'list<list<UnknownCollectionItem>>',
+            'list<non-empty-array<int, int>>',
+            'list<non-empty-array<string, int, string>>',
+            'list<ArrayObject<int, int>>',
+            'list<array<string, int>>',
+            'list<array{int}>',
+            'list<list<int>|string>',
+            'list<null|list<int>|string>',
+            'list<list<int>|null|int>',
+            'list<list<int>|null<string>>',
+            'list<int|null<string>>',
             'list<>',
             'list<int',
             'list<int>>',
@@ -43,7 +53,6 @@ final class CollectionDeclarationFixture
             'list<UnknownCollectionItem>',
             'list<\\UnknownCollectionItem>',
             'list<mixed>',
-            'list<list<int>>',
             'list<int|UnknownUnionItem>',
             'list<int|list<string>>',
             'list<int|true<string>>',
@@ -79,13 +88,12 @@ final class CollectionDeclarationFixture
             'list<int> | string',
             'non-empty-array<string, UnknownCollectionItem>',
             'non-empty-array<string, mixed>',
-            'non-empty-array<string, list<int>>',
             'non-empty-array<string, int',
         ] as $type) {
             yield $type => ['array', $type];
         }
 
-        foreach (['UnknownCollectionItem', 'mixed', 'list<int>'] as $type) {
+        foreach (['UnknownCollectionItem', 'mixed', 'list<UnknownCollectionItem>'] as $type) {
             yield 'ArrayObject ' . $type => ['\\ArrayObject', 'ArrayObject<string, ' . $type . '>'];
         }
 

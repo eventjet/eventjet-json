@@ -32,9 +32,11 @@ final class CollectionTypeValidator
 
         foreach ($types as $index => $type) {
             $path = $collection instanceof TupleType ? sprintf('%s[%d]', $field, $index) : $field;
-            $error = $type instanceof CollectionUnionType
-                ? self::union($class, $path, $type)
-                : self::named($class, $path, $type);
+            $error = match (true) {
+                $type instanceof NestedCollectionType => self::validate($class, $path, $type->collection),
+                $type instanceof CollectionUnionType => self::union($class, $path, $type),
+                default => self::named($class, $path, $type),
+            };
             if ($error !== null) {
                 return $error;
             }

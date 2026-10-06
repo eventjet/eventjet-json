@@ -37,7 +37,7 @@ final class TupleTypeResolver
             $required += $type->optional ? 0 : 1;
             $item = PhpDocItemTypeResolver::resolve($field, $type->type);
 
-            if ($item === null) {
+            if ($item === null || $item instanceof NestedCollectionType) {
                 return null;
             }
 

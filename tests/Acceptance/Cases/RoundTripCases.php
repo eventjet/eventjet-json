@@ -59,6 +59,7 @@ final class RoundTripCases
      */
     public static function objects(): iterable
     {
+        yield from NestedCollectionCases::objects();
         yield from NarrowerCollectionCases::objects();
         yield from CollectionNameCases::objects();
         yield from CollectionUnionCases::objects();

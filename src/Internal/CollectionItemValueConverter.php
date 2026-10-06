@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use JsonException;
 use ReflectionException;
 
 use function class_exists;
@@ -19,14 +20,22 @@ final class CollectionItemValueConverter
 {
     /**
      * @param class-string $class
+     * @return array<array-key, mixed>|bool|float|int|object|string|null
+     * @throws JsonException
      * @throws ReflectionException
      */
     public static function convert(
         string $class,
         string $path,
-        string|CollectionUnionType $type,
+        string|CollectionUnionType|NestedCollectionType $type,
         mixed $value,
-    ): bool|float|int|object|string|null {
+    ): array|bool|float|int|object|string|null {
+        if ($type instanceof NestedCollectionType) {
+            return $value === null && $type->nullable
+                ? null
+                : CollectionValueConverter::convert($class, $path, $type->collection, $value);
+        }
+
         if ($type instanceof CollectionUnionType) {
             return CollectionUnionValueConverter::convert($class, $path, $type, $value);
         }

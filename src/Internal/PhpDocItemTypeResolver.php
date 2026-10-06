@@ -21,13 +21,18 @@ use function preg_match;
 final class PhpDocItemTypeResolver
 {
     /**
-     * @return 'bool'|'float'|'int'|'string'|class-string|CollectionUnionType|null
+     * @return 'bool'|'float'|'int'|'string'|class-string|CollectionUnionType|NestedCollectionType|null
      * @throws ReflectionException
      */
     public static function resolve(
         ReflectionParameter|ReflectionProperty $field,
         PhpDocType $type,
-    ): string|CollectionUnionType|null {
+    ): string|CollectionUnionType|NestedCollectionType|null {
+        $nested = NestedCollectionTypeResolver::resolve($field, $type);
+        if ($nested !== null) {
+            return $nested;
+        }
+
         if ($type->name === '|') {
             $members = [];
             foreach ($type->arguments as $member) {

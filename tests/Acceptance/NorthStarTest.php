@@ -28,6 +28,8 @@ use Eventjet\Json\Internal\MapType;
 use Eventjet\Json\Internal\MapTypeResolver;
 use Eventjet\Json\Internal\MapValueConverter;
 use Eventjet\Json\Internal\NamedFieldValueConverter;
+use Eventjet\Json\Internal\NestedCollectionType;
+use Eventjet\Json\Internal\NestedCollectionTypeResolver;
 use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\ObjectTypeValidator;
 use Eventjet\Json\Internal\ObjectValueConverter;
@@ -110,6 +112,8 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(MapInputNormalizer::class)]
 #[CoversClass(MapValueConverter::class)]
 #[CoversClass(NamedFieldValueConverter::class)]
+#[CoversClass(NestedCollectionType::class)]
+#[CoversClass(NestedCollectionTypeResolver::class)]
 #[CoversClass(ObjectTypeValidator::class)]
 #[CoversClass(ObjectValueConverter::class)]
 #[CoversClass(ObjectHydrator::class)]

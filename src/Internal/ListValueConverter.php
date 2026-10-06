@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use JsonException;
 use ReflectionException;
 
 use function array_key_exists;
@@ -15,7 +16,8 @@ final class ListValueConverter
 {
     /**
      * @param class-string $class
-     * @return list<bool|float|int|object|string|null>|DecodeError
+     * @return list<mixed>|DecodeError
+     * @throws JsonException
      * @throws ReflectionException
      */
     public static function convert(string $class, string $path, ListType $collection, mixed $value): array|DecodeError
