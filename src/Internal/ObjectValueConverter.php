@@ -22,7 +22,7 @@ final class ObjectValueConverter
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<array-key, mixed> $values
-     * @param array<string, ListType|MapType|TupleType|null> $collections
+     * @param array<string, ListType|MapType|TupleType|FieldCollectionUnionType|null> $collections
      * @return array<array-key, mixed>|DecodeError
      * @throws JsonException
      * @throws ReflectionException
@@ -47,9 +47,16 @@ final class ObjectValueConverter
             /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
             $value = $values[$field];
             $collection = $collections[$field] ?? null;
-            $converted = $collection === null
-                ? self::convertField($className, $parameter, $value, $fieldPath)
-                : CollectionValueConverter::convert($className, $fieldPath, $collection, $value);
+            $converted = match (true) {
+                $collection instanceof FieldCollectionUnionType => FieldCollectionUnionValueConverter::convert(
+                    $className,
+                    $fieldPath,
+                    $collection,
+                    $value,
+                ),
+                $collection !== null => CollectionValueConverter::convert($className, $fieldPath, $collection, $value),
+                default => self::convertField($className, $parameter, $value, $fieldPath),
+            };
 
             if ($converted instanceof DecodeError) {
                 return $converted;

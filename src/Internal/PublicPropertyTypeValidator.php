@@ -21,7 +21,7 @@ final class PublicPropertyTypeValidator
 {
     /**
      * @param class-string $class
-     * @return array{type: ReflectionNamedType|ReflectionUnionType, collection: ListType|MapType|TupleType|null}|DecodeError
+     * @return array{type: ReflectionNamedType|ReflectionUnionType, collection: ListType|MapType|TupleType|FieldCollectionUnionType|null}|DecodeError
      * @throws ReflectionException
      */
     public static function validate(string $class, ReflectionProperty $property): array|DecodeError

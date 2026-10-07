@@ -38,7 +38,13 @@ final class CollectionDeclarationErrorCases
             foreach (['param', 'var'] as $tag) {
                 $class = CollectionDeclarationFixture::create($specification[0], $specification[1], $tag);
 
-                foreach (['{}', '{"value":[]}', '{"value":{}}', '{"value":null}', '{"value":[42]}'] as $json) {
+                foreach ($specification[3] ?? [
+                    '{}',
+                    '{"value":[]}',
+                    '{"value":{}}',
+                    '{"value":null}',
+                    '{"value":[42]}',
+                ] as $json) {
                     yield $label . ' ' . $tag . ' ' . $json => [
                         $json,
                         $class,

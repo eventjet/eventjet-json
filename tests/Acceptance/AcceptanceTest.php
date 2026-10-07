@@ -12,12 +12,19 @@ use Eventjet\Json\Internal\ClassUnionValidator;
 use Eventjet\Json\Internal\CollectionItemValueConverter;
 use Eventjet\Json\Internal\CollectionTypeResolver;
 use Eventjet\Json\Internal\CollectionTypeValidator;
+use Eventjet\Json\Internal\CollectionUnionShapeValidator;
 use Eventjet\Json\Internal\CollectionUnionType;
+use Eventjet\Json\Internal\CollectionUnionTypeValidator;
 use Eventjet\Json\Internal\CollectionUnionValueConverter;
 use Eventjet\Json\Internal\CollectionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassUnionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\EnumUnionValidator;
+use Eventjet\Json\Internal\FieldCollectionUnionMemberResolver;
+use Eventjet\Json\Internal\FieldCollectionUnionResolver;
+use Eventjet\Json\Internal\FieldCollectionUnionType;
+use Eventjet\Json\Internal\FieldCollectionUnionValidator;
+use Eventjet\Json\Internal\FieldCollectionUnionValueConverter;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
@@ -47,6 +54,7 @@ use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
+use Eventjet\Json\Internal\PhpDocUnionTypeResolver;
 use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\PublicPropertyNamedValueConverter;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
@@ -82,6 +90,9 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(BackedEnumValueConverter::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(CollectionUnionValueConverter::class)]
+#[CoversClass(CollectionUnionShapeValidator::class)]
+#[CoversClass(CollectionUnionTypeValidator::class)]
+#[CoversClass(PhpDocUnionTypeResolver::class)]
 #[CoversClass(CollectionUnionType::class)]
 #[CoversClass(ClassUnionValidator::class)]
 #[CoversClass(CollectionTypeResolver::class)]
@@ -99,6 +110,11 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ConcreteClassValueConverter::class)]
 #[CoversClass(EnumUnionValidator::class)]
 #[CoversClass(FieldTypeValidator::class)]
+#[CoversClass(FieldCollectionUnionMemberResolver::class)]
+#[CoversClass(FieldCollectionUnionValidator::class)]
+#[CoversClass(FieldCollectionUnionType::class)]
+#[CoversClass(FieldCollectionUnionResolver::class)]
+#[CoversClass(FieldCollectionUnionValueConverter::class)]
 #[CoversClass(FieldPath::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
 #[CoversClass(PhpDocImportScanner::class)]

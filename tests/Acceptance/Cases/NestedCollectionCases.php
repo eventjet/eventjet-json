@@ -27,6 +27,7 @@ final class NestedCollectionCases
             }
         }
 
+        yield from NestedCollectionUnionCases::objects();
         yield from NullableNestedCollectionCases::objects();
     }
 }

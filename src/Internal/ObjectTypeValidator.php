@@ -20,7 +20,7 @@ final class ObjectTypeValidator
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<array-key, mixed> $values
-     * @return array<string, ListType|MapType|TupleType|null>|DecodeError
+     * @return array<string, ListType|MapType|TupleType|FieldCollectionUnionType|null>|DecodeError
      * @throws ReflectionException
      */
     public static function validate(ReflectionClass $class, array $values, string $path): array|DecodeError

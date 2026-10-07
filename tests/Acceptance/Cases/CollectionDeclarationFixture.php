@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use RuntimeException;
 
 use function class_exists;
@@ -18,9 +19,10 @@ use function unlink;
 /** @internal */
 final class CollectionDeclarationFixture
 {
-    /** @return iterable<string, array{0: string, 1: string, 2?: string}> */
+    /** @return iterable<string, array{0: string, 1: string, 2?: string|null, 3?: list<string>}> */
     public static function declarations(): iterable
     {
+        yield from self::invalidUnionDeclarations();
         yield 'missing' => ['array', ''];
         yield 'unrelated tag' => ['array', '/** @return list<int> */'];
         yield 'wrong map field' => ['array', '/** @param non-empty-array<string, int> $values */'];
@@ -41,9 +43,6 @@ final class CollectionDeclarationFixture
             'list<ArrayObject<int, int>>',
             'list<array<string, int>>',
             'list<array{int}>',
-            'list<list<int>|string>',
-            'list<null|list<int>|string>',
-            'list<list<int>|null|int>',
             'list<list<int>|null<string>>',
             'list<int|null<string>>',
             'list<>',
@@ -54,7 +53,6 @@ final class CollectionDeclarationFixture
             'list<\\UnknownCollectionItem>',
             'list<mixed>',
             'list<int|UnknownUnionItem>',
-            'list<int|list<string>>',
             'list<int|true<string>>',
             'list<int|Foo&Bar>',
             'array{0: int, 1?: UnknownTupleItem}',
@@ -83,6 +81,7 @@ final class CollectionDeclarationFixture
             'array{int, string?}',
             'array{name: string}',
             'array{list<int>}',
+            'array{list<int>|string}',
             'int[]',
             'list<int>|string',
             'list<int> | string',
@@ -107,6 +106,38 @@ final class CollectionDeclarationFixture
 
         yield 'native list union' => ['array|string', 'list<int>'];
         yield 'native map union' => ['array|string', 'non-empty-array<string, int>'];
+    }
+
+    /** @return iterable<string, array{string, string, null, list<string>}> */
+    public static function invalidUnionDeclarations(): iterable
+    {
+        yield 'mismatched collection and ambiguous enum union' => [
+            'array|\\' . StringBackedStatus::class . '|string',
+            'list<int>|\\' . StringBackedStatus::class . '|string|bool',
+            null,
+            ['{}', '{"value":[]}'],
+        ];
+        yield 'malformed collection union true' => [
+            'array|true',
+            'list<int>|true<string>',
+            null,
+            ['{}', '{"value":[]}'],
+        ];
+        yield 'malformed collection union null' => ['?array', 'list<int>|null<string>', null, ['{}', '{"value":[]}']];
+        $documents = ['{}', '{"value":[]}'];
+        yield 'mismatched collection union scalar' => ['array|string', 'list<int>|int', null, $documents];
+        yield 'extra collection union null' => ['array|string', 'list<int>|string|null', null, $documents];
+        yield 'missing collection union member' => ['array|string', 'int|string', null, $documents];
+        yield 'unknown collection union member' => ['array|string', 'list<int>|UnknownItem', null, $documents];
+        yield 'bare lowercase ArrayObject union member' => [
+            'array|\\ArrayObject',
+            'list<int>|arrayobject',
+            null,
+            $documents,
+        ];
+        yield 'bare ArrayObject union member' => ['array|\\ArrayObject', 'list<int>|ArrayObject', null, $documents];
+        yield 'malformed tuple union' => ['array|string', 'array{1: int}|string', null, $documents];
+        yield 'missing nullable collection declaration' => ['?array', 'list<int>', null, $documents];
     }
 
     /**

@@ -286,7 +286,7 @@ outside the constructor. Missing or unrecognized declarations return a
 the JSON member is omitted. The decoder does not fall back to an unvalidated
 array. This includes malformed PHPDoc, unknown type names, and types whose
 conversion is not yet supported, such as nested tuples and unions
-that combine collections with other non-null types. Existing dedicated errors for ambiguous map declarations
+that combine multiple members with the same JSON shape. Existing dedicated errors for ambiguous map declarations
 and unsupported class types still apply.
 
 Collection items and values may use unions, such as `list<string|int|Person>`,
@@ -312,8 +312,43 @@ fields and public properties, and errors include the complete path through
 all collection levels. Class and enum restrictions are validated even inside
 empty collections or when the field is omitted.
 
-Unions that combine collections with other non-null types remain unsupported,
-such as `list<list<int>|string>`. Tuples cannot contain collections or appear
+Collections may join unions with scalar, enum, class, and null members.
+This works for constructor fields, public properties, list items, and map
+values. Selection uses JSON shape: an array selects a list or tuple, an
+object selects a map or final class, and a scalar follows the existing union
+rules. For example, `list<Person>|Person|null` restores either a list of
+people, one person, or `null`. Nested declarations such as
+`list<list<Person>|Person|null>` use the same selection rules.
+
+For a field union, PHPDoc must describe every native union member, replacing
+`array` and `ArrayObject` with their supported collection declarations:
+
+```php
+final readonly class People
+{
+    /** @param list<Person>|Person|null $value */
+    public function __construct(public array|Person|null $value) {}
+}
+```
+
+Use `@var` in the same way on a public property outside the constructor.
+Nullable collection fields, such as native `?array` with PHPDoc
+`list<int>|null`, are supported. PHPDoc member order does not affect selection,
+and repeated members with the same normalized declaration are ignored.
+PHPDoc cannot add or omit a
+native union member. Existing scalar refinements normalize to their underlying
+type; they do not add runtime constraints.
+
+Each union may have at most one JSON-array member and one JSON-object member.
+`list<int>|ArrayObject<string, int>` preserves both `[]` and `{}`.
+`list<int>|non-empty-array<string, int>` also works, with an empty object
+rejected by the map's nonempty constraint. `list<int>|list<string>` and
+`list<int>|array{int}` are rejected because JSON arrays do not identify which
+member to restore. A map alongside a class or another map is rejected for the
+same reason. Unsupported or ambiguous declarations are rejected even when
+the collection is empty or the field is omitted.
+
+Tuples cannot contain collections, including union members, or appear
 inside a list or map. Generic `array<string, T>` maps remain unsupported at
 every level because their empty value cannot preserve JSON object shape.
 
@@ -411,12 +446,12 @@ must not be relied on, even if a particular value happens to decode.
 | `string`, `int`, `float`, and `bool` constructor fields | Supported | Values must have the declared type. An integer JSON value is also valid for a `float` field because the declaration restores it as a PHP float. Other implicit scalar coercions are rejected. |
 | `null`, nullable scalar fields, and literal `true` and `false` fields | Supported | A non-null value must still match the non-null member of a nullable type. Literal Boolean fields accept only their declared value. |
 | Collection fields | Limited | PHPDoc `list<T>` and `non-empty-list<T>` declarations are decoded and validated for constructor fields and public properties, where `T` is `string`, `int`, `float`, `bool`, a backed enum, a final class, or a supported union of those types and `null`, `true`, or `false`. Lists and maps may nest recursively, including nullable nested collections, with the same rules at every level. Tuples remain limited to leaf items. Empty JSON arrays are rejected for `non-empty-list<T>`. Positional tuples such as `array{int, string}` require exactly the declared positions and validate each independently, using the same supported item types. `array{}` preserves empty JSON arrays. Explicit consecutive indexes starting at zero and optional trailing positions are supported, such as `array{0: int, 1?: string}`; omitted positions remain absent. Nonempty maps use `non-empty-array<string, T>` or its alias `non-empty-map<string, T>`; maps that may be empty use `ArrayObject<string, T>`. For either map form, `T` supports the same declarations. JSON arrays are rejected for maps, `{}` is rejected for nonempty-array maps, and member names that PHP converts to integer keys are rejected. Whole-valued JSON integers in float collections are restored as floats. Class and enum names follow the declaring class's namespace and class imports, including aliases, grouped imports, namespace aliases, fully qualified names, namespace-relative names, and global-namespace shorthand. `self` resolves to the declaring class and requires it to be final. Missing, malformed, unknown, and unsupported collection declarations return a `DecodeError`, including when the member is omitted. Native arrays require a supported collection PHPDoc declaration. |
-| Nested class fields | Supported for final classes | JSON objects are recursively converted to final classes declared directly on constructor fields, including readonly classes, nullable fields, `self` declarations that resolve to a final class, and unions with backed enums, scalar, and null members. Non-final declarations, including `parent`, are rejected because their values may be subclasses. Class members of unions that also contain lists and maps are not yet supported. |
+| Nested class fields | Supported for final classes | JSON objects are recursively converted to final classes declared directly on constructor fields, including readonly classes, nullable fields, `self` declarations that resolve to a final class, and unions with backed enums, scalar, and null members. Non-final declarations, including `parent`, are rejected because their values may be subclasses. A final class may join a union with a list or tuple; maps and classes cannot share a union because both encode as JSON objects. |
 | Backed enum fields | Supported in direct constructor fields, public properties, unambiguous unions, lists, and maps | String-backed and int-backed values are converted without coercion, including nullable enum fields, lists, `non-empty-array<string, BackedEnum>` and `ArrayObject<string, BackedEnum>` maps, unions where scalar members use different JSON types from the enum backing type, and unions of backed enums whose case values do not overlap. Non-backed enums are rejected because they have no JSON representation. |
-| General union types | Limited | Nullable scalar declarations, one final class alongside a backed enum and scalar or null members, backed enum/scalar unions with distinct JSON types, and unambiguous unions of backed enums are supported. Scalar members must use JSON types distinct from the enum's backing type. Other unions do not yet have a supported selection policy. |
+| General union types | Limited | Nullable scalar declarations, one final class alongside a backed enum and scalar or null members, backed enum/scalar unions with distinct JSON types, and unambiguous unions of backed enums are supported. Scalar members must use JSON types distinct from the enum's backing type. Supported collection declarations may join field, list-item, and map-value unions, with at most one member for each JSON array or object shape. Tuple positions remain limited to leaf types. |
 | Intersection types | Rejected | JSON does not identify a concrete class that satisfies the intersection. |
 | Interfaces and abstract classes | Rejected at the root and in field types | Root targets, direct constructor field declarations, union members, list item declarations, and map value declarations return dedicated errors because JSON does not identify a concrete implementation or subclass to instantiate. |
-| Public properties outside the constructor, inherited properties, and other unsupported class shapes | Limited | Declared scalar, array, backed enum, nested final class, and supported union public properties are hydrated after construction, including inherited properties, nullable and recursively nested `self` declarations, and classes without constructors. Public-property unions follow the same class, enum, scalar, null, and ambiguity rules as constructor fields. Array properties require the same supported collection declarations as constructor fields. Array/scalar unions are rejected. Constructor-bound properties, including promoted readonly properties, are not assigned again. Omitted public properties keep their state after construction: initialized properties retain their values, while uninitialized properties remain uninitialized, including readonly properties. Targets with private or protected constructors are rejected with a dedicated error. |
+| Public properties outside the constructor, inherited properties, and other unsupported class shapes | Limited | Declared scalar, array, backed enum, nested final class, and supported union public properties are hydrated after construction, including inherited properties, nullable and recursively nested `self` declarations, and classes without constructors. Public-property unions follow the same class, enum, scalar, null, and ambiguity rules as constructor fields. Array properties require the same supported collection declarations as constructor fields. Collection unions require PHPDoc matching the native union members and follow the same JSON-shape selection rules. Constructor-bound properties, including promoted readonly properties, are not assigned again. Omitted public properties keep their state after construction: initialized properties retain their values, while uninitialized properties remain uninitialized, including readonly properties. Targets with private or protected constructors are rejected with a dedicated error. |
 | `mixed`, untyped fields, `object`, and `stdClass` | Rejected | These declarations cannot preserve every value's original PHP type and JSON object/array shape, so they return a dedicated `DecodeError` whether or not the member is present. Use `ArrayObject<string, T>` rather than `stdClass` for a typed JSON object map. |
 | Root arrays, maps, scalars, enums, and `null` | Not yet supported | `Json::decode()` currently accepts only a JSON object and a class target. |
 | Classes implementing `JsonSerializable` | Rejected | A custom JSON representation may not correspond to constructor parameters, so these targets return a dedicated `DecodeError`. |
@@ -578,7 +613,7 @@ Until then, any speed or memory improvement remains a hypothesis.
 - [x] Support explicitly indexed PHPDoc tuples such as `array{0: Foo, 1: string, 2?: int}`, including optional positions, with position-specific validation and preserved JSON array shape.
 - [x] Decode nonempty JSON object fields into PHPDoc `non-empty-array<string, T>` with scalar or backed-enum values, validating each value independently.
 - [x] Extend typed map decoding to final-class values and `ArrayObject<string, T>` maps that preserve empty JSON objects.
-- [ ] Support unions with array-shaped members, such as `list<Foo>|Foo|null`.
+- [x] Support unions with array-shaped members, such as `list<Foo>|Foo|null`.
 - [x] Support unions inside collection declarations, such as `list<string|int|Foo>`.
 - [x] Support recursively nested lists and maps, including nullable items and values and unions that follow the same rules as object fields.
 - [ ] Support arbitrary nesting of different array shapes, such as `list<array<string, list<Foo>>>`.

@@ -11,6 +11,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\UnionPublicProperty;
 use LogicException;
+use RuntimeException;
 
 use function explode;
 use function get_debug_type;
@@ -25,9 +26,11 @@ final class ScalarTypeMismatchCases
      * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{string, class-string, string, int}>
      * @throws LogicException
+     * @throws RuntimeException
      */
     public static function mismatches(): iterable
     {
+        yield from FieldCollectionUnionErrorCases::errors();
         $mismatchedValues = self::mismatchedValues();
 
         foreach (self::fixtures() as $class => ['values' => $validValues, 'types' => $types]) {

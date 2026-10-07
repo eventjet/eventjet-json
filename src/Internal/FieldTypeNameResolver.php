@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use ArrayObject;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -13,6 +14,7 @@ use function class_exists;
 use function enum_exists;
 use function in_array;
 use function interface_exists;
+use function strcasecmp;
 
 /** @internal */
 final class FieldTypeNameResolver
@@ -28,7 +30,7 @@ final class FieldTypeNameResolver
         }
 
         if ($name !== 'parent') {
-            return $name;
+            return strcasecmp($name, ArrayObject::class) === 0 ? ArrayObject::class : $name;
         }
 
         $parent = $declaringClass->getParentClass();

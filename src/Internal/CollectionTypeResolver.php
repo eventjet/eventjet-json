@@ -25,12 +25,24 @@ final class CollectionTypeResolver
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         string $nativeType,
-    ): ListType|MapType|TupleType|DecodeError {
-        if (!$field->getType() instanceof ReflectionNamedType) {
-            return self::invalidDeclaration($class, $field);
+    ): ListType|MapType|TupleType|FieldCollectionUnionType|DecodeError {
+        $native = $field->getType();
+        if ($native instanceof ReflectionNamedType && $native->allowsNull()) {
+            return FieldCollectionUnionResolver::resolve($class, $field, $native);
         }
+        return self::resolveType($class, $field, PhpDocFieldType::resolve($field), $nativeType);
+    }
 
-        $type = PhpDocFieldType::resolve($field);
+    /**
+     * @param class-string $class
+     * @throws ReflectionException
+     */
+    private static function resolveType(
+        string $class,
+        ReflectionParameter|ReflectionProperty $field,
+        PhpDocType|null $type,
+        string $nativeType,
+    ): ListType|MapType|TupleType|DecodeError {
         $collection = $nativeType === ArrayObject::class
             ? MapTypeResolver::resolve($class, $field, $type, $nativeType)
             : self::array($class, $field, $type);
@@ -70,10 +82,8 @@ final class CollectionTypeResolver
     }
 
     /** @param class-string $class */
-    private static function invalidDeclaration(
-        string $class,
-        ReflectionParameter|ReflectionProperty $field,
-    ): DecodeError {
+    public static function invalidDeclaration(string $class, ReflectionParameter|ReflectionProperty $field): DecodeError
+    {
         return DecodeError::nonInstantiableTarget($class, sprintf(
             'Field %s has a missing or unrecognized collection declaration. Use @%s with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             $field->getName(),

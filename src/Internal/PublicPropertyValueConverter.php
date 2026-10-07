@@ -17,7 +17,7 @@ final class PublicPropertyValueConverter
     /**
      * @param class-string $class
      * @param array<array-key, mixed>|bool|float|int|object|string|null $value
-     * @param array{type: ReflectionNamedType|ReflectionUnionType, collection: ListType|MapType|TupleType|null, path: string} $field
+     * @param array{type: ReflectionNamedType|ReflectionUnionType, collection: ListType|MapType|TupleType|FieldCollectionUnionType|null, path: string} $field
      * @return array{property: ReflectionProperty, value: mixed}|DecodeError
      * @throws JsonException
      * @throws ReflectionException
@@ -30,6 +30,10 @@ final class PublicPropertyValueConverter
     ): array|DecodeError {
         $type = $field['type'];
         $path = $field['path'];
+        if ($field['collection'] instanceof FieldCollectionUnionType) {
+            $converted = FieldCollectionUnionValueConverter::convert($class, $path, $field['collection'], $value);
+            return $converted instanceof DecodeError ? $converted : ['property' => $property, 'value' => $converted];
+        }
         if ($type instanceof ReflectionUnionType) {
             return PublicPropertyUnionValueConverter::convert($class, $property, $type, $value, $path);
         }
