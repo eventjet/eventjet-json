@@ -40,6 +40,27 @@ final class CollectionItemValueConverter
             return CollectionUnionValueConverter::convert($class, $path, $type, $value);
         }
 
+        $converted = match ($type) {
+            'bool' => is_bool($value) ? $value : null,
+            'float' => self::convertFloat($value),
+            'int' => is_int($value) ? $value : null,
+            'string' => is_string($value) ? $value : null,
+            default => self::convertClass($class, $path, $type, $value),
+        };
+
+        if ($converted === null) {
+            return DecodeError::fieldTypeMismatch($class, $path, $type, $value);
+        }
+
+        return $converted;
+    }
+
+    /**
+     * @param class-string $class
+     * @throws ReflectionException
+     */
+    private static function convertClass(string $class, string $path, string $type, mixed $value): object
+    {
         if (enum_exists($type)) {
             return BackedEnumValueConverter::convertValue($class, $path, $type, $value);
         }
@@ -48,19 +69,7 @@ final class CollectionItemValueConverter
             return ConcreteClassValueConverter::convertCollectionItem($class, $path, $type, $value);
         }
 
-        $converted = match ($type) {
-            'bool' => is_bool($value) ? $value : null,
-            'float' => self::convertFloat($value),
-            'int' => is_int($value) ? $value : null,
-            'string' => is_string($value) ? $value : null,
-            default => null,
-        };
-
-        if ($converted === null) {
-            return DecodeError::fieldTypeMismatch($class, $path, $type, $value);
-        }
-
-        return $converted;
+        return DecodeError::fieldTypeMismatch($class, $path, $type, $value);
     }
 
     private static function convertFloat(mixed $value): float|null
