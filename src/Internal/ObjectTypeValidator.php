@@ -55,7 +55,7 @@ final class ObjectTypeValidator
                 );
             }
 
-            $collection = FieldTypeValidator::validate($className, $parameter);
+            $collection = FieldTypeResolver::resolve($className, $parameter);
 
             if ($collection instanceof DecodeError) {
                 return $collection;

@@ -119,6 +119,31 @@ Stop the development container when you are finished:
 docker compose down
 ```
 
+## Performance
+
+The decoder reuses resolved collection declarations and PHPDoc imports within
+the current PHP process. Every incoming value is still checked, including
+collection shapes, item types, enum values, and nested error paths. Decoded
+objects and errors are not cached.
+
+Cache storage grows with the classes and collection fields used by the process,
+not with the number of documents decoded. Imports are retained per declaring
+class, including its namespace scope. Restart long-running workers after changing
+class source files so loaded declarations and cached imports remain consistent.
+
+Run the repeatable benchmark with development dependencies installed:
+
+```bash
+docker compose exec php php -d pcov.enabled=0 benchmarks/decode.php
+```
+
+It reports the first decode of each scenario and the median warm decode time
+across five samples. The first measurements include lazy class loading and may
+share metadata from earlier scenarios. Warm measurements use 200 decodes per
+sample, or five for the large root array. Repeated results are checked for
+consistent JSON output outside the timed loop. Results depend on the workload,
+runtime, and host; compare revisions in the same environment.
+
 The `tabula-rasa` rewrite treats `Json::decode()` as the inverse of PHP's
 `json_encode()`: supported values must round-trip without changing their meaning
 or shape. Target classes should use standard PHP types and PHPDoc rather than

@@ -99,6 +99,7 @@ final class RootArrayErrorCases
         yield from self::enums();
         yield from self::unknownClass(Person::class);
         yield from self::declarations();
+        yield from WarmCollectionErrorCases::errors();
     }
 
     /** @return iterable<string, array{string, JsonType<list<mixed>>, string, int}> */
