@@ -30,13 +30,13 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache
-          key: analysis-${{ runner.os }}-php8.4-${{ hashFiles('composer.lock', 'phpstan.neon', 'psalm.xml') }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: analysis-${{ runner.os }}-php8.4-${{ hashFiles('composer.lock', 'phpstan.neon', 'psalm.xml') }}-
+          key: analysis-${{ runner.os }}-php8.4-${{ hashFiles('vendor/composer/installed.json', 'phpstan.neon', 'psalm.xml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: analysis-${{ runner.os }}-php8.4-${{ hashFiles('vendor/composer/installed.json', 'phpstan.neon', 'psalm.xml') }}-
       - name: Restore Mago binary
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: vendor/carthage-software/mago/composer/bin/[0-9]*
-          key: mago-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('composer.lock') }}
+          key: mago-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('vendor/composer/installed.json') }}
       - run: mkdir -p .cache
       - name: Validate dependencies
         run: |
@@ -70,8 +70,8 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .phpunit.cache
-          key: phpunit-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('composer.lock', 'phpunit.xml') }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: phpunit-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('composer.lock', 'phpunit.xml') }}-
+          key: phpunit-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('vendor/composer/installed.json', 'phpunit.xml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: phpunit-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('vendor/composer/installed.json', 'phpunit.xml') }}-
       - name: PHPUnit
         timeout-minutes: 2
         run: composer phpunit -- --no-progress
@@ -95,8 +95,8 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache
-          key: analysis-${{ runner.os }}-php8.4-${{ hashFiles('composer.lock', 'phpstan.neon', 'psalm.xml') }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: analysis-${{ runner.os }}-php8.4-${{ hashFiles('composer.lock', 'phpstan.neon', 'psalm.xml') }}-
+          key: analysis-${{ runner.os }}-php8.4-${{ hashFiles('vendor/composer/installed.json', 'phpstan.neon', 'psalm.xml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: analysis-${{ runner.os }}-php8.4-${{ hashFiles('vendor/composer/installed.json', 'phpstan.neon', 'psalm.xml') }}-
       - name: Full mutation coverage for this shard
         shell: bash
         timeout-minutes: 5

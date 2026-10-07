@@ -163,10 +163,11 @@ GitHub Actions runs the full quality suite on pull requests and pushes to
 mutation jobs run in parallel. New commits cancel outdated runs for the same
 pull request or branch.
 
-The committed `composer.lock` pins development tools so ordinary runs install
-dependencies without resolving new versions. Composer download archives are
-cached by operating system and lock file; every job installs dependencies from
-those archives. Mago has a separate binary cache keyed by platform and lock file.
+This library does not commit `composer.lock`. Each CI job resolves development
+dependencies from `composer.json`; any generated lock file remains ignored.
+Composer download archives are cached by operating system, PHP version, and
+dependency constraints. Mago has a separate binary cache keyed by platform and
+installed dependencies.
 PHPStan, Psalm, and PHPUnit retain their incremental caches, with separate keys
 for tool configuration and PHP version. Only the quality job saves analyzer
 caches; mutation jobs can restore them but cannot publish mutated analysis.
