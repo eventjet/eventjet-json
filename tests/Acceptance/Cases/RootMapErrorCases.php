@@ -11,7 +11,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\ThrowingConstructor;
 use RuntimeException;
 
-use function str_replace;
+use function preg_replace;
 
 /** @internal */
 final class RootMapErrorCases
@@ -45,7 +45,7 @@ final class RootMapErrorCases
             yield 'inside map ' . $name => [
                 '{"entry":' . $json . '}',
                 JsonType::map($type),
-                str_replace(['Field [0]', 'Field [1]'], ['Field [entry][0]', 'Field [entry][1]'], $message),
+                preg_replace('/Field \[(\d+)\]/', replacement: 'Field [entry][$1]', subject: $message) ?? $message,
                 $code,
             ];
             if ($json === '[]') {

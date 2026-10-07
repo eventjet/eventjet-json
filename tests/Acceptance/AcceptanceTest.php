@@ -30,6 +30,7 @@ use Eventjet\Json\Internal\FieldCollectionUnionValidator;
 use Eventjet\Json\Internal\FieldCollectionUnionValueConverter;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
+use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\ListInputNormalizer;
 use Eventjet\Json\Internal\ListType;
@@ -40,6 +41,7 @@ use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\MapType;
 use Eventjet\Json\Internal\MapTypeResolver;
 use Eventjet\Json\Internal\MapValueConverter;
+use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NamedFieldValueConverter;
 use Eventjet\Json\Internal\NestedCollectionType;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
@@ -136,6 +138,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(FieldCollectionUnionValueConverter::class)]
 #[CoversClass(FieldPath::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
+#[CoversClass(FieldTypeResolver::class)]
 #[CoversClass(PhpDocImportScanner::class)]
 #[CoversClass(PhpDocImportStatement::class)]
 #[CoversClass(PhpDocClassNameResolver::class)]
@@ -153,6 +156,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(MapInputNormalizer::class)]
 #[CoversClass(MapJsonType::class)]
 #[CoversClass(MapValueConverter::class)]
+#[CoversClass(MetadataCache::class)]
 #[CoversClass(NamedFieldValueConverter::class)]
 #[CoversClass(NestedCollectionType::class)]
 #[CoversClass(NestedCollectionTypeResolver::class)]

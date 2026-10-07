@@ -153,6 +153,59 @@ Stop the development container when you are finished:
 docker compose down
 ```
 
+## Performance
+
+The decoder reuses resolved collection declarations and PHPDoc imports within
+the current PHP process. Every incoming value is still checked, including
+collection shapes, item types, enum values, and nested error paths. Decoded
+objects and errors are not cached.
+
+Cache storage grows with the classes and collection fields used by the process,
+not with the number of documents decoded. Imports are retained per declaring
+class, including its namespace scope. Restart long-running workers after changing
+class source files so loaded declarations and cached imports remain consistent.
+
+Run the PHPBench suite with development dependencies installed:
+
+```bash
+docker compose exec php composer benchmark
+```
+
+The five scenarios cover scalar objects, scalar lists, object collections,
+recursive collections, and a root array of 100 collection-bearing objects.
+PHPBench runs each of five iterations in a separate process:
+
+- `cold`: one decode per iteration, with no warmup. Fixture construction and
+  JSON encoding happen before timing without calling the decoder. Decoder class
+  loading is included; repeated objects within that first document can reuse
+  metadata populated earlier in the same decode.
+- `warm`: one untimed decode populates the caches, followed by 200 measured
+  decodes per iteration, or five for the large root array.
+
+Every decode checks for errors. After each iteration, outside the timed region,
+the last result is re-encoded and checked against the independently constructed
+input. PHPBench reports execution time, variation, and memory use. Its child
+processes disable PCOV and CLI OPcache through `phpbench.json`.
+
+Run one group, or store a baseline and compare after a code change:
+
+```bash
+docker compose exec php composer benchmark -- --group=warm
+docker compose exec php composer benchmark -- --store --tag=before
+# Change the implementation, keeping the benchmark and environment the same.
+docker compose exec php composer benchmark -- --ref=before --store --tag=after
+```
+
+Stored results live in the ignored `.phpbench/` directory. In a Git worktree,
+the container also needs read access to the Git metadata directory referenced
+by `.git` for PHPBench's repository metadata collection.
+
+Benchmarks run separately from `composer check`, with no CI timing thresholds.
+Compare the same workloads, PHP settings, and dependencies on the same host;
+review measurement variation along with percentage changes. PHPUnit retains
+deterministic cache-contract tests, including checks that repeated lookups load
+metadata only once.
+
 The `tabula-rasa` rewrite treats `Json::decode()` as the inverse of PHP's
 `json_encode()`: supported values must round-trip without changing their meaning
 or shape. Target classes should use standard PHP types and PHPDoc rather than

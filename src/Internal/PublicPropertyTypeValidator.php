@@ -46,7 +46,7 @@ final class PublicPropertyTypeValidator
             }
         }
 
-        $collection = FieldTypeValidator::validate($class, $property);
+        $collection = FieldTypeResolver::resolve($class, $property);
 
         if ($collection instanceof DecodeError) {
             return $collection;

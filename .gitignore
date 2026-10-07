@@ -4,3 +4,4 @@
 /infection-log.txt
 /vendor/
 .phpunit.result.cache
+/.phpbench/
