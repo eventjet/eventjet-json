@@ -147,6 +147,9 @@ Run the complete quality suite inside the container:
 docker compose exec php composer check
 ```
 
+Keep formatting, dependency checks, static analysis, PHPUnit, and mutation
+testing passing as support grows. These are ongoing development requirements.
+
 Stop the development container when you are finished:
 
 ```bash
@@ -690,7 +693,12 @@ Until then, any speed or memory improvement remains a hypothesis.
 - [x] Reject field values that do not match the declared type, including values that reflection would otherwise silently coerce.
 - [x] Test numeric boundaries and define how to preserve whole-valued floats, large integers, and precision during round trips.
 - [x] Test strings containing Unicode, escaped characters, empty strings, and numeric-looking text.
-- [ ] Test rejection of non-JSON-encodable object field values, including resources, `INF`, `NAN`, invalid UTF-8, and circular references. Define the validation boundary; the current API uses PHP's `json_encode()` for encoding.
+- [ ] Reject type declarations that permit only non-JSON-encodable types. Allow unions containing non-encodable types when at least one member is supported for decoding, subject to the existing ambiguity rules for the decodable members. Cover declaration rejection and decoding through the supported union members.
+  Encoding and rejection of non-encodable values are explicitly the caller's
+  `json_encode()` responsibility. This library only decodes. A type such as
+  `float` is not excluded because some of its values are non-encodable.
+  Union support under this rule is not yet implemented: a non-backed enum
+  member currently causes the entire union to be rejected.
 
 ### Objects and construction
 
@@ -715,7 +723,10 @@ Until then, any speed or memory improvement remains a hypothesis.
 - [x] Reject target classes with private or protected constructors with a clear `DecodeError`.
 - [x] Reject constructor parameters without same-named declared public instance properties because the class shape provides no stable JSON member from which to recover their values.
 - [x] Reject variadic constructors with a clear `DecodeError`, including when their member is omitted.
-- [ ] Define the remaining supported class shapes and report unsupported ones clearly.
+- [x] Define the remaining supported class shapes and report unsupported ones clearly.
+  Closed by decision for the documented transport-class shapes. This does not
+  extend support to every PHP class shape; the supported-type matrix and
+  explicit limits define the contract.
 - [x] Define behavior for `mixed`, untyped fields, `object`, and `stdClass`.
 - [x] Investigate parsing JSON directly into target objects instead of decoding to generic PHP values and then mapping those values onto objects.
 - [x] Support unions that combine one concrete class and one backed enum, alongside scalar and null members whose types do not overlap the enum's backing type, such as `MyEnum|MyClass|null`.
@@ -778,8 +789,10 @@ Until then, any speed or memory improvement remains a hypothesis.
 - [x] Add generated acceptance round trips for objects with class/enum/scalar/null unions inside lists, nonempty maps, and public-property `ArrayObject` maps, covering constructor fields, public properties, integer boundaries, and empty collections.
 - [x] Add generated acceptance round trips for branching recursive `self` collections, independently varying empty constructor and public-property lists and `ArrayObject` maps across nesting depths and preserving numeric-looking string keys.
 - [x] Add generated acceptance round trips for objects with unambiguous multiple-enum unions inside all four supported collection forms, covering constructor fields and public properties, independently empty lists and maps, and numeric-looking string keys.
-- [ ] Extend acceptance round trips to every remaining supported type combination; assert both value types and JSON shape.
-- [ ] Keep formatting, dependency checks, static analysis, PHPUnit, and mutation testing passing as support grows.
+- [x] Extend acceptance round trips to every remaining supported type combination; assert both value types and JSON shape.
+  Closed by decision: the existing generated and focused acceptance coverage
+  is sufficient for the current supported domain. This is not a claim of
+  exhaustive coverage of every possible recursive combination.
 
 ### Documentation
 
