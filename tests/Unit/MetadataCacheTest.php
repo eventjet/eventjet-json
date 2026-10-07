@@ -7,8 +7,11 @@ namespace Eventjet\Json\Test\Unit;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\ClassUnionValidator;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorParameters;
+use Eventjet\Json\Internal\EnumUnionValidator;
+use Eventjet\Json\Internal\FieldCollectionUnionResolver;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
@@ -16,6 +19,7 @@ use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
+use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -34,9 +38,12 @@ use function class_alias;
 #[CoversClass(BackedEnumCaseFinder::class)]
 #[UsesClass(DecodeError::class)]
 #[CoversClass(FieldTypeResolver::class)]
-#[UsesClass(FieldTypeValidator::class)]
+#[CoversClass(FieldTypeValidator::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[UsesClass(ClassFieldTypeValidator::class)]
+#[CoversClass(ClassFieldTypeValidator::class)]
+#[UsesClass(ClassUnionValidator::class)]
+#[UsesClass(EnumUnionValidator::class)]
+#[UsesClass(FieldCollectionUnionResolver::class)]
 final class MetadataCacheTest extends TestCase
 {
     /** @throws ReflectionException */
@@ -65,6 +72,20 @@ final class MetadataCacheTest extends TestCase
     }
 
     /** @throws ReflectionException */
+    public function testEnumFindersAreReusedAndEnumsRemainIndependent(): void
+    {
+        $integer = BackedEnumCaseFinder::forEnum(IntBackedStatus::class);
+        $string = BackedEnumCaseFinder::forEnum(StringBackedStatus::class);
+        $unbacked = BackedEnumCaseFinder::forEnum(NonBackedStatus::class);
+
+        static::assertNotSame($integer, $string);
+        static::assertNotSame($integer, $unbacked);
+        static::assertSame($integer, BackedEnumCaseFinder::forEnum(IntBackedStatus::class));
+        static::assertSame($string, BackedEnumCaseFinder::forEnum(StringBackedStatus::class));
+        static::assertSame($unbacked, BackedEnumCaseFinder::forEnum(NonBackedStatus::class));
+    }
+
+    /** @throws ReflectionException */
     public function testCachedEnumCasesPreserveBackingTypesAndRejectUnknownValues(): void
     {
         for ($lookup = 0; $lookup < 2; ++$lookup) {
@@ -80,7 +101,7 @@ final class MetadataCacheTest extends TestCase
                 [StringBackedStatus::class, 'unknown', null],
                 [NonBackedStatus::class, 1, null],
             ] as [$enum, $value, $expected]) {
-                static::assertSame($expected, BackedEnumCaseFinder::find($enum, $value));
+                static::assertSame($expected, BackedEnumCaseFinder::forEnum($enum)->find($value));
             }
         }
     }
@@ -176,6 +197,33 @@ final class MetadataCacheTest extends TestCase
 
         static::assertNull(FieldTypeResolver::resolve($class, $field));
         static::assertTrue(class_alias(NonBackedStatus::class, $dependency));
+        static::assertInstanceOf(DecodeError::class, FieldTypeResolver::resolve($class, $field));
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RuntimeException
+     */
+    public function testResolvedNonCollectionDeclarationsAreCacheable(): void
+    {
+        foreach (['int', 'int|string', '\\' . NonBackedStatus::class . '|int'] as $declaration) {
+            $class = CollectionDeclarationFixture::create($declaration, '', 'var');
+            static::assertFalse(FieldTypeValidator::validate($class, new ReflectionProperty($class, 'value')));
+        }
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RuntimeException
+     */
+    public function testUnresolvedUnionMetadataIsRetriedAfterDependencyLoads(): void
+    {
+        $dependency = 'MetadataCacheDeferredUnionClass';
+        $class = CollectionDeclarationFixture::create($dependency . '|int', '', 'var');
+        $field = new ReflectionProperty($class, 'value');
+
+        static::assertNull(FieldTypeResolver::resolve($class, $field));
+        static::assertTrue(class_alias(ParentClassFieldBase::class, $dependency));
         static::assertInstanceOf(DecodeError::class, FieldTypeResolver::resolve($class, $field));
     }
 }
