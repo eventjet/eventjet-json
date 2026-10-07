@@ -204,7 +204,22 @@ Stored results live in the ignored `.phpbench/` directory. In a Git worktree,
 the container also needs read access to the Git metadata directory referenced
 by `.git` for PHPBench's repository metadata collection.
 
-Benchmarks run separately from `composer check`, with no CI timing thresholds.
+Benchmarks run separately from `composer check`. The Performance workflow compares
+pull requests' proposed merge commit with its exact target parent on the same
+runner. Branch pushes and manual runs compare with the first parent. Both versions
+use the target's benchmark fixtures and the candidate's locked dependencies;
+this isolates source changes rather than measuring dependency upgrades. A changed
+candidate benchmark suite also runs separately. An absent baseline suite is
+reported explicitly, without a regression verdict.
+
+The workflow alternates baseline/candidate order across three pairs, takes five
+iterations per invocation, and runs three additional unchanged-code pairs to
+estimate noise. Its summary separates cold and warm workloads and shows timing,
+variation, paired percentage changes, and process peak memory. Raw samples,
+environment details, commit IDs, and the lock-file hash are archived for history.
+Performance changes are advisory until repeated unchanged-code runs establish a
+useful threshold; benchmark errors and the five-minute job limit still fail CI.
+Do not treat one noisy runner result as evidence of a regression.
 Compare the same workloads, PHP settings, and dependencies on the same host;
 review measurement variation along with percentage changes. PHPUnit retains
 deterministic cache-contract tests, including checks that repeated lookups load
