@@ -7,6 +7,8 @@ namespace Eventjet\Json\Test\Unit;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\ConstructorParameter;
+use Eventjet\Json\Internal\ConstructorParameters;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
@@ -18,6 +20,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
 use RuntimeException;
@@ -26,6 +29,8 @@ use stdClass;
 use function class_alias;
 
 #[CoversClass(MetadataCache::class)]
+#[CoversClass(ConstructorParameter::class)]
+#[CoversClass(ConstructorParameters::class)]
 #[CoversClass(BackedEnumCaseFinder::class)]
 #[UsesClass(DecodeError::class)]
 #[CoversClass(FieldTypeResolver::class)]
@@ -34,6 +39,31 @@ use function class_alias;
 #[UsesClass(ClassFieldTypeValidator::class)]
 final class MetadataCacheTest extends TestCase
 {
+    /** @throws ReflectionException */
+    public function testConstructorMetadataIsReusedAndClassesRemainIndependent(): void
+    {
+        $first = new class(1) {
+            public function __construct(
+                public int $value,
+            ) {}
+        };
+        $second = new class('second') {
+            public function __construct(
+                public string $value,
+            ) {}
+        };
+        $firstClass = new ReflectionClass($first);
+        $secondClass = new ReflectionClass($second);
+        $firstParameters = ConstructorParameters::resolve($firstClass);
+        $secondParameters = ConstructorParameters::resolve($secondClass);
+
+        static::assertNotSame([], $firstParameters);
+        static::assertNotSame([], $secondParameters);
+        static::assertNotSame($firstParameters, $secondParameters);
+        static::assertSame($firstParameters, ConstructorParameters::resolve($firstClass));
+        static::assertSame($secondParameters, ConstructorParameters::resolve($secondClass));
+    }
+
     /** @throws ReflectionException */
     public function testCachedEnumCasesPreserveBackingTypesAndRejectUnknownValues(): void
     {
