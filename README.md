@@ -679,7 +679,13 @@ Until then, any speed or memory improvement remains a hypothesis.
 
 ### Scalar fields and validation
 
-- [ ] Let users choose whether to enable runtime type checks. Provide an opt-out path with fewer guarantees for workloads such as decoding many documents in a loop; benchmark the performance difference and document which checks and guarantees each mode provides.
+- [x] Let users choose whether to enable runtime type checks. Provide an opt-out path with fewer guarantees for workloads such as decoding many documents in a loop; benchmark the performance difference and document which checks and guarantees each mode provides.
+  Closed for now by decision; the opt-out is not implemented. First improve
+  performance while retaining the current validation guarantees, including
+  investigating repeated PHPDoc parsing and import resolution. Revisit the
+  opt-out after `tabula-rasa` is merged into `master` and tagged. Compare checked
+  and trusted-input decoding with the same metadata optimizations before
+  deciding whether reduced guarantees offer a worthwhile performance benefit.
 - [x] Test all scalar field types: `string`, `int`, `float`, and `bool`, plus `null`, nullable types, and literal `true`/`false` types.
 - [x] Reject field values that do not match the declared type, including values that reflection would otherwise silently coerce.
 - [x] Test numeric boundaries and define how to preserve whole-valued floats, large integers, and precision during round trips.
