@@ -4,7 +4,7 @@ version = "1"
 
 [source]
 includes = ["vendor"]
-paths = ["src", "tests"]
+paths = ["src", "tests", "benchmarks"]
 
 [formatter]
 null-type-hint = "null_pipe_last"
