@@ -26,6 +26,9 @@ use function var_export;
 /** @internal */
 final class BackedEnumValueConverter
 {
+    /** @var array<enum-string, ReflectionType|null> */
+    private static array $backingTypes = [];
+
     /**
      * @param class-string $class
      * @throws ReflectionException
@@ -75,8 +78,7 @@ final class BackedEnumValueConverter
             if (!enum_exists($enumName)) {
                 continue;
             }
-            $enum = new ReflectionEnum($enumName);
-            $backingType = $enum->getBackingType();
+            $backingType = self::backingType($enumName);
             $valueMatchesBackingType =
                 $backingType instanceof ReflectionNamedType && ValueTypeMatcher::matches($value, $backingType);
 
@@ -120,8 +122,7 @@ final class BackedEnumValueConverter
         mixed $value,
         ReflectionNamedType|null $declaredType = null,
     ): UnitEnum|DecodeError {
-        $enum = new ReflectionEnum($enumName);
-        $backingType = $enum->getBackingType();
+        $backingType = self::backingType($enumName);
         if (!$backingType instanceof ReflectionNamedType) {
             return DecodeError::fieldTypeMismatch($class, $field, (string) ($declaredType ?? $enumName), $value);
         }
@@ -148,6 +149,15 @@ final class BackedEnumValueConverter
         }
 
         return self::unknownValue($class, $field, $enumName, $value);
+    }
+
+    /**
+     * @param enum-string $enumName
+     * @throws ReflectionException
+     */
+    private static function backingType(string $enumName): ReflectionType|null
+    {
+        return self::$backingTypes[$enumName] ??= new ReflectionEnum($enumName)->getBackingType();
     }
 
     /**
