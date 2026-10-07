@@ -16,23 +16,30 @@ use function is_string;
 /** @internal */
 final class BackedEnumCaseFinder
 {
-    /** @var array<enum-string, array<string, UnitEnum>> */
-    private static array $cases = [];
+    /** @var array<enum-string, self> */
+    private static array $finders = [];
+
+    /** @param array<string, UnitEnum> $cases */
+    private function __construct(
+        private readonly array $cases,
+    ) {}
 
     /**
      * @param enum-string $enumName
      * @throws ReflectionException
      */
-    public static function find(string $enumName, mixed $value): UnitEnum|null
+    public static function forEnum(string $enumName): self
+    {
+        return self::$finders[$enumName] ??= new self(self::cases($enumName));
+    }
+
+    public function find(mixed $value): UnitEnum|null
     {
         if (!is_int($value) && !is_string($value)) {
             return null;
         }
 
-        self::$cases[$enumName] ??= self::cases($enumName);
-        $cases = self::$cases[$enumName];
-
-        return $cases[get_debug_type($value) . ':' . $value] ?? null;
+        return $this->cases[get_debug_type($value) . ':' . $value] ?? null;
     }
 
     /**
@@ -46,7 +53,7 @@ final class BackedEnumCaseFinder
 
         foreach (new ReflectionEnum($enumName)->getCases() as $case) {
             if (!$case instanceof ReflectionEnumBackedCase) {
-                continue;
+                return [];
             }
 
             $value = $case->getBackingValue();

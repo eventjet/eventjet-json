@@ -84,7 +84,7 @@ final class BackedEnumValueConverter
 
             if ($valueMatchesBackingType) {
                 $matchingBackingEnums[] = $enumName;
-                $case = BackedEnumCaseFinder::find($enumName, $value);
+                $case = BackedEnumCaseFinder::forEnum($enumName)->find($value);
 
                 if ($case !== null) {
                     return $case;
@@ -142,7 +142,7 @@ final class BackedEnumValueConverter
             );
         }
 
-        $case = BackedEnumCaseFinder::find($enumName, $value);
+        $case = BackedEnumCaseFinder::forEnum($enumName)->find($value);
 
         if ($case !== null) {
             return $case;
