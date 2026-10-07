@@ -25,7 +25,9 @@ function command(array $arguments, string|null $directory = null): string
     fclose($pipes[1]);
     $status = proc_close($process);
     if ($status !== 0 || $output === false) {
-        throw new RuntimeException('Command failed (' . $status . '): ' . implode(' ', $arguments));
+        throw new RuntimeException(
+            'Command failed (' . $status . '): ' . implode(' ', $arguments) . "\n" . ($output === false ? '' : $output),
+        );
     }
     return $output;
 }
@@ -74,13 +76,17 @@ function configureWorkloads(string $revision, string $workspace): void
         throw new InvalidArgumentException('Benchmark configuration must be an object');
     }
     $config['runner.env_enabled_providers'] = ['php', 'uname', 'opcache', 'unix_sysload'];
-    $config['runner.php_config'] = [
+    $phpConfig = $config['runner.php_config'] ?? [];
+    if (!is_array($phpConfig)) {
+        throw new InvalidArgumentException('Benchmark PHP configuration must be an object');
+    }
+    $config['runner.php_config'] = array_replace($phpConfig, [
         'pcov.enabled' => '0',
         'opcache.enable_cli' => '0',
         'opcache.jit' => '0',
         'xdebug.mode' => 'off',
         'memory_limit' => '1G',
-    ];
+    ]);
     writeJson($workspace . '/phpbench.json', $config);
 }
 

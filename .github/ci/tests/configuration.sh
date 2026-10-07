@@ -14,11 +14,11 @@ mkdir -p src benchmarks tests vendor/bin vendor/composer
 touch src/placeholder benchmarks/placeholder tests/placeholder
 printf '%s\n' '{"name":"test/performance","autoload":{}}' > composer.json
 printf '%s\n' '{"packages":[]}' > vendor/composer/installed.json
-printf '%s\n' '{"runner.path":"baseline"}' > phpbench.json
+printf '%s\n' '{"runner.path":"baseline","runner.php_config":{"serialize_precision":"7","pcov.enabled":"1"}}' > phpbench.json
 git add src benchmarks tests composer.json phpbench.json
 git commit --quiet -m baseline
 baseline=$(git rev-parse HEAD)
-printf '%s\n' '{"runner.path":"candidate"}' > phpbench.json
+printf '%s\n' '{"runner.path":"candidate","runner.php_config":{"serialize_precision":"9","pcov.enabled":"1"}}' > phpbench.json
 git add phpbench.json
 git commit --quiet -m candidate
 candidate=$(git rev-parse HEAD)
@@ -32,6 +32,9 @@ $config = json_decode(file_get_contents('phpbench.json'), true, flags: JSON_THRO
 $path = $config['runner.path'];
 if (!in_array($path, ['baseline', 'candidate'], true)) {
     throw new RuntimeException('Configuration did not come from a measured revision');
+}
+if ($config['runner.php_config']['serialize_precision'] !== ($path === 'baseline' ? '7' : '9')) {
+    throw new RuntimeException('Workload-specific PHP settings were lost');
 }
 foreach (['pcov.enabled', 'opcache.enable_cli', 'opcache.jit'] as $setting) {
     if ($config['runner.php_config'][$setting] !== '0') {
@@ -72,3 +75,24 @@ if (!str_contains($xml, 'name="candidate"') || str_contains($xml, 'name="baselin
 }
 echo "Baseline and candidate configuration isolation passed.\n";
 PHP
+
+# Failed subprocesses must retain stdout diagnostics as well as forwarded stderr.
+mv .perf successful-comparison
+cat > vendor/bin/phpbench <<'PHP'
+<?php
+fwrite(STDOUT, "Benchmark failure detail on stdout\n");
+fwrite(STDERR, "Benchmark failure detail on stderr\n");
+exit(23);
+PHP
+if php "$runner" --base "$baseline" --candidate "$candidate" > failure.log 2>&1; then
+    echo 'Expected the benchmark subprocess to fail'
+    exit 1
+fi
+for diagnostic in 'Command failed (23)' 'Benchmark failure detail on stdout' 'Benchmark failure detail on stderr'; do
+    if ! grep -Fq "$diagnostic" failure.log; then
+        cat failure.log
+        echo "Missing failure diagnostic: $diagnostic"
+        exit 1
+    fi
+done
+echo 'Subprocess failure diagnostics passed.'
