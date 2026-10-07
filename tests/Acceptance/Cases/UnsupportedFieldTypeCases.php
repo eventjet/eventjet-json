@@ -107,6 +107,7 @@ final class UnsupportedFieldTypeCases
         ];
 
         yield from self::untypedPublicProperty();
+        yield from self::unknownPublicProperty();
 
         $intersectionPublicProperty = new IntersectionPublicProperty();
 
@@ -126,6 +127,25 @@ final class UnsupportedFieldTypeCases
                     . ' from the JSON object: Field value uses unsupported public property type '
                     . $type
                     . '. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
+                3,
+            ];
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, class-string, string, int}>
+     * @throws RuntimeException
+     */
+    private static function unknownPublicProperty(): iterable
+    {
+        $class = CollectionDeclarationFixture::create('UnknownPublicPropertyType', '', 'var');
+        foreach (['{}', '{"value":null}', '{"value":{}}'] as $json) {
+            yield 'unknown public property ' . $json => [
+                $json,
+                $class,
+                'Could not create '
+                    . $class
+                    . ' from the JSON object: Field value uses unsupported public property type UnknownPublicPropertyType. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
                 3,
             ];
         }
