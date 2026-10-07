@@ -155,12 +155,12 @@ docker compose down
 
 ## Performance
 
-The decoder reuses resolved collection declarations and PHPDoc imports within
-the current PHP process. Every incoming value is still checked, including
-collection shapes, item types, enum values, and nested error paths. Decoded
-objects and errors are not cached.
+The decoder reuses resolved collection declarations, public-property metadata,
+and PHPDoc imports within the current PHP process. Every incoming value is still
+checked, including collection shapes, item types, enum values, and nested error
+paths. Decoded objects and errors are not cached.
 
-Cache storage grows with the classes and collection fields used by the process,
+Cache storage grows with the classes and fields used by the process,
 not with the number of documents decoded. Imports are retained per declaring
 class, including its namespace scope. Restart long-running workers after changing
 class source files so loaded declarations and cached imports remain consistent.
