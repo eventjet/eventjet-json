@@ -147,6 +147,9 @@ Run the complete quality suite inside the container:
 docker compose exec php composer check
 ```
 
+Keep formatting, dependency checks, static analysis, PHPUnit, and mutation
+testing passing as support grows. These are ongoing development requirements.
+
 Stop the development container when you are finished:
 
 ```bash
@@ -155,10 +158,10 @@ docker compose down
 
 ## Performance
 
-The decoder reuses resolved collection declarations, public-property metadata,
-and PHPDoc imports within the current PHP process. Every incoming value is still
-checked, including collection shapes, item types, enum values, and nested error
-paths. Decoded objects and errors are not cached.
+The decoder reuses validated field declarations, resolved collection declarations,
+public-property metadata, and PHPDoc imports within the current PHP process. Every
+incoming value is still checked, including collection shapes, item types, enum
+values, and nested error paths. Decoded objects and errors are not cached.
 
 Cache storage grows with the classes and fields used by the process,
 not with the number of documents decoded. Imports are retained per declaring
@@ -171,8 +174,9 @@ Run the PHPBench suite with development dependencies installed:
 docker compose exec php composer benchmark
 ```
 
-The five scenarios cover scalar objects, scalar lists, object collections,
-recursive collections, and a root array of 100 collection-bearing objects.
+The eight scenarios cover scalar objects, scalar lists, named enum fields,
+enum unions, collections of enum-union fields, object collections, recursive
+collections, and a root array of 100 collection-bearing objects.
 PHPBench runs each of five iterations in a separate process:
 
 - `cold`: one decode per iteration, with no warmup. Fixture construction and
@@ -226,7 +230,7 @@ scope decisions are made, and include a reason for every exclusion.
 | Interface and abstract class type hints | They cannot be instantiated directly, and JSON does not identify which concrete implementation or subclass to create. Resolving one would require additional selection rules or metadata. |
 | Non-final class type hints in object fields | A field may contain a subclass of its declared type, but JSON does not identify that runtime class. Reconstructing the declared class could silently change the value. Root targets are unaffected because the caller supplies their exact class. |
 | Intersection type hints | JSON does not identify the concrete class that satisfies every member of an intersection. Resolving one would require additional selection rules or metadata. |
-| Non-backed enums | They have no scalar backing value and cannot round-trip through PHP's `json_encode()`. |
+| Non-backed enum values | Without custom serialization, they have no JSON representation. Their type may appear in a union with a supported member, including `null`; only supported members can be decoded. Enums implementing `JsonSerializable` remain unsupported because their custom representation cannot be recovered generically. |
 | Object targets implementing `JsonSerializable` | Their custom JSON representation may not match their constructor parameters, so generic decoding cannot guarantee the round-trip contract. |
 | Variadic constructors | JSON members bind to individual named constructor arguments. Reconstructing a variadic argument list would require separate unpacking and key-binding rules. |
 | Constructor parameters without same-named declared public instance properties | The class shape does not provide a stable JSON member from which decoding can recover those argument values. |
@@ -416,6 +420,19 @@ For scalar-only unions, an integer remains an integer when `int` is present;
 a `float` member restores whole-valued floats when `int` is absent. Explicit `null` is accepted only when
 `null` is a member. Optional tuple positions can still be omitted independently.
 
+A union may also contain types whose values cannot be encoded: non-backed
+enums without custom serialization, and PHPDoc `resource`, `open-resource`,
+or `closed-resource` members. At least one member must be supported for
+decoding. For example, `NonBackedEnum|string` decodes strings,
+`?NonBackedEnum` accepts only `null`, and `list<resource|int>` decodes integer
+items. Declarations containing only non-encodable alternatives are rejected,
+even when the field is omitted or its collection is empty. The existing
+ambiguity rules still apply to the supported members. Encodable but unsupported
+types, such as interfaces, abstract classes, and enums implementing
+`JsonSerializable`, do not qualify for this exception. Encoding remains the
+caller's `json_encode()` responsibility; `float` remains supported even though
+`INF` and `NAN` cannot be encoded.
+
 Lists, tuples, and maps may nest recursively in any combination, using the
 same supported item and value types at every level. For example, `list<list<int|null>>`,
 `non-empty-array<string, list<Person>>`, and
@@ -573,7 +590,7 @@ must not be relied on, even if a particular value happens to decode.
 | `null`, nullable scalar fields, and literal `true` and `false` fields | Supported | A non-null value must still match the non-null member of a nullable type. Literal Boolean fields accept only their declared value. |
 | Collection fields | Limited | PHPDoc `list<T>` and `non-empty-list<T>` declarations are decoded and validated for constructor fields and public properties, where `T` is `string`, `int`, `float`, `bool`, a backed enum, a final class, or a supported union of those types and `null`, `true`, or `false`. Lists, tuples, and maps may nest recursively in any combination, including nullable nested collections and supported unions, with the same rules at every level. Empty JSON arrays are rejected for `non-empty-list<T>`. Positional tuples such as `array{int, string}` require exactly the declared positions and validate each independently, using the same supported item types. `array{}` preserves empty JSON arrays. Explicit consecutive indexes starting at zero and optional trailing positions are supported, such as `array{0: int, 1?: string}`; omitted positions remain absent. Nonempty maps use `non-empty-array<string, T>` or its alias `non-empty-map<string, T>`; maps that may be empty use `ArrayObject<string, T>`. For either map form, `T` supports the same declarations. JSON arrays are rejected for maps, `{}` is rejected for nonempty-array maps, and member names that PHP converts to integer keys are rejected. Whole-valued JSON integers in float collections are restored as floats. Class and enum names follow the declaring class's namespace and class imports, including aliases, grouped imports, namespace aliases, fully qualified names, namespace-relative names, and global-namespace shorthand. `self` resolves to the declaring class and requires it to be final. Missing, malformed, unknown, and unsupported collection declarations return a `DecodeError`, including when the member is omitted. Native arrays require a supported collection PHPDoc declaration. |
 | Nested class fields | Supported for final classes | JSON objects are recursively converted to final classes declared directly on constructor fields, including readonly classes, nullable fields, `self` declarations that resolve to a final class, and unions with backed enums, scalar, and null members. Non-final declarations, including `parent`, are rejected because their values may be subclasses. A final class may join a union with a list or tuple; maps and classes cannot share a union because both encode as JSON objects. |
-| Backed enum fields | Supported in direct constructor fields, public properties, unambiguous unions, lists, and maps | String-backed and int-backed values are converted without coercion, including nullable enum fields, lists, `non-empty-array<string, BackedEnum>` and `ArrayObject<string, BackedEnum>` maps, unions where scalar members use different JSON types from the enum backing type, and unions of backed enums whose case values do not overlap. Non-backed enums are rejected because they have no JSON representation. |
+| Backed enum fields | Supported in direct constructor fields, public properties, unambiguous unions, lists, and maps | String-backed and int-backed values are converted without coercion, including nullable enum fields, lists, `non-empty-array<string, BackedEnum>` and `ArrayObject<string, BackedEnum>` maps, unions where scalar members use different JSON types from the enum backing type, and unions of backed enums whose case values do not overlap. Non-backed enum values cannot be decoded. A non-backed enum without custom serialization may join a union with supported members, including `null`. |
 | General union types | Limited | Nullable scalar declarations, one final class alongside a backed enum and scalar or null members, backed enum/scalar unions with distinct JSON types, and unambiguous unions of backed enums are supported. Scalar members must use JSON types distinct from the enum's backing type. Supported collection declarations may join field, tuple-position, list-item, and map-value unions, with at most one member for each JSON array or object shape. |
 | Intersection types | Rejected | JSON does not identify a concrete class that satisfies the intersection. |
 | Interfaces and abstract classes | Rejected at the root and in field types | Root targets, direct constructor field declarations, union members, list item declarations, and map value declarations return dedicated errors because JSON does not identify a concrete implementation or subclass to instantiate. |
@@ -679,12 +696,23 @@ Until then, any speed or memory improvement remains a hypothesis.
 
 ### Scalar fields and validation
 
-- [ ] Let users choose whether to enable runtime type checks. Provide an opt-out path with fewer guarantees for workloads such as decoding many documents in a loop; benchmark the performance difference and document which checks and guarantees each mode provides.
+- [x] Let users choose whether to enable runtime type checks. Provide an opt-out path with fewer guarantees for workloads such as decoding many documents in a loop; benchmark the performance difference and document which checks and guarantees each mode provides.
+  Closed for now by decision; the opt-out is not implemented. First improve
+  performance while retaining the current validation guarantees, including
+  investigating repeated PHPDoc parsing and import resolution. Revisit the
+  opt-out after `tabula-rasa` is merged into `master` and tagged. Compare checked
+  and trusted-input decoding with the same metadata optimizations before
+  deciding whether reduced guarantees offer a worthwhile performance benefit.
 - [x] Test all scalar field types: `string`, `int`, `float`, and `bool`, plus `null`, nullable types, and literal `true`/`false` types.
 - [x] Reject field values that do not match the declared type, including values that reflection would otherwise silently coerce.
 - [x] Test numeric boundaries and define how to preserve whole-valued floats, large integers, and precision during round trips.
 - [x] Test strings containing Unicode, escaped characters, empty strings, and numeric-looking text.
-- [ ] Test rejection of non-JSON-encodable object field values, including resources, `INF`, `NAN`, invalid UTF-8, and circular references. Define the validation boundary; the current API uses PHP's `json_encode()` for encoding.
+- [x] Reject type declarations that permit only non-JSON-encodable types. Allow unions containing non-encodable types when at least one member is supported for decoding, subject to the existing ambiguity rules for the decodable members. Cover declaration rejection and decoding through the supported union members.
+  Encoding and rejection of non-encodable values are explicitly the caller's
+  `json_encode()` responsibility. This library only decodes. A type such as
+  `float` is not excluded because some of its values are non-encodable.
+  Declarations and supported branches are covered for native fields and
+  PHPDoc collections, including nullable types and nested unions.
 
 ### Objects and construction
 
@@ -709,7 +737,10 @@ Until then, any speed or memory improvement remains a hypothesis.
 - [x] Reject target classes with private or protected constructors with a clear `DecodeError`.
 - [x] Reject constructor parameters without same-named declared public instance properties because the class shape provides no stable JSON member from which to recover their values.
 - [x] Reject variadic constructors with a clear `DecodeError`, including when their member is omitted.
-- [ ] Define the remaining supported class shapes and report unsupported ones clearly.
+- [x] Define the remaining supported class shapes and report unsupported ones clearly.
+  Closed by decision for the documented transport-class shapes. This does not
+  extend support to every PHP class shape; the supported-type matrix and
+  explicit limits define the contract.
 - [x] Define behavior for `mixed`, untyped fields, `object`, and `stdClass`.
 - [x] Investigate parsing JSON directly into target objects instead of decoding to generic PHP values and then mapping those values onto objects.
 - [x] Support unions that combine one concrete class and one backed enum, alongside scalar and null members whose types do not overlap the enum's backing type, such as `MyEnum|MyClass|null`.
@@ -772,8 +803,10 @@ Until then, any speed or memory improvement remains a hypothesis.
 - [x] Add generated acceptance round trips for objects with class/enum/scalar/null unions inside lists, nonempty maps, and public-property `ArrayObject` maps, covering constructor fields, public properties, integer boundaries, and empty collections.
 - [x] Add generated acceptance round trips for branching recursive `self` collections, independently varying empty constructor and public-property lists and `ArrayObject` maps across nesting depths and preserving numeric-looking string keys.
 - [x] Add generated acceptance round trips for objects with unambiguous multiple-enum unions inside all four supported collection forms, covering constructor fields and public properties, independently empty lists and maps, and numeric-looking string keys.
-- [ ] Extend acceptance round trips to every remaining supported type combination; assert both value types and JSON shape.
-- [ ] Keep formatting, dependency checks, static analysis, PHPUnit, and mutation testing passing as support grows.
+- [x] Extend acceptance round trips to every remaining supported type combination; assert both value types and JSON shape.
+  Closed by decision: the existing generated and focused acceptance coverage
+  is sufficient for the current supported domain. This is not a claim of
+  exhaustive coverage of every possible recursive combination.
 
 ### Documentation
 

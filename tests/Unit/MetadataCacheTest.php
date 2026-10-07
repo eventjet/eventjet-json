@@ -5,29 +5,98 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\BackedEnumCaseFinder;
+use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\ConstructorParameter;
+use Eventjet\Json\Internal\ConstructorParameters;
+use Eventjet\Json\Internal\FieldTypeNameResolver;
+use Eventjet\Json\Internal\FieldTypeResolver;
+use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\MetadataCache;
+use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
+use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
+use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
+use ReflectionException;
+use ReflectionProperty;
 use RuntimeException;
 use stdClass;
 
+use function class_alias;
+
 #[CoversClass(MetadataCache::class)]
+#[CoversClass(ConstructorParameter::class)]
+#[CoversClass(ConstructorParameters::class)]
+#[CoversClass(BackedEnumCaseFinder::class)]
 #[UsesClass(DecodeError::class)]
+#[CoversClass(FieldTypeResolver::class)]
+#[UsesClass(FieldTypeValidator::class)]
+#[UsesClass(FieldTypeNameResolver::class)]
+#[UsesClass(ClassFieldTypeValidator::class)]
 final class MetadataCacheTest extends TestCase
 {
+    /** @throws ReflectionException */
+    public function testConstructorMetadataIsReusedAndClassesRemainIndependent(): void
+    {
+        $first = new class(1) {
+            public function __construct(
+                public int $value,
+            ) {}
+        };
+        $second = new class('second') {
+            public function __construct(
+                public string $value,
+            ) {}
+        };
+        $firstClass = new ReflectionClass($first);
+        $secondClass = new ReflectionClass($second);
+        $firstParameters = ConstructorParameters::resolve($firstClass);
+        $secondParameters = ConstructorParameters::resolve($secondClass);
+
+        static::assertNotSame([], $firstParameters);
+        static::assertNotSame([], $secondParameters);
+        static::assertNotSame($firstParameters, $secondParameters);
+        static::assertSame($firstParameters, ConstructorParameters::resolve($firstClass));
+        static::assertSame($secondParameters, ConstructorParameters::resolve($secondClass));
+    }
+
+    /** @throws ReflectionException */
+    public function testCachedEnumCasesPreserveBackingTypesAndRejectUnknownValues(): void
+    {
+        for ($lookup = 0; $lookup < 2; ++$lookup) {
+            foreach ([
+                [IntBackedStatus::class, 1, IntBackedStatus::Ready],
+                [IntBackedStatus::class, '1', null],
+                [IntBackedStatus::class, 1.0, null],
+                [IntBackedStatus::class, true, null],
+                [IntBackedStatus::class, null, null],
+                [IntBackedStatus::class, 2, null],
+                [StringBackedStatus::class, StringBackedStatus::Ready->value, StringBackedStatus::Ready],
+                [StringBackedStatus::class, StringBackedStatus::Pending->value, StringBackedStatus::Pending],
+                [StringBackedStatus::class, 'unknown', null],
+                [NonBackedStatus::class, 1, null],
+            ] as [$enum, $value, $expected]) {
+                static::assertSame($expected, BackedEnumCaseFinder::find($enum, $value));
+            }
+        }
+    }
+
     public function testRepeatedLookupsLoadOnceIncludingEmptyMetadata(): void
     {
-        foreach ([[], new stdClass()] as $metadata) {
-            /** @var MetadataCache<array<never, never>|stdClass> $cache */
+        foreach ([[], false, new stdClass()] as $metadata) {
+            /** @var MetadataCache<array<never, never>|stdClass|false> $cache */
             $cache = new MetadataCache();
             $counter = new class {
                 public int $calls = 0;
             };
-            $load = /** @return array<never, never>|stdClass */ static function () use (
+            $load = /** @return array<never, never>|stdClass|false */ static function () use (
                 $counter,
                 $metadata,
-            ): array|stdClass {
+            ): array|stdClass|false {
                 ++$counter->calls;
                 return $metadata;
             };
@@ -93,5 +162,20 @@ final class MetadataCacheTest extends TestCase
         }
 
         static::assertSame([], $cache->resolve('field', /** @return array<never, never> */ static fn(): array => []));
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RuntimeException
+     */
+    public function testUnresolvedFieldTypesAreRetriedAfterDependencyLoads(): void
+    {
+        $dependency = 'MetadataCacheDeferredEnum';
+        $class = CollectionDeclarationFixture::create($dependency, '', 'var');
+        $field = new ReflectionProperty($class, 'value');
+
+        static::assertNull(FieldTypeResolver::resolve($class, $field));
+        static::assertTrue(class_alias(NonBackedStatus::class, $dependency));
+        static::assertInstanceOf(DecodeError::class, FieldTypeResolver::resolve($class, $field));
     }
 }

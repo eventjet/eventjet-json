@@ -19,10 +19,12 @@ final class CollectionUnionTypeValidator
      */
     public static function validate(string $class, string $path, CollectionUnionType $type): DecodeError|null
     {
+        $hasSupportedMember = false;
         foreach ($type->members as $member) {
             if (!$member instanceof NestedCollectionType) {
                 continue;
             }
+            $hasSupportedMember = true;
             $error = CollectionTypeValidator::validate($class, $path, $member->collection);
             if ($error !== null) {
                 return $error;
@@ -30,7 +32,14 @@ final class CollectionUnionTypeValidator
         }
         $names = $type->names();
         $classes = [];
+        $nonEncodableError = null;
         foreach ($names as $member) {
+            $isNonEncodable = ClassFieldTypeValidator::isNonEncodable($member);
+            if ($isNonEncodable) {
+                $nonEncodableError ??= CollectionTypeValidator::named($class, $path, $member);
+                continue;
+            }
+            $hasSupportedMember = true;
             $error = CollectionTypeValidator::named($class, $path, $member);
             if ($error !== null) {
                 return $error;
@@ -38,6 +47,9 @@ final class CollectionUnionTypeValidator
             if (!enum_exists($member) && class_exists($member)) {
                 $classes[] = $member;
             }
+        }
+        if (!$hasSupportedMember) {
+            return $nonEncodableError;
         }
         return (
             ClassUnionValidator::validateNames($class, $path, $classes)

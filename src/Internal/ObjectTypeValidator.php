@@ -34,11 +34,11 @@ final class ObjectTypeValidator
         $className = $class->getName();
         $collections = [];
 
-        foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
-            $name = $parameter->getName();
-            $type = $parameter->getType();
+        foreach (ConstructorParameters::resolve($class) as $parameter) {
+            $name = $parameter->name;
+            $type = $parameter->type;
 
-            if ($parameter->isVariadic()) {
+            if ($parameter->variadic) {
                 return DecodeError::nonInstantiableTarget($className, sprintf(
                     'Constructor parameter %s is variadic. JSON members bind to individual named arguments, not variadic argument lists.',
                     $name,
@@ -55,7 +55,7 @@ final class ObjectTypeValidator
                 );
             }
 
-            $collection = FieldTypeResolver::resolve($className, $parameter);
+            $collection = FieldTypeResolver::resolve($className, $parameter->reflection);
 
             if ($collection instanceof DecodeError) {
                 return $collection;
@@ -63,20 +63,14 @@ final class ObjectTypeValidator
 
             $collections[$name] = $collection;
 
-            if (!$class->hasProperty($name)) {
-                return self::unrecoverableConstructorParameter($className, $name);
-            }
-
-            $property = $class->getProperty($name);
-
-            if (!$property->isPublic() || $property->isStatic()) {
+            if (!$parameter->recoverable) {
                 return self::unrecoverableConstructorParameter($className, $name);
             }
 
             if ($type instanceof ReflectionNamedType) {
-                $typeName = FieldTypeNameResolver::resolve($parameter, $type);
+                $typeName = FieldTypeNameResolver::resolve($parameter->reflection, $type);
 
-                if (array_key_exists($name, $values) && !enum_exists($typeName)) {
+                if (array_key_exists($name, $values) && !enum_exists($typeName, autoload: !$type->isBuiltin())) {
                     /** @var mixed $value */
                     $value = $values[$name];
                     $valueMatchesType = ValueTypeMatcher::matches($value, $type);

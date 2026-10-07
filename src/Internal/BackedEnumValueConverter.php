@@ -26,6 +26,9 @@ use function var_export;
 /** @internal */
 final class BackedEnumValueConverter
 {
+    /** @var array<enum-string, ReflectionType|null> */
+    private static array $backingTypes = [];
+
     /**
      * @param class-string $class
      * @throws ReflectionException
@@ -39,13 +42,14 @@ final class BackedEnumValueConverter
         $type = $field->getType();
 
         if ($type instanceof ReflectionNamedType) {
+            /** @var enum-string $enumName */
             $enumName = $type->getName();
 
-            if (!enum_exists($enumName) || $value === null && $type->allowsNull()) {
+            if ($value === null && $type->allowsNull()) {
                 return null;
             }
 
-            return self::convertValue($class, $path, $enumName, $value);
+            return self::convertValue($class, $path, $enumName, $value, $type);
         }
 
         if ($type instanceof ReflectionUnionType) {
@@ -74,8 +78,7 @@ final class BackedEnumValueConverter
             if (!enum_exists($enumName)) {
                 continue;
             }
-            $enum = new ReflectionEnum($enumName);
-            $backingType = $enum->getBackingType();
+            $backingType = self::backingType($enumName);
             $valueMatchesBackingType =
                 $backingType instanceof ReflectionNamedType && ValueTypeMatcher::matches($value, $backingType);
 
@@ -117,10 +120,12 @@ final class BackedEnumValueConverter
         string $field,
         string $enumName,
         mixed $value,
+        ReflectionNamedType|null $declaredType = null,
     ): UnitEnum|DecodeError {
-        $enum = new ReflectionEnum($enumName);
-        /** @var ReflectionNamedType $backingType */
-        $backingType = $enum->getBackingType();
+        $backingType = self::backingType($enumName);
+        if (!$backingType instanceof ReflectionNamedType) {
+            return DecodeError::fieldTypeMismatch($class, $field, (string) ($declaredType ?? $enumName), $value);
+        }
         $valueMatchesBackingType = ValueTypeMatcher::matches($value, $backingType);
 
         if (!$valueMatchesBackingType) {
@@ -144,6 +149,15 @@ final class BackedEnumValueConverter
         }
 
         return self::unknownValue($class, $field, $enumName, $value);
+    }
+
+    /**
+     * @param enum-string $enumName
+     * @throws ReflectionException
+     */
+    private static function backingType(string $enumName): ReflectionType|null
+    {
+        return self::$backingTypes[$enumName] ??= new ReflectionEnum($enumName)->getBackingType();
     }
 
     /**

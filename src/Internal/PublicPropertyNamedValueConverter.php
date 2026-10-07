@@ -41,6 +41,7 @@ final class PublicPropertyNamedValueConverter
 
         $converted = match (true) {
             $collection !== null => CollectionValueConverter::convert($class, $path, $collection, $value),
+            $type->isBuiltin() => $value,
             enum_exists($typeName) => BackedEnumValueConverter::convert($class, $property, $value, $path) ?? $value,
             class_exists($typeName) => ConcreteClassValueConverter::convert(
                 $class,
