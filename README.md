@@ -159,7 +159,7 @@ docker compose down
 ## Continuous integration
 
 GitHub Actions runs the full quality suite on pull requests and pushes to
-`tabula-rasa` and `master`. Quality checks, PHPUnit on PHP 8.4 and 8.5, and 64
+`tabula-rasa` and `master`. Quality checks, PHPUnit on PHP 8.4 and 8.5, and 24
 mutation jobs run in parallel. New commits cancel outdated runs for the same
 pull request or branch.
 
@@ -174,7 +174,7 @@ caches; mutation jobs can restore them but cannot publish mutated analysis.
 Cache misses never skip checks. Dependabot proposes weekly tool and Action updates
 against the repository's default branch.
 
-Mutation jobs divide all PHP files under `src` into 64 groups, balanced by
+Mutation jobs divide all PHP files under `src` into 24 groups, balanced by
 code lines. New source files join automatically. Each job collects fresh coverage
 and uses Infection’s normal test-class selection. Test-case filtering is disabled
 because it can miss cases that construct descriptors in data providers. Both
