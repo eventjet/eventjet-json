@@ -27,6 +27,10 @@ final class NamedFieldValueConverter
         mixed $value,
         string $path,
     ): array|bool|float|int|object|string|null {
+        if ($type->isBuiltin()) {
+            return $value;
+        }
+
         $typeName = FieldTypeNameResolver::resolve($parameter, $type);
 
         if (enum_exists($typeName)) {
