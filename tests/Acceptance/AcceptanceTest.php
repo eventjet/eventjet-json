@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance;
 
+use Closure;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\ArrayJsonType;
 use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\ClassJsonType;
 use Eventjet\Json\Internal\ClassUnionValidator;
 use Eventjet\Json\Internal\CollectionItemValueConverter;
 use Eventjet\Json\Internal\CollectionTypeResolver;
@@ -66,11 +69,17 @@ use Eventjet\Json\Internal\TupleTypeResolver;
 use Eventjet\Json\Internal\TupleValueConverter;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
+use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Cases\ConstructorDefaultCases;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\NonBackedEnumErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\ParserSyntaxCases;
 use Eventjet\Json\Test\Acceptance\Cases\PublicPropertyUnionRoundTripCases;
+use Eventjet\Json\Test\Acceptance\Cases\RootArrayConstructionCases;
+use Eventjet\Json\Test\Acceptance\Cases\RootArrayEnumRoundTripCases;
+use Eventjet\Json\Test\Acceptance\Cases\RootArrayErrorCases;
+use Eventjet\Json\Test\Acceptance\Cases\RootArrayRoundTripCases;
+use Eventjet\Json\Test\Acceptance\Cases\RootArrayTypeInferenceCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootValueErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\RoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\ScalarTypeMismatchCases;
@@ -79,12 +88,18 @@ use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
+use Throwable;
 
+use function is_object;
+use function is_string;
 use function json_encode;
 
 use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(Json::class)]
+#[CoversClass(JsonType::class)]
+#[CoversClass(ArrayJsonType::class)]
+#[CoversClass(ClassJsonType::class)]
 #[CoversClass(DecodeError::class)]
 #[CoversClass(BackedEnumCaseFinder::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
@@ -155,6 +170,8 @@ final class AcceptanceTest extends TestCase
     }
 
     /**
+     * @param list<mixed>|object $original
+     * @param JsonType<list<mixed>>|(Closure(): JsonType<list<mixed>>)|null $type
      * @throws JsonException
      */
     #[DataProviderExternal(RoundTripCases::class, 'objects')]
@@ -164,11 +181,18 @@ final class AcceptanceTest extends TestCase
     #[DataProviderExternal(RoundTripCases::class, 'memberOrders')]
     #[DataProviderExternal(RoundTripCases::class, 'objectRootWhitespace')]
     #[DataProviderExternal(PublicPropertyUnionRoundTripCases::class, 'objects')]
-    public function testDecodeIsTheExactInverseOfJsonEncode(object $original, string|null $json = null): void
-    {
+    #[DataProviderExternal(RootArrayRoundTripCases::class, 'objects')]
+    #[DataProviderExternal(RootArrayEnumRoundTripCases::class, 'enums')]
+    #[DataProviderExternal(RootArrayRoundTripCases::class, 'shapes')]
+    #[DataProviderExternal(RootArrayTypeInferenceCases::class, 'values')]
+    public function testDecodeIsTheExactInverseOfJsonEncode(
+        array|object $original,
+        string|null $json = null,
+        JsonType|Closure|null $type = null,
+    ): void {
         $json ??= json_encode($original, JSON_THROW_ON_ERROR);
 
-        $decoded = Json::decode($json, $original::class);
+        $decoded = self::decodeOriginal($json, $original, $type instanceof Closure ? $type() : $type);
 
         static::assertEquals($original, $decoded);
         static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
@@ -183,7 +207,9 @@ final class AcceptanceTest extends TestCase
         static::assertEquals($expected, $decoded);
     }
 
-    /** @param class-string $class */
+    /** @param class-string|JsonType<list<mixed>> $class */
+    #[DataProviderExternal(RootArrayErrorCases::class, 'errors')]
+    #[DataProviderExternal(RootArrayConstructionCases::class, 'exceptions')]
     #[DataProviderExternal(RootValueErrorCases::class, 'unexpectedRootValues')]
     #[DataProviderExternal(RootValueErrorCases::class, 'arrayRootValues')]
     #[DataProviderExternal(DecodeErrorCases::class, 'constructionFailures')]
@@ -194,13 +220,22 @@ final class AcceptanceTest extends TestCase
     #[DataProviderExternal(NonBackedEnumErrorCases::class, 'errors')]
     #[DataProviderExternal(ScalarTypeMismatchCases::class, 'mismatches')]
     #[DataProviderExternal(ScalarTypeMismatchCases::class, 'outOfRangeIntegers')]
-    public function testDecodeReturnsErrorsAsValues(string $json, string $class, string $message, int $code): void
-    {
-        $decoded = Json::decode($json, $class);
+    public function testDecodeReturnsErrorsAsValues(
+        string $json,
+        string|JsonType $class,
+        string $message,
+        int $code,
+        Throwable|null $previous = null,
+    ): void {
+        // Separate calls preserve each target's generic type during static analysis.
+        $decoded = is_string($class) ? Json::decode($json, $class) : Json::decode($json, $class);
 
         static::assertTrue($decoded instanceof DecodeError);
         static::assertSame($message, $decoded->getMessage());
         static::assertSame($code, $decoded->getCode());
+        if ($previous !== null) {
+            static::assertSame($previous, $decoded->getPrevious());
+        }
     }
 
     /** @param class-string $class */
@@ -211,5 +246,20 @@ final class AcceptanceTest extends TestCase
 
         static::assertTrue($decoded instanceof DecodeError);
         static::assertSame(3, $decoded->getCode());
+    }
+
+    /**
+     * @param list<mixed>|object $original
+     * @param JsonType<list<mixed>>|null $type
+     * @return list<mixed>|object
+     */
+    private static function decodeOriginal(string $json, array|object $original, JsonType|null $type): array|object
+    {
+        if (is_object($original)) {
+            return Json::decode($json, $original::class);
+        }
+
+        static::assertNotNull($type);
+        return Json::decode($json, $type);
     }
 }

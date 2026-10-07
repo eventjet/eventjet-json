@@ -68,7 +68,34 @@ keys are quoted and escaped as JSON strings in paths, such as `people["a.b"].fir
 The class named in an error is the class whose field failed validation.
 
 Only the types and class shapes marked as supported below are part of the
-current contract. In particular, the root value must be a JSON object.
+current contract. Use a class target for a JSON object or `JsonType::array()`
+for a JSON array.
+
+## Root arrays
+
+Use `JsonType::array(Foo::class)` to decode a JSON array into `list<Foo>`.
+The item type can be a final class, a backed enum, or another array descriptor.
+PHPStan and Psalm infer the item type, including nested lists:
+
+```php
+use Eventjet\Json\JsonType;
+
+$people = Json::decode(
+    '[{"firstName":"Ada","lastName":"Lovelace","age":36}]',
+    JsonType::array(Person::class),
+); // list<Person>|DecodeError
+
+$groups = Json::decode(
+    '[[{"firstName":"Ada","lastName":"Lovelace","age":36}],[]]',
+    JsonType::array(JsonType::array(Person::class)),
+); // list<list<Person>>|DecodeError
+```
+
+Empty arrays are allowed. Each item must match its declared type; objects and
+arrays keep their distinct shapes. Failures return `DecodeError`, with paths
+such as `[1][0].firstName`. The declared item class or enum is checked even
+when the array is empty. Scalar items, nullable items, tuples, nonempty lists, and
+root maps do not yet have descriptors.
 
 ## Local development
 
@@ -150,7 +177,7 @@ Maps preserve numeric-looking member names that remain PHP string keys, such
 as `"01"` and `"1e0"`. They reject names that PHP converts to integer keys, such
 as `"0"` and `"42"`. For concrete class targets, numeric-looking names are
 unknown fields and follow the same ignore policy as other unknown members.
-These rules cover the supported field types; root collections remain unsupported.
+These rules also apply to root lists declared with `JsonType::array()`.
 
 ## Collection declarations
 
@@ -380,8 +407,8 @@ enable its decoding: the supported collection forms and item types above
 still apply. Declarations are limited to 64 type levels, counting the outer
 collection and its innermost item, to bound parser recursion.
 
-These declarations describe fields inside a root object. Passing a JSON array
-or a collection PHPDoc declaration as the root target is not supported.
+These PHPDoc declarations describe fields inside a root object. For root
+arrays, use `JsonType::array()`; PHPDoc strings are not accepted as targets.
 
 The currently supported `T` declarations are `string`, `int`, `float`, `bool`,
 a backed enum, a final class, or a supported union as described above.
@@ -463,7 +490,8 @@ must not be relied on, even if a particular value happens to decode.
 | Interfaces and abstract classes | Rejected at the root and in field types | Root targets, direct constructor field declarations, union members, list item declarations, and map value declarations return dedicated errors because JSON does not identify a concrete implementation or subclass to instantiate. |
 | Public properties outside the constructor, inherited properties, and other unsupported class shapes | Limited | Declared scalar, array, backed enum, nested final class, and supported union public properties are hydrated after construction, including inherited properties, nullable and recursively nested `self` declarations, and classes without constructors. Public-property unions follow the same class, enum, scalar, null, and ambiguity rules as constructor fields. Array properties require the same supported collection declarations as constructor fields. Collection unions require PHPDoc matching the native union members and follow the same JSON-shape selection rules. Constructor-bound properties, including promoted readonly properties, are not assigned again. Omitted public properties keep their state after construction: initialized properties retain their values, while uninitialized properties remain uninitialized, including readonly properties. Targets with private or protected constructors are rejected with a dedicated error. |
 | `mixed`, untyped fields, `object`, and `stdClass` | Rejected | These declarations cannot preserve every value's original PHP type and JSON object/array shape, so they return a dedicated `DecodeError` whether or not the member is present. Use `ArrayObject<string, T>` rather than `stdClass` for a typed JSON object map. |
-| Root arrays, maps, scalars, enums, and `null` | Not yet supported | `Json::decode()` currently accepts only a JSON object and a class target. |
+| Root arrays | Limited | `JsonType::array()` supports lists of final classes, backed enums, and recursively nested lists. |
+| Root maps, scalars, enums, and `null` | Not yet supported | There are no descriptors for these root values. |
 | Classes implementing `JsonSerializable` | Rejected | A custom JSON representation may not correspond to constructor parameters, so these targets return a dedicated `DecodeError`. |
 
 The round-trip contract also has these representation limits:

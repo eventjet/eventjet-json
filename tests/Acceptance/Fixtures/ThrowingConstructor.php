@@ -8,12 +8,19 @@ use RuntimeException;
 
 final class ThrowingConstructor
 {
+    private static RuntimeException|null $exception = null;
+
     /** @throws RuntimeException */
     public function __construct(
         public string $value,
     ) {
         if ($value === 'rejected') {
-            throw new RuntimeException('The constructor rejected the decoded value.');
+            throw self::exception();
         }
+    }
+
+    public static function exception(): RuntimeException
+    {
+        return self::$exception ??= new RuntimeException('The constructor rejected the decoded value.');
     }
 }

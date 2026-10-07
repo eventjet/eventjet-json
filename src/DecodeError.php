@@ -24,10 +24,12 @@ final class DecodeError extends RuntimeException
         return new self(DecodeErrorKind::InvalidJson, sprintf('Invalid JSON: %s', $message));
     }
 
-    public static function unexpectedRootValue(mixed $value): self
+    /** @param 'array'|'object' $expectedType */
+    public static function unexpectedRootValue(mixed $value, string $expectedType = 'object'): self
     {
         return new self(DecodeErrorKind::UnexpectedRootValue, sprintf(
-            'Expected the JSON root to be an object, got %s.',
+            'Expected the JSON root to be an %s, got %s.',
+            $expectedType,
             get_debug_type($value),
         ));
     }

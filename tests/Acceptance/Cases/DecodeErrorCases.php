@@ -27,7 +27,7 @@ final class DecodeErrorCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{string, class-string, string, int}>
+     * @return iterable<string, array{0: string, 1: class-string, 2: string, 3: int, 4?: RuntimeException}>
      * @throws JsonException
      * @throws ReflectionException
      * @throws RuntimeException
@@ -67,6 +67,7 @@ final class DecodeErrorCases
                 . $throwingConstructorTarget::class
                 . ' from the JSON object: The constructor rejected the decoded value.',
             3,
+            ThrowingConstructor::exception(),
         ];
 
         yield 'interface root target' => [
