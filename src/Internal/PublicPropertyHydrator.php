@@ -8,12 +8,7 @@ use Eventjet\Json\DecodeError;
 use JsonException;
 use ReflectionClass;
 use ReflectionException;
-use ReflectionParameter;
 use ReflectionProperty;
-
-use function array_fill_keys;
-use function array_key_exists;
-use function array_map;
 
 /** @internal */
 final class PublicPropertyHydrator
@@ -32,17 +27,9 @@ final class PublicPropertyHydrator
         array $values,
         string $path,
     ): DecodeError|null {
-        $constructorFields = array_fill_keys(array_map(
-            static fn(ReflectionParameter $parameter): string => $parameter->getName(),
-            $class->getConstructor()?->getParameters() ?? [],
-        ), value: true);
         $publicProperties = [];
 
-        foreach ($class->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
-            if ($property->isStatic() || array_key_exists($property->getName(), $constructorFields)) {
-                continue;
-            }
-
+        foreach (PublicProperties::resolve($class) as $property) {
             $type = PublicPropertyTypeValidator::validate($class->getName(), $property);
 
             if ($type instanceof DecodeError) {

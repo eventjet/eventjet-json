@@ -16,10 +16,14 @@ use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\MetadataCache;
+use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase;
+use Eventjet\Json\Test\Acceptance\Fixtures\PublicPropertiesWithConstructor;
+use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\StaticConstructorParameterProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -30,11 +34,13 @@ use ReflectionProperty;
 use RuntimeException;
 use stdClass;
 
+use function array_map;
 use function class_alias;
 
 #[CoversClass(MetadataCache::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[CoversClass(ConstructorParameters::class)]
+#[CoversClass(PublicProperties::class)]
 #[CoversClass(BackedEnumCaseFinder::class)]
 #[UsesClass(DecodeError::class)]
 #[CoversClass(FieldTypeResolver::class)]
@@ -47,8 +53,22 @@ use function class_alias;
 final class MetadataCacheTest extends TestCase
 {
     /** @throws ReflectionException */
-    public function testConstructorMetadataIsReusedAndClassesRemainIndependent(): void
+    public function testClassMetadataIsReusedIncludingEmptyClasses(): void
     {
+        foreach ([
+            [PublicPropertiesWithConstructor::class, ['label', 'active', 'inherited']],
+            [ScalarFields::class, []],
+            [StaticConstructorParameterProperty::class, []],
+        ] as [$name, $expected]) {
+            $class = new ReflectionClass($name);
+            $properties = PublicProperties::resolve($class);
+            static::assertSame($expected, array_map(
+                static fn(ReflectionProperty $property): string => $property->getName(),
+                $properties,
+            ));
+            static::assertSame($properties, PublicProperties::resolve($class));
+        }
+
         $first = new class(1) {
             public function __construct(
                 public int $value,

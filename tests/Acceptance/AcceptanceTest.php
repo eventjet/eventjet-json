@@ -168,6 +168,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ObjectValueConverter::class)]
 #[CoversClass(ObjectHydrator::class)]
 #[CoversClass(PublicPropertyHydrator::class)]
+#[CoversClass(\Eventjet\Json\Internal\PublicProperties::class)]
 #[CoversClass(PublicPropertyNamedValueConverter::class)]
 #[CoversClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(PublicPropertyUnionValueConverter::class)]
