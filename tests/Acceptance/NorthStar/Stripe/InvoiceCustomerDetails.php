@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\NorthStar\Stripe;
 
-/** @api Consumed dynamically by NorthStarTest. */
+use ArrayObject;
+
+/** @api Consumed dynamically by acceptance tests. */
 abstract class InvoiceCustomerDetails extends InvoiceCollection
 {
     public Customer|string|null $customer = null;
@@ -14,8 +16,11 @@ abstract class InvoiceCustomerDetails extends InvoiceCollection
     public Shipping|null $customer_shipping = null;
     /** @var list<Discount|string> */
     public array $discounts = [];
-    /** @var array<string, string> */
-    public array $metadata = [];
     public string|null $footer = null;
     public string|null $receipt_number = null;
+
+    /** @param ArrayObject<string, string> $metadata */
+    public function __construct(
+        public ArrayObject $metadata = new ArrayObject(),
+    ) {}
 }

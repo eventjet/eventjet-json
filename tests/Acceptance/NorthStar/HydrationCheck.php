@@ -8,10 +8,10 @@ namespace Eventjet\Json\Test\Acceptance\NorthStar;
 final class HydrationCheck
 {
     /**
-     * @param array<array-key, object> $values
+     * @param iterable<array-key, object> $values
      * @param class-string $class
      */
-    public static function allInstancesAre(array $values, string $class): bool
+    public static function allInstancesAre(iterable $values, string $class): bool
     {
         foreach ($values as $value) {
             if (!$value instanceof $class) {

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\NorthStar\AwsMsk;
 
-/** @api Consumed dynamically by NorthStarTest. */
+use ArrayObject;
+
+/** @api Consumed dynamically by acceptance tests. */
 final class KafkaRecord
 {
     public string $topic = '';
@@ -21,6 +23,6 @@ final class KafkaRecord
 
     public string $value = '';
 
-    /** @var list<array<string, list<int>>> */
+    /** @var list<ArrayObject<string, list<int>>> */
     public array $headers = [];
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\NorthStar\Kubernetes;
 
-/** @api Consumed dynamically by NorthStarTest. */
+/** @api Consumed dynamically by acceptance tests. */
 final class Container extends ContainerRuntime
 {
     /** @var list<ContainerPort> */

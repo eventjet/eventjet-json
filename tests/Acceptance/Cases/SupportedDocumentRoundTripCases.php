@@ -7,10 +7,16 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 use Closure;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Json;
+use Eventjet\Json\Test\Acceptance\NorthStar\AwsMsk\Hydration as AwsMskHydration;
+use Eventjet\Json\Test\Acceptance\NorthStar\AwsMsk\MskEvent;
 use Eventjet\Json\Test\Acceptance\NorthStar\GitHub\Hydration as GitHubHydration;
 use Eventjet\Json\Test\Acceptance\NorthStar\GitHub\PullRequestEvent;
+use Eventjet\Json\Test\Acceptance\NorthStar\JsonApi\Document as JsonApiDocument;
+use Eventjet\Json\Test\Acceptance\NorthStar\JsonApi\Hydration as JsonApiHydration;
 use Eventjet\Json\Test\Acceptance\NorthStar\Kubernetes\Deployment;
 use Eventjet\Json\Test\Acceptance\NorthStar\Kubernetes\Hydration as KubernetesHydration;
+use Eventjet\Json\Test\Acceptance\NorthStar\Stripe\Hydration as StripeHydration;
+use Eventjet\Json\Test\Acceptance\NorthStar\Stripe\Invoice;
 use RuntimeException;
 
 use function file_get_contents;
@@ -24,6 +30,24 @@ final class SupportedDocumentRoundTripCases
      */
     public static function objects(): iterable
     {
+        yield 'JSON:API compound document' => self::document(
+            __DIR__ . '/../NorthStar/JsonApi/compound-document.json',
+            JsonApiDocument::class,
+            JsonApiHydration::isComplete(...),
+        );
+
+        yield 'AWS Lambda Amazon MSK event' => self::document(
+            __DIR__ . '/../NorthStar/AwsMsk/event.json',
+            MskEvent::class,
+            AwsMskHydration::isComplete(...),
+        );
+
+        yield 'Stripe invoice' => self::document(
+            __DIR__ . '/../NorthStar/Stripe/invoice.json',
+            Invoice::class,
+            StripeHydration::isComplete(...),
+        );
+
         yield 'GitHub pull request webhook' => self::document(
             __DIR__ . '/../NorthStar/GitHub/pull-request-opened.json',
             PullRequestEvent::class,
