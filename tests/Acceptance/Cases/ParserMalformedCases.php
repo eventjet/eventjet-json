@@ -74,7 +74,6 @@ final class ParserMalformedCases
             'list<int,>',
             'list<int,,string>',
             'list<int{string}>',
-            'list<array{}>',
             'array{0?: int, 1: string}',
             'array{999999999999999999999999: int}',
             'array{0?:}',

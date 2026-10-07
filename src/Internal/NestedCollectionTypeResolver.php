@@ -41,6 +41,11 @@ final class NestedCollectionTypeResolver
             $nullable = true;
         }
 
+        if ($type->name === 'array{}') {
+            $tuple = TupleTypeResolver::resolve($field, $type->entries);
+            return $tuple === null ? null : new NestedCollectionType($tuple, $nullable);
+        }
+
         $arguments = $type->arguments;
         if (in_array($type->name, ['list', 'non-empty-list'], strict: true) && count($arguments) === 1) {
             $item = PhpDocItemTypeResolver::resolve($field, $arguments[0]);

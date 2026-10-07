@@ -17,7 +17,7 @@ final readonly class CollectionUnionType implements Stringable
 {
     /** @var list<string> */
     private array $names;
-    /** @var array<string, ListType|MapType> */
+    /** @var array<string, ListType|MapType|TupleType> */
     private array $collections;
 
     /** @param list<string|NestedCollectionType> $members */
@@ -44,12 +44,7 @@ final readonly class CollectionUnionType implements Stringable
         return $this->names;
     }
 
-    public function hasCollections(): bool
-    {
-        return $this->collections !== [];
-    }
-
-    public function collectionFor(mixed $value): ListType|MapType|null
+    public function collectionFor(mixed $value): ListType|MapType|TupleType|null
     {
         $kind = match (true) {
             is_array($value) => 'array',

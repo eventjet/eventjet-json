@@ -61,6 +61,7 @@ final class RoundTripCases
     {
         yield from FieldCollectionUnionCases::objects();
         yield from NestedCollectionCases::objects();
+        yield from NestedShapeRoundTripCases::objects();
         yield from NarrowerCollectionCases::objects();
         yield from CollectionNameCases::objects();
         yield from CollectionUnionCases::objects();

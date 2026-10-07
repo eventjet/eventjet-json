@@ -13,7 +13,7 @@ use function sprintf;
 final readonly class NestedCollectionType implements Stringable
 {
     public function __construct(
-        public ListType|MapType $collection,
+        public ListType|MapType|TupleType $collection,
         public bool $nullable,
     ) {}
 
@@ -21,13 +21,19 @@ final readonly class NestedCollectionType implements Stringable
     public function __toString(): string
     {
         $collection = $this->collection;
-        $name = $collection instanceof ListType
-            ? sprintf('%s<%s>', $collection->nonEmpty ? 'non-empty-list' : 'list', $collection->itemType)
-            : sprintf(
+        $name = match (true) {
+            $collection instanceof TupleType => (string) $collection,
+            $collection instanceof ListType => sprintf(
+                '%s<%s>',
+                $collection->nonEmpty ? 'non-empty-list' : 'list',
+                $collection->itemType,
+            ),
+            default => sprintf(
                 '%s<string, %s>',
                 $collection->arrayObject ? 'ArrayObject' : 'non-empty-array',
                 $collection->valueType,
-            );
+            ),
+        };
         return $this->nullable ? $name . '|null' : $name;
     }
 }

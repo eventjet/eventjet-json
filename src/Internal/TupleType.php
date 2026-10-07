@@ -13,7 +13,7 @@ use function sprintf;
 /** @internal */
 final readonly class TupleType implements Stringable
 {
-    /** @param list<'bool'|'float'|'int'|'string'|class-string|CollectionUnionType> $types */
+    /** @param list<'bool'|'float'|'int'|'string'|class-string|CollectionUnionType|NestedCollectionType> $types */
     public function __construct(
         public array $types,
         public int $required,
@@ -24,8 +24,7 @@ final readonly class TupleType implements Stringable
     {
         $entries = [];
         foreach ($this->types as $index => $type) {
-            $name = $type instanceof CollectionUnionType ? $type->__toString() : $type;
-            $entries[] = sprintf('%d%s: %s', $index, $index >= $this->required ? '?' : '', $name);
+            $entries[] = sprintf('%d%s: %s', $index, $index >= $this->required ? '?' : '', $type);
         }
         return 'array{' . implode(', ', $entries) . '}';
     }

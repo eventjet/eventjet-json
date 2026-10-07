@@ -35,14 +35,6 @@ final class FieldCollectionUnionMemberResolver
             $error = CollectionTypeValidator::validate($class, $field->getName(), $collection);
             return $error ?? self::collection($collection, (string) $resolved);
         }
-        if ($type->name === 'array{}') {
-            $collection = TupleTypeResolver::resolve($field, $type->entries);
-            if ($collection === null) {
-                return CollectionTypeResolver::invalidDeclaration($class, $field);
-            }
-            $error = CollectionTypeValidator::validate($class, $field->getName(), $collection);
-            return $error ?? self::collection($collection, (string) $collection);
-        }
         $isLiteral = $type->arguments === [] && in_array($type->name, ['null', 'true', 'false'], strict: true);
         $name = $isLiteral ? $type->name : $resolved;
         if (!is_string($name)) {
