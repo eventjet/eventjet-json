@@ -676,7 +676,7 @@ Until then, any speed or memory improvement remains a hypothesis.
 
 - [x] Keep every decoding failure on the returned `DecodeError` path, including nested conversion failures and exceptions thrown by constructors.
 - [x] Include the failing field, list index, or map key path and expected/actual type in conversion errors.
-- [ ] Test stable error codes, useful messages, and preservation of underlying exceptions.
+- [x] Test stable error codes, useful messages, and preservation of underlying exceptions.
 - [x] Expand invalid-JSON coverage to malformed syntax, trailing content, invalid UTF-8, and nesting-depth limits.
 - [x] Test rejection of incompatible root shapes; JSON arrays must not be passed to object constructors as positional arguments.
 - [x] Add generated acceptance round trips combining nested objects with nullable backed-enum fields, lists, nonempty maps, and public-property `ArrayObject` maps, including empty collections and numeric-looking string keys; assert object equality and JSON round trips.
