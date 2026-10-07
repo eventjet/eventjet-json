@@ -726,5 +726,5 @@ Until then, any speed or memory improvement remains a hypothesis.
 
 - [x] Document installation, object decoding, and handling returned errors.
 - [x] Document supported collection field declarations with complete decoding examples and public-property PHPDoc placement.
-- [ ] Document root collections when they are supported.
+- [x] Document root collections when they are supported.
 - [x] Publish the supported-type matrix and explicit limits, including any values whose original PHP type or shape cannot be recovered from JSON alone.
