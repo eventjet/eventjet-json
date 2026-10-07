@@ -17,6 +17,7 @@ use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
+use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase;
@@ -64,11 +65,23 @@ final class MetadataCacheTest extends TestCase
         $firstParameters = ConstructorParameters::resolve($firstClass);
         $secondParameters = ConstructorParameters::resolve($secondClass);
 
-        static::assertNotSame([], $firstParameters);
-        static::assertNotSame([], $secondParameters);
+        $firstParameter = $firstParameters[0] ?? null;
+        $secondParameter = $secondParameters[0] ?? null;
+        static::assertNotNull($firstParameter);
+        static::assertNotNull($secondParameter);
+        static::assertSame('int', $firstParameter->typeName);
+        static::assertTrue($firstParameter->builtin);
+        static::assertSame('string', $secondParameter->typeName);
+        static::assertTrue($secondParameter->builtin);
         static::assertNotSame($firstParameters, $secondParameters);
         static::assertSame($firstParameters, ConstructorParameters::resolve($firstClass));
         static::assertSame($secondParameters, ConstructorParameters::resolve($secondClass));
+
+        $union = ConstructorParameters::resolve(new ReflectionClass(DistinctEnumScalarUnionField::class));
+        $unionParameter = $union[0] ?? null;
+        static::assertNotNull($unionParameter);
+        static::assertSame(IntBackedStatus::class . '|string', $unionParameter->typeName);
+        static::assertFalse($unionParameter->builtin);
     }
 
     /** @throws ReflectionException */
