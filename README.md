@@ -156,6 +156,41 @@ Stop the development container when you are finished:
 docker compose down
 ```
 
+## Continuous integration
+
+GitHub Actions runs the full quality suite on pull requests and pushes to
+`tabula-rasa` and `master`. Quality checks, PHPUnit on PHP 8.4 and 8.5, and 64
+mutation jobs run in parallel. New commits cancel outdated runs for the same
+pull request or branch.
+
+The committed `composer.lock` pins development tools so ordinary runs install
+dependencies without resolving new versions. Composer download archives are
+cached by operating system and lock file; every job installs dependencies from
+those archives. Mago has a separate binary cache keyed by platform and lock file.
+PHPStan, Psalm, and PHPUnit retain their incremental caches, with separate keys
+for tool configuration and PHP version. Only the quality job saves analyzer
+caches; mutation jobs can restore them but cannot publish mutated analysis.
+Cache misses never skip checks. Dependabot proposes weekly tool and Action updates
+against the repository's default branch.
+
+Mutation jobs divide all PHP files under `src` into 64 groups, balanced by
+code lines. New source files join automatically. Each job collects fresh coverage
+and uses Infection’s normal test-class selection. Test-case filtering is disabled
+because it can miss cases that construct descriptors in data providers. Both
+existing 100% mutation thresholds remain in force, including uncovered code;
+no diff-only selection is used. Coverage instrumentation is disabled for the
+other jobs. The per-mutant timeout is 60 seconds because Infection uses the
+slower, instrumented coverage run to decide whether a mutant can run at all.
+
+Speed is a CI requirement: quality and test jobs have a five-minute total limit,
+PHPUnit has a two-minute step limit, and mutation jobs have a five-minute test
+limit within a seven-minute total limit. Exceeding a limit fails the check.
+Review the step durations in GitHub Actions when a check approaches its limit;
+profile the slow step or rebalance the mutation work before raising a limit.
+These limits bound execution, not GitHub runner queue delays. Caches are optional:
+cold runs execute the same checks. A separate five-minute performance job runs
+in parallel and retains measurements for 90 days.
+
 ## Performance
 
 The decoder reuses validated field declarations, resolved collection declarations,
