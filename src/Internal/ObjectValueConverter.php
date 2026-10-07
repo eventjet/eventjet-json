@@ -36,8 +36,8 @@ final class ObjectValueConverter
         $className = $class->getName();
         $convertedValues = [];
 
-        foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
-            $field = $parameter->getName();
+        foreach (ConstructorParameters::resolve($class) as $parameter) {
+            $field = $parameter->name;
             $fieldPath = FieldPath::field($path, $field);
 
             if (!array_key_exists($field, $values)) {
@@ -76,18 +76,18 @@ final class ObjectValueConverter
      */
     private static function convertField(
         string $class,
-        ReflectionParameter $parameter,
+        ConstructorParameter $parameter,
         mixed $value,
         string $path,
     ): array|bool|float|int|object|string|null {
-        $type = $parameter->getType();
+        $type = $parameter->type;
 
         if ($type instanceof ReflectionNamedType) {
-            return NamedFieldValueConverter::convert($class, $parameter, $type, $value, $path);
+            return NamedFieldValueConverter::convert($class, $parameter->reflection, $type, $value, $path);
         }
 
         if ($type instanceof ReflectionUnionType) {
-            return self::convertUnion($class, $parameter, $type, $value, $path);
+            return self::convertUnion($class, $parameter->reflection, $type, $value, $path);
         }
 
         return $value;

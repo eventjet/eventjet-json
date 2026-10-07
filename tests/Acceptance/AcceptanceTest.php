@@ -22,6 +22,8 @@ use Eventjet\Json\Internal\CollectionUnionValueConverter;
 use Eventjet\Json\Internal\CollectionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassUnionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
+use Eventjet\Json\Internal\ConstructorParameter;
+use Eventjet\Json\Internal\ConstructorParameters;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldCollectionUnionMemberResolver;
 use Eventjet\Json\Internal\FieldCollectionUnionResolver;
@@ -102,6 +104,8 @@ use function json_encode;
 
 use const JSON_THROW_ON_ERROR;
 
+#[CoversClass(ConstructorParameter::class)]
+#[CoversClass(ConstructorParameters::class)]
 #[CoversClass(Json::class)]
 #[CoversClass(JsonType::class)]
 #[CoversClass(ArrayJsonType::class)]
