@@ -39,7 +39,7 @@ final class PublicPropertyTypeValidator
             }
 
             $typeName = FieldTypeNameResolver::resolve($property, $member);
-            $typeIsSupported = self::isSupportedType($typeName);
+            $typeIsSupported = self::isSupportedType($member, $typeName);
 
             if (!$typeIsSupported) {
                 return self::unsupportedType($class, $field, (string) $type);
@@ -67,10 +67,10 @@ final class PublicPropertyTypeValidator
         );
     }
 
-    private static function isSupportedType(string $type): bool
+    private static function isSupportedType(ReflectionNamedType $member, string $type): bool
     {
-        if ($type !== stdClass::class && (enum_exists($type) || class_exists($type) || interface_exists($type))) {
-            return true;
+        if (!$member->isBuiltin()) {
+            return $type !== stdClass::class && (enum_exists($type) || class_exists($type) || interface_exists($type));
         }
 
         return in_array(

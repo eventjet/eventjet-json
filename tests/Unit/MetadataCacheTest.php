@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorParameters;
@@ -13,7 +14,9 @@ use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
+use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
@@ -28,6 +31,7 @@ use function class_alias;
 #[CoversClass(MetadataCache::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[CoversClass(ConstructorParameters::class)]
+#[CoversClass(BackedEnumCaseFinder::class)]
 #[UsesClass(DecodeError::class)]
 #[CoversClass(FieldTypeResolver::class)]
 #[UsesClass(FieldTypeValidator::class)]
@@ -58,6 +62,27 @@ final class MetadataCacheTest extends TestCase
         static::assertNotSame($firstParameters, $secondParameters);
         static::assertSame($firstParameters, ConstructorParameters::resolve($firstClass));
         static::assertSame($secondParameters, ConstructorParameters::resolve($secondClass));
+    }
+
+    /** @throws ReflectionException */
+    public function testCachedEnumCasesPreserveBackingTypesAndRejectUnknownValues(): void
+    {
+        for ($lookup = 0; $lookup < 2; ++$lookup) {
+            foreach ([
+                [IntBackedStatus::class, 1, IntBackedStatus::Ready],
+                [IntBackedStatus::class, '1', null],
+                [IntBackedStatus::class, 1.0, null],
+                [IntBackedStatus::class, true, null],
+                [IntBackedStatus::class, null, null],
+                [IntBackedStatus::class, 2, null],
+                [StringBackedStatus::class, StringBackedStatus::Ready->value, StringBackedStatus::Ready],
+                [StringBackedStatus::class, StringBackedStatus::Pending->value, StringBackedStatus::Pending],
+                [StringBackedStatus::class, 'unknown', null],
+                [NonBackedStatus::class, 1, null],
+            ] as [$enum, $value, $expected]) {
+                static::assertSame($expected, BackedEnumCaseFinder::find($enum, $value));
+            }
+        }
     }
 
     public function testRepeatedLookupsLoadOnceIncludingEmptyMetadata(): void
