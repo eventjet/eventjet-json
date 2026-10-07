@@ -8,6 +8,7 @@ require __DIR__ . '/PerformanceResults.php';
 
 // This runner targets the same Linux environment as the Performance workflow.
 // GNU timeout bounds each subprocess; the workflow also bounds the entire job.
+/** @param non-empty-list<string> $arguments */
 function command(array $arguments, string|null $directory = null): string
 {
     $process = proc_open(
@@ -31,7 +32,7 @@ function command(array $arguments, string|null $directory = null): string
 
 function git(string ...$arguments): string
 {
-    return command(['git', ...$arguments]);
+    return command(['git', ...array_values($arguments)]);
 }
 
 function exportRevision(string $ref, string $destination): void
@@ -50,6 +51,7 @@ function exportRevision(string $ref, string $destination): void
     }
 }
 
+/** @param array<array-key, mixed> $data */
 function writeJson(string $path, array $data): void
 {
     file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . "\n");
@@ -65,31 +67,60 @@ function publish(string $results, string $text): void
     echo $text;
 }
 
+function configureWorkloads(string $revision, string $workspace): void
+{
+    $config = json_decode(git('show', $revision . ':phpbench.json'), true, flags: JSON_THROW_ON_ERROR);
+    if (!is_array($config)) {
+        throw new InvalidArgumentException('Benchmark configuration must be an object');
+    }
+    $config['runner.env_enabled_providers'] = ['php', 'uname', 'opcache', 'unix_sysload'];
+    $config['runner.php_config'] = [
+        'pcov.enabled' => '0',
+        'opcache.enable_cli' => '0',
+        'opcache.jit' => '0',
+        'xdebug.mode' => 'off',
+        'memory_limit' => '1G',
+    ];
+    writeJson($workspace . '/phpbench.json', $config);
+}
+
 set_error_handler(static function (int $severity, string $message, string $file, int $line): never {
     throw new ErrorException($message, 0, $severity, $file, $line);
 });
 
 $options = getopt('', ['base:', 'candidate:']);
-if (!isset($options['base']) || !is_string($options['base'])) {
+if ($options === false || !isset($options['base']) || !is_string($options['base'])) {
     throw new InvalidArgumentException('Usage: php .github/ci/performance.php --base REF [--candidate REF]');
 }
+$candidateOption = $options['candidate'] ?? 'HEAD';
+if (!is_string($candidateOption)) {
+    throw new InvalidArgumentException('Candidate must be a single revision');
+}
 $base = trim(git('rev-parse', '--verify', $options['base'] . '^{commit}'));
-$candidate = trim(git('rev-parse', '--verify', ($options['candidate'] ?? 'HEAD') . '^{commit}'));
+$candidate = trim(git('rev-parse', '--verify', $candidateOption . '^{commit}'));
 $output = getcwd() . '/.perf';
 if (file_exists($output)) {
     throw new RuntimeException('Move or remove .perf before starting a new comparison');
 }
 $results = $output . '/results';
 mkdir($results, 0777, true);
+$dependenciesHash = hash_file('sha256', 'vendor/composer/installed.json');
+if ($dependenciesHash === false) {
+    throw new RuntimeException('Cannot fingerprint installed dependencies');
+}
 $metadata = [
     'baseline' => $base,
     'candidate' => $candidate,
-    'dependencies_sha256' => hash_file('sha256', 'vendor/composer/installed.json'),
+    'dependencies_sha256' => $dependenciesHash,
     'workloads_changed' =>
         git('diff', '--name-only', $base, $candidate, '--', 'benchmarks', 'tests', 'phpbench.json') !== '',
     'cpu' => 'unknown',
 ];
-foreach (file('/proc/cpuinfo', FILE_IGNORE_NEW_LINES) as $line) {
+$cpuInfo = file('/proc/cpuinfo', FILE_IGNORE_NEW_LINES);
+if ($cpuInfo === false) {
+    throw new RuntimeException('Cannot read CPU information');
+}
+foreach ($cpuInfo as $line) {
     if (str_starts_with($line, 'model name')) {
         $metadata['cpu'] = trim(explode(':', $line, 2)[1]);
         break;
@@ -109,16 +140,7 @@ $workspace = $output . '/workspace';
 mkdir($workspace);
 command(['cp', '-a', 'vendor', $workspace . '/vendor']);
 copy('composer.json', $workspace . '/composer.json');
-$config = json_decode(file_get_contents('phpbench.json'), true, flags: JSON_THROW_ON_ERROR);
-$config['runner.env_enabled_providers'] = ['php', 'uname', 'opcache', 'unix_sysload'];
-$config['runner.php_config'] = [
-    'pcov.enabled' => '0',
-    'opcache.enable_cli' => '0',
-    'opcache.jit' => '0',
-    'xdebug.mode' => 'off',
-    'memory_limit' => '1G',
-];
-writeJson($workspace . '/phpbench.json', $config);
+configureWorkloads($base, $workspace);
 foreach (['benchmarks', 'tests'] as $name) {
     command(['cp', '-a', $output . '/baseline/' . $name, $workspace . '/' . $name]);
 }
@@ -134,7 +156,11 @@ $measure = static function (string $version, string $name) use ($workspace, $out
         '--progress=none',
         '--dump-file=../results/' . $name . '.xml',
     ], $workspace);
-    return PerformanceResults::samples(file_get_contents($results . '/' . $name . '.xml'));
+    $xml = file_get_contents($results . '/' . $name . '.xml');
+    if ($xml === false) {
+        throw new RuntimeException('Cannot read benchmark output: ' . $name);
+    }
+    return PerformanceResults::samples($xml);
 };
 $experiments = [];
 foreach (['calibration', 'comparison'] as $experiment) {
@@ -150,6 +176,7 @@ foreach (['calibration', 'comparison'] as $experiment) {
     $experiments[$experiment] = PerformanceResults::summarize($pairs);
 }
 if ($metadata['workloads_changed']) {
+    configureWorkloads($candidate, $workspace);
     foreach (['benchmarks', 'tests'] as $name) {
         command(['rm', '-rf', '--', $workspace . '/' . $name]);
         command(['cp', '-a', $output . '/candidate/' . $name, $workspace . '/' . $name]);

@@ -10,6 +10,7 @@ use SimpleXMLElement;
 /** Calculations for PHPBench XML, independent of benchmark execution. */
 final class PerformanceResults
 {
+    /** @return PerformanceSamples */
     public static function samples(string $xml): array
     {
         $previous = libxml_use_internal_errors(true);
@@ -19,7 +20,11 @@ final class PerformanceResults
                 throw new InvalidArgumentException('Malformed or failed benchmark output');
             }
             $result = [];
-            foreach ($root->xpath('//benchmark') as $benchmark) {
+            $benchmarks = $root->xpath('//benchmark');
+            if ($benchmarks === null) {
+                throw new InvalidArgumentException('Cannot read benchmark samples');
+            }
+            foreach ($benchmarks as $benchmark) {
                 foreach ($benchmark->subject as $subject) {
                     foreach ($subject->variant as $variant) {
                         $key =
@@ -60,6 +65,10 @@ final class PerformanceResults
         return (float) $value;
     }
 
+    /**
+     * @param list<PerformancePair> $pairs
+     * @return PerformanceSummary
+     */
     public static function summarize(array $pairs): array
     {
         if ($pairs === [] || $pairs[0][0] === []) {
@@ -100,13 +109,15 @@ final class PerformanceResults
         return $result;
     }
 
+    /** @param non-empty-list<float> $values */
     private static function median(array $values): float
     {
         sort($values, SORT_NUMERIC);
         $middle = intdiv(count($values), 2);
-        return (count($values) % 2) === 0 ? ($values[$middle - 1] + $values[$middle]) / 2 : (float) $values[$middle];
+        return (count($values) % 2) === 0 ? ($values[$middle - 1] + $values[$middle]) / 2 : $values[$middle];
     }
 
+    /** @param non-empty-list<float> $values */
     private static function variation(array $values): float
     {
         if (count($values) < 2) {
@@ -117,6 +128,11 @@ final class PerformanceResults
         return (100 * sqrt(array_sum($squares) / (count($values) - 1))) / $mean;
     }
 
+    /**
+     * @param PerformanceMetadata $metadata
+     * @param PerformanceSummary $comparison
+     * @param PerformanceSummary $calibration
+     */
     public static function report(array $metadata, array $comparison, array $calibration): string
     {
         $lines = [

@@ -64,6 +64,7 @@ final class PerformanceResultsTest extends TestCase
         PerformanceResults::samples($xml);
     }
 
+    /** @return iterable<string, array{string}> */
     public static function invalidOutput(): iterable
     {
         yield 'empty' => ['<phpbench/>'];
@@ -74,7 +75,11 @@ final class PerformanceResultsTest extends TestCase
         yield 'zero time' => [str_replace('time-net="100"', 'time-net="0"', self::XML)];
         yield 'non-finite time' => [str_replace('time-net="100"', 'time-net="1e999"', self::XML)];
         yield 'missing memory' => [str_replace(' mem-peak="1024"', '', self::XML)];
-        yield 'no iterations' => [preg_replace('/<iteration[^>]+\/>/', '', self::XML)];
+        yield 'no iterations' => [str_replace(
+            '<iteration time-net="100" mem-peak="1024"/><iteration time-net="120" mem-peak="2048"/>',
+            '',
+            self::XML,
+        )];
         yield 'duplicate' => [str_replace(
             '</suite>',
             substr(self::XML, strlen('<phpbench><suite>'), -strlen('</suite></phpbench>')) . '</suite>',

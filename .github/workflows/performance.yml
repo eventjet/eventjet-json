@@ -27,8 +27,11 @@ jobs:
           fetch-depth: 2
           persist-credentials: false
       - uses: ./.github/actions/setup-php
-      - name: Validate comparison calculations
-        run: vendor/bin/phpunit .github/ci/tests
+      - name: Validate performance tooling
+        run: |
+          vendor/bin/phpstan analyze .github/ci --no-progress
+          vendor/bin/phpunit .github/ci/tests
+          bash .github/ci/tests/configuration.sh
       - name: Compare target with proposed merge
         shell: bash
         run: php .github/ci/performance.php --base HEAD^1 --candidate HEAD

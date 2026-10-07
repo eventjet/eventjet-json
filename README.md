@@ -207,10 +207,11 @@ by `.git` for PHPBench's repository metadata collection.
 Benchmarks run separately from `composer check`. The Performance workflow compares
 pull requests' proposed merge commit with its exact target parent on the same
 runner. Branch pushes and manual runs compare with the first parent. Both versions
-use the target's benchmark fixtures and the same installed dependencies;
-this isolates source changes rather than measuring dependency upgrades. A changed
-candidate benchmark suite also runs separately. An absent baseline suite is
-reported explicitly, without a regression verdict.
+use the target's benchmark fixtures and PHPBench configuration and the same
+installed dependencies; this isolates source changes rather than measuring
+dependency upgrades. A changed candidate benchmark suite also runs separately
+with its own configuration. An absent baseline suite is reported explicitly,
+without a regression verdict.
 
 The workflow alternates baseline/candidate order across three pairs, takes five
 iterations per invocation, and runs three additional unchanged-code pairs to
@@ -222,7 +223,9 @@ useful threshold; benchmark errors and the five-minute job limit still fail CI.
 Do not treat one noisy runner result as evidence of a regression.
 
 The comparison runner is PHP (`.github/ci/performance.php`); its calculation and
-invalid-output tests run with PHPUnit. To run a comparison locally, use
+invalid-output tests run with PHPUnit, and a deterministic shell check verifies
+configuration isolation. The calculation contracts are checked by PHPStan with
+shared array-shape aliases in `phpstan.neon`. To run a comparison locally, use
 `php .github/ci/performance.php --base REF --candidate HEAD` in a Linux environment
 with PHP, Composer, Git, and GNU coreutils available (such as the project container).
 Move or remove `.perf/` before another comparison.
