@@ -220,6 +220,13 @@ environment details, commit IDs, and an installed-dependency fingerprint are arc
 Performance changes are advisory until repeated unchanged-code runs establish a
 useful threshold; benchmark errors and the five-minute job limit still fail CI.
 Do not treat one noisy runner result as evidence of a regression.
+
+The comparison runner is PHP (`.github/ci/performance.php`); its calculation and
+invalid-output tests run with PHPUnit. To run a comparison locally, use
+`php .github/ci/performance.php --base REF --candidate HEAD` in a Linux environment
+with PHP, Composer, Git, and GNU coreutils available (such as the project container).
+Move or remove `.perf/` before another comparison.
+
 Compare the same workloads, PHP settings, and dependencies on the same host;
 review measurement variation along with percentage changes. PHPUnit retains
 deterministic cache-contract tests, including checks that repeated lookups load
