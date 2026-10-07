@@ -207,7 +207,7 @@ by `.git` for PHPBench's repository metadata collection.
 Benchmarks run separately from `composer check`. The Performance workflow compares
 pull requests' proposed merge commit with its exact target parent on the same
 runner. Branch pushes and manual runs compare with the first parent. Both versions
-use the target's benchmark fixtures and the candidate's locked dependencies;
+use the target's benchmark fixtures and the same installed dependencies;
 this isolates source changes rather than measuring dependency upgrades. A changed
 candidate benchmark suite also runs separately. An absent baseline suite is
 reported explicitly, without a regression verdict.
@@ -216,7 +216,7 @@ The workflow alternates baseline/candidate order across three pairs, takes five
 iterations per invocation, and runs three additional unchanged-code pairs to
 estimate noise. Its summary separates cold and warm workloads and shows timing,
 variation, paired percentage changes, and process peak memory. Raw samples,
-environment details, commit IDs, and the lock-file hash are archived for history.
+environment details, commit IDs, and an installed-dependency fingerprint are archived for history.
 Performance changes are advisory until repeated unchanged-code runs establish a
 useful threshold; benchmark errors and the five-minute job limit still fail CI.
 Do not treat one noisy runner result as evidence of a regression.

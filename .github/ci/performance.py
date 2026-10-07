@@ -73,7 +73,7 @@ def report(metadata, comparison, calibration):
         '## Performance comparison', '',
         f"Baseline: `{metadata['baseline']}`. Candidate: `{metadata['candidate']}`.", '',
         'Reporting only: no regression threshold has been calibrated. Positive changes mean slower execution.', '',
-        'Both versions use the baseline workloads and candidate dependency lock on the same runner. '
+        'Both versions use the baseline workloads and the same installed dependencies on the same runner. '
         'Three independent pairs alternate A/B and B/A order, with five iterations per invocation. '
         'Cold/warm settings come from the frozen benchmark suite; PCOV, Xdebug coverage, OPcache, and JIT are disabled.', '',
         'The unchanged-code A/A comparison estimates noise for this run, not a statistical confidence interval. '
@@ -104,7 +104,7 @@ def main():
         raise FileExistsError('Move or remove .perf before starting a new comparison')
     results = output / 'results'
     results.mkdir(parents=True)
-    metadata = {'baseline': base, 'candidate': candidate, 'lock_sha256': hashlib.sha256(Path('composer.lock').read_bytes()).hexdigest(), 'workloads_changed': bool(git('diff', '--name-only', base, candidate, '--', 'benchmarks', 'tests', 'phpbench.json'))}
+    metadata = {'baseline': base, 'candidate': candidate, 'dependencies_sha256': hashlib.sha256(Path('vendor/composer/installed.json').read_bytes()).hexdigest(), 'workloads_changed': bool(git('diff', '--name-only', base, candidate, '--', 'benchmarks', 'tests', 'phpbench.json'))}
     metadata['cpu'] = next((line.split(':', 1)[1].strip() for line in Path('/proc/cpuinfo').read_text().splitlines() if line.startswith('model name')), 'unknown')
     (results / 'metadata.json').write_text(json.dumps(metadata, indent=2) + '\n')
     if not git('ls-tree', '--name-only', base, '--', 'benchmarks').strip():
@@ -119,8 +119,7 @@ def main():
     workspace = output / 'workspace'
     workspace.mkdir()
     shutil.copytree('vendor', workspace / 'vendor', symlinks=True)
-    for name in ['composer.json', 'composer.lock']:
-        shutil.copy2(name, workspace / name)
+    shutil.copy2('composer.json', workspace / 'composer.json')
     config = json.loads(Path('phpbench.json').read_text())
     config['runner.env_enabled_providers'] = ['php', 'uname', 'opcache', 'unix_sysload']
     config['runner.php_config'] = {'pcov.enabled': '0', 'opcache.enable_cli': '0', 'opcache.jit': '0', 'xdebug.mode': 'off', 'memory_limit': '1G'}
