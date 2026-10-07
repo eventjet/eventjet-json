@@ -43,7 +43,13 @@ final class PhpDocUnionTypeResolver
         ReflectionParameter|ReflectionProperty $field,
         PhpDocType $type,
     ): string|NestedCollectionType|null {
-        $isLiteral = $type->arguments === [] && in_array($type->name, ['null', 'true', 'false'], strict: true);
+        $isLiteral =
+            $type->arguments === []
+            && in_array(
+                $type->name,
+                ['null', 'true', 'false', 'resource', 'open-resource', 'closed-resource'],
+                strict: true,
+            );
         if ($isLiteral) {
             return $type->name;
         }

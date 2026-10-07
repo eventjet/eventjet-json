@@ -59,6 +59,7 @@ final class RoundTripCases
      */
     public static function objects(): iterable
     {
+        yield from NonEncodableUnionCases::objects();
         yield from FieldCollectionUnionCases::objects();
         yield from NestedCollectionCases::objects();
         yield from NestedShapeRoundTripCases::objects();

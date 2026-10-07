@@ -26,6 +26,9 @@ final class TupleDeclarationErrorCases
                     'array{int, \\' . $type . '|int}',
                     'array{0: int, 1?: \\' . $type . '}',
                 ] as $declaration) {
+                    if ($type === NonBackedStatus::class && $declaration === 'array{int, \\' . $type . '|int}') {
+                        continue;
+                    }
                     $class = CollectionDeclarationFixture::create('array', $declaration, $tag);
 
                     foreach (['{}', '{"value":[]}', '{"value":[1,{}]}'] as $json) {

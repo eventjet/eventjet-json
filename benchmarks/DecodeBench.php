@@ -50,7 +50,15 @@ final class DecodeBench
     /** @return iterable<string, array{scenario: string}> */
     public function smallScenarios(): iterable
     {
-        foreach (['scalar object', 'scalar lists', 'object collections', 'recursive collections'] as $scenario) {
+        foreach ([
+            'scalar object',
+            'scalar lists',
+            'named enums',
+            'enum union',
+            'enum union collections',
+            'object collections',
+            'recursive collections',
+        ] as $scenario) {
             yield $scenario => ['scenario' => $scenario];
         }
     }

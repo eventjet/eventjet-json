@@ -39,13 +39,14 @@ final class BackedEnumValueConverter
         $type = $field->getType();
 
         if ($type instanceof ReflectionNamedType) {
+            /** @var enum-string $enumName */
             $enumName = $type->getName();
 
-            if (!enum_exists($enumName) || $value === null && $type->allowsNull()) {
+            if ($value === null && $type->allowsNull()) {
                 return null;
             }
 
-            return self::convertValue($class, $path, $enumName, $value);
+            return self::convertValue($class, $path, $enumName, $value, $type);
         }
 
         if ($type instanceof ReflectionUnionType) {
@@ -117,10 +118,13 @@ final class BackedEnumValueConverter
         string $field,
         string $enumName,
         mixed $value,
+        ReflectionNamedType|null $declaredType = null,
     ): UnitEnum|DecodeError {
         $enum = new ReflectionEnum($enumName);
-        /** @var ReflectionNamedType $backingType */
         $backingType = $enum->getBackingType();
+        if (!$backingType instanceof ReflectionNamedType) {
+            return DecodeError::fieldTypeMismatch($class, $field, (string) ($declaredType ?? $enumName), $value);
+        }
         $valueMatchesBackingType = ValueTypeMatcher::matches($value, $backingType);
 
         if (!$valueMatchesBackingType) {

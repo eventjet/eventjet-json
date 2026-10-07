@@ -26,6 +26,9 @@ final class FieldUnionDeclarationErrors
                     'array|string' => 'list<\\' . $name . '>|string',
                     'array|\\' . $name => 'list<int>|\\' . $name,
                 ] as $native => $declaration) {
+                    if ($name === NonBackedStatus::class && $native !== 'array|string') {
+                        continue;
+                    }
                     $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
                     foreach (['{}', '{"value":[]}'] as $json) {
                         yield 'unsupported collection union ' . $native . $declaration . $tag . $json => [
