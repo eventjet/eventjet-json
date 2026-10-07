@@ -1,5 +1,5 @@
 name: Set up PHP and dependencies
-description: Install the locked toolchain and reuse downloads across runs.
+description: Resolve development dependencies and reuse downloads across runs.
 inputs:
   php-version:
     description: PHP version to test
@@ -23,7 +23,7 @@ runs:
     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ steps.composer-cache.outputs.path }}
-        key: composer-downloads-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+        key: composer-downloads-${{ runner.os }}-php${{ inputs.php-version }}-${{ hashFiles('composer.json') }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: composer-downloads-${{ runner.os }}-
     - shell: bash
-      run: composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
+      run: composer update --prefer-dist --no-interaction --no-progress --optimize-autoloader
