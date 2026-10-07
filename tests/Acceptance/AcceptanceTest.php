@@ -36,6 +36,7 @@ use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\ListValueConverter;
 use Eventjet\Json\Internal\MapDecodeError;
 use Eventjet\Json\Internal\MapInputNormalizer;
+use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\MapType;
 use Eventjet\Json\Internal\MapTypeResolver;
 use Eventjet\Json\Internal\MapValueConverter;
@@ -80,6 +81,9 @@ use Eventjet\Json\Test\Acceptance\Cases\RootArrayEnumRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootArrayErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootArrayRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootArrayTypeInferenceCases;
+use Eventjet\Json\Test\Acceptance\Cases\RootMapErrorCases;
+use Eventjet\Json\Test\Acceptance\Cases\RootMapRoundTripCases;
+use Eventjet\Json\Test\Acceptance\Cases\RootMapTypeInferenceCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootValueErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\RoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\ScalarTypeMismatchCases;
@@ -147,6 +151,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ListValueConverter::class)]
 #[CoversClass(MapDecodeError::class)]
 #[CoversClass(MapInputNormalizer::class)]
+#[CoversClass(MapJsonType::class)]
 #[CoversClass(MapValueConverter::class)]
 #[CoversClass(NamedFieldValueConverter::class)]
 #[CoversClass(NestedCollectionType::class)]
@@ -171,7 +176,7 @@ final class AcceptanceTest extends TestCase
 
     /**
      * @param list<mixed>|object $original
-     * @param JsonType<list<mixed>>|(Closure(): JsonType<list<mixed>>)|null $type
+     * @param JsonType<list<mixed>|object>|(Closure(): JsonType<list<mixed>|object>)|null $type
      * @throws JsonException
      */
     #[DataProviderExternal(RoundTripCases::class, 'objects')]
@@ -185,6 +190,8 @@ final class AcceptanceTest extends TestCase
     #[DataProviderExternal(RootArrayEnumRoundTripCases::class, 'enums')]
     #[DataProviderExternal(RootArrayRoundTripCases::class, 'shapes')]
     #[DataProviderExternal(RootArrayTypeInferenceCases::class, 'values')]
+    #[DataProviderExternal(RootMapRoundTripCases::class, 'values')]
+    #[DataProviderExternal(RootMapTypeInferenceCases::class, 'values')]
     public function testDecodeIsTheExactInverseOfJsonEncode(
         array|object $original,
         string|null $json = null,
@@ -207,8 +214,9 @@ final class AcceptanceTest extends TestCase
         static::assertEquals($expected, $decoded);
     }
 
-    /** @param class-string|JsonType<list<mixed>> $class */
+    /** @param class-string|JsonType<list<mixed>|object> $class */
     #[DataProviderExternal(RootArrayErrorCases::class, 'errors')]
+    #[DataProviderExternal(RootMapErrorCases::class, 'errors')]
     #[DataProviderExternal(RootArrayConstructionCases::class, 'exceptions')]
     #[DataProviderExternal(RootValueErrorCases::class, 'unexpectedRootValues')]
     #[DataProviderExternal(RootValueErrorCases::class, 'arrayRootValues')]
@@ -250,12 +258,12 @@ final class AcceptanceTest extends TestCase
 
     /**
      * @param list<mixed>|object $original
-     * @param JsonType<list<mixed>>|null $type
+     * @param JsonType<list<mixed>|object>|null $type
      * @return list<mixed>|object
      */
     private static function decodeOriginal(string $json, array|object $original, JsonType|null $type): array|object
     {
-        if (is_object($original)) {
+        if ($type === null && is_object($original)) {
             return Json::decode($json, $original::class);
         }
 

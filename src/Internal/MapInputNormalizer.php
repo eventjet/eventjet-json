@@ -15,7 +15,7 @@ final class MapInputNormalizer
 {
     /**
      * @param class-string $class
-     * @return array<array-key, mixed>|DecodeError
+     * @return array<string, mixed>|DecodeError
      */
     public static function normalize(string $class, string $path, MapType $collection, mixed $value): array|DecodeError
     {
@@ -24,28 +24,28 @@ final class MapInputNormalizer
         }
 
         $values = (array) $value;
-        $numericKey = self::numericKey($values);
-
-        if ($numericKey !== null) {
-            return MapDecodeError::numericKey($class, $path, $numericKey);
-        }
 
         if (!$collection->arrayObject && $values === []) {
             return MapDecodeError::empty($class, $path);
         }
 
-        return $values;
+        return self::stringKeys($class, $path, $values);
     }
 
-    /** @param array<array-key, mixed> $values */
-    private static function numericKey(array $values): int|null
+    /**
+     * @param class-string $class
+     * @param array<array-key, mixed> $values
+     * @return array<string, mixed>|DecodeError
+     */
+    private static function stringKeys(string $class, string $path, array $values): array|DecodeError
     {
         foreach (array_keys($values) as $key) {
             if (is_int($key)) {
-                return $key;
+                return MapDecodeError::numericKey($class, $path, $key);
             }
         }
 
-        return null;
+        /** @var array<string, mixed> $values */
+        return $values;
     }
 }
