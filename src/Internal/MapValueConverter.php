@@ -33,7 +33,7 @@ final class MapValueConverter
 
         foreach (array_keys($values) as $key) {
             assert(array_key_exists($key, $values), description: 'A key returned by array_keys() must exist.');
-            $itemPath = FieldPath::key($path, (string) $key);
+            $itemPath = FieldPath::key($path, $key);
             $convertedValue = CollectionItemValueConverter::convert(
                 $class,
                 $itemPath,

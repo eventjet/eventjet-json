@@ -69,12 +69,12 @@ The class named in an error is the class whose field failed validation.
 
 Only the types and class shapes marked as supported below are part of the
 current contract. Use a class target for a JSON object or `JsonType::array()`
-for a JSON array.
+for a JSON array, or `JsonType::map()` for a typed JSON object map.
 
 ## Root arrays
 
 Use `JsonType::array(Foo::class)` to decode a JSON array into `list<Foo>`.
-The item type can be a final class, a backed enum, or another array descriptor.
+The item type can be a final class, a backed enum, or another array or map descriptor.
 PHPStan and Psalm infer the item type, including nested lists:
 
 ```php
@@ -95,7 +95,41 @@ Empty arrays are allowed. Each item must match its declared type; objects and
 arrays keep their distinct shapes. Failures return `DecodeError`, with paths
 such as `[1][0].firstName`. The declared item class or enum is checked even
 when the array is empty. Scalar items, nullable items, tuples, nonempty lists, and
-root maps do not yet have descriptors.
+nonempty maps do not yet have descriptors.
+
+## Root maps
+
+Use `JsonType::map(Foo::class)` to decode a JSON object into
+`ArrayObject<string, Foo>`. An empty map stays `{}` when re-encoded. Values
+can be final classes, backed enums, or array and map descriptors nested in
+any combination. PHPStan and Psalm infer the complete result type:
+
+```php
+$people = Json::decode(
+    '{"author":{"firstName":"Ada","lastName":"Lovelace"}}',
+    JsonType::map(Person::class),
+); // ArrayObject<string, Person>|DecodeError
+
+$groups = Json::decode(
+    '{"team":[{"firstName":"Ada","lastName":"Lovelace"}],"empty":[]}',
+    JsonType::map(JsonType::array(Person::class)),
+); // ArrayObject<string, list<Person>>|DecodeError
+```
+
+Check for `DecodeError` before accessing the result, as in the object example.
+Map keys must remain PHP strings: `"01"` and `"1e0"` work, while `"0"` and
+`"42"` are rejected because PHP converts them to integer keys. JSON arrays
+cannot stand in for maps, including empty maps. Conversion errors include
+paths such as `[team][0].firstName` or `["a.b"].firstName`. Invalid value
+classes and enums are rejected even when the map is empty. Constructor
+exceptions are returned as `DecodeError` values with the original exception
+available through `getPrevious()`.
+
+Root collections currently support class and backed-enum values and nested
+collections. Scalar and nullable values, unions, tuples, and nonempty
+constraints have no root descriptors. Standalone scalar, enum, and `null`
+roots are unsupported: use a transport class with a typed field for those
+values. Root targets remain concrete classes or collection descriptors.
 
 ## Local development
 
@@ -230,7 +264,8 @@ Maps preserve numeric-looking member names that remain PHP string keys, such
 as `"01"` and `"1e0"`. They reject names that PHP converts to integer keys, such
 as `"0"` and `"42"`. For concrete class targets, numeric-looking names are
 unknown fields and follow the same ignore policy as other unknown members.
-These rules also apply to root lists declared with `JsonType::array()`.
+These rules also apply to root collections declared with `JsonType::array()`
+or `JsonType::map()`.
 
 ## Collection declarations
 
@@ -461,7 +496,8 @@ still apply. Declarations are limited to 64 type levels, counting the outer
 collection and its innermost item, to bound parser recursion.
 
 These PHPDoc declarations describe fields inside a root object. For root
-arrays, use `JsonType::array()`; PHPDoc strings are not accepted as targets.
+collections, use `JsonType::array()` or `JsonType::map()`; PHPDoc strings are
+not accepted as targets.
 
 The currently supported `T` declarations are `string`, `int`, `float`, `bool`,
 a backed enum, a final class, or a supported union as described above.
@@ -543,8 +579,8 @@ must not be relied on, even if a particular value happens to decode.
 | Interfaces and abstract classes | Rejected at the root and in field types | Root targets, direct constructor field declarations, union members, list item declarations, and map value declarations return dedicated errors because JSON does not identify a concrete implementation or subclass to instantiate. |
 | Public properties outside the constructor, inherited properties, and other unsupported class shapes | Limited | Declared scalar, array, backed enum, nested final class, and supported union public properties are hydrated after construction, including inherited properties, nullable and recursively nested `self` declarations, and classes without constructors. Public-property unions follow the same class, enum, scalar, null, and ambiguity rules as constructor fields. Array properties require the same supported collection declarations as constructor fields. Collection unions require PHPDoc matching the native union members and follow the same JSON-shape selection rules. Constructor-bound properties, including promoted readonly properties, are not assigned again. Omitted public properties keep their state after construction: initialized properties retain their values, while uninitialized properties remain uninitialized, including readonly properties. Targets with private or protected constructors are rejected with a dedicated error. |
 | `mixed`, untyped fields, `object`, and `stdClass` | Rejected | These declarations cannot preserve every value's original PHP type and JSON object/array shape, so they return a dedicated `DecodeError` whether or not the member is present. Use `ArrayObject<string, T>` rather than `stdClass` for a typed JSON object map. |
-| Root arrays | Limited | `JsonType::array()` supports lists of final classes, backed enums, and recursively nested lists. |
-| Root maps, scalars, enums, and `null` | Not yet supported | There are no descriptors for these root values. |
+| Root arrays and maps | Limited | `JsonType::array()` returns lists and `JsonType::map()` returns `ArrayObject<string, T>` maps, preserving empty JSON arrays and objects. Values may be final classes, backed enums, or recursively nested array and map descriptors. Map keys must remain PHP strings. |
+| Root scalars, enums, and `null` | Unsupported | There are no descriptors for standalone values of these types. Use a transport class with a typed field. |
 | Classes implementing `JsonSerializable` | Rejected | A custom JSON representation may not correspond to constructor parameters, so these targets return a dedicated `DecodeError`. |
 
 The round-trip contract also has these representation limits:
@@ -723,7 +759,7 @@ Until then, any speed or memory improvement remains a hypothesis.
 - [x] Replace collection type regular expressions with an internal recursive parser without adding runtime dependencies. Parse nested declarations into a syntax tree, keep tag selection, name resolution, and decoding validation separate, preserve existing supported behavior and error contracts, and continue rejecting types whose decoding is not yet supported. Cover parser boundaries and malformed declarations with generated tests.
 - [x] Report missing, malformed, unknown, or unsupported collection type declarations clearly.
 - [x] Add an API for typed JSON arrays at the root, with accurate generic return types for static analysis.
-- [ ] Support typed maps at the root and define whether scalar, enum, and null root values are supported.
+- [x] Support typed maps at the root and define whether scalar, enum, and null root values are supported.
 
 ### Errors and acceptance coverage
 

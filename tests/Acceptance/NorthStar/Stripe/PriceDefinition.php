@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\NorthStar\Stripe;
 
-/** @api Consumed dynamically by NorthStarTest. */
+use ArrayObject;
+
+/** @api Consumed dynamically by acceptance tests. */
 abstract class PriceDefinition
 {
     public string $id = '';
@@ -14,6 +16,9 @@ abstract class PriceDefinition
     public Currency|null $currency = null;
     public bool $livemode = false;
     public string|null $lookup_key = null;
-    /** @var array<string, string> */
-    public array $metadata = [];
+
+    /** @param ArrayObject<string, string> $metadata */
+    public function __construct(
+        public ArrayObject $metadata = new ArrayObject(),
+    ) {}
 }

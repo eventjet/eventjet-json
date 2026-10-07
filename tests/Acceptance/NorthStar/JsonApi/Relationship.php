@@ -4,19 +4,21 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\NorthStar\JsonApi;
 
-/** @api Consumed dynamically by NorthStarTest. */
+use ArrayObject;
+
+/** @api Consumed dynamically by acceptance tests. */
 final class Relationship
 {
-    /** @var array<string, string>|null */
-    public array|null $links;
+    /** @var ArrayObject<string, string>|null */
+    public ArrayObject|null $links;
 
     /**
      * @param ResourceIdentifier|list<ResourceIdentifier>|null $data
-     * @param array<string, string>|null $links
+     * @param ArrayObject<string, string>|null $links
      */
     public function __construct(
         public readonly ResourceIdentifier|array|null $data,
-        array|null $links = null,
+        ArrayObject|null $links = null,
     ) {
         $this->links = $links;
 

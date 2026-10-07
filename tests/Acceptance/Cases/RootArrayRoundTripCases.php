@@ -19,7 +19,7 @@ final class RootArrayRoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{list<mixed>, string|null, JsonType<list<mixed>>}>
+     * @return iterable<string, array{list<object>, string|null, JsonType<list<object>>}>
      * @throws ReflectionException
      * @throws RuntimeException
      */

@@ -6,7 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\NorthStar\GitHub;
 
 use ArrayObject;
 
-/** @api Consumed dynamically by NorthStarTest. */
+/** @api Consumed dynamically by acceptance tests. */
 final class Repository extends RepositoryFeatures
 {
     public bool $disabled = false;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\NorthStar\Stripe;
 
-/** @api Consumed dynamically by NorthStarTest. */
+/** @api Consumed dynamically by acceptance tests. */
 abstract class InvoiceAmounts extends InvoiceIdentity
 {
     public int $amount_due = 0;

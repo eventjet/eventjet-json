@@ -6,7 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\NorthStar\Kubernetes;
 
 use ArrayObject;
 
-/** @api Consumed dynamically by NorthStarTest. */
+/** @api Consumed dynamically by acceptance tests. */
 final class ObjectMeta
 {
     public string $name = '';

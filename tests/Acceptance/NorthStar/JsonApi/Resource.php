@@ -4,29 +4,31 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\NorthStar\JsonApi;
 
-/** @api Consumed dynamically by NorthStarTest. */
+use ArrayObject;
+
+/** @api Consumed dynamically by acceptance tests. */
 final class Resource
 {
-    /** @var array<string, string>|null */
-    public array|null $attributes;
+    /** @var ArrayObject<string, string>|null */
+    public ArrayObject|null $attributes;
 
-    /** @var array<string, string>|null */
-    public array|null $links;
+    /** @var ArrayObject<string, string>|null */
+    public ArrayObject|null $links;
 
-    /** @var array<string, Relationship>|null */
-    public array|null $relationships;
+    /** @var ArrayObject<string, Relationship>|null */
+    public ArrayObject|null $relationships;
 
     /**
-     * @param array<string, string>|null $attributes
-     * @param array<string, string>|null $links
-     * @param array<string, Relationship>|null $relationships
+     * @param ArrayObject<string, string>|null $attributes
+     * @param ArrayObject<string, string>|null $links
+     * @param ArrayObject<string, Relationship>|null $relationships
      */
     public function __construct(
         public readonly string $type,
         public readonly string $id,
-        array|null $attributes = null,
-        array|null $links = null,
-        array|null $relationships = null,
+        ArrayObject|null $attributes = null,
+        ArrayObject|null $links = null,
+        ArrayObject|null $relationships = null,
     ) {
         $this->attributes = $attributes;
         $this->links = $links;

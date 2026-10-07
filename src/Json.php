@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json;
 
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\RootTypeValidator;
 use ReflectionClass;
@@ -25,7 +26,7 @@ final class Json
      * @template T
      * @param string $json
      * @param class-string<T&object>|JsonType<T> $class
-     * @phpstan-param (T is object ? class-string<T> : JsonType<T>) $class
+     * @phpstan-param (T is object ? class-string<T> : never)|JsonType<T> $class
      * @psalm-param class-string<T&object>|JsonType<T> $class
      * @return T|DecodeError
      */
@@ -39,7 +40,7 @@ final class Json
         }
 
         if (!is_string($class)) {
-            return self::decodeArray($class, $values);
+            return self::decodeCollection($class, $values);
         }
 
         if (!$values instanceof stdClass) {
@@ -54,10 +55,15 @@ final class Json
      * @param JsonType<T> $type
      * @return T|DecodeError
      */
-    private static function decodeArray(JsonType $type, mixed $values): mixed
+    private static function decodeCollection(JsonType $type, mixed $values): mixed
     {
-        if (!is_array($values)) {
-            return DecodeError::unexpectedRootValue($values, 'array');
+        $rootType = self::rootType($type);
+        $matchesRoot = match ($rootType) {
+            'object' => $values instanceof stdClass,
+            'array' => is_array($values),
+        };
+        if (!$matchesRoot) {
+            return DecodeError::unexpectedRootValue($values, $rootType);
         }
 
         $class = $type->itemClass();
@@ -75,5 +81,14 @@ final class Json
         } catch (Throwable $error) {
             return DecodeError::cannotInstantiate($class, $error);
         }
+    }
+
+    /**
+     * @param JsonType<mixed> $type
+     * @return 'array'|'object'
+     */
+    private static function rootType(JsonType $type): string
+    {
+        return $type instanceof MapJsonType ? 'object' : 'array';
     }
 }

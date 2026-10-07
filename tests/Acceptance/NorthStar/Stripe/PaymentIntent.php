@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\NorthStar\Stripe;
 
-/** @api Consumed dynamically by NorthStarTest. */
+use ArrayObject;
+
+/** @api Consumed dynamically by acceptance tests. */
 final class PaymentIntent extends PaymentIntentDefinition
 {
     public string|null $description = null;
     public bool $livemode = false;
-    /** @var array<string, string> */
-    public array $metadata = [];
     public string|null $payment_method = null;
     /** @var list<string> */
     public array $payment_method_types = [];
@@ -19,4 +19,9 @@ final class PaymentIntent extends PaymentIntentDefinition
     public Shipping|null $shipping = null;
     public string|null $statement_descriptor = null;
     public PaymentIntentStatus|null $status = null;
+
+    /** @param ArrayObject<string, string> $metadata */
+    public function __construct(
+        public ArrayObject $metadata = new ArrayObject(),
+    ) {}
 }
