@@ -106,6 +106,8 @@ use function class_alias;
 #[UsesClass(FieldCollectionUnionResolver::class)]
 #[UsesClass(FieldNameCollisions::class)]
 #[UsesClass(FieldNames::class)]
+#[UsesClass(\Eventjet\Json\Internal\NestedCollectionType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocClassNameResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]
