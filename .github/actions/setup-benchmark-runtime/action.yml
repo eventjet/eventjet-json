@@ -1,0 +1,15 @@
+name: Set up benchmark runtime
+description: Prepare PHP, dependencies, and FastCGI for performance tooling and measurements.
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/setup-php
+      with:
+        php-version: '8.4'
+        extensions: none, bcmath, ctype, curl, dom, fileinfo, filter, iconv, intl, mbstring, opcache, pcntl, phar, posix, simplexml, tokenizer, xml, xmlreader, xmlwriter, zip
+    - name: Prepare request benchmark runtime
+      shell: bash
+      run: |
+        command -v php-fpm8.4
+        sudo apt-get update -qq
+        sudo apt-get install -y libfcgi-bin
