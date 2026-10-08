@@ -18,6 +18,18 @@ final class RootShapeErrorCases
      */
     public static function errors(): iterable
     {
+        yield 'nested root list rejects null' => [
+            '[null]',
+            JsonType::array(JsonType::array(Person::class)),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Field [0] must be of type list<Eventjet\Json\Test\Acceptance\Fixtures\Person>, null given.',
+            3,
+        ];
+        yield 'nested root map rejects null' => [
+            '[null]',
+            JsonType::array(JsonType::map(Person::class)),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Field [0] must be of type JSON object, null given.',
+            3,
+        ];
         yield 'map root rejects an array' => [
             '[]',
             JsonType::map(EmptyObject::class),

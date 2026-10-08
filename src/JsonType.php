@@ -9,6 +9,7 @@ use Eventjet\Json\Internal\ArrayJsonType;
 use Eventjet\Json\Internal\ClassJsonType;
 use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\NestedCollectionType;
+use JsonException;
 use ReflectionException;
 
 use function is_string;
@@ -58,6 +59,7 @@ abstract readonly class JsonType
     /**
      * @internal
      * @return T|DecodeError
+     * @throws JsonException
      * @throws ReflectionException
      */
     abstract public function decodeValue(mixed $value, string $path = ''): mixed;

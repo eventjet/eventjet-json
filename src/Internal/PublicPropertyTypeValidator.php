@@ -21,10 +21,9 @@ final class PublicPropertyTypeValidator
 {
     /**
      * @param class-string $class
-     * @return array{type: ReflectionNamedType|ReflectionUnionType, collection: ListType|MapType|TupleType|FieldCollectionUnionType|null, typeName: string}|DecodeError
      * @throws ReflectionException
      */
-    public static function validate(string $class, ReflectionProperty $property): array|DecodeError
+    public static function validate(string $class, ReflectionProperty $property): FieldValueConverter|DecodeError
     {
         $field = $property->getName();
         $type = $property->getType();
@@ -52,13 +51,7 @@ final class PublicPropertyTypeValidator
             return $collection;
         }
 
-        return [
-            'type' => $type,
-            'collection' => $collection,
-            'typeName' => $type instanceof ReflectionNamedType
-                ? FieldTypeNameResolver::resolve($property, $type)
-                : (string) $type,
-        ];
+        return new FieldValueConverter($property, $collection);
     }
 
     /** @param class-string $class */

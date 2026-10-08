@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json;
 
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
-use Eventjet\Json\Internal\MapJsonType;
+use Eventjet\Json\Internal\MapType;
+use Eventjet\Json\Internal\NestedCollectionType;
 use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\RootTypeValidator;
 use ReflectionClass;
@@ -89,6 +90,9 @@ final class Json
      */
     private static function rootType(JsonType $type): string
     {
-        return $type instanceof MapJsonType ? 'object' : 'array';
+        $collection = $type->collectionItem();
+        return $collection instanceof NestedCollectionType && $collection->collection instanceof MapType
+            ? 'object'
+            : 'array';
     }
 }

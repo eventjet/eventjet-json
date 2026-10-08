@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use ArrayObject;
-use Eventjet\Json\Internal\ArrayJsonType;
-use Eventjet\Json\Internal\ClassJsonType;
-use Eventjet\Json\Internal\MapJsonType;
+use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\AmbiguousMapField;
 use Eventjet\Json\Test\Acceptance\Fixtures\BoolCollectionValidationFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
@@ -88,7 +86,7 @@ final class MapsErrorCases
         ];
         yield 'map inside a list rejects an array' => [
             '[[]]',
-            new ArrayJsonType(new MapJsonType(new ClassJsonType(EmptyObject::class))),
+            JsonType::array(JsonType::map(EmptyObject::class)),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject from the JSON object: Field [0] must be of type JSON object, array given.',
             3,
         ];
@@ -109,7 +107,7 @@ final class MapsErrorCases
     {
         yield 'cached list validation reports its enclosing map and item index' => [
             '{"entry":[{},{},{},{"list":[1]}]}',
-            new MapJsonType(new ArrayJsonType(new ClassJsonType(BoolCollectionValidationFields::class))),
+            JsonType::map(JsonType::array(BoolCollectionValidationFields::class)),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\BoolCollectionValidationFields from the JSON object: Field [entry][3].list[0] must be of type bool, int given.',
             3,
         ];

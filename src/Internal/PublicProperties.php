@@ -7,20 +7,18 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use ReflectionClass;
 use ReflectionException;
-use ReflectionNamedType;
 use ReflectionProperty;
-use ReflectionUnionType;
 
 /** @internal */
 final class PublicProperties
 {
-    /** @var array<class-string, array<string, array{property: ReflectionProperty, type: ReflectionNamedType|ReflectionUnionType, collection: ListType|MapType|TupleType|FieldCollectionUnionType|null, typeName: string}>> */
+    /** @var array<class-string, array<string, array{property: ReflectionProperty, converter: FieldValueConverter}>> */
     private static array $properties = [];
 
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array<string, array{property: ReflectionProperty, type: ReflectionNamedType|ReflectionUnionType, collection: ListType|MapType|TupleType|FieldCollectionUnionType|null, typeName: string}>|DecodeError
+     * @return array<string, array{property: ReflectionProperty, converter: FieldValueConverter}>|DecodeError
      * @phpstan-impure
      * @throws ReflectionException
      */
@@ -46,7 +44,7 @@ final class PublicProperties
             if ($type instanceof DecodeError) {
                 return $type;
             }
-            $properties[$property->getName()] = ['property' => $property, ...$type];
+            $properties[$property->getName()] = ['property' => $property, 'converter' => $type];
         }
 
         return self::$properties[$name] = $properties;

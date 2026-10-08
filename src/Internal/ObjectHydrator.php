@@ -49,14 +49,19 @@ final class ObjectHydrator
                 return $convertedValues;
             }
 
+            $assignments = PublicPropertyHydrator::prepare($reflection, $values, $path);
+            if ($assignments instanceof DecodeError) {
+                return $assignments;
+            }
+
             /**
              * @mago-expect analysis:unknown-class-instantiation The constructor target is intentionally dynamic.
              * @psalm-suppress MixedMethodCall PHP validates the intentionally dynamic constructor at runtime.
              */
             $object = new $class(...$convertedValues);
-            $propertyError = PublicPropertyHydrator::hydrate($reflection, $object, $values, $path);
+            PublicPropertyHydrator::assign($object, $assignments);
 
-            return $propertyError ?? $object;
+            return $object;
         } catch (Throwable $error) {
             return DecodeError::cannotInstantiate($class, $error);
         }

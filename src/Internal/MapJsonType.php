@@ -11,10 +11,6 @@ use JsonException;
 use Override;
 use ReflectionException;
 
-use function array_key_exists;
-use function array_keys;
-use function assert;
-
 /**
  * @internal
  * @template T
@@ -39,25 +35,8 @@ final readonly class MapJsonType extends JsonType
     #[Override]
     public function decodeValue(mixed $value, string $path = ''): ArrayObject|DecodeError
     {
-        $values = MapInputNormalizer::normalize($this->itemClass(), $path, $this->collection, $value);
-
-        if ($values instanceof DecodeError) {
-            return $values;
-        }
-
-        $converted = [];
-        foreach (array_keys($values) as $key) {
-            assert(array_key_exists($key, $values), description: 'A key returned by array_keys() must exist.');
-            $convertedValue = $this->valueType->decodeValue($values[$key], FieldPath::key($path, $key));
-
-            if ($convertedValue instanceof DecodeError) {
-                return $convertedValue;
-            }
-
-            $converted[$key] = $convertedValue;
-        }
-
-        return new ArrayObject($converted);
+        /** @var ArrayObject<string, T>|DecodeError */
+        return CollectionValueConverter::convert($this->itemClass(), $path, $this->collection, $value);
     }
 
     #[Override]

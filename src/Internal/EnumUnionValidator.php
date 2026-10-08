@@ -53,10 +53,12 @@ final class EnumUnionValidator
                 $field,
                 'backed enum',
                 $enum,
-                sprintf(
-                    ' together with its backing type %s. JSON cannot distinguish an enum case from the scalar value.',
-                    $backingType,
-                ),
+                $backingType === 'float'
+                    ? ' together with float. Whole-valued floats encode as JSON integers, so JSON cannot distinguish an enum case from a float value.'
+                    : sprintf(
+                        ' together with its backing type %s. JSON cannot distinguish an enum case from the scalar value.',
+                        $backingType,
+                    ),
             );
         }
 
@@ -175,6 +177,10 @@ final class EnumUnionValidator
         }
 
         $backingTypeName = $backingType->getName();
+
+        if ($backingTypeName === 'int' && in_array('float', $memberNames, strict: true)) {
+            return [$memberName, 'float'];
+        }
 
         if (!in_array($backingTypeName, $memberNames, strict: true)) {
             return null;
