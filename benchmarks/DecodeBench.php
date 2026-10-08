@@ -91,7 +91,7 @@ final class DecodeBench
     /** @throws DecodeError */
     #[Bench\ParamProviders('smallScenarios')]
     #[Bench\Groups(['warm'])]
-    #[Bench\Revs(200)]
+    #[Bench\Revs(2000)]
     #[Bench\Warmup(1)]
     public function benchWarm(): void
     {

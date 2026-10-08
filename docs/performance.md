@@ -28,7 +28,7 @@ PHPBench runs each of five iterations in a separate process:
   JSON encoding happen before timing without calling the decoder. Decoder class
   loading is included; repeated objects within that first document can reuse
   metadata populated earlier in the same decode.
-- `warm`: one untimed decode populates the caches, followed by 200 measured
+- `warm`: one untimed decode populates the caches, followed by 2,000 measured
   decodes per iteration, or five for the large root array.
 
 Every decode checks for errors. After each iteration, outside the timed region,

@@ -23,7 +23,7 @@ env:
 
 jobs:
   compare:
-    name: Compare decoder performance
+    name: ${{ github.event_name == 'workflow_dispatch' && inputs.calibrate && format('Calibrate decoder performance ({0})', matrix.sample) || 'Compare decoder performance' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     strategy:
