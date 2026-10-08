@@ -34,13 +34,13 @@ final class ClassUnionValidator
         ReflectionParameter|ReflectionProperty $field,
         ReflectionUnionType $type,
     ): DecodeError|null {
-        $classNames = array_values(array_filter(array_map(
-            static fn(ReflectionType $member): string|null => ClassFieldTypeValidator::classUnionMember(
+        $classNames = array_values(array_filter(
+            array_map(static fn(ReflectionType $member): string|null => ClassFieldTypeValidator::classUnionMember(
                 $field,
                 $member,
-            ),
-            $type->getTypes(),
-        )));
+            ), $type->getTypes()),
+            static fn(string|null $name): bool => $name !== null,
+        ));
 
         return self::validateNames($class, $field->getName(), $classNames);
     }
