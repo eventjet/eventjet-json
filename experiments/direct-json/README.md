@@ -2,7 +2,7 @@
 
 These experiments investigated whether removing the intermediate `stdClass` tree
 improves end-to-end runtime or peak allocation. The public decoder uses direct
-parsing for scalar records and single-field lists of scalar records. The broader
+parsing for scalar roots with at least eight fields and single-field lists of scalar records. The broader
 experimental variants remain here for comparison. `production` calls the public
 decoder directly, and `native`
 calls the independent native reference retained in this experiment directory.

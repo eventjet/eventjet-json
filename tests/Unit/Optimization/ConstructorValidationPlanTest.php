@@ -58,6 +58,11 @@ use function class_alias;
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\CollectionUnionShapeValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\CollectionUnionType::class)]
+#[UsesClass(\Eventjet\Json\Internal\CollectionUnionValueConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionMemberResolver::class)]
+#[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[CoversClass(ConstructorParameter::class)]
@@ -526,6 +531,37 @@ final class ConstructorValidationPlanTest extends TestCase
         static::assertInstanceOf(\Eventjet\Json\Internal\DirectListPlan::class, $nonEmptyPlan);
         static::assertFalse($nonEmptyPlan->decode('{"records":[]}'));
         static::assertIsObject($nonEmptyPlan->decode('{"records":[' . $first . ']}'));
+        $nullable = new class([]) {
+            /** @param list<\Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields> $records */
+            public function __construct(
+                public array $records,
+            ) {}
+        };
+        $nullablePlan = \Eventjet\Json\Internal\DirectJsonParser::compile($nullable::class);
+        static::assertInstanceOf(\Eventjet\Json\Internal\DirectListPlan::class, $nullablePlan);
+        $nullableJson = '{"records":[{"string":null,"integer":null,"float":null,"boolean":null,"null":null},{"string":"","integer":-0,"float":-0,"boolean":false,"null":null},{"string":"x","integer":1,"float":-0.0,"boolean":true,"null":null}]}';
+        $nullableExpected = clone $nullable;
+        $nullableExpected->records = [
+            new \Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields(null, null, null, null, null),
+            new \Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields('', 0, 0.0, false, null),
+            new \Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields('x', 1, -0.0, true, null),
+        ];
+        static::assertSame(
+            json_encode($nullableExpected, JSON_PRESERVE_ZERO_FRACTION),
+            json_encode($nullablePlan->decode($nullableJson), JSON_PRESERVE_ZERO_FRACTION),
+        );
+        $literal = new class([]) {
+            /** @param list<\Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields> $records */
+            public function __construct(
+                public array $records,
+            ) {}
+        };
+        $literalPlan = \Eventjet\Json\Internal\DirectJsonParser::compile($literal::class);
+        static::assertInstanceOf(\Eventjet\Json\Internal\DirectListPlan::class, $literalPlan);
+        static::assertSame(
+            '{"records":[{"true":true,"false":false}]}',
+            json_encode($literalPlan->decode('{"records":[{"true":true,"false":false}]}')),
+        );
     }
 
     /** @throws \ReflectionException|\JsonException|Exception|UnknownClassOrInterfaceException */
@@ -581,9 +617,19 @@ final class ConstructorValidationPlanTest extends TestCase
         $target = new class(1) {
             public static RuntimeException|null $failure = null;
 
-            /** @throws RuntimeException */
+            /**
+             * @throws RuntimeException
+             * @mago-expect lint:excessive-parameter-list Exercises the eight-field direct eligibility boundary.
+             */
             public function __construct(
                 public int $value,
+                public int $a = 0,
+                public int $b = 0,
+                public int $c = 0,
+                public int $d = 0,
+                public int $e = 0,
+                public int $f = 0,
+                public int $g = 0,
             ) {
                 ++\Eventjet\Json\Test\Unit\Fixtures\DirectRecord::$calls;
                 if ($value === 2 && self::$failure !== null) {
@@ -591,11 +637,12 @@ final class ConstructorValidationPlanTest extends TestCase
                 }
             }
         };
+        $json = '{"value":1,"a":0,"b":0,"c":0,"d":0,"e":0,"f":0,"g":0}';
         $readPlans = self::readDirectPlans(...);
         $class = $target::class;
         static::assertArrayNotHasKey($class, $readPlans());
         \Eventjet\Json\Test\Unit\Fixtures\DirectRecord::$calls = 0;
-        static::assertEquals($target, \Eventjet\Json\Json::decode('{"value":1}', $class));
+        static::assertEquals($target, \Eventjet\Json\Json::decode($json, $class));
         static::assertSame(1, \Eventjet\Json\Test\Unit\Fixtures\DirectRecord::constructionCount());
         static::assertArrayHasKey($class, $readPlans());
         static::assertTrue(self::readDirectPlan($class));
@@ -603,23 +650,40 @@ final class ConstructorValidationPlanTest extends TestCase
         static::assertInstanceOf(DecodeError::class, $invalid);
         static::assertSame(1, $invalid->getCode());
         static::assertTrue(self::readDirectPlan($class));
-        static::assertEquals($target, \Eventjet\Json\Json::decode('{"value":1}', $class));
+        static::assertEquals($target, \Eventjet\Json\Json::decode($json, $class));
         $compiled = self::readDirectPlan($class);
         static::assertInstanceOf(\Eventjet\Json\Internal\DirectScalarPlan::class, $compiled);
         static::assertSame(2, \Eventjet\Json\Test\Unit\Fixtures\DirectRecord::constructionCount());
         $other = clone $target;
         $other->value = 3;
-        static::assertEquals($other, \Eventjet\Json\Json::decode('{"value":3}', $class));
+        static::assertEquals($other, \Eventjet\Json\Json::decode(
+            str_replace('"value":1', replace: '"value":3', subject: $json),
+            $class,
+        ));
         static::assertSame($compiled, self::readDirectPlan($class));
         static::assertEquals($target, \Eventjet\Json\Json::decode('{"ignored":[1,2],"value":1}', $class));
         static::assertSame($compiled, self::readDirectPlan($class));
         $class::$failure = new RuntimeException('constructor failure');
-        $error = \Eventjet\Json\Json::decode('{"value":2}', $class);
+        $error = \Eventjet\Json\Json::decode(str_replace('"value":1', replace: '"value":2', subject: $json), $class);
         static::assertInstanceOf(DecodeError::class, $error);
         static::assertSame($class::$failure, $error->getPrevious());
         static::assertSame(3, $error->getCode());
         static::assertSame(5, \Eventjet\Json\Test\Unit\Fixtures\DirectRecord::constructionCount());
 
+        $small = new class {
+            /** @mago-expect lint:excessive-parameter-list Exercises the seven-field native eligibility boundary. */
+            public function __construct(
+                public int $a = 0,
+                public int $b = 0,
+                public int $c = 0,
+                public int $d = 0,
+                public int $e = 0,
+                public int $f = 0,
+                public int $g = 0,
+            ) {}
+        };
+        static::assertEquals($small, \Eventjet\Json\Json::decode('{}', $small::class));
+        static::assertFalse(self::readDirectPlan($small::class));
         $scalarList = new class([]) {
             /** @param list<int> $values */
             public function __construct(
@@ -654,6 +718,21 @@ final class ConstructorValidationPlanTest extends TestCase
             $collections::class,
         ));
         static::assertFalse(self::readDirectPlan($collections::class));
+        $unionCollections = new class(null, []) {
+            /**
+             * @param ScalarFields|list<ScalarFields>|null $value
+             * @param list<ScalarFields> $records
+             */
+            public function __construct(
+                public ScalarFields|array|null $value,
+                public array $records,
+            ) {}
+        };
+        static::assertEquals($unionCollections, \Eventjet\Json\Json::decode(
+            '{"value":null,"records":[]}',
+            $unionCollections::class,
+        ));
+        static::assertFalse(self::readDirectPlan($unionCollections::class));
         $properties = new class {
             public int $value = 1;
         };

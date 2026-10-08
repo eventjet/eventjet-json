@@ -19,9 +19,14 @@ use function is_float;
 use function is_int;
 use function is_string;
 
-/** @internal */
+/**
+ * @internal
+ * @mago-expect lint:cyclomatic-complexity Scalar validation and direct eligibility require independent type and shape guards.
+ */
 final readonly class ConstructorPlan
 {
+    private const int MIN_DIRECT_SCALAR_FIELDS = 8;
+
     public bool $scalarOnly;
     public bool $directCandidate;
 
@@ -39,7 +44,10 @@ final readonly class ConstructorPlan
             $converters,
             static fn(FieldValueConverter|null $converter): bool => $converter === null,
         );
-        $this->directCandidate = $this->scalarOnly || array_column($fields, 'typeName') === ['array'];
+        // Small roots cannot amortize parser setup in short decoding runs.
+        $this->directCandidate =
+            $this->scalarOnly && count($converters) >= self::MIN_DIRECT_SCALAR_FIELDS
+            || count($converters) === 1 && array_column($fields, 'typeName') === ['array'];
     }
 
     /**

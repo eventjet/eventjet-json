@@ -28,18 +28,18 @@ final readonly class DirectScalarPlan
 
     public function decode(string $json): object|false
     {
-        $matches = [];
-        $matched = preg_match($this->rootPattern, $json, $matches);
+        $matched = preg_match($this->rootPattern, $json);
         if ($matched !== 1) {
             return false;
         }
-        // Constructors observe the same JSON error state as native decoding.
+        // Native scalar conversion avoids a PHP loop and resets the JSON error state.
+        /** @var array<string, string|int|float|bool|null> $values The complete scalar schema has already matched. */
+        $values = json_decode($json, associative: true);
         /**
-         * @psalm-suppress UnusedFunctionCall Constructors observe the native JSON error state.
-         * @mago-expect analysis:unused-statement Constructors observe the native JSON error state.
+         * @psalm-suppress MixedMethodCall The validated class-string supplies the constructor.
+         * @mago-expect analysis:unknown-class-instantiation A validated class-string supplies the constructor.
          */
-        json_validate('null');
-        return $this->construct($matches);
+        return new $this->class(...$values);
     }
 
     /** Read one record after the complete list grammar has been validated. */

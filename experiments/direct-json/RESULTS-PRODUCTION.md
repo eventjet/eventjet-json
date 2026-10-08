@@ -1,7 +1,7 @@
 # Direct decoding integration
 
-`Json::decode()` retains direct parsing for constructor-bound scalar records and
-objects containing a single list of those records. The complete input must match
+`Json::decode()` retains direct parsing for constructor-bound scalar roots with at least eight fields and
+objects containing a single list of scalar records of any width. The complete input must match
 the schema before any constructor runs. Direct list parsing reads records one at
 a time rather than allocating an intermediate `stdClass` tree.
 
@@ -9,6 +9,9 @@ Plans support nullable scalar types and literal booleans. Inputs use declaration
 order, include every field, and contain unescaped ASCII string values. Integers
 are limited to 18 digits on this path; larger values use native overflow handling.
 JSON whitespace is accepted around every structural token.
+Scalar roots use native conversion into a flat argument array after the schema
+match; record lists convert individual captures directly. Neither path builds an
+intermediate `stdClass` tree.
 
 Other schemas and inputs use the existing native decoder and hydration plans.
 This includes mapped fields, enums, public properties, nested collections,
@@ -34,14 +37,16 @@ indicate faster direct decoding; these measurements do not replace the CI gate.
 
 | Workload | Median paired runtime ratio |
 | --- | ---: |
-| Scalar object | 0.873 |
+| Eight-field scalar root (generated width experiment) | 0.627 |
 | 1,000-record batch | 0.791 |
 | Stripe invoice | 1.014 |
 | GitHub pull request webhook | 1.000 |
 | Long scalar lists | 0.999 |
 | Ignored tree | 0.998 |
 
-Reproduce with `php -d opcache.enable_cli=1 experiments/direct-json/paired.php 15 native,production`.
+The eight-field result comes from fifteen randomized paired rounds of 10,000 decodes per implementation; smaller scalar roots use native hydration to avoid setup regressions in short runs.
+
+Reproduce the other workloads with `php -d opcache.enable_cli=1 experiments/direct-json/paired.php 15 native,production`.
 
 ## Validation
 
