@@ -36,7 +36,7 @@ final class ConstructionErrorCases
         ];
         yield 'private constructor cannot be called' => [
             '{}',
-            PrivateConstructorTarget::class,
+            PrivateConstructorTarget::create()::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\PrivateConstructorTarget from the JSON object: Target class has a private constructor, which cannot be called to create the object.',
             3,
         ];
