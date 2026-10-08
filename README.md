@@ -160,7 +160,8 @@ is rejected because PHP converts it to an integer key.
 ## Decoding rules
 
 - JSON member names match constructor parameter or public property names by
-  default. Use `#[Field]` for explicit name mapping. Unknown members are ignored.
+  default. For names PHP cannot use, see [the example below](#when-json-names-dont-work-as-php-property-names).
+  Unknown members are ignored.
 - Missing required constructor arguments produce an error. Missing optional
   arguments use their defaults. A present `null` requires a nullable type.
   Omitted public properties retain their state after construction.
@@ -181,14 +182,20 @@ properties omitted from the input. PHPDoc refinements such as `positive-int`
 and `non-empty-string` validate the underlying scalar type, not the narrower
 constraint.
 
-## Mapping JSON member names
+## When JSON names don't work as PHP property names
 
-Use `#[Field]` when a JSON name differs from its PHP property name, including
-keywords such as `$ref`. Any annotated class must implement `JsonSerializable`.
-The optional `MappedJsonFields` trait uses the same mappings for native encoding:
+Give your PHP properties the same names as the JSON fields whenever possible.
+For example, use `$first_name` for a JSON field named `first_name`. No extra
+setup is needed.
+
+Some formats use names such as `$ref` or `@type` that you can't use as ordinary
+PHP property names. For these cases, `#[Field]` lets you choose a PHP name while
+keeping the original name in JSON:
 
 ```php
+use Eventjet\Json\DecodeError;
 use Eventjet\Json\Field;
+use Eventjet\Json\Json;
 use Eventjet\Json\MappedJsonFields;
 
 final readonly class Reference implements JsonSerializable
@@ -206,23 +213,14 @@ echo json_encode($reference, JSON_THROW_ON_ERROR);
 // {"$ref":"#/$defs/person"}
 ```
 
-Put the attribute on a public instance property, including a promoted property.
-Constructor parameters and PHPDoc still use PHP names. A renamed property's PHP
-name is not an additional input alias. Duplicate JSON names are rejected.
+`#[Field('$ref')]` tells the decoder to read the JSON field named `$ref`.
+The class must also implement `JsonSerializable`. The `MappedJsonFields` trait
+handles that part for you, so `json_encode()` writes `$ref` back to JSON too.
 
-You may implement `jsonSerialize()` yourself instead of using the trait. Its
-output must be an object representation with the declared JSON names and values.
-The decoder checks declarations; it cannot prove that arbitrary serializer code
-honors them. `JsonSerializable` without any `#[Field]` remains unsupported.
-
-This is an opt-in exception to the library's dependency-free model declarations:
-PHP types cannot express these JSON names. Normal classes need neither the
-attribute nor the trait. Prefer matching PHP and JSON names when you control the
-format: the optimized trait still adds measurable encoding cost, and mapped
-constructors do extra work during decoding. Use mapping when the external format
-requires it. See [field mapping](docs/types.md#field-name-mapping)
-for the full contract and [measurements](docs/performance.md#field-name-mapping)
-for performance details.
+Keep this as an escape hatch for names you can't match directly. It adds some
+overhead, especially when encoding; see the [performance measurements](docs/performance.md#field-name-mapping).
+The [field mapping reference](docs/types.md#field-name-mapping) covers the details
+and how to write your own serializer if needed.
 
 ## Documentation
 
