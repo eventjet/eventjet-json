@@ -83,6 +83,30 @@ commit against itself on five independent GitHub runners. Normal PR runs still
 compare the target with the proposed merge. Each calibration job archives its
 own samples and report.
 
+For same-repository PRs, the workflow maintains one GitHub Actions comment and
+updates it after each completed run, including a failed regression gate. It shows
+the overall percentage change in decode time, counts of faster/unchanged/slower
+workloads, and the lowest and highest changes with target and PR times in
+microseconds. The overall figure is the geometric mean of workload timing ratios;
+each workload has equal weight. Negative percentages mean less time per decode.
+
+The comment has three comparison outcomes:
+
+- **Performance regression:** PHPBench's regression assertion failed for any workload.
+- **Performance improvement:** no regression, and at least one workload is more than 5% faster.
+- **No significant performance changes:** all workloads remain within ±5%.
+
+Exactly 5% stays inside the unchanged band. A regression takes priority even when
+other workloads improve or the overall figure is faster. This uses the existing
+5% operating limit; it is not a statistical significance test. The full run and
+artifacts remain linked for inspection. Missing baselines and incomplete runs are
+reported explicitly instead of being labeled unchanged. Results for an outdated
+PR head or target commit do not update the comment.
+
+Only the separate comment job can write to PRs. Fork and Dependabot PRs still
+receive the job summary and artifacts, but skip comments because their workflow
+tokens have read-only permissions.
+
 The 5% limit was selected from hosted unchanged-code calibration, not local
 machine timings. Two batches of five independent GitHub runners produced 200
 workload comparisons:
