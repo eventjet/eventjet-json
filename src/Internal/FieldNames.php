@@ -64,7 +64,7 @@ final class FieldNames
     private static function discover(ReflectionClass $class): array|DecodeError
     {
         $names = [];
-        foreach ($class->getProperties() as $property) {
+        foreach (self::properties($class) as $property) {
             $attributes = $property->getAttributes(Field::class);
             if ($attributes === []) {
                 continue;
@@ -85,5 +85,21 @@ final class FieldNames
             $names[$name] = $attributes[0]->newInstance()->name;
         }
         return $names;
+    }
+
+    /**
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @return iterable<ReflectionProperty>
+     */
+    private static function properties(ReflectionClass $class): iterable
+    {
+        yield from $class->getProperties();
+        // Reflection omits private ancestor properties from the effective child declarations.
+        $parent = $class->getParentClass();
+        while ($parent !== false) {
+            yield from $parent->getProperties(ReflectionProperty::IS_PRIVATE);
+            $parent = $parent->getParentClass();
+        }
     }
 }
