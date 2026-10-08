@@ -14,6 +14,7 @@ use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionType;
 
+use function array_key_exists;
 use function class_exists;
 use function enum_exists;
 use function interface_exists;
@@ -21,6 +22,9 @@ use function interface_exists;
 /** @internal */
 final class ClassFieldTypeValidator
 {
+    /** @var array<class-string, true> */
+    private static array $validated = [];
+
     /**
      * @param class-string $class
      * @throws ReflectionException
@@ -46,6 +50,9 @@ final class ClassFieldTypeValidator
      */
     public static function validate(string $class, string $field, string $type): DecodeError|null
     {
+        if (array_key_exists($type, self::$validated)) {
+            return null;
+        }
         if (interface_exists($type)) {
             return DecodeError::nonInstantiableField($class, $field, 'interface', $type);
         }
@@ -71,7 +78,11 @@ final class ClassFieldTypeValidator
         }
 
         $names = RootTypeValidator::fieldNames($typeReflection);
-        return $names instanceof DecodeError ? $names : null;
+        if ($names instanceof DecodeError) {
+            return $names;
+        }
+        self::$validated[$type] = true;
+        return null;
     }
 
     public static function classUnionMember(

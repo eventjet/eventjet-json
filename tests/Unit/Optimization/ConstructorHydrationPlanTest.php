@@ -33,6 +33,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
+use JsonSerializable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Exception;
@@ -43,6 +44,8 @@ use ReflectionException;
 use ReflectionProperty;
 use stdClass;
 
+use function class_alias;
+
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
@@ -52,7 +55,7 @@ use stdClass;
 #[CoversClass(EnumUnionLookup::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
 #[UsesClass(DecodeError::class)]
-#[UsesClass(ClassFieldTypeValidator::class)]
+#[CoversClass(ClassFieldTypeValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
@@ -74,6 +77,39 @@ use stdClass;
 #[UsesClass(\Eventjet\Json\Internal\PublicPropertyTypeValidator::class)]
 final class ConstructorHydrationPlanTest extends TestCase
 {
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     */
+    public function testClassFieldValidationCachesOnlySupportedLoadedTypes(): void
+    {
+        $class = ScalarFields::class;
+        $cache = new ReflectionProperty(ClassFieldTypeValidator::class, 'validated');
+        static::assertNull(ClassFieldTypeValidator::validate($class, 'first', $class));
+        static::assertIsArray($cache->getValue());
+        static::assertTrue($cache->getValue()[$class] ?? false);
+        static::assertNull(ClassFieldTypeValidator::validate($class, 'second', $class));
+
+        $dependency = __NAMESPACE__ . '\\LateClassFieldValidationTarget';
+        static::assertNull(ClassFieldTypeValidator::validate($class, 'first', $dependency));
+        /** @var array<class-string, true> $validated */
+        $validated = $cache->getValue();
+        static::assertArrayNotHasKey($dependency, $validated);
+        static::assertTrue(class_alias(ScalarFields::class, $dependency));
+        static::assertNull(ClassFieldTypeValidator::validate($class, 'second', $dependency));
+        static::assertTrue($cache->getValue()[$dependency] ?? false);
+
+        foreach (['first', 'second'] as $field) {
+            static::assertEquals(
+                DecodeError::nonInstantiableField($class, $field, 'interface', JsonSerializable::class),
+                ClassFieldTypeValidator::validate($class, $field, JsonSerializable::class),
+            );
+        }
+        /** @var array<class-string, true> $validated */
+        $validated = $cache->getValue();
+        static::assertArrayNotHasKey(JsonSerializable::class, $validated);
+    }
+
     /** @throws ReflectionException */
     public function testEnumUnionLookupPreservesBackingTypesAndLeavesOtherValuesUnmatched(): void
     {
