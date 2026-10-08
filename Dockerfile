@@ -13,7 +13,7 @@ RUN apt-get update \
         intl \
         pcntl \
     && pecl install pcov \
-    && docker-php-ext-enable pcov \
+    && docker-php-ext-enable pcov opcache \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer

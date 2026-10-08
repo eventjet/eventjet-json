@@ -83,7 +83,7 @@ function publish(string $results, string $text): void
     echo $text;
 }
 
-function configureWorkloads(string $revision, string $workspace): void
+function configureWorkloads(string $revision, string $workspace, bool $opcache): void
 {
     $config = json_decode(git('show', $revision . ':phpbench.json'), true, flags: JSON_THROW_ON_ERROR);
     if (!is_array($config)) {
@@ -96,8 +96,13 @@ function configureWorkloads(string $revision, string $workspace): void
     }
     $config['runner.php_config'] = array_replace($phpConfig, [
         'pcov.enabled' => '0',
-        'opcache.enable_cli' => '0',
+        'opcache.enable' => '1',
+        'opcache.enable_cli' => $opcache ? '1' : '0',
+        'opcache.file_update_protection' => '0',
+        'opcache.file_cache' => '',
+        'opcache.save_comments' => '1',
         'opcache.jit' => '0',
+        'opcache.jit_buffer_size' => '0',
         'xdebug.mode' => 'off',
         'memory_limit' => '1G',
     ]);
@@ -134,14 +139,19 @@ set_error_handler(static function (int $severity, string $message, string $file,
     throw new ErrorException($message, 0, $severity, $file, $line);
 });
 
-$options = getopt('', ['base:', 'candidate:']);
+$options = getopt('', ['base:', 'candidate:', 'opcache:']);
 if ($options === false || !isset($options['base']) || !is_string($options['base'])) {
-    throw new InvalidArgumentException('Usage: php .github/ci/performance.php --base REF [--candidate REF]');
+    throw new InvalidArgumentException('Usage: php .github/ci/performance.php --base REF [--candidate REF] [--opcache on|off]');
 }
 $candidateOption = $options['candidate'] ?? 'HEAD';
 if (!is_string($candidateOption)) {
     throw new InvalidArgumentException('Candidate must be a single revision');
 }
+$opcacheOption = $options['opcache'] ?? 'on';
+if ($opcacheOption !== 'on' && $opcacheOption !== 'off') {
+    throw new InvalidArgumentException('OPcache must be on or off');
+}
+$opcache = $opcacheOption === 'on';
 $base = trim(git('rev-parse', '--verify', $options['base'] . '^{commit}'));
 $candidate = trim(git('rev-parse', '--verify', $candidateOption . '^{commit}'));
 $output = getcwd() . '/.perf';
@@ -156,6 +166,7 @@ if ($dependenciesHash === false) {
 }
 $metadata = [
     'baseline' => $base,
+    'opcache' => $opcacheOption,
     'candidate' => $candidate,
     'dependencies_sha256' => $dependenciesHash,
     'workloads_changed' =>
@@ -186,7 +197,7 @@ $workspace = $output . '/workspace';
 mkdir($workspace);
 command(['cp', '-a', 'vendor', $workspace . '/vendor']);
 copy('composer.json', $workspace . '/composer.json');
-configureWorkloads($base, $workspace);
+configureWorkloads($base, $workspace, $opcache);
 foreach (['benchmarks', 'tests'] as $name) {
     command(['cp', '-a', $output . '/baseline/' . $name, $workspace . '/' . $name]);
 }
@@ -194,6 +205,7 @@ $measure = static function (string $version, string $name, string|null $baseline
     $workspace,
     $output,
     $results,
+    $opcache,
 ): int {
     command(['rm', '-rf', '--', $workspace . '/src']);
     command(['cp', '-a', $output . '/' . $version . '/src', $workspace . '/src']);
@@ -218,6 +230,14 @@ $measure = static function (string $version, string $name, string|null $baseline
     if ($result['status'] !== 0 && ($baseline === null || $result['status'] !== 2)) {
         throw new RuntimeException('Command failed (' . $result['status'] . "): PHPBench\n" . $result['output']);
     }
+    $xml = simplexml_load_file($results . '/' . $name . '.xml');
+    if ($xml === false) {
+        throw new RuntimeException('Cannot read benchmark output: ' . $name);
+    }
+    $reported = $xml->xpath('//env/opcache/value[@name="enabled"]');
+    if ($reported === null || count($reported) !== 1 || ((string) $reported[0] === '1') !== $opcache) {
+        throw new RuntimeException('Benchmark OPcache state does not match the requested mode');
+    }
     return $result['status'];
 };
 $measure('baseline', 'discovery', null, '--revs=1');
@@ -241,7 +261,7 @@ file_put_contents($results . '/comment.md', $comment);
 publish(
     $results,
     $comment
-    . "\nBaseline: `$base`. Candidate: `$candidate`.\n\n"
+    . "\nBaseline: `$base`. Candidate: `$candidate`. OPcache: **$opcacheOption**.\n\n"
     . ($status === 0 ? 'PHPBench assertions passed.' : 'PHPBench assertions failed: performance regression.')
     . " PHPBench mode time per decode must be at most 105% of the target's mode for every workload.\n\n"
     . 'Each target workload is measured immediately before its candidate counterpart, using the same configuration and dependencies on this runner. '
@@ -250,7 +270,7 @@ publish(
     . "\n```\n",
 );
 if ($metadata['workloads_changed']) {
-    configureWorkloads($candidate, $workspace);
+    configureWorkloads($candidate, $workspace, $opcache);
     foreach (['benchmarks', 'tests'] as $name) {
         command(['rm', '-rf', '--', $workspace . '/' . $name]);
         command(['cp', '-a', $output . '/candidate/' . $name, $workspace . '/' . $name]);

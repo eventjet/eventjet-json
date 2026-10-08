@@ -34,12 +34,20 @@ PHPBench runs each of five iterations in a separate process:
 Every decode checks for errors. After each iteration, outside the timed region,
 the last result is re-encoded and checked against the independently constructed
 input. PHPBench reports execution time, variation, and memory use. Its child
-processes disable PCOV and CLI OPcache through `phpbench.json`.
+processes use the OPcache settings in `phpbench.json`.
+
+The primary mode enables OPcache and its normal optimizer, disables JIT, PCOV,
+and Xdebug coverage, retains PHPDoc comments, disables the file cache, and sets
+file-update protection to zero so newly exported source files can be cached.
+The runner checks the actual runtime OPcache state. OPcache-off remains available
+for consumers whose runtime does not enable it.
 
 Run one group, or store a baseline and compare after a code change:
 
 ```bash
 docker compose exec php composer benchmark -- --group=warm
+# Optional comparison without CLI OPcache:
+docker compose exec php composer benchmark -- --profile=opcache-off --group=warm
 docker compose exec php composer benchmark -- --store --tag=before
 # Change the implementation, keeping the benchmark and environment the same.
 docker compose exec php composer benchmark -- --ref=before --store --tag=after
@@ -57,6 +65,11 @@ installed dependencies; this isolates source changes rather than measuring
 dependency upgrades. A changed candidate benchmark suite also runs separately
 with its own configuration. An absent baseline suite is reported explicitly,
 without a regression verdict.
+
+The comparison runner defaults to `--opcache on`; use `--opcache off` for the
+secondary mode. Reports record the selected mode. The manual workflow accepts
+`opcache=both|on|off` and defaults to both. Each mode runs in its own job with
+separate artifacts. A failed job does not cancel the other mode.
 
 The gate uses PHPBench's native baseline comparison and assertion:
 
@@ -81,7 +94,7 @@ assertion, since its workloads are not comparable.
 Use the Performance workflow's manual `calibrate` input to compare the same
 commit against itself on five independent GitHub runners. Normal PR runs still
 compare the target with the proposed merge. Each calibration job archives its
-own samples and report.
+own samples and report for each selected OPcache mode.
 
 For same-repository PRs, the workflow maintains one GitHub Actions comment and
 updates it after each completed run, including a failed regression gate. It shows
@@ -115,7 +128,8 @@ workload comparisons:
 - [Independent validation batch](https://github.com/eventjet/eventjet-json/actions/runs/37765567166): largest apparent slowdown 4.11%; the provisional 4% limit failed one unchanged workload. Reversing the comparisons exposed variation up to 4.59%.
 
 A 5% limit was the lowest whole-percentage limit with no observed false positives
-in either direction across these 200 comparisons. This is an empirical operating
+in either direction across these 200 comparisons. The OPcache modes need their
+own calibration before those observations can be generalized. This is an empirical operating
 limit, not a guarantee against future false positives on shared runners.
 Changes to sampling or thresholds should be checked with unchanged-code runs on
 the CI runner. A consistently noisy benchmark needs more stable measurement,
@@ -135,7 +149,8 @@ To run a comparison locally, use `php .github/ci/performance.php --base REF
 --candidate HEAD` in the project container with read access to the repository's
 Git metadata. Move or remove `.perf/` before another comparison.
 
-To prevent merging failed checks, require `Compare decoder performance` in the
+To prevent merging failed checks, require both `Compare decoder performance (OPcache on)` and
+`Compare decoder performance (OPcache off)` in the
 repository's branch rules for `tabula-rasa`, and later for `master`. The workflow
 already compares against each PR's target branch. An absent benchmark suite is
 reported without a verdict, allowing the initial rewrite to merge into `master`.
@@ -150,3 +165,5 @@ metadata only once.
 Every decode validates incoming values. There is no trusted-input mode that
 skips runtime checks. Reconsidering that tradeoff requires comparing checked
 and trusted-input decoding with the same metadata optimizations.
+
+The PR comment reports the primary OPcache-on comparison. Both modes retain their full reports in the run artifacts.
