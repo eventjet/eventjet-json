@@ -10,6 +10,7 @@ use ReflectionException;
 use stdClass;
 
 use function array_all;
+use function array_intersect_key;
 use function array_key_exists;
 use function is_array;
 use function is_bool;
@@ -46,7 +47,6 @@ final readonly class ConstructorPlan
      */
     public function decode(array $values, string $path): array|DecodeError
     {
-        $converted = [];
         foreach ($this->fields as $name => $field) {
             if (!array_key_exists($name, $values)) {
                 continue;
@@ -73,11 +73,8 @@ final readonly class ConstructorPlan
                     $value,
                 );
             }
-            if ($this->scalarOnly) {
-                $converted[$name] = $value;
-            }
         }
-        return $this->scalarOnly ? $converted : $this->convert($values, $path);
+        return $this->scalarOnly ? array_intersect_key($values, $this->fields) : $this->convert($values, $path);
     }
 
     /**
