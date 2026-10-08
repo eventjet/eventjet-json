@@ -22,7 +22,7 @@ final class ClassUnionValidator
     /**
      * @param class-string $class
      */
-    public static function validate(
+    private static function validate(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionUnionType $type,
