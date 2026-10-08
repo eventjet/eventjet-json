@@ -3,6 +3,17 @@ set -euo pipefail
 
 # Use PHPBench's deterministic executor to test the real assertion and exit status.
 project=$(cd "$(dirname "$0")/../../.." && pwd)
+php /dev/stdin "$project" <<'PHP'
+<?php
+require $argv[1] . '/vendor/autoload.php';
+$default = \PhpBench\PhpBench::loadContainer(new \Symfony\Component\Console\Input\ArgvInput(['phpbench']), $argv[1]);
+$off = \PhpBench\PhpBench::loadContainer(new \Symfony\Component\Console\Input\ArgvInput(['phpbench', '--profile=opcache-off']), $argv[1]);
+$expected = array_replace($default->getParameter('runner.php_config'), ['opcache.enable_cli' => '0']);
+if ($off->getParameter('runner.php_config') !== $expected) {
+    throw new RuntimeException('The OPcache-off profile must preserve all other runtime settings');
+}
+PHP
+echo 'PHPBench profile configuration passed.'
 runner="$project/.github/ci/performance.php"
 export PERFORMANCE_TEST_PHPBENCH="$project/vendor/bin/phpbench"
 fixture=$(mktemp -d)
