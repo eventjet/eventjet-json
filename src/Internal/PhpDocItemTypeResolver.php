@@ -9,6 +9,7 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function count;
+use function in_array;
 use function preg_match;
 
 /** @internal */
@@ -45,9 +46,9 @@ final class PhpDocItemTypeResolver
         $arguments = $type->arguments;
 
         if ($arguments === []) {
-            $literalSyntax = preg_match('/\A(?:[\x27"0-9.+-]|true\z|false\z|null\z)|::/', $type->name) === 1;
+            $literalSyntax = PhpDocType::literalSyntax($type->name);
             $literal = $literalSyntax ? PhpDocLiteral::value($type->name) : null;
-            if ($literal !== null || $type->name === 'null') {
+            if ($literal !== null || in_array($type->name, ['null', 'true', 'false'], strict: true)) {
                 return $type->name;
             }
             return FieldTypeNameResolver::resolvePhpDoc($field, $type->name);

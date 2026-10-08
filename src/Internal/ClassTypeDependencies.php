@@ -11,7 +11,6 @@ use ReflectionUnionType;
 
 use function enum_exists;
 use function in_array;
-use function preg_match;
 
 /** @internal */
 final class ClassTypeDependencies
@@ -23,7 +22,7 @@ final class ClassTypeDependencies
     ): iterable {
         foreach (self::names($field, $resolved) as $name) {
             $isNonEncodable = FieldTypeValidator::isNonEncodable($name);
-            $literal = preg_match('/\A[\x27"0-9.+-]|::/', $name) === 1;
+            $literal = PhpDocType::literalSyntax($name);
             if (
                 in_array($name, ['bool', 'float', 'int', 'string', 'true', 'false', 'null'], strict: true)
                 || $literal

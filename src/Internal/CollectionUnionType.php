@@ -13,7 +13,6 @@ use function array_values;
 use function implode;
 use function is_array;
 use function is_string;
-use function preg_match;
 
 /** @internal */
 final readonly class CollectionUnionType implements Stringable
@@ -40,10 +39,7 @@ final readonly class CollectionUnionType implements Stringable
             $collections[$kind] = $member->collection;
         }
         $this->names = $names;
-        $this->literalNames = array_values(array_filter(
-            $names,
-            static fn(string $name): bool => preg_match('/\A[\x27"0-9.+-]|::/', $name) === 1,
-        ));
+        $this->literalNames = array_values(array_filter($names, PhpDocType::literalSyntax(...)));
         $this->collections = $collections;
     }
 

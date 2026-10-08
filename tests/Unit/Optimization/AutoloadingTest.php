@@ -103,7 +103,7 @@ use function spl_autoload_unregister;
 #[UsesClass(\Eventjet\Json\Internal\CollectionValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\NestedCollectionTypeResolver::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocItemTypeResolver::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocType::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocType::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTypeParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTokens::class)]
 #[UsesClass(\Eventjet\Json\Internal\ScalarListValueConverter::class)]

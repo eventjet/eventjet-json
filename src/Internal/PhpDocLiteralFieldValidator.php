@@ -9,8 +9,6 @@ use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
 
-use function preg_match;
-
 /** @internal */
 final class PhpDocLiteralFieldValidator
 {
@@ -25,7 +23,7 @@ final class PhpDocLiteralFieldValidator
             return null;
         }
         foreach ($type->name === '|' ? $type->arguments : [$type] as $member) {
-            $literalSyntax = preg_match('/\A[\x27"0-9.+-]|::/', $member->name) === 1;
+            $literalSyntax = PhpDocType::literalSyntax($member->name);
             $resolved = $literalSyntax ? PhpDocItemTypeResolver::resolve($field, $member) : null;
             if ($literalSyntax && $resolved === null) {
                 return DecodeError::nonInstantiableField(
