@@ -6,6 +6,7 @@ namespace Eventjet\Json\Benchmark;
 
 use ArrayObject;
 use Eventjet\Json\Benchmark\Fixtures\ScalarLists;
+use Eventjet\Json\Benchmark\Fixtures\StringMap;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\CombinedCollectionFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties;
@@ -42,6 +43,7 @@ final class DecodeWorkloads
             'enum union collections' => self::enumUnions(),
             'scalar lists' => self::scalarLists(2),
             'long scalar lists' => self::scalarLists(1000),
+            'long string map' => StringMap::thousandEntries(),
             'enum-heavy object collections' => self::collections(),
             'recursive collections' => self::recursive(),
             'enum-heavy root array' => array_fill(0, count: 100, value: self::collections()),
@@ -125,9 +127,10 @@ final class DecodeWorkloads
      * @api Used by PHPBench parameter providers.
      * @return iterable<string, array{scenario: string}>
      */
-    public static function listScenario(): iterable
+    public static function largeCollectionScenarios(): iterable
     {
         yield 'long scalar lists' => ['scenario' => 'long scalar lists'];
+        yield 'long string map' => ['scenario' => 'long string map'];
     }
 
     /**
@@ -137,7 +140,7 @@ final class DecodeWorkloads
     public static function diagnosticScenarios(): iterable
     {
         yield from self::smallScenarios();
-        yield from self::listScenario();
+        yield from self::largeCollectionScenarios();
     }
 
     /**

@@ -11,6 +11,11 @@ use ReflectionException;
 use function array_key_exists;
 use function array_keys;
 use function assert;
+use function in_array;
+use function is_bool;
+use function is_float;
+use function is_int;
+use function is_string;
 
 /** @internal */
 final class MapValueConverter
@@ -27,6 +32,11 @@ final class MapValueConverter
 
         if ($values instanceof DecodeError) {
             return $values;
+        }
+
+        $type = $collection->valueType;
+        if (in_array($type, ['string', 'int', 'bool', 'float'], strict: true)) {
+            return self::scalars($class, $path, $type, $values);
         }
 
         $converted = [];
@@ -49,5 +59,32 @@ final class MapValueConverter
         }
 
         return $converted;
+    }
+
+    /**
+     * @param class-string $class
+     * @param 'string'|'int'|'bool'|'float' $type
+     * @param array<string, mixed> $values
+     * @return array<string, mixed>|DecodeError
+     * @throws JsonException
+     */
+    private static function scalars(string $class, string $path, string $type, array $values): array|DecodeError
+    {
+        foreach (array_keys($values) as $key) {
+            assert(array_key_exists($key, $values), description: 'A key returned by array_keys() must exist.');
+            $valid = match ($type) {
+                'string' => is_string($values[$key]),
+                'int' => is_int($values[$key]),
+                'bool' => is_bool($values[$key]),
+                'float' => is_float($values[$key]) || is_int($values[$key]),
+            };
+            if (!$valid) {
+                return DecodeError::fieldTypeMismatch($class, FieldPath::key($path, $key), $type, $values[$key]);
+            }
+            if ($type === 'float' && is_int($values[$key])) {
+                $values[$key] = (float) $values[$key];
+            }
+        }
+        return $values;
     }
 }

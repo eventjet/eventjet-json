@@ -53,7 +53,7 @@ require 'vendor/autoload.php';
 $expected = [
     'documents' => array_keys(Eventjet\Json\Test\Acceptance\Cases\SupportedDocumentRoundTripCases::factories()),
     'batches' => ['record batch 0', 'record batch 1', 'record batch 100', 'record batch 1000'],
-    'diagnostic' => ['scalar object', 'public scalar properties', 'scalar lists', 'long scalar lists', 'named enums', 'enum union'],
+    'diagnostic' => ['scalar object', 'public scalar properties', 'scalar lists', 'long scalar lists', 'long string map', 'named enums', 'enum union'],
     'stress' => ['enum union collections', 'enum-heavy object collections', 'recursive collections', 'enum-heavy root array'],
     'errors' => ['unknown enum', 'first list item', 'last list item'],
 ];

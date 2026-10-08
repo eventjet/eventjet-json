@@ -11,6 +11,7 @@ final class DecodeErrorCases
      * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
      * @throws \ReflectionException
+     * @throws \JsonException
      * @throws \RuntimeException
      */
     public static function errors(): iterable
