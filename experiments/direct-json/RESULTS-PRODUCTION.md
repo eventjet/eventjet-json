@@ -93,4 +93,15 @@ php -d opcache.enable_cli=1 experiments/direct-json/bench.php 3 native,productio
   at very low PCRE limits, custom root descriptors, syntax/error precedence,
   numeric/Unicode/depth boundaries and constructor side effects.
 - PHPStan, Psalm, Mago analysis/lint/format and dependency checking pass.
-- Mutation results are recorded below when the full run completes.
+- Mutation testing does **not** meet the 100% gate. The local run was stopped
+  after more than 450 mutants had already demonstrated uncovered and surviving
+  mutations. Its [partial output](results/production/mutation-partial.txt) is
+  retained; no complete MSI is claimed. The full GitHub CI run is separate.
+- GitHub code quality and PHP 8.4/8.5 tests passed for `2b9216e`. The performance
+  gate failed: for example, the OPcache-off unknown-enum error benchmark rose
+  from 1.81 to 7.71 microseconds. Its rule rejects any workload over 5% slower,
+  so aggregate gains cannot offset these regressions. See the
+  [CI measurement job](https://github.com/eventjet/eventjet-json/actions/runs/37835808309/job/113512401138).
+
+The integration PR remains a draft because the mutation and performance gates
+are not satisfied. Neither gate was disabled or relaxed.
