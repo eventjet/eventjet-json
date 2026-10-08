@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\JsonType;
+use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields;
 
@@ -21,6 +22,42 @@ final class CollectionsErrorCases
         yield from self::declarations();
         yield from self::cachedShapes();
         yield from self::scalarItems();
+        yield from self::objectItems();
+    }
+
+    /** @return iterable<string, array{string, JsonType<list<Person>>, string, int}> */
+    private static function objectItems(): iterable
+    {
+        foreach ([['null', 'null'], ['[]', 'array'], ['false', 'bool'], ['1', 'int'], ['"wrong"', 'string']] as [
+            $json,
+            $type,
+        ]) {
+            foreach ([0, 1] as $index) {
+                $prefix = $index === 0 ? '' : '{"firstName":"Ada","lastName":"Lovelace"},';
+                yield 'object list rejects ' . $type . ' at index ' . $index => [
+                    '[' . $prefix . $json . ']',
+                    JsonType::array(Person::class),
+                    'Could not create '
+                        . Person::class
+                        . ' from the JSON object: Field ['
+                        . $index
+                        . '] must be of type '
+                        . Person::class
+                        . ', '
+                        . $type
+                        . ' given.',
+                    3,
+                ];
+            }
+        }
+        yield 'object list validates fields after warming the item plan' => [
+            '[{"firstName":"Ada","lastName":"Lovelace"},{"firstName":42,"lastName":"Hopper"}]',
+            JsonType::array(Person::class),
+            'Could not create '
+                . Person::class
+                . ' from the JSON object: Field [1].firstName must be of type string, int given.',
+            3,
+        ];
     }
 
     /** @return iterable<string, array{string, class-string, string, int}> */

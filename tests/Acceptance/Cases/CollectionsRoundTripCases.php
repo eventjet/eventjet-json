@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use ArrayObject;
+use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarMapFields;
 
@@ -19,6 +20,17 @@ final class CollectionsRoundTripCases
      */
     public static function objects(): iterable
     {
+        foreach (['param', 'var'] as $tag) {
+            foreach ([0, 1, 7] as $size) {
+                $people = [];
+                for ($index = 0; $index < $size; ++$index) {
+                    $people[] = new Person('person-' . $index, 'family-' . $index, null, $index);
+                }
+                yield $tag . ' object list of size ' . $size => [
+                    CollectionDeclarationFixture::object('array', 'list<\\' . Person::class . '>', $tag, $people),
+                ];
+            }
+        }
         yield 'scalar lists preserve item types and values' => [new ScalarListFields(
             ['', '42', 'Grüße, 世界, 😀'],
             [0, -42, 42],
