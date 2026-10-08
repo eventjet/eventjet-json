@@ -4,6 +4,9 @@ inputs:
   php-version:
     description: PHP version to test
     default: '8.4'
+  extensions:
+    description: PHP extensions to enable or disable
+    default: bcmath, intl, mbstring, pcntl
   coverage:
     description: Coverage driver
     default: none
@@ -16,7 +19,7 @@ runs:
     - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
       with:
         php-version: ${{ inputs.php-version }}
-        extensions: bcmath, intl, mbstring, pcntl
+        extensions: ${{ inputs.extensions }}
         coverage: ${{ inputs.coverage }}
         ini-values: memory_limit=1G, pcov.directory=src, ${{ inputs.ini-values }}
         tools: composer:v2
