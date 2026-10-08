@@ -99,6 +99,32 @@ function configureWorkloads(string $revision, string $workspace): void
     writeJson($workspace . '/phpbench.json', $config);
 }
 
+/** @return non-empty-list<array{string, string}> */
+function workloadFilters(string $path): array
+{
+    $xml = simplexml_load_file($path);
+    if ($xml === false) {
+        throw new RuntimeException('Cannot read workload discovery results');
+    }
+    $filters = [];
+    foreach ($xml->suite as $suite) {
+        foreach ($suite->benchmark as $benchmark) {
+            foreach ($benchmark->subject as $subject) {
+                foreach ($subject->variant as $variant) {
+                    $filters[] = [
+                        '--filter=^' . preg_quote($benchmark['class'] . '::' . $subject['name'], '{') . '$',
+                        '--variant=^' . preg_quote((string) $variant->{'parameter-set'}['name'], '{') . '$',
+                    ];
+                }
+            }
+        }
+    }
+    if ($filters === []) {
+        throw new RuntimeException('No benchmark workloads discovered');
+    }
+    return $filters;
+}
+
 set_error_handler(static function (int $severity, string $message, string $file, int $line): never {
     throw new ErrorException($message, 0, $severity, $file, $line);
 });
@@ -159,7 +185,7 @@ configureWorkloads($base, $workspace);
 foreach (['benchmarks', 'tests'] as $name) {
     command(['cp', '-a', $output . '/baseline/' . $name, $workspace . '/' . $name]);
 }
-$measure = static function (string $version, string $name, bool $compare = false) use (
+$measure = static function (string $version, string $name, string|null $baseline = null, string ...$options) use (
     $workspace,
     $output,
     $results,
@@ -171,35 +197,44 @@ $measure = static function (string $version, string $name, bool $compare = false
         PHP_BINARY,
         'vendor/bin/phpbench',
         'run',
-        '--iterations=20',
+        '--iterations=' . ($name === 'discovery' ? '1' : '20'),
         '--progress=none',
         '--report=aggregate',
         '--dump-file=../results/' . $name . '.xml',
+        ...array_values($options),
     ];
-    if ($compare) {
-        $arguments[] = '--file=../results/baseline.xml';
+    if ($baseline !== null) {
+        $arguments[] = '--file=../results/' . $baseline . '.xml';
         $arguments[] = '--assert=mode(variant.time.avg) <= mode(baseline.time.avg) * 1.05';
     }
     $result = execute($arguments, $workspace);
     file_put_contents($results . '/' . $name . '.txt', $result['output']);
     echo $result['output'];
-    if ($result['status'] !== 0 && (!$compare || $result['status'] !== 2)) {
+    if ($result['status'] !== 0 && ($baseline === null || $result['status'] !== 2)) {
         throw new RuntimeException('Command failed (' . $result['status'] . "): PHPBench\n" . $result['output']);
     }
     return $result['status'];
 };
-$measure('baseline', 'baseline');
-$status = $measure('candidate', 'candidate', true);
-$report = file_get_contents($results . '/candidate.txt');
-if ($report === false) {
-    throw new RuntimeException('Cannot read PHPBench report');
+$measure('baseline', 'discovery', null, '--revs=1');
+$status = 0;
+$report = '';
+foreach (workloadFilters($results . '/discovery.xml') as $index => $filters) {
+    $baselineName = 'baseline-' . $index;
+    $candidateName = 'candidate-' . $index;
+    $measure('baseline', $baselineName, null, ...$filters);
+    $status = max($status, $measure('candidate', $candidateName, $baselineName, ...$filters));
+    $workloadReport = file_get_contents($results . '/' . $candidateName . '.txt');
+    if ($workloadReport === false) {
+        throw new RuntimeException('Cannot read PHPBench report');
+    }
+    $report .= $workloadReport . "\n";
 }
 publish(
     $results,
     "## Performance comparison\n\nBaseline: `$base`. Candidate: `$candidate`.\n\n"
     . ($status === 0 ? 'PHPBench assertions passed.' : 'PHPBench assertions failed: performance regression.')
     . " PHPBench mode time per decode must be at most 105% of the target's mode for every workload.\n\n"
-    . "Both versions use the target's workloads, configuration, and the same installed dependencies on this runner. "
+    . 'Each target workload is measured immediately before its candidate counterpart, using the same configuration and dependencies on this runner. '
     . "Cold and warm workloads retain their own warmup and revolution settings. Memory is advisory.\n\n```text\n"
     . $report
     . "\n```\n",

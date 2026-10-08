@@ -61,11 +61,14 @@ without a regression verdict.
 The gate uses PHPBench's native baseline comparison and assertion:
 
 ```text
---file=../results/baseline.xml
+--file=../results/baseline-N.xml
 --assert="mode(variant.time.avg) <= mode(baseline.time.avg) * 1.05"
 ```
 
-Each version runs 20 iterations per workload, preserving cold/warm revolution
+The runner discovers workloads with a single-iteration discovery run, then
+measures each target workload immediately before its candidate counterpart to
+reduce the time between comparable measurements. Each version runs 20 iterations
+per workload, preserving cold/warm revolution
 and warmup settings. PHPBench estimates the mode of per-decode times and fails
 with exit code 2 when any workload is more than 5% slower than its freshly
 measured target baseline. There is no stored timing baseline, minimum increase

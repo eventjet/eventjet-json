@@ -22,7 +22,14 @@ cat > benchmarks/ExampleBench.php <<'PHP'
 <?php
 final class ExampleBench
 {
+    #[\PhpBench\Attributes\ParamProviders('cases')]
     public function benchExample(): void {}
+    public function benchControl(): void {}
+    public function cases(): iterable
+    {
+        yield 'first[case]' => [];
+        yield 'second.case' => [];
+    }
 }
 PHP
 git add src benchmarks tests composer.json phpbench.json
@@ -49,6 +56,11 @@ foreach (['pcov.enabled', 'opcache.enable_cli', 'opcache.jit'] as $setting) {
     }
 }
 $time = (int) trim(file_get_contents('src/time.txt'));
+foreach ($argv as $argument) {
+    if (str_contains($argument, 'benchControl')) {
+        $time = 100;
+    }
+}
 $arguments = [PHP_BINARY, getenv('PERFORMANCE_TEST_PHPBENCH'), ...array_slice($argv, 1),
     '--executor=' . json_encode(['executor' => 'debug', 'times' => [$time]])];
 passthru(implode(' ', array_map(escapeshellarg(...), $arguments)), $status);
@@ -63,11 +75,25 @@ check_run() {
         echo "Expected status $expected, got $status for $name"
         exit 1
     fi
-    test -s .perf/results/baseline.xml
-    test -s .perf/results/candidate.xml
-    test -s .perf/results/candidate.txt
+    test -s .perf/results/baseline-0.xml
+    test -s .perf/results/candidate-0.xml
+    test -s .perf/results/candidate-0.txt
     test -s .perf/results/summary.md
     test -s .perf/results/candidate-workloads.xml
+    php <<'PHP'
+<?php
+$files = glob('.perf/results/candidate-*.xml');
+$files = array_filter($files, static fn($file) => !str_contains($file, 'candidate-workloads'));
+if (count($files) !== 3) {
+    throw new RuntimeException('Expected three distinct workload comparisons');
+}
+foreach ($files as $file) {
+    $xml = simplexml_load_file($file);
+    if (count($xml->xpath('//variant')) !== 1 || count($xml->xpath('//baseline-stats')) !== 1) {
+        throw new RuntimeException('Each comparison must contain exactly one workload and its baseline');
+    }
+}
+PHP
     mv .perf "$name-results"
 }
 check_run 0 unchanged
