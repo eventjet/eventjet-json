@@ -52,7 +52,7 @@ final class ObjectHydrator
                 }
                 if ($uncached) {
                     $properties = PublicProperties::resolve($reflection);
-                    $plan = ConstructorDecoder::scalarPlan($class);
+                    $plan = ConstructorDecoder::cachedPlan($class);
                     if ($properties === [] && $plan !== null) {
                         self::$validatedClasses[$class] = $plan;
                     }
