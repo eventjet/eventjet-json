@@ -590,11 +590,11 @@ final class ConstructorValidationPlanTest extends TestCase
         static::assertEquals($target, \Eventjet\Json\Json::decode('{"value":1}', $class));
         static::assertSame(1, \Eventjet\Json\Test\Unit\Fixtures\DirectRecord::constructionCount());
         static::assertArrayHasKey($class, $readPlans());
-        static::assertNull(self::readDirectPlan($class));
+        static::assertTrue(self::readDirectPlan($class));
         $invalid = \Eventjet\Json\Json::decode('{', $class);
         static::assertInstanceOf(DecodeError::class, $invalid);
         static::assertSame(1, $invalid->getCode());
-        static::assertNull(self::readDirectPlan($class));
+        static::assertTrue(self::readDirectPlan($class));
         static::assertEquals($target, \Eventjet\Json\Json::decode('{"value":1}', $class));
         $compiled = self::readDirectPlan($class);
         static::assertInstanceOf(\Eventjet\Json\Internal\DirectScalarPlan::class, $compiled);
@@ -649,14 +649,14 @@ final class ConstructorValidationPlanTest extends TestCase
     }
 
     /**
-     * @return array<class-string, \Eventjet\Json\Internal\DirectScalarPlan|\Eventjet\Json\Internal\DirectListPlan|false|null>
+     * @return array<class-string, \Eventjet\Json\Internal\DirectScalarPlan|\Eventjet\Json\Internal\DirectListPlan|bool>
      * @phpstan-impure
      * @throws ReflectionException
      */
     private static function readDirectPlans(): array
     {
         /**
-         * @var array<class-string, \Eventjet\Json\Internal\DirectScalarPlan|\Eventjet\Json\Internal\DirectListPlan|false|null> $cache
+         * @var array<class-string, \Eventjet\Json\Internal\DirectScalarPlan|\Eventjet\Json\Internal\DirectListPlan|bool> $cache
          * @mago-expect lint:inline-variable-return The annotation types the reflected cache for analyzers.
          */
         $cache = new ReflectionProperty(\Eventjet\Json\Json::class, 'directPlans')->getValue();
@@ -668,11 +668,12 @@ final class ConstructorValidationPlanTest extends TestCase
      * @phpstan-impure
      * @throws ReflectionException|\PHPUnit\Framework\Exception
      */
-    private static function readDirectPlan(string $class): \Eventjet\Json\Internal\DirectScalarPlan|\Eventjet\Json\Internal\DirectListPlan|false|null
+    private static function readDirectPlan(string $class): \Eventjet\Json\Internal\DirectScalarPlan|\Eventjet\Json\Internal\DirectListPlan|bool
     {
         $plans = self::readDirectPlans();
-        static::assertArrayHasKey($class, $plans);
-        /** @mago-expect analysis:possibly-undefined-int-array-index PHPUnit asserted the reflected key exists. */
+        if (!array_key_exists($class, $plans)) {
+            static::fail('The decoded class must have a cached eligibility marker or plan.');
+        }
         return $plans[$class];
     }
 }

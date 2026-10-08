@@ -28,7 +28,7 @@ use const JSON_ERROR_NONE;
 /** @mago-expect lint:cyclomatic-complexity The public API validates root shapes and dispatches cached direct plans. */
 final class Json
 {
-    /** @var array<class-string, DirectScalarPlan|DirectListPlan|false|null> */
+    /** @var array<class-string, DirectScalarPlan|DirectListPlan|bool> */
     private static array $directPlans = [];
 
     /**
@@ -57,20 +57,26 @@ final class Json
      * @phpstan-param (T is object ? class-string<T> : never)|JsonType<T> $class
      * @psalm-param class-string<T&object>|JsonType<T> $class
      * @return T|DecodeError
+     * @mago-expect lint:halstead Inline compatibility decoding avoids a forwarding call on small workloads.
      */
     public static function decode(string $json, string|JsonType $class): mixed
     {
-        $warm = is_string($class) && array_key_exists($class, self::$directPlans);
-        if ($warm) {
+        $plan = is_string($class) ? self::$directPlans[$class] ?? null : null;
+        if ($plan !== false && $plan !== null) {
+            /**
+             * @var class-string $target Cached plans and pending markers belong only to class targets.
+             * @phpstan-var class-string<T&object> $target
+             * @psalm-var class-string<T&object> $target
+             */
             $target = $class;
             try {
-                $plan = self::$directPlans[$target] ?? null;
                 // Syntax errors must precede declaration resolution and autoloading.
-                if ($plan === null && json_validate($json)) {
+                if ($plan === true && json_validate($json)) {
+                    /** @mago-expect analysis:less-specific-nested-argument-type The pending cache key is a class target. */
                     $plan = DirectJsonParser::compile($target);
                     self::$directPlans[$target] = $plan;
                 }
-                if ($plan !== null && $plan !== false) {
+                if ($plan !== true && $plan !== false) {
                     $direct = $plan->decode($json);
                     if ($direct !== false) {
                         /**
@@ -82,6 +88,7 @@ final class Json
                     }
                 }
             } catch (Throwable $error) {
+                /** @mago-expect analysis:less-specific-nested-argument-type The active cache key is a class target. */
                 return DecodeError::cannotInstantiate($target, $error);
             }
         }
@@ -96,10 +103,13 @@ final class Json
         if (!$values instanceof stdClass) {
             return DecodeError::unexpectedRootValue($values);
         }
+        if ($plan !== null) {
+            return ObjectHydrator::hydrate($class, $values);
+        }
         $value = ObjectHydrator::hydrate($class, $values);
-        if (!$warm && !$value instanceof DecodeError) {
+        if (!$value instanceof DecodeError) {
             // Compile only after a successful first decode; cold requests need no second schema.
-            self::$directPlans[$class] = null;
+            self::$directPlans[$class] = true;
         }
         return $value;
     }
