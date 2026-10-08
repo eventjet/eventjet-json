@@ -20,8 +20,9 @@ final class LiteralTypeCases
      */
     public static function objects(): iterable
     {
-        yield from LiteralSyntaxRoundTripCases::objects();
         yield 'constant imports and null constant' => [new LiteralConstantFields()];
+        yield from LiteralSyntaxRoundTripCases::objects();
+        yield from LiteralConstantCases::objects();
         yield 'extended literal syntax and constant values' => [new ExtendedLiteralFields()];
         yield 'single literal constructor fields' => [new SingleLiteralFields()];
         yield 'literal string field' => [new LiteralFields('foo')];

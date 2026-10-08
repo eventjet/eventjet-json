@@ -91,6 +91,10 @@ use function spl_autoload_unregister;
 #[UsesClass(\Eventjet\Json\Internal\CollectionTypeValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionUnionShapeValidator::class)]
 #[UsesClass(FieldNames::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
 final class AutoloadingTest extends TestCase
 {
     /** @throws ReflectionException */

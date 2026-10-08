@@ -6,6 +6,8 @@ namespace Eventjet\Json\Test\Acceptance\Fixtures;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\ExtendedLiteralFields as Definitions;
 
+const LITERAL_NUMBER = 42;
+
 final readonly class LiteralConstantFields
 {
     public const null NOTHING = null;
