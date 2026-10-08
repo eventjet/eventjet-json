@@ -53,6 +53,7 @@ use stdClass;
 
 use function array_keys;
 use function class_alias;
+use function reset;
 
 #[CoversClass(MetadataCache::class)]
 #[CoversClass(ConstructorParameter::class)]
@@ -116,10 +117,10 @@ final class MetadataCacheTest extends TestCase
         $firstParameters = ConstructorParameters::resolve($firstClass);
         $secondParameters = ConstructorParameters::resolve($secondClass);
 
-        $firstParameter = $firstParameters[0] ?? null;
-        $secondParameter = $secondParameters[0] ?? null;
-        static::assertNotNull($firstParameter);
-        static::assertNotNull($secondParameter);
+        $firstParameter = reset($firstParameters);
+        static::assertInstanceOf(ConstructorParameter::class, $firstParameter);
+        $secondParameter = reset($secondParameters);
+        static::assertInstanceOf(ConstructorParameter::class, $secondParameter);
         static::assertSame('int', $firstParameter->typeName);
         static::assertTrue($firstParameter->builtin);
         static::assertSame('string', $secondParameter->typeName);
@@ -129,8 +130,8 @@ final class MetadataCacheTest extends TestCase
         static::assertSame($secondParameters, ConstructorParameters::resolve($secondClass));
 
         $union = ConstructorParameters::resolve(new ReflectionClass(DistinctEnumScalarUnionField::class));
-        $unionParameter = $union[0] ?? null;
-        static::assertNotNull($unionParameter);
+        $unionParameter = reset($union);
+        static::assertInstanceOf(ConstructorParameter::class, $unionParameter);
         static::assertSame(IntBackedStatus::class . '|string', $unionParameter->typeName);
         static::assertFalse($unionParameter->builtin);
 
