@@ -21,8 +21,10 @@ use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\MetadataCache;
+use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PublicProperties;
+use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
@@ -68,6 +70,7 @@ use function spl_autoload_unregister;
 #[UsesClass(MetadataCache::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[CoversClass(PublicProperties::class)]
+#[CoversClass(ObjectHydrator::class)]
 #[UsesClass(Field::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[UsesClass(FieldNameCollisions::class)]
@@ -75,6 +78,23 @@ use function spl_autoload_unregister;
 #[UsesClass(FieldNames::class)]
 final class AutoloadingTest extends TestCase
 {
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testConstructorOnlyObjectsDoNotLoadPropertyAssignmentCode(): void
+    {
+        $target = new class('expected') {
+            public function __construct(
+                public string $value,
+            ) {}
+        };
+        $input = new stdClass();
+        $input->value = 'expected';
+        for ($lookup = 0; $lookup < 2; ++$lookup) {
+            static::assertEquals($target, ObjectHydrator::hydrate($target::class, $input));
+            static::assertFalse(class_exists(PublicPropertyHydrator::class, autoload: false));
+        }
+    }
+
     /** @throws ReflectionException */
     public function testGlobalNamespaceRelativeNamesHaveNoLeadingSeparator(): void
     {

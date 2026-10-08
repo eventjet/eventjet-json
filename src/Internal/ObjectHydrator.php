@@ -46,16 +46,16 @@ final class ObjectHydrator
             }
             $assignments = [];
             if ($reflection instanceof ReflectionClass) {
-                $assignments = PublicPropertyHydrator::prepare($reflection, $values, $path);
+                $properties = PublicProperties::resolve($reflection);
+                $assignments =
+                    $properties === [] || $properties instanceof DecodeError
+                        ? $properties
+                        : PublicPropertyHydrator::prepare($class, $properties, $values, $path);
                 if ($assignments instanceof DecodeError) {
                     return $assignments;
                 }
-                if ($uncached) {
-                    $properties = PublicProperties::resolve($reflection);
-                    $plan = ConstructorDecoder::scalarPlan($class);
-                    if ($properties === [] && $plan !== null) {
-                        self::$validatedClasses[$class] = $plan;
-                    }
+                if ($uncached && $properties === []) {
+                    self::cacheScalarPlan($class);
                 }
             }
             /**
@@ -70,6 +70,15 @@ final class ObjectHydrator
             return $object;
         } catch (Throwable $error) {
             return DecodeError::cannotInstantiate($class, $error);
+        }
+    }
+
+    /** @param class-string $class */
+    private static function cacheScalarPlan(string $class): void
+    {
+        $plan = ConstructorDecoder::scalarPlan($class);
+        if ($plan !== null) {
+            self::$validatedClasses[$class] = $plan;
         }
     }
 }

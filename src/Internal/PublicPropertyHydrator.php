@@ -6,28 +6,27 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use JsonException;
-use ReflectionClass;
 use ReflectionException;
+use ReflectionNamedType;
 use ReflectionProperty;
 
 /** @internal */
 final class PublicPropertyHydrator
 {
     /**
-     * @template T of object
-     * @param ReflectionClass<T> $class
+     * @param class-string $class
+     * @param array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}> $publicProperties
      * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
      * @return list<array{property: ReflectionProperty, value: mixed}>|DecodeError
      * @throws JsonException
      * @throws ReflectionException
      */
-    public static function prepare(ReflectionClass $class, array $values, string $path): array|DecodeError
-    {
-        $publicProperties = PublicProperties::resolve($class);
-        if ($publicProperties instanceof DecodeError) {
-            return $publicProperties;
-        }
-
+    public static function prepare(
+        string $class,
+        array $publicProperties,
+        array $values,
+        string $path,
+    ): array|DecodeError {
         /** @var list<array{property: ReflectionProperty, value: mixed}> $assignments */
         $assignments = [];
 
@@ -46,11 +45,7 @@ final class PublicPropertyHydrator
                     continue;
                 }
             }
-            $converted = $field['converter']->convert(
-                $class->getName(),
-                $value,
-                FieldPath::field($path, (string) $inputField),
-            );
+            $converted = $field['converter']->convert($class, $value, FieldPath::field($path, (string) $inputField));
             if ($converted instanceof DecodeError) {
                 return $converted;
             }
