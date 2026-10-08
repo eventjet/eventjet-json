@@ -34,10 +34,10 @@ final readonly class ConstructorValueValidator
         if (!$type instanceof ReflectionNamedType) {
             return null;
         }
-        if (enum_exists(
-            $parameter->typeName,
-            autoload: array_key_exists($inputName ?? $parameter->name, $values) && !$parameter->builtin,
-        )) {
+        if (
+            !$parameter->builtin
+            && enum_exists($parameter->typeName, autoload: array_key_exists($inputName ?? $parameter->name, $values))
+        ) {
             return null;
         }
         $expected = FieldTypeNameResolver::expected($type, $parameter->typeName);

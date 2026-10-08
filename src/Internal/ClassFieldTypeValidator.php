@@ -50,38 +50,37 @@ final class ClassFieldTypeValidator
      */
     public static function validate(string $class, string $field, string $type): DecodeError|null
     {
-        if (array_key_exists($type, self::$validated)) {
-            return null;
-        }
-        if (interface_exists($type)) {
-            return DecodeError::nonInstantiableField($class, $field, 'interface', $type);
-        }
+        if (!array_key_exists($type, self::$validated)) {
+            if (interface_exists($type)) {
+                return DecodeError::nonInstantiableField($class, $field, 'interface', $type);
+            }
 
-        if (!class_exists($type)) {
-            return null;
-        }
+            if (!class_exists($type)) {
+                return null;
+            }
 
-        $typeReflection = new ReflectionClass($type);
+            $typeReflection = new ReflectionClass($type);
 
-        if ($typeReflection->isAbstract()) {
-            return DecodeError::nonInstantiableField($class, $field, 'abstract class', $type);
-        }
+            if ($typeReflection->isAbstract()) {
+                return DecodeError::nonInstantiableField($class, $field, 'abstract class', $type);
+            }
 
-        if (!$typeReflection->isFinal()) {
-            return DecodeError::nonInstantiableField(
-                $class,
-                $field,
-                'non-final class',
-                $type,
-                '. Values may be subclasses, whose runtime class JSON does not identify.',
-            );
-        }
+            if (!$typeReflection->isFinal()) {
+                return DecodeError::nonInstantiableField(
+                    $class,
+                    $field,
+                    'non-final class',
+                    $type,
+                    '. Values may be subclasses, whose runtime class JSON does not identify.',
+                );
+            }
 
-        $names = RootTypeValidator::fieldNames($typeReflection);
-        if ($names instanceof DecodeError) {
-            return $names;
+            $names = RootTypeValidator::fieldNames($typeReflection);
+            if ($names instanceof DecodeError) {
+                return $names;
+            }
+            self::$validated[$type] = true;
         }
-        self::$validated[$type] = true;
         return null;
     }
 
