@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
-use Closure;
-use Eventjet\Json\DecodeError;
-use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\NorthStar\AwsMsk\Hydration as AwsMskHydration;
 use Eventjet\Json\Test\Acceptance\NorthStar\AwsMsk\MskEvent;
 use Eventjet\Json\Test\Acceptance\NorthStar\GitHub\Hydration as GitHubHydration;
@@ -25,7 +22,7 @@ use function file_get_contents;
 final class SupportedDocumentRoundTripCases
 {
     /**
-     * @return iterable<string, array{object, string}>
+     * @return iterable<string, array{string, class-string, callable(object): bool}>
      * @throws RuntimeException
      */
     public static function objects(): iterable
@@ -63,11 +60,11 @@ final class SupportedDocumentRoundTripCases
 
     /**
      * @param class-string $class
-     * @param Closure(object): bool $isFullyHydrated
-     * @return array{object, string}
+     * @param callable(object): bool $isFullyHydrated
+     * @return array{string, class-string, callable(object): bool}
      * @throws RuntimeException
      */
-    private static function document(string $path, string $class, Closure $isFullyHydrated): array
+    private static function document(string $path, string $class, callable $isFullyHydrated): array
     {
         $json = file_get_contents($path);
 
@@ -75,18 +72,6 @@ final class SupportedDocumentRoundTripCases
             throw new RuntimeException('Could not read supported JSON document ' . $path . '.');
         }
 
-        $decoded = Json::decode($json, $class);
-
-        if ($decoded instanceof DecodeError) {
-            throw new RuntimeException('Could not decode supported JSON document ' . $path . '.', previous: $decoded);
-        }
-
-        $fullyHydrated = $isFullyHydrated($decoded);
-
-        if (!$fullyHydrated) {
-            throw new RuntimeException('Supported JSON document is not fully hydrated: ' . $path . '.');
-        }
-
-        return [$decoded, $json];
+        return [$json, $class, $isFullyHydrated];
     }
 }

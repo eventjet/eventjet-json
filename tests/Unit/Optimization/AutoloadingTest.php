@@ -19,6 +19,7 @@ use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NamedFieldValueConverter;
 use Eventjet\Json\Internal\ObjectTypeValidator;
+use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PublicPropertyNamedValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
@@ -36,6 +37,7 @@ use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use RuntimeException;
+use stdClass;
 use TypeError;
 
 use function array_fill_keys;
@@ -45,6 +47,7 @@ use function enum_exists;
 use function spl_autoload_register;
 use function spl_autoload_unregister;
 
+#[CoversClass(PhpDocClassNameResolver::class)]
 #[CoversClass(NamedFieldValueConverter::class)]
 #[CoversClass(ObjectTypeValidator::class)]
 #[CoversClass(ConstructorValidationPlan::class)]
@@ -65,6 +68,15 @@ use function spl_autoload_unregister;
 #[UsesClass(ValueTypeMatcher::class)]
 final class AutoloadingTest extends TestCase
 {
+    /** @throws ReflectionException */
+    public function testGlobalNamespaceRelativeNamesHaveNoLeadingSeparator(): void
+    {
+        /** @var ReflectionClass<object> $class */
+        $class = new ReflectionClass(stdClass::class);
+
+        static::assertSame('stdClass', PhpDocClassNameResolver::resolve($class, 'namespace\stdClass'));
+    }
+
     /**
      * @throws Exception
      * @throws TypeError

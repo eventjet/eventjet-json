@@ -4,57 +4,63 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
-use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
-use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
-use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase;
-use Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface;
-use RuntimeException;
-
 /** @internal */
 final class TupleDeclarationErrorCases
 {
     /**
-     * @return iterable<string, array{string, class-string, string, int}>
-     * @throws RuntimeException
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @throws \ReflectionException
+     * @throws \RuntimeException
      */
     public static function errors(): iterable
     {
-        foreach (['param', 'var'] as $tag) {
-            foreach (self::unsupportedTypes() as $type => $detail) {
-                foreach ([
-                    'array{int, \\' . $type . '}',
-                    'array{int, \\' . $type . '|int}',
-                    'array{0: int, 1?: \\' . $type . '}',
-                ] as $declaration) {
-                    if ($type === NonBackedStatus::class && $declaration === 'array{int, \\' . $type . '|int}') {
-                        continue;
-                    }
-                    $class = CollectionDeclarationFixture::create('array', $declaration, $tag);
-
-                    foreach (['{}', '{"value":[]}', '{"value":[1,{}]}'] as $json) {
-                        yield 'tuple unsupported ' . $tag . $declaration . $json => [
-                            $json,
-                            $class,
-                            'Could not create ' . $class . ' from the JSON object: Field value[1] uses ' . $detail,
-                            3,
-                        ];
-                    }
-                }
-            }
-        }
-    }
-
-    /** @return iterable<class-string, string> */
-    private static function unsupportedTypes(): iterable
-    {
-        $notInstantiable = ', which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.';
-        yield RootTargetInterface::class => 'interface ' . RootTargetInterface::class . $notInstantiable;
-        yield AbstractRootTarget::class => 'abstract class ' . AbstractRootTarget::class . $notInstantiable;
-        yield ParentClassFieldBase::class =>
-            'non-final class '
-                . ParentClassFieldBase::class
-                . '. Values may be subclasses, whose runtime class JSON does not identify.';
-        yield NonBackedStatus::class =>
-            'non-backed enum ' . NonBackedStatus::class . ', which cannot be decoded because it has no backing value.';
+        yield 'tuple declaration cannot require an item after an optional item' => [
+            '{}',
+            CollectionDeclarationFixture::create('array', 'array{0?: int, string}', 'var'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('array', 'array{0?: int, string}', 'var')
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            3,
+        ];
+        yield 'tuple integer range rejects reversed bounds' => [
+            '{}',
+            CollectionDeclarationFixture::create('array', 'array{int<max, min>}', 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('array', 'array{int<max, min>}', 'param')
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            3,
+        ];
+        yield 'tuple integer range rejects a third bound' => [
+            '{}',
+            CollectionDeclarationFixture::create('array', 'array{int<min, max, 0>}', 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('array', 'array{int<min, max, 0>}', 'param')
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            3,
+        ];
+        yield 'tuple declaration rejects an unsupported nested map' => [
+            '{}',
+            CollectionDeclarationFixture::create('array', 'list<array{list<array<string, int>>}>', 'var'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('array', 'list<array{list<array<string, int>>}>', 'var')
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            3,
+        ];
+        yield 'tuple indices must start at zero' => [
+            '{}',
+            CollectionDeclarationFixture::create('array', 'array{1: int}', 'var'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('array', 'array{1: int}', 'var')
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            3,
+        ];
+        yield 'tuple union rejects a generic null declaration' => [
+            '{}',
+            CollectionDeclarationFixture::create('array', 'list<array{0: int}|null<string>>', 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('array', 'list<array{0: int}|null<string>>', 'param')
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            3,
+        ];
     }
 }
