@@ -39,17 +39,6 @@ final class BackedEnumValueConverter
     ): UnitEnum|DecodeError|null {
         $type = EnumFieldTypes::resolve($field);
 
-        if ($type instanceof ReflectionNamedType) {
-            /** @var enum-string $enumName */
-            $enumName = $type->getName();
-
-            if ($value === null && $type->allowsNull()) {
-                return null;
-            }
-
-            return self::convertValue($class, $path, $enumName, $value, $type);
-        }
-
         if (is_array($type)) {
             return self::convertUnion($class, $path, $type, $value);
         }
