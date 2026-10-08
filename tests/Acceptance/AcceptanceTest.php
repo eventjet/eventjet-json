@@ -36,6 +36,7 @@ use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
+use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\ListInputNormalizer;
 use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\ListValueConverter;
@@ -46,7 +47,6 @@ use Eventjet\Json\Internal\MapType;
 use Eventjet\Json\Internal\MapTypeResolver;
 use Eventjet\Json\Internal\MapValueConverter;
 use Eventjet\Json\Internal\MetadataCache;
-use Eventjet\Json\Internal\NamedFieldValueConverter;
 use Eventjet\Json\Internal\NestedCollectionType;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
 use Eventjet\Json\Internal\ObjectHydrator;
@@ -66,10 +66,7 @@ use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionTypeResolver;
 use Eventjet\Json\Internal\PublicPropertyHydrator;
-use Eventjet\Json\Internal\PublicPropertyNamedValueConverter;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\PublicPropertyUnionValueConverter;
-use Eventjet\Json\Internal\PublicPropertyValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\TupleType;
 use Eventjet\Json\Internal\TupleTypeResolver;
@@ -104,6 +101,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(JsonType::class)]
 #[CoversClass(ArrayJsonType::class)]
 #[CoversClass(ClassJsonType::class)]
+#[CoversClass(MapJsonType::class)]
 #[CoversClass(DecodeError::class)]
 #[CoversClass(BackedEnumCaseFinder::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
@@ -153,12 +151,11 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ListValueConverter::class)]
 #[CoversClass(MapDecodeError::class)]
 #[CoversClass(MapInputNormalizer::class)]
-#[CoversClass(MapJsonType::class)]
 #[CoversClass(MapValueConverter::class)]
 #[CoversClass(MetadataCache::class)]
-#[CoversClass(NamedFieldValueConverter::class)]
 #[CoversClass(NestedCollectionType::class)]
 #[CoversClass(NestedCollectionTypeResolver::class)]
+#[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ObjectTypeValidator::class)]
 #[CoversClass(ConstructorValidationPlan::class)]
 #[CoversClass(ConstructorValueValidator::class)]
@@ -166,10 +163,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ObjectHydrator::class)]
 #[CoversClass(PublicPropertyHydrator::class)]
 #[CoversClass(\Eventjet\Json\Internal\PublicProperties::class)]
-#[CoversClass(PublicPropertyNamedValueConverter::class)]
 #[CoversClass(PublicPropertyTypeValidator::class)]
-#[CoversClass(PublicPropertyUnionValueConverter::class)]
-#[CoversClass(PublicPropertyValueConverter::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 final class AcceptanceTest extends TestCase

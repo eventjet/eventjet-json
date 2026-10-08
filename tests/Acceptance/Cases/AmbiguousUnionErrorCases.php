@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use ArrayObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
+use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\OverlappingEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField;
@@ -32,6 +34,36 @@ final class AmbiguousUnionErrorCases
      */
     private static function enumAlternatives(): iterable
     {
+        $enumFloat = PhpType::union(IntBackedStatus::class, PhpType::Float);
+        foreach (['param', 'var'] as $tag) {
+            foreach ([
+                [(string) $enumFloat, '', 'value'],
+                ['array', PhpType::list($enumFloat), 'value'],
+                ['array', PhpType::tuple($enumFloat), 'value[0]'],
+                [ArrayObject::class, PhpType::arrayObject($enumFloat), 'value'],
+                ['array', PhpType::list(PhpType::list($enumFloat)), 'value'],
+            ] as [$native, $declaration, $path]) {
+                $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
+                foreach (['{}', '{"value":1}', '{"value":2}'] as $json) {
+                    yield $tag
+                        . ' rejects enum/float ambiguity in '
+                        . $native
+                        . ' '
+                        . (string) $declaration
+                        . ' '
+                        . $json => [
+                        $json,
+                        $class,
+                        'Could not create '
+                            . $class
+                            . ' from the JSON object: Field '
+                            . $path
+                            . ' uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus together with float. Whole-valued floats encode as JSON integers, so JSON cannot distinguish an enum case from a float value.',
+                        3,
+                    ];
+                }
+            }
+        }
         yield 'overlapping enum backing values are rejected even when absent' => [
             '{}',
             new OverlappingEnumUnionField(StringBackedStatus::Ready)::class,

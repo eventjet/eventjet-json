@@ -38,6 +38,11 @@ final class FieldTypeNameResolver
         return $parent === false ? $name : $parent->getName();
     }
 
+    public static function expected(ReflectionNamedType $type, string $name): string
+    {
+        return $type->allowsNull() && $name !== 'null' ? $name . '|null' : $name;
+    }
+
     /** @return 'bool'|'float'|'int'|'string'|class-string|null */
     public static function resolvePhpDoc(ReflectionParameter|ReflectionProperty $field, string $type): string|null
     {

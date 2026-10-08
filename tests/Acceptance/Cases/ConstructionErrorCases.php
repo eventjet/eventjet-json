@@ -21,6 +21,23 @@ final class ConstructionErrorCases
      */
     public static function errors(): iterable
     {
+        foreach (['"invalid"', 'false', 'null', '[]', '{}'] as $value) {
+            $type = match ($value) {
+                '"invalid"' => 'string',
+                'false' => 'bool',
+                'null' => 'null',
+                '[]' => 'array',
+                default => 'stdClass',
+            };
+            yield 'public-property ' . $type . ' input is rejected before construction' => [
+                '{"value":"rejected","other":' . $value . '}',
+                ThrowingConstructor::class,
+                'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ThrowingConstructor from the JSON object: Field other must be of type int, '
+                    . $type
+                    . ' given.',
+                3,
+            ];
+        }
         yield 'constructor throws an exception' => [
             '{"value":"rejected"}',
             new ThrowingConstructor('accepted')::class,

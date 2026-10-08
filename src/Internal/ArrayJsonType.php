@@ -6,11 +6,9 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\JsonType;
+use JsonException;
 use Override;
 use ReflectionException;
-
-use function array_key_exists;
-use function sprintf;
 
 /**
  * @internal
@@ -30,39 +28,14 @@ final readonly class ArrayJsonType extends JsonType
 
     /**
      * @return list<T>|DecodeError
+     * @throws JsonException
      * @throws ReflectionException
      */
     #[Override]
     public function decodeValue(mixed $value, string $path = ''): array|DecodeError
     {
-        $class = $this->itemClass();
-        $values = ListInputNormalizer::normalize(
-            $class,
-            $path,
-            (string) $this->collectionItem(),
-            $this->collection,
-            $value,
-        );
-
-        if ($values instanceof DecodeError) {
-            return $values;
-        }
-
-        $converted = [];
-        $index = 0;
-
-        while (array_key_exists($index, $values)) {
-            $convertedItem = $this->itemType->decodeValue($values[$index], sprintf('%s[%d]', $path, $index));
-
-            if ($convertedItem instanceof DecodeError) {
-                return $convertedItem;
-            }
-
-            $converted[] = $convertedItem;
-            ++$index;
-        }
-
-        return $converted;
+        /** @var list<T>|DecodeError */
+        return CollectionValueConverter::convert($this->itemClass(), $path, $this->collection, $value);
     }
 
     #[Override]

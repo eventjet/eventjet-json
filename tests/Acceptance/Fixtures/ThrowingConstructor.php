@@ -10,6 +10,8 @@ final class ThrowingConstructor
 {
     private static RuntimeException|null $exception = null;
 
+    public int $other = 0;
+
     /** @throws RuntimeException */
     public function __construct(
         public string $value,

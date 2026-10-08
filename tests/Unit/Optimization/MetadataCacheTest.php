@@ -8,9 +8,12 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\ClassJsonType;
 use Eventjet\Json\Internal\ClassUnionValidator;
+use Eventjet\Json\Internal\CollectionItemValueConverter;
 use Eventjet\Json\Internal\CollectionTypeResolver;
 use Eventjet\Json\Internal\CollectionTypeValidator;
+use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorParameters;
 use Eventjet\Json\Internal\ConstructorValidationPlan;
@@ -18,20 +21,27 @@ use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldCollectionUnionResolver;
+use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
+use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
+use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\ObjectTypeValidator;
+use Eventjet\Json\Internal\ObjectValueConverter;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocItemTypeResolver;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PublicProperties;
+use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
+use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
@@ -41,6 +51,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\PublicPropertiesWithConstructor;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StaticConstructorParameterProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
+use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -63,7 +74,17 @@ use function class_alias;
 #[CoversClass(ConstructorParameters::class)]
 #[UsesClass(ConstructorValidationPlan::class)]
 #[UsesClass(ConstructorValueValidator::class)]
+#[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ObjectTypeValidator::class)]
+#[CoversClass(ObjectValueConverter::class)]
+#[CoversClass(ClassJsonType::class)]
+#[UsesClass(CollectionItemValueConverter::class)]
+#[UsesClass(ConcreteClassValueConverter::class)]
+#[UsesClass(ObjectHydrator::class)]
+#[UsesClass(PublicPropertyHydrator::class)]
+#[UsesClass(FieldPath::class)]
+#[UsesClass(RootTypeValidator::class)]
+#[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(PublicProperties::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(BackedEnumCaseFinder::class)]
@@ -90,6 +111,7 @@ final class MetadataCacheTest extends TestCase
 {
     /**
      * @throws Exception
+     * @throws JsonException
      * @throws ReflectionException
      */
     #[RunInSeparateProcess]
@@ -134,6 +156,20 @@ final class MetadataCacheTest extends TestCase
         static::assertNotSame($firstParameters, $secondParameters);
         static::assertSame($firstParameters, ConstructorParameters::resolve($firstClass));
         static::assertSame($secondParameters, ConstructorParameters::resolve($secondClass));
+
+        $converterCache = new ReflectionProperty(ObjectValueConverter::class, 'fields');
+        static::assertSame(['value' => 1], ObjectValueConverter::convert($firstClass, ['value' => 1], [], ''));
+        /** @var array<class-string, array<string, FieldValueConverter>> $cachedConverters */
+        $cachedConverters = $converterCache->getValue();
+        static::assertSame(['value' => 2], ObjectValueConverter::convert($firstClass, ['value' => 2], [], ''));
+        static::assertSame($cachedConverters, $converterCache->getValue());
+
+        $descriptor = new ClassJsonType($firstClass->getName());
+        $input = new stdClass();
+        $input->value = 3;
+        static::assertEquals($firstClass->newInstance(3), $descriptor->decodeValue($input));
+        static::assertInstanceOf(DecodeError::class, $descriptor->decodeValue(false));
+        static::assertSame(IntBackedStatus::Ready, new ClassJsonType(IntBackedStatus::class)->decodeValue(1));
 
         $union = ConstructorParameters::resolve(new ReflectionClass(DistinctEnumScalarUnionField::class));
         $unionParameter = $union[0] ?? null;

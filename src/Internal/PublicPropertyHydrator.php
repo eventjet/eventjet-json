@@ -8,7 +8,6 @@ use Eventjet\Json\DecodeError;
 use JsonException;
 use ReflectionClass;
 use ReflectionException;
-use ReflectionNamedType;
 use ReflectionProperty;
 
 /** @internal */
@@ -17,17 +16,13 @@ final class PublicPropertyHydrator
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @param T $object
      * @param array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values
+     * @return list<array{property: ReflectionProperty, value: mixed}>|DecodeError
      * @throws JsonException
      * @throws ReflectionException
      */
-    public static function hydrate(
-        ReflectionClass $class,
-        object $object,
-        array $values,
-        string $path,
-    ): DecodeError|null {
+    public static function prepare(ReflectionClass $class, array $values, string $path): array|DecodeError
+    {
         $publicProperties = PublicProperties::resolve($class);
         if ($publicProperties instanceof DecodeError) {
             return $publicProperties;
@@ -43,40 +38,29 @@ final class PublicPropertyHydrator
                 continue;
             }
 
-            if (
-                $field['collection'] === null
-                && $field['type'] instanceof ReflectionNamedType
-                && $field['type']->isBuiltin()
-            ) {
-                $matches = ValueTypeMatcher::matches($value, $field['type']);
+            $builtinType = $field['builtinType'];
+            if ($builtinType !== null) {
+                $matches = ValueTypeMatcher::matches($value, $builtinType);
                 if ($matches) {
                     $assignments[] = ['property' => $field['property'], 'value' => $value];
                     continue;
                 }
             }
-            $assignment = PublicPropertyValueConverter::convert(
-                $class->getName(),
-                $field['property'],
-                [
-                    'type' => $field['type'],
-                    'typeName' => $field['typeName'],
-                    'collection' => $field['collection'],
-                    'path' => FieldPath::field($path, $inputField),
-                ],
-                $value,
-            );
-
-            if ($assignment instanceof DecodeError) {
-                return $assignment;
+            $converted = $field['converter']->convert($class->getName(), $value, FieldPath::field($path, $inputField));
+            if ($converted instanceof DecodeError) {
+                return $converted;
             }
-
-            $assignments[] = $assignment;
+            $assignments[] = ['property' => $field['property'], 'value' => $converted];
         }
 
+        return $assignments;
+    }
+
+    /** @param list<array{property: ReflectionProperty, value: mixed}> $assignments */
+    public static function assign(object $object, array $assignments): void
+    {
         foreach ($assignments as $assignment) {
             $assignment['property']->setValue($object, $assignment['value']);
         }
-
-        return null;
     }
 }

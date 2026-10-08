@@ -31,10 +31,7 @@ final readonly class ConstructorValueValidator
         )) {
             return null;
         }
-        $expected = $parameter->typeName;
-        if ($type->allowsNull() && $expected !== 'null') {
-            $expected .= '|null';
-        }
+        $expected = FieldTypeNameResolver::expected($type, $parameter->typeName);
         return new self($type, $expected);
     }
 

@@ -93,13 +93,13 @@ final class TupleValueErrorCases
             '{"value":[42]}',
             CollectionDeclarationFixture::create(
                 'array',
-                PhpType::tuple(PhpType::union(IntBackedStatus::class, PhpType::Float)),
+                PhpType::tuple(PhpType::union(IntBackedStatus::class, PhpType::Bool)),
                 'var',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
                     'array',
-                    PhpType::tuple(PhpType::union(IntBackedStatus::class, PhpType::Float)),
+                    PhpType::tuple(PhpType::union(IntBackedStatus::class, PhpType::Bool)),
                     'var',
                 )
                 . ' from the JSON object: Field value[0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus, which has no case with backing value 42.',

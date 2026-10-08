@@ -16,10 +16,9 @@ use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
+use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\MetadataCache;
-use Eventjet\Json\Internal\NamedFieldValueConverter;
 use Eventjet\Json\Internal\ObjectTypeValidator;
-use Eventjet\Json\Internal\PublicPropertyNamedValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
@@ -35,12 +34,11 @@ use RuntimeException;
 
 use function class_alias;
 
-#[CoversClass(NamedFieldValueConverter::class)]
+#[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ObjectTypeValidator::class)]
 #[CoversClass(ConstructorValidationPlan::class)]
 #[CoversClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
-#[CoversClass(PublicPropertyNamedValueConverter::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
 #[UsesClass(BackedEnumCaseFinder::class)]
 #[UsesClass(DecodeError::class)]
