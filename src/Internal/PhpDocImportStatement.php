@@ -9,6 +9,7 @@ use function explode;
 use function ltrim;
 use function preg_match;
 use function preg_replace;
+use function str_contains;
 use function strtolower;
 use function trim;
 
@@ -21,7 +22,7 @@ final class PhpDocImportStatement
         $isNonClassImport = preg_match('/\A\s*(?:function|const)\s/i', $statement) === 1;
         $isConstantImport = preg_match('/\A\s*const\s/i', $statement) === 1;
         $selected = $kind === PhpDocImportKind::Constant ? $isConstantImport : !$isNonClassImport;
-        if (!$selected) {
+        if (!$selected && ($isNonClassImport || !str_contains($statement, '{'))) {
             return [];
         }
         $statement = $kind === PhpDocImportKind::Constant
@@ -40,6 +41,15 @@ final class PhpDocImportStatement
 
         $imports = [];
         foreach (explode(',', $members) as $member) {
+            if ($kind === PhpDocImportKind::Constant && !$isConstantImport) {
+                $constant = [];
+                $matchedConstant = preg_match('/\A\s*const\s+([\s\S]*)\z/i', $member, $constant);
+                if ($matchedConstant !== 1) {
+                    continue;
+                }
+                /** @var array{string, string} $constant */
+                $member = $constant[1];
+            }
             $matches = [];
             $matched = preg_match(
                 '/\A\s*(\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff\\\\]*)(?:\s+as\s+([A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*))?\s*\z/i',

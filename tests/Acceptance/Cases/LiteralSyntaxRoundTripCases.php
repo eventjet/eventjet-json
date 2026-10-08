@@ -22,7 +22,7 @@ final class LiteralSyntaxRoundTripCases
      */
     public static function objects(): iterable
     {
-        foreach (self::values() as $index => [$declaration, $native, $value]) {
+        foreach ([...self::values(), ...self::numericValues()] as $index => [$declaration, $native, $value]) {
             foreach (['param', 'var'] as $tag) {
                 yield 'literal syntax ' . $index . ' ' . $declaration . ' in ' . $tag =>
                     [CollectionDeclarationFixture::object($native, $declaration, $tag, $value)];
@@ -41,6 +41,8 @@ final class LiteralSyntaxRoundTripCases
             ["'foo'|string", 'string', 'other'],
             ['float|3.0', 'float', 4.0],
             ['\\' . ExtendedLiteralFields::class . '::NUMBER|43', 'int', 43],
+            ['43|\\' . ExtendedLiteralFields::class . '::NUMBER', 'int', 43],
+            ['\\' . StringBackedStatus::class . "|'other'", '\\' . StringBackedStatus::class . '|string', 'other'],
             ['\\' . ExtendedLiteralFields::class . '::CLASS', 'string', ExtendedLiteralFields::class],
             [
                 '\\' . StringBackedStatus::class . '|\\' . StringBackedStatus::class . '::Ready',
@@ -65,6 +67,13 @@ final class LiteralSyntaxRoundTripCases
             ['"hello @var world"', 'string', 'hello @var world'],
             ['"\\r\\t\\f\\v\\e"', 'string', "\r\t\f\v\e"],
             ['"\\0"', 'string', "\0"],
+        ];
+    }
+
+    /** @return list<array{string, string, string|int|float|StringBackedStatus}> */
+    private static function numericValues(): array
+    {
+        return [
             ['0x2a', 'int', 42],
             ['0b101010', 'int', 42],
             ['0o52', 'int', 42],

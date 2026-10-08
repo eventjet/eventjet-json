@@ -11,7 +11,6 @@ use ReflectionException;
 
 use function enum_exists;
 use function json_encode;
-use function ltrim;
 
 /** @internal */
 final class PhpDocLiteralEnumOverlap
@@ -22,7 +21,7 @@ final class PhpDocLiteralEnumOverlap
         if (!enum_exists($other)) {
             return false;
         }
-        if ($literal instanceof BackedEnum && $literal::class === ltrim($other, characters: '\\')) {
+        if ($literal instanceof BackedEnum && $literal::class === $other) {
             return false;
         }
         $value = $literal instanceof BackedEnum ? $literal->value : $literal;

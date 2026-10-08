@@ -80,13 +80,12 @@ final class ClassUnionValidator
             return FieldCollectionUnionResolver::resolve($class, $field, $type);
         }
         $fieldName = $field->getName();
-        $literals = FieldTypeNameResolver::hasPhpDoc($field) ? PhpDocLiteralField::resolve($field) : null;
-        $unionError = self::validate($class, $field, $type) ?? EnumUnionValidator::validate(
-            $class,
-            $fieldName,
-            $type,
-            $literals,
-        );
+        $literals = FieldTypeNameResolver::hasScalarPhpDoc($field) ? PhpDocLiteralField::resolve($field) : null;
+        $classError = self::validate($class, $field, $type);
+        if ($classError !== null) {
+            return $classError;
+        }
+        $unionError = EnumUnionValidator::validate($class, $fieldName, $type, $literals);
 
         if ($unionError !== null) {
             return $unionError;
@@ -118,11 +117,7 @@ final class ClassUnionValidator
         }
         if ($literals !== null) {
             $literalUnion = new CollectionUnionType($literals);
-            return (
-                PhpDocLiteralFieldValidator::validate($class, $field)
-                ?? CollectionUnionTypeValidator::validate($class, $fieldName, $literalUnion)
-                ?? $literalUnion
-            );
+            return CollectionUnionTypeValidator::validate($class, $fieldName, $literalUnion) ?? $literalUnion;
         }
         return in_array(null, $memberResults, strict: true) ? null : false;
     }

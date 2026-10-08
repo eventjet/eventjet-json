@@ -16,19 +16,16 @@ final class PhpDocLiteralScalarConverter
 {
     /**
      * @param class-string $class
-     * @param list<string>|null $names
+     * @param list<string> $names
      * @param array<array-key, mixed>|bool|float|int|object|string|null $value
      * @return array<array-key, mixed>|bool|float|int|object|string|null
      */
     public static function convert(
         string $class,
         string $path,
-        array|null $names,
+        array $names,
         mixed $value,
     ): array|bool|float|int|object|string|null {
-        if ($names === null) {
-            return $value;
-        }
         $matches = self::matches($names, $value);
         return $matches ? $value : DecodeError::fieldTypeMismatch($class, $path, implode('|', $names), $value);
     }

@@ -12,8 +12,8 @@ use function is_file;
 /** @internal */
 final class PhpDocImports
 {
-    /** @var MetadataCache<array<string, string>>|null */
-    private static MetadataCache|null $imports = null;
+    /** @var array<string, MetadataCache<array<string, string>>> */
+    private static array $imports = [];
 
     /**
      * @param ReflectionClass<object> $class
@@ -22,11 +22,11 @@ final class PhpDocImports
     public static function forClass(ReflectionClass $class, PhpDocImportKind $kind = PhpDocImportKind::ClassName): array
     {
         /** @var MetadataCache<array<string, string>> $cache */
-        $cache = self::$imports ?? new MetadataCache();
-        self::$imports = $cache;
+        $cache = self::$imports[$kind->name] ?? new MetadataCache();
+        self::$imports[$kind->name] = $cache;
 
         return $cache->resolve(
-            $class->getName() . ':' . $kind->name,
+            $class->getName(),
             /** @return array<string, string> */ static fn(): array => self::load($class, $kind),
         );
     }

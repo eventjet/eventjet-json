@@ -10,8 +10,8 @@ use ReflectionProperty;
 
 use function array_any;
 use function count;
-use function in_array;
 use function is_string;
+use function preg_match;
 
 /** @internal */
 final class PhpDocLiteralField
@@ -20,13 +20,8 @@ final class PhpDocLiteralField
      * @return list<string>|null
      * @throws ReflectionException
      */
-    public static function resolve(
-        ReflectionParameter|ReflectionProperty $field,
-        ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
-    ): array|null {
-        if ($collection !== null) {
-            return null;
-        }
+    public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
+    {
         $type = PhpDocFieldType::resolve($field);
         if ($type === null) {
             return null;
@@ -45,8 +40,11 @@ final class PhpDocLiteralField
             $names[] = $resolved;
         }
         $hasLiteral =
-            count($names) === 1 && in_array('null', $names, strict: true)
-            || array_any($names, static fn(string $name): bool => PhpDocLiteral::value($name) !== null);
+            count($names) === 1 && $names[0] === 'null'
+            || array_any(
+                $names,
+                static fn(string $name): bool => preg_match('/\A(?:[\x27"0-9.+-]|true\z|false\z)|::/', $name) === 1,
+            );
         return $hasLiteral ? $names : null;
     }
 }

@@ -43,6 +43,29 @@ final class LiteralTypeCases
     public static function errors(): iterable
     {
         yield from LiteralDeclarationErrorCases::errors();
+        foreach ([
+            ['array', 'list<null>', '[true]', 'value[0]', 'null', 'bool'],
+            ['array', 'list<42>',   '[null]', 'value[0]', '42',   'null'],
+            ['int',   '42',         '43',     'value',    '42',   'int'],
+        ] as [$native, $declaration, $value, $path, $expected, $actual]) {
+            foreach (['param', 'var'] as $tag) {
+                $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
+                yield 'literal mismatch ' . $declaration . ' ' . $tag => [
+                    '{"value":' . $value . '}',
+                    $class,
+                    'Could not create '
+                        . $class
+                        . ' from the JSON object: Field '
+                        . $path
+                        . ' must be of type '
+                        . $expected
+                        . ', '
+                        . $actual
+                        . ' given.',
+                    3,
+                ];
+            }
+        }
         yield 'null constant rejects non-null value' => [
             '{"nothing":true}',
             LiteralConstantFields::class,

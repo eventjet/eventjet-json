@@ -44,10 +44,15 @@ final class FieldCollectionUnionResolver
         if ($shapeError !== null) {
             return $shapeError;
         }
-        $error =
-            FieldCollectionUnionValidator::validate($class, $field, $native, $union)
-            ?? PhpDocLiteralUnionValidator::validate($class, $field->getName(), $union->names())
-            ?? EnumUnionValidator::validateNames($class, $field->getName(), $union->names());
+        $error = FieldCollectionUnionValidator::validate($class, $field, $native, $union);
+        if ($error !== null) {
+            return $error;
+        }
+        $error = PhpDocLiteralUnionValidator::validate($class, $field->getName(), $union->names());
+        if ($error !== null) {
+            return $error;
+        }
+        $error = EnumUnionValidator::validateNames($class, $field->getName(), $union->names());
         return $error ?? $union;
     }
 }

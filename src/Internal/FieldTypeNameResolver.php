@@ -20,10 +20,13 @@ use function strcasecmp;
 final class FieldTypeNameResolver
 {
     /** @mutation-free */
-    public static function hasPhpDoc(ReflectionParameter|ReflectionProperty $field): bool
-    {
+    public static function hasScalarPhpDoc(
+        ReflectionParameter|ReflectionProperty $field,
+        ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
+    ): bool {
         return (
-            (
+            $collection === null
+            && (
                 $field instanceof ReflectionParameter
                     ? $field->getDeclaringFunction()->getDocComment()
                     : $field->getDocComment()

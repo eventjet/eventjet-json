@@ -40,12 +40,13 @@ final class PhpDocItemTypeResolver
     }
 
     /** @return string|null */
-    public static function named(ReflectionParameter|ReflectionProperty $field, PhpDocType $type): string|null
+    private static function named(ReflectionParameter|ReflectionProperty $field, PhpDocType $type): string|null
     {
         $arguments = $type->arguments;
 
         if ($arguments === []) {
-            $literal = PhpDocLiteral::value($type->name);
+            $literalSyntax = preg_match('/\A(?:[\x27"0-9.+-]|true\z|false\z|null\z)|::/', $type->name) === 1;
+            $literal = $literalSyntax ? PhpDocLiteral::value($type->name) : null;
             if ($literal !== null || $type->name === 'null') {
                 return $type->name;
             }

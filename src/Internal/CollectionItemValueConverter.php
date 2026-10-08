@@ -73,12 +73,7 @@ final class CollectionItemValueConverter
             return ConcreteClassValueConverter::convertCollectionItem($class, $path, $type, $value);
         }
 
-        $literal = PhpDocLiteral::value($type);
-        if ($literal !== null || $type === 'null') {
-            return PhpDocLiteralValueConverter::convert($class, $path, $type, $value);
-        }
-
-        return DecodeError::fieldTypeMismatch($class, $path, $type, $value);
+        return PhpDocLiteralValueConverter::convert($class, $path, $type, $value);
     }
 
     private static function convertFloat(mixed $value): float|null

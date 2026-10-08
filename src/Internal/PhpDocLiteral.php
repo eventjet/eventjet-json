@@ -32,13 +32,8 @@ final class PhpDocLiteral
         if ($name === 'true' || $name === 'false') {
             return $name === 'true';
         }
-        $literalSyntax = preg_match('/\A[\x27"0-9.+-]/', $name);
-        if ($literalSyntax !== 1) {
-            return null;
-        }
-        return $name[0] === "'" || $name[0] === '"'
-            ? PhpDocLiteralString::parse($name)
-            : PhpDocLiteralNumber::parse($name);
+        $quoted = preg_match('/\A[\x27"]/', $name) === 1;
+        return $quoted ? PhpDocLiteralString::parse($name) : PhpDocLiteralNumber::parse($name);
     }
 
     public static function matches(string $name, mixed $value): bool

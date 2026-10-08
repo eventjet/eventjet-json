@@ -4,13 +4,31 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Unit;
 
+use Eventjet\Json\Internal\FieldTypeNameResolver;
+use Eventjet\Json\Internal\MetadataCache;
+use Eventjet\Json\Internal\NestedCollectionTypeResolver;
+use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocConstantValues;
+use Eventjet\Json\Internal\PhpDocFieldType;
+use Eventjet\Json\Internal\PhpDocImportKind;
+use Eventjet\Json\Internal\PhpDocImports;
+use Eventjet\Json\Internal\PhpDocImportScanner;
+use Eventjet\Json\Internal\PhpDocImportStatement;
+use Eventjet\Json\Internal\PhpDocItemTypeResolver;
+use Eventjet\Json\Internal\PhpDocLiteral;
+use Eventjet\Json\Internal\PhpDocLiteralField;
 use Eventjet\Json\Internal\PhpDocLiteralNumber;
 use Eventjet\Json\Internal\PhpDocLiteralString;
 use Eventjet\Json\Internal\PhpDocStringEscape;
+use Eventjet\Json\Internal\PhpDocTokenStream;
+use Eventjet\Json\Internal\PhpDocType;
+use Eventjet\Json\Internal\PhpDocTypeParser;
+use Eventjet\Json\Internal\PhpDocTypeTokens;
+use Eventjet\Json\Internal\PhpDocUnionTypeResolver;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionNamedType;
 use ReflectionProperty;
@@ -25,8 +43,41 @@ use const PHP_INT_MIN;
 #[CoversClass(PhpDocStringEscape::class)]
 #[CoversClass(PhpDocConstantValues::class)]
 #[CoversClass(ValueTypeMatcher::class)]
+#[CoversClass(PhpDocLiteralField::class)]
+#[UsesClass(PhpDocFieldType::class)]
+#[UsesClass(PhpDocItemTypeResolver::class)]
+#[UsesClass(PhpDocLiteral::class)]
+#[UsesClass(PhpDocUnionTypeResolver::class)]
+#[UsesClass(PhpDocType::class)]
+#[UsesClass(PhpDocTypeParser::class)]
+#[UsesClass(PhpDocTypeTokens::class)]
+#[UsesClass(PhpDocTokenStream::class)]
+#[UsesClass(NestedCollectionTypeResolver::class)]
+#[UsesClass(FieldTypeNameResolver::class)]
+#[UsesClass(PhpDocClassNameResolver::class)]
+#[UsesClass(PhpDocImports::class)]
+#[UsesClass(PhpDocImportKind::class)]
+#[UsesClass(PhpDocImportScanner::class)]
+#[UsesClass(PhpDocImportStatement::class)]
+#[UsesClass(MetadataCache::class)]
 final class LiteralTypeTest extends TestCase
 {
+    /** @throws \ReflectionException */
+    public function testOrdinaryPhpDocDoesNotConstrainScalarValues(): void
+    {
+        $object = new class {
+            /** @var int */
+            public int $integer = 42;
+            /** @var string|null */
+            public string|null $text = null;
+            /** @var null */
+            public null $nothing = null;
+        };
+        static::assertNull(PhpDocLiteralField::resolve(new ReflectionProperty($object, 'integer')));
+        static::assertNull(PhpDocLiteralField::resolve(new ReflectionProperty($object, 'text')));
+        static::assertSame(['null'], PhpDocLiteralField::resolve(new ReflectionProperty($object, 'nothing')));
+    }
+
     public function testIntegerBoundariesAndNotation(): void
     {
         foreach ([
@@ -80,6 +131,7 @@ final class LiteralTypeTest extends TestCase
     public function testConstantValuesKeepScalarTypesAndEscapedStrings(): void
     {
         static::assertSame("'a\\\\b\\'c'", PhpDocConstantValues::name("a\\b'c"));
+        static::assertSame("'a\0b'", PhpDocConstantValues::name("a\0b"));
         static::assertSame('null', PhpDocConstantValues::name(null));
         static::assertSame('true', PhpDocConstantValues::name(true));
         static::assertSame('false', PhpDocConstantValues::name(false));
@@ -90,6 +142,15 @@ final class LiteralTypeTest extends TestCase
         static::assertNull(PhpDocConstantValues::name(INF));
         static::assertNull(PhpDocConstantValues::name(NAN));
         static::assertNull(PhpDocConstantValues::name([]));
+    }
+
+    /** @throws \ReflectionException */
+    public function testUnsupportedClassConstantCannotBecomeALiteral(): void
+    {
+        $object = new class {
+            public const array VALUES = [42];
+        };
+        static::assertNull(PhpDocConstantValues::resolve($object::class, 'VALUES'));
     }
 
     /**
