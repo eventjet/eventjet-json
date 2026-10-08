@@ -23,6 +23,7 @@ use function file_get_contents;
 final class SupportedDocumentRoundTripCases
 {
     /**
+     * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{string, class-string, callable(object): bool}>
      * @throws RuntimeException
      */
