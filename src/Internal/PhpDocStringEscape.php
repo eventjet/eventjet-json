@@ -18,7 +18,7 @@ final class PhpDocStringEscape
     public static function decode(string $escape): string|null
     {
         $kind = $escape[1];
-        if ($kind === "'" || $kind === '"' || $kind === '\\') {
+        if ($kind === "'" || $kind === '"' || $kind === '\\' || $kind === '$') {
             return $kind;
         }
         if ($kind !== 'u') {

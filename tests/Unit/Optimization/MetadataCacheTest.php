@@ -106,6 +106,19 @@ use function class_alias;
 #[UsesClass(FieldCollectionUnionResolver::class)]
 #[UsesClass(FieldNameCollisions::class)]
 #[UsesClass(FieldNames::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantResolver::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocImports::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocImportScanner::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocImportStatement::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokenStream::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNamespaceDeclaration::class)]
 final class MetadataCacheTest extends TestCase
 {
     /**

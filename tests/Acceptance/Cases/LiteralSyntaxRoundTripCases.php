@@ -58,6 +58,7 @@ final class LiteralSyntaxRoundTripCases
             ['"\\u{20ac}"', 'string', "\u{20ac}"],
             ['"\\q"', 'string', '\q'],
             ['"$literal"', 'string', '$literal'],
+            ['"\\$literal"', 'string', '$literal'],
             ["'foo@bar'", 'string', 'foo@bar'],
             ['"hello @var world"', 'string', 'hello @var world'],
             ['"\\r\\t\\f\\v\\e"', 'string', "\r\t\f\v\e"],
