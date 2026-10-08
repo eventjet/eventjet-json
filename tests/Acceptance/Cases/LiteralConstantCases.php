@@ -25,6 +25,11 @@ final class LiteralConstantCases
     {
         $cases = [
             [
+                'use Eventjet\\Json\\Test\\Acceptance\\Fixtures\\{ExtendedLiteralFields, CONST LITERAL_NUMBER as Number};',
+                'Number',
+                42,
+            ],
+            [
                 'use Eventjet\\Json\\Test\\Acceptance\\Fixtures\\{ExtendedLiteralFields, const LITERAL_NUMBER as Number, function unused};',
                 'Number',
                 42,

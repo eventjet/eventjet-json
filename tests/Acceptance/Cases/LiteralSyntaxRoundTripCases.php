@@ -50,6 +50,8 @@ final class LiteralSyntaxRoundTripCases
                 StringBackedStatus::Pending,
             ],
             ["'foo'", 'string', 'foo'],
+            ["'foo\nbar'", 'string', "foo\nbar"],
+            ["\"foo\nbar\"", 'string', "foo\nbar"],
             ['"foo"', 'string', 'foo'],
             ["'it\\'s'", 'string', "it's"],
             ['"a\\"b"', 'string', 'a"b'],

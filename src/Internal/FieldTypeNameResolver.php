@@ -11,9 +11,8 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function class_exists;
-use function enum_exists;
-use function in_array;
 use function interface_exists;
+use function str_contains;
 use function strcasecmp;
 
 /** @internal */
@@ -24,14 +23,11 @@ final class FieldTypeNameResolver
         ReflectionParameter|ReflectionProperty $field,
         ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
     ): bool {
-        return (
-            $collection === null
-            && (
-                $field instanceof ReflectionParameter
-                    ? $field->getDeclaringFunction()->getDocComment()
-                    : $field->getDocComment()
-            ) !== false
-        );
+        $doc = $field instanceof ReflectionParameter
+            ? $field->getDeclaringFunction()->getDocComment()
+            : $field->getDocComment();
+        $name = $field instanceof ReflectionParameter ? '$' . $field->getName() : '';
+        return $collection === null && $doc !== false && str_contains($doc, $name);
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
@@ -62,22 +58,23 @@ final class FieldTypeNameResolver
     /** @return 'bool'|'float'|'int'|'string'|class-string|null */
     public static function resolvePhpDoc(ReflectionParameter|ReflectionProperty $field, string $type): string|null
     {
-        if (in_array($type, ['non-empty-string', 'numeric-string', 'literal-string'], strict: true)) {
-            return 'string';
-        }
-
-        $isRefinedInteger = in_array(
-            $type,
-            ['positive-int', 'negative-int', 'non-positive-int', 'non-negative-int', 'non-zero-int'],
-            strict: true,
-        );
-
-        if ($isRefinedInteger) {
-            return 'int';
-        }
-
-        if (in_array($type, ['bool', 'float', 'int', 'string'], strict: true)) {
-            return $type;
+        $refined =
+            [
+                'non-empty-string' => 'string',
+                'numeric-string' => 'string',
+                'literal-string' => 'string',
+                'positive-int' => 'int',
+                'negative-int' => 'int',
+                'non-positive-int' => 'int',
+                'non-negative-int' => 'int',
+                'non-zero-int' => 'int',
+                'bool' => 'bool',
+                'float' => 'float',
+                'int' => 'int',
+                'string' => 'string',
+            ][$type] ?? null;
+        if ($refined !== null) {
+            return $refined;
         }
 
         /** @var ReflectionClass<object> $declaringClass */
@@ -89,8 +86,6 @@ final class FieldTypeNameResolver
 
         $resolvedType = PhpDocClassNameResolver::resolve($declaringClass, $type);
 
-        return enum_exists($resolvedType) || class_exists($resolvedType) || interface_exists($resolvedType)
-            ? $resolvedType
-            : null;
+        return class_exists($resolvedType) || interface_exists($resolvedType) ? $resolvedType : null;
     }
 }

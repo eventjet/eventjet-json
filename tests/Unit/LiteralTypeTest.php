@@ -44,7 +44,7 @@ use const PHP_INT_MIN;
 #[CoversClass(PhpDocConstantValues::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(PhpDocLiteralField::class)]
-#[UsesClass(PhpDocFieldType::class)]
+#[CoversClass(PhpDocFieldType::class)]
 #[UsesClass(PhpDocItemTypeResolver::class)]
 #[UsesClass(PhpDocLiteral::class)]
 #[UsesClass(PhpDocUnionTypeResolver::class)]
@@ -76,6 +76,10 @@ final class LiteralTypeTest extends TestCase
         static::assertNull(PhpDocLiteralField::resolve(new ReflectionProperty($object, 'integer')));
         static::assertNull(PhpDocLiteralField::resolve(new ReflectionProperty($object, 'text')));
         static::assertSame(['null'], PhpDocLiteralField::resolve(new ReflectionProperty($object, 'nothing')));
+        static::assertSame(
+            PhpDocFieldType::resolve(new ReflectionProperty($object, 'integer')),
+            PhpDocFieldType::resolve(new ReflectionProperty($object, 'integer')),
+        );
     }
 
     public function testIntegerBoundariesAndNotation(): void

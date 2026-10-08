@@ -43,6 +43,7 @@ final class LiteralDeclarationErrorCases
         }
         foreach ([
             ['int|float', '1|1.0'],
+            ['array|int|float', 'list<int>|1|1.0'],
             ['array', 'list<1|1.0>'],
             ['array', 'list<\\' . StringBackedStatus::class . '|\'ready\'>'],
             ['array', 'list<\\' . StringBackedStatus::class . '::Ready|\'ready\'>'],

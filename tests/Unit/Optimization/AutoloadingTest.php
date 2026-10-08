@@ -99,6 +99,15 @@ use function spl_autoload_unregister;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\CollectionTypeResolver::class)]
+#[UsesClass(\Eventjet\Json\Internal\CollectionValueConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\NestedCollectionTypeResolver::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocItemTypeResolver::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\ScalarListValueConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\ClassTypeDependencies::class)]
 final class AutoloadingTest extends TestCase
 {
     /** @throws ReflectionException */
@@ -123,6 +132,7 @@ final class AutoloadingTest extends TestCase
         );
     }
 
+    /** @throws ReflectionException */
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
     public function testConstructorOnlyObjectsDoNotLoadPropertyAssignmentCode(): void
@@ -143,6 +153,25 @@ final class AutoloadingTest extends TestCase
                 autoload: false,
             ));
         }
+        $collection = new class([42]) {
+            /** @param list<int> $values */
+            public function __construct(
+                public array $values,
+                public string $name = '',
+            ) {}
+        };
+        $collectionInput = new stdClass();
+        $collectionInput->values = [42];
+        static::assertSame(
+            [],
+            iterator_to_array(\Eventjet\Json\Internal\ClassTypeDependencies::field(
+                new \ReflectionProperty($collection, 'values'),
+                new \Eventjet\Json\Internal\ListType('int', false),
+            )),
+        );
+        static::assertEquals($collection, ObjectHydrator::hydrate($collection::class, $collectionInput));
+        static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralField::class, autoload: false));
+        static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteral::class, autoload: false));
     }
 
     /**
