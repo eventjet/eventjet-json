@@ -1,13 +1,18 @@
 name: Set up benchmark runtime
 description: Prepare PHP, dependencies, and FastCGI for performance tooling and measurements.
+inputs:
+  fpm:
+    description: Install the FastCGI client for request benchmarks.
+    default: 'true'
 runs:
   using: composite
   steps:
     - uses: ./.github/actions/setup-php
       with:
         php-version: '8.4'
-        extensions: none, bcmath, ctype, curl, dom, fileinfo, filter, iconv, intl, mbstring, opcache, pcntl, phar, posix, simplexml, tokenizer, xml, xmlreader, xmlwriter, zip
+        extensions: none, bcmath, ctype, curl, dom, fileinfo, filter, iconv, intl, mbstring, opcache, pcntl, phar, posix, simplexml, sodium, tokenizer, xml, xmlreader, xmlwriter, zip
     - name: Prepare request benchmark runtime
+      if: inputs.fpm == 'true'
       shell: bash
       run: |
         command -v php-fpm8.4

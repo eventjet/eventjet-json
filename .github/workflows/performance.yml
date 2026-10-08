@@ -55,13 +55,15 @@ jobs:
           bash .github/ci/tests/configuration.sh
           bash .github/ci/tests/fpm.sh
           bash .github/ci/tests/workloads.sh
+          bash .github/ci/tests/shards.sh
           node --test .github/ci/tests/comment.cjs
 
   measure:
-    name: ${{ inputs.calibrate && format('Calibrate decoder performance (OPcache {0}, sample {1})', matrix.opcache, matrix.sample) || format('Measure decoder performance (OPcache {0})', matrix.opcache) }}
+    name: Measure decoder performance (OPcache ${{ matrix.opcache }}, sample ${{ matrix.sample }}, shard ${{ matrix.shard }})
     strategy:
       fail-fast: false
       matrix:
+        shard: [1, 2, 3, 4]
         sample: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.calibrate && '[1,2,3,4,5]' || '[1]') }}
         opcache: ${{ fromJSON((inputs.opcache == 'on' && '["on"]') || (inputs.opcache == 'off' && '["off"]') || '["on", "off"]') }}
     runs-on: ubuntu-24.04
@@ -72,6 +74,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup-benchmark-runtime
+        with:
+          fpm: ${{ matrix.shard == 1 && 'true' || 'false' }}
       - name: Compare revisions
         shell: bash
         env:
@@ -80,14 +84,55 @@ jobs:
           WORKLOADS_REF: ${{ inputs.workloads || github.sha }}
           CALIBRATE: ${{ github.event_name == 'workflow_dispatch' && inputs.calibrate }}
           OPCACHE_MODE: ${{ matrix.opcache }}
+          SHARD: ${{ matrix.shard }}
         run: |
           if [ "$CALIBRATE" = true ]; then BASE_REF="$CANDIDATE_REF"; fi
-          php .github/ci/performance.php --base "$BASE_REF" --candidate "$CANDIDATE_REF" --opcache "$OPCACHE_MODE" --workloads "$WORKLOADS_REF" --fpm on
+          FPM=off
+          if [ "$SHARD" = 1 ]; then FPM=on; fi
+          php .github/ci/performance.php --base "$BASE_REF" --candidate "$CANDIDATE_REF" --opcache "$OPCACHE_MODE" --workloads "$WORKLOADS_REF" --fpm "$FPM" --shard "$SHARD"
       - name: Save measurements and environment
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: performance-${{ matrix.opcache }}-${{ github.sha }}-${{ github.run_attempt }}-${{ matrix.sample }}
+          name: performance-${{ matrix.opcache }}-${{ github.sha }}-${{ github.run_attempt }}-${{ matrix.sample }}-${{ matrix.shard }}
+          path: .perf/results
+          retention-days: 90
+
+  compare:
+    name: ${{ inputs.calibrate && format('Calibrate decoder performance (OPcache {0}, sample {1})', matrix.opcache, matrix.sample) || format('Compare decoder performance (OPcache {0})', matrix.opcache) }}
+    needs: [measure, tooling]
+    if: always()
+    strategy:
+      fail-fast: false
+      matrix:
+        sample: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.calibrate && '[1,2,3,4,5]' || '[1]') }}
+        opcache: ${{ fromJSON((inputs.opcache == 'on' && '["on"]') || (inputs.opcache == 'off' && '["off"]') || '["on", "off"]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.4'
+          extensions: none, ctype, simplexml
+          coverage: none
+          tools: none
+      - name: Download shard measurements
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: performance-${{ matrix.opcache }}-${{ github.sha }}-${{ github.run_attempt }}-${{ matrix.sample }}-*
+          path: shard-results
+      - name: Verify and combine all workloads
+        env:
+          OPCACHE_MODE: ${{ matrix.opcache }}
+        run: php .github/ci/performance-aggregate.php --artifacts shard-results --opcache "$OPCACHE_MODE" --output .perf/results
+      - name: Save combined results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: performance-combined-${{ matrix.opcache }}-${{ github.run_attempt }}-${{ matrix.sample }}
           path: .perf/results
           retention-days: 90
       - name: Save PR summary
@@ -97,19 +142,8 @@ jobs:
           name: performance-comment-${{ github.run_attempt }}
           path: .perf/results/comment.md
           retention-days: 7
-
-  compare:
-    name: Compare decoder performance (OPcache ${{ matrix.opcache }})
-    needs: [measure, tooling]
-    if: always()
-    strategy:
-      fail-fast: false
-      matrix:
-        opcache: ${{ fromJSON((inputs.opcache == 'on' && '["on"]') || (inputs.opcache == 'off' && '["off"]') || '["on", "off"]') }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 2
-    steps:
       - name: Require measurements and tooling validation
+        if: always()
         env:
           MEASUREMENTS: ${{ needs.measure.result }}
           TOOLING: ${{ needs.tooling.result }}

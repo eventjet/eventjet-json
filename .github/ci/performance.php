@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Eventjet\Json\Ci\BenchmarkCommand;
 use Eventjet\Json\Ci\BenchmarkRuntime;
 use Eventjet\Json\Ci\FpmMeasurements;
+use Eventjet\Json\Ci\PerformanceShards;
 
 require_once __DIR__ . '/performance-summary.php';
 const REPORT_GROUPS = [
@@ -19,6 +20,7 @@ const REPORT_GROUPS = [
 require __DIR__ . '/FpmMeasurements.php';
 require __DIR__ . '/BenchmarkCommand.php';
 require __DIR__ . '/BenchmarkRuntime.php';
+require __DIR__ . '/PerformanceShards.php';
 
 function git(string ...$arguments): string
 {
@@ -156,12 +158,13 @@ set_error_handler(static function (int $severity, string $message, string $file,
     throw new ErrorException($message, 0, $severity, $file, $line);
 });
 
-$options = getopt('', ['base:', 'candidate:', 'opcache:', 'workloads:', 'fpm:']);
+$options = getopt('', ['base:', 'candidate:', 'opcache:', 'workloads:', 'fpm:', 'shard:']);
 if ($options === false || !isset($options['base']) || !is_string($options['base'])) {
     throw new InvalidArgumentException(
         'Usage: php .github/ci/performance.php --base REF [--candidate REF] [--opcache on|off] [--workloads REF] [--fpm on|off]',
     );
 }
+$shard = isset($options['shard']) ? PerformanceShards::shardNumber($options['shard']) : null;
 $candidateOption = $options['candidate'] ?? 'HEAD';
 if (!is_string($candidateOption)) {
     throw new InvalidArgumentException('Candidate must be a single revision');
@@ -176,6 +179,9 @@ if ($fpmOption !== 'on' && $fpmOption !== 'off') {
     throw new InvalidArgumentException('FPM must be on or off');
 }
 $fpm = $fpmOption === 'on';
+if ($shard !== null && $fpm !== ($shard === 1)) {
+    throw new InvalidArgumentException('Sharded comparisons require FPM on shard 1 only');
+}
 $workloadsOption = $options['workloads'] ?? $options['base'];
 if (!is_string($workloadsOption)) {
     throw new InvalidArgumentException('Workloads must be a single revision');
@@ -194,6 +200,7 @@ if ($dependenciesHash === false) {
     throw new RuntimeException('Cannot fingerprint installed dependencies');
 }
 $metadata = [
+    'shard' => $shard,
     'baseline' => $base,
     'workloads' => $workloads,
     'fpm' => $fpm,
@@ -243,6 +250,8 @@ foreach (['baseline', 'candidate'] as $version) {
         $opcache,
     );
 }
+$metadata['configuration_sha256'] = hash_file('sha256', $workspaces['baseline'] . '/phpbench.json');
+writeJson($results . '/metadata.json', $metadata);
 $measure = static function (string $workspace, string $name, string|null $baseline = null, string ...$options) use (
     $results,
     $opcache,
@@ -284,7 +293,12 @@ $measure($workspaces['baseline'], 'discovery', null, '--revs=1');
 $status = 0;
 $reports = [];
 $comparisonPaths = [];
+$indices = [];
 foreach (workloadFilters($results . '/discovery.xml') as $index => [$subjectFilter, $variantFilter, $group]) {
+    if ($shard !== null && ($index % 4) !== ($shard - 1)) {
+        continue;
+    }
+    $indices[] = $index;
     $filters = [$subjectFilter, $variantFilter];
     $baselineName = 'baseline-' . $index;
     $candidateName = 'candidate-' . $index;
@@ -303,7 +317,9 @@ foreach (REPORT_GROUPS as $group => $title) {
         $report .= "\n### $title\n\n```text\n" . $reports[$group] . "\n```\n";
     }
 }
-$comment = performanceSummary($comparisonPaths, $status);
+$comment = $comparisonPaths === []
+    ? "No workloads assigned to this shard.\n"
+    : performanceSummary($comparisonPaths, $status);
 file_put_contents($results . '/comment.md', $comment);
 publish(
     $results,
@@ -327,11 +343,14 @@ if ($fpm) {
         ));
     }
     writeJson($results . '/fpm.json', $samples);
-    publish($results, FpmMeasurements::report($samples['baseline'], $samples['candidate'], $opcache));
+    $fpmReport = FpmMeasurements::report($samples['baseline'], $samples['candidate'], $opcache);
+    file_put_contents($results . '/fpm.md', $fpmReport);
+    publish($results, $fpmReport);
 }
-if ($metadata['workloads_changed']) {
+if ($metadata['workloads_changed'] && ($shard === null || $shard === 1)) {
     $candidateWorkspace = $output . '/workspace-candidate-workloads';
     prepareWorkspace($candidateWorkspace, $output . '/candidate', $output . '/candidate', $candidate, $opcache);
     $measure($candidateWorkspace, 'candidate-workloads');
 }
+writeJson($results . '/complete.json', ['indices' => $indices, 'status' => $status]);
 exit($status);

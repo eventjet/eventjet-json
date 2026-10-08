@@ -51,6 +51,9 @@ for a candidate or retry until a desired result appears. Setup and verification
 are outside timing. Warm measurements include the cost of replacing the previous
 result in the loop.
 
+Performance jobs use an explicit set of required PHP extensions to avoid loading
+unrelated extensions in each isolated process.
+
 The primary mode enables OPcache and its normal optimizer, disables JIT, PCOV,
 and Xdebug coverage, retains PHPDoc comments, disables the file cache, and sets
 file-update protection to zero so newly exported source files can be cached.
@@ -117,7 +120,7 @@ Use exact commit IDs for reproducible comparisons. The workflow revision supplie
 the measurement tooling, while the selected workload revision supplies the frozen benchmark
 suite and the selected candidate supplies the code under test. This allows existing
 PR heads to be remeasured without adding benchmark-configuration commits to them.
-Normal pull-request and branch runs measure both OPcache modes in separate jobs,
+Normal pull-request and branch runs measure both OPcache modes on separate runners,
 with separate summaries and artifacts. OPcache on is the primary result; off is
 a secondary compatibility measurement. Compare baseline and candidate within each
 mode, not absolute timings between jobs on different runners. A failed job does
@@ -162,6 +165,19 @@ path-dependent autoloader or filesystem differences. Both use identical frozen
 workloads and installed dependencies. CLI and FPM reuse these environments; changed
 candidate workloads receive a separate environment for verification.
 
+CI splits the discovered workload list across four runners per OPcache mode,
+using the workload index modulo four. Each baseline/candidate pair stays on one
+runner; measurements never run concurrently on that runner. Each shard retains
+the full discovery list and its assigned workload indices. Only shard one runs
+the FPM measurements. Local comparisons remain unsharded unless `--shard 1`,
+`--shard 2`, `--shard 3`, or `--shard 4` is specified.
+
+The final comparison checks validate all four artifacts before publishing one
+combined result. They reject missing or duplicate shards, inconsistent revisions,
+dependencies or configuration, missing workloads, and incomplete sampling.
+A completed regression remains a regression; interrupted measurements cannot
+produce a passing comparison. The existing required check names remain unchanged.
+
 The runner discovers workloads with a single-iteration discovery run, then
 measures each target workload immediately before its candidate counterpart to
 reduce the time between comparable measurements. Each version runs 20 iterations
@@ -176,7 +192,9 @@ failure. A changed candidate workload suite runs separately without a baseline
 assertion, since its workloads are not comparable.
 
 Use the Performance workflow's manual `calibrate` input to compare the same
-commit against itself on five independent GitHub runners. Normal PR runs still
+commit against itself in five independent repetitions of the complete sharded check.
+Each repetition uses four runners per selected OPcache mode (40 measurement
+jobs when both modes are selected). Normal PR runs still
 compare the target with the proposed merge. Each calibration job archives its
 own samples and report for each selected OPcache mode. Calibration compares the
 selected candidate with itself, overriding the `base` input.
