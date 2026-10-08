@@ -2,27 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Eventjet\Json\Benchmark\Prototype;
+namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\CollectionItemValueConverter;
-use Eventjet\Json\Internal\CollectionUnionType;
-use Eventjet\Json\Internal\CollectionValueConverter;
-use Eventjet\Json\Internal\ConstructorParameter;
-use Eventjet\Json\Internal\ConstructorValueValidator;
-use Eventjet\Json\Internal\FieldPath;
-use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\FieldTypeResolver;
-use Eventjet\Json\Internal\FieldValueConverter;
-use Eventjet\Json\Internal\ListType;
-use Eventjet\Json\Internal\MapType;
 use Eventjet\Json\Internal\NativeJsonDecoder as Json;
-use Eventjet\Json\Internal\NestedCollectionType;
-use Eventjet\Json\Internal\ObjectHydrator;
-use Eventjet\Json\Internal\PublicProperties;
-use Eventjet\Json\Internal\RootTypeValidator;
-use Eventjet\Json\Internal\TupleType;
 use Eventjet\Json\JsonType;
 use ReflectionClass;
 use ReflectionNamedType;
@@ -30,134 +14,83 @@ use ReflectionUnionType;
 use stdClass;
 use Throwable;
 
-/** PROTOTYPE: offsets refer to the original input; no subtree string copies. */
-final readonly class Span
-{
-    public function __construct(
-        public int $start,
-        public int $end,
-        public string $kind,
-    ) {}
-}
-
 /**
- * PROTOTYPE. Native validation preserves the syntax-before-construction boundary.
- * The custom parser constructs classes/collections directly, without a generic tree.
- * Modes are experiments, not a new public API; see README.md for the matrix.
+ * @internal
+ * @mago-expect lint:cyclomatic-complexity JSON and PHP type variants are explicit in this parser/compiler.
+ * @mago-expect lint:kan-defect The parser/compiler keeps schema and cursor invariants together.
+ * @mago-expect lint:too-many-methods Private token and grammar helpers share the validated cursor/compiler state.
+ * @mago-expect lint:halstead Generated PHP and PCRE strings account for most of this measured volume.
+ * @mago-expect lint:no-boolean-flag-parameter Internal flags select the measured compact and general parsing strategies.
+ * @mago-expect lint:no-isset Non-null metadata and presence checks are on measured parser hot paths.
+ * @mago-expect lint:no-nested-ternary Small token/layout selections stay inline in the scanner.
+ * @mago-expect lint:no-ini-set A bounded PCRE work-budget retry restores the original setting before user code.
+ * @mago-expect lint:no-multi-assignments Cache insertion and returning the same immutable plan are one operation.
+ * @mago-expect lint:no-else-clause Mutually exclusive grammar and cursor transitions stay together.
+ * @mago-expect lint:literal-named-argument Scanner and code-emitter calls use positional arguments consistently.
+ * @mago-expect lint:no-eval Only reflected declarations and fixed emitter strings become PHP; JSON never becomes code.
+ * @mago-expect lint:no-redundant-math Adding zero converts validated numeric strings while preserving integer overflow.
+ * @mago-expect lint:inline-variable-return Local annotations document the validated-token and emitted-closure boundaries.
+ * @mago-expect analysis:side-effects-in-condition Short-circuit validation preserves autoload and failure ordering.
+ * @phpstan-type Field array{validator: ConstructorValueValidator|null, converter: FieldValueConverter, property: \ReflectionProperty, type: string|ListType|MapType|TupleType|CollectionUnionType|null, kind: string, nullable: bool, enumCases: array<string, array<int|string, \BackedEnum>>|null, scalarNames: array<string>|null}
+ * @phpstan-type Plan array{array<string, Field>, array<string, Field>, array<string, Field>, class-string}
+ * @phpstan-type ScalarField array{kind: string, nullable: bool, enumCases: array<string, array<int|string, \BackedEnum>>|null, scalarNames?: array<string>|null}
+ * @psalm-type Field array{validator: ConstructorValueValidator|null, converter: FieldValueConverter, property: \ReflectionProperty, type: string|ListType|MapType|TupleType|CollectionUnionType|null, kind: string, nullable: bool, enumCases: array<string, array<int|string, \BackedEnum>>|null, scalarNames: array<string>|null}
+ * @psalm-type Plan array{array<string, Field>, array<string, Field>, array<string, Field>, class-string}
+ * @psalm-type ScalarField array{kind: string, nullable: bool, enumCases: array<string, array<int|string, \BackedEnum>>|null, scalarNames?: array<string>|null}
  */
-final class DirectParser
+final class DirectJsonParser
 {
+    /** @var array<class-string, Plan> */
     private static array $plans = [];
+    /** @var array<class-string, DirectScalarPlan|false> */
     private static array $compiled = [];
-    private static array $chunkPatterns = [];
     private int $position = 0;
-    private array $ends = [];
 
-    public function __construct(
+    private function __construct(
         private string $json,
-        private string $mode = 'hybrid',
-        private int $chunkSize = 128,
-        private bool $lazyPaths = false,
     ) {}
 
-    public static function decode(
-        string $json,
-        string|JsonType $type,
-        string $mode = 'hybrid',
-        bool $syntaxValidated = false,
-    ): mixed {
-        if ($mode === 'production') {
-            return \Eventjet\Json\Json::decode($json, $type);
+    /**
+     * @param class-string|JsonType<mixed> $type
+     * @throws \UnhandledMatchError|\LogicException|\ReflectionException|\JsonException */
+    public static function decode(string $json, string|JsonType $type): mixed
+    {
+        if (!is_string($type) && !$type instanceof ArrayJsonType && !$type instanceof MapJsonType) {
+            // An application-defined descriptor owns its decodeValue behavior.
+            return self::fallback($json, $type);
         }
-        if ($mode === 'fused-batch') {
-            try {
-                $result = self::fusedBatch($json, $type);
-            } catch (Throwable) {
-                $result = false;
-            }
+        // Native decoding rejects leading-NUL object keys, even in ignored data.
+        if (str_contains($json, '\\u0000')) {
+            return self::fallback($json, $type);
+        }
+        if (is_string($type)) {
+            $result = self::fused($json, $type, false);
             if ($result !== false) {
                 return $result;
             }
-            $mode = 'extreme';
-        }
-        if ($mode === 'extreme') {
-            if (is_string($type)) {
-                $result = self::fused($json, $type, false);
-                if ($result !== false) {
-                    return $result;
-                }
-                $result = self::fused($json, $type, true, true);
-                if ($result !== false) {
-                    return $result;
-                }
-                $result = self::fused($json, $type, true);
-                if ($result !== false) {
-                    return $result;
-                }
-            }
-            if (!str_contains($json, "\n") && !str_contains($json, ': ')) {
-                $result = GraphParser::decode($json, $type, self::plan(...), 'graph-compact-inline-bulk-loop');
-                if ($result !== false) {
-                    return $result;
-                }
-            }
-            $result = GraphParser::decode($json, $type, self::plan(...), 'graph-flex-inline-direct-bulk');
+            $result = self::fused($json, $type, true, true);
             if ($result !== false) {
                 return $result;
             }
-            $mode = 'columns-8192';
-        }
-        if (in_array($mode, ['fused', 'projection', 'projection-ascii'], true) && is_string($type)) {
-            $result = self::fused($json, $type, $mode !== 'fused', $mode === 'projection-ascii');
+            $result = self::fused($json, $type, true);
             if ($result !== false) {
                 return $result;
             }
-            $mode = 'columns-8192';
         }
-        if (in_array($mode, ['fused', 'projection', 'projection-ascii'], true)) {
-            $mode = 'columns-8192';
-        }
-        if (str_starts_with($mode, 'graph')) {
-            $result = GraphParser::decode($json, $type, self::plan(...), $mode);
+        if (!str_contains($json, "\n") && !str_contains($json, ': ')) {
+            $result = DirectGraphCompiler::decode($json, $type, self::plan(...), true);
             if ($result !== false) {
                 return $result;
             }
-            $mode = 'window-8192';
         }
-        $regexValidation = str_starts_with($mode, 'validate-');
-        if ($regexValidation) {
-            $mode = substr($mode, 9);
+        $result = DirectGraphCompiler::decode($json, $type, self::plan(...), false);
+        if ($result !== false) {
+            return $result;
         }
-        $indexed = str_starts_with($mode, 'indexed-');
-        if ($indexed) {
-            $mode = substr($mode, 8);
+        if (!json_validate($json)) {
+            return self::fallback($json, $type);
         }
-        $lazyPaths = str_starts_with($mode, 'lazy-');
-        if ($lazyPaths) {
-            $mode = substr($mode, 5);
-        }
-        if (!$syntaxValidated && !($regexValidation ? RegexValidator::validate($json) : json_validate($json))) {
-            // Native parsing can report an invalid property name before a later
-            // syntax error. Use it on the failure path to preserve that precedence.
-            return Json::decode($json, $type);
-        }
-        if (str_contains($json, '\\u0000') && self::invalidPropertyName($json)) {
-            return Json::decode($json, $type);
-        }
-        $chunkSize = 128;
-        if (
-            str_starts_with($mode, 'chunks-')
-            || str_starts_with($mode, 'packed-')
-            || str_starts_with($mode, 'window-')
-            || str_starts_with($mode, 'columns-')
-        ) {
-            [$mode, $size] = explode('-', $mode, 2);
-            $chunkSize = max(1, min(in_array($mode, ['window', 'columns'], true) ? 262144 : 4096, (int) $size));
-        }
-        $parser = new self($json, $mode, $chunkSize, $lazyPaths);
-        if ($indexed) {
-            $parser->indexEnds();
-        }
+        $parser = new self($json);
         $parser->white();
         $kind = $json[$parser->position];
         if (is_string($type)) {
@@ -167,24 +100,24 @@ final class DirectParser
             return $parser->object($type, '');
         }
         $item = $type->collectionItem();
-        $expected = $item instanceof NestedCollectionType && $item->collection instanceof MapType ? '{' : '[';
+        $expected = $item->collection instanceof MapType ? '{' : '[';
         if ($kind !== $expected) {
             return DecodeError::unexpectedRootValue(json_decode($json), $expected === '{' ? 'object' : 'array');
         }
         // Root collection declaration errors retain the existing decoder's ordering.
         $error = \Eventjet\Json\Json::validateType($type);
         if ($error !== null) {
-            return Json::decode($json, $type);
+            return self::fallback($json, $type);
         }
         return $parser->item($type->itemClass(), '', $item);
     }
 
+    /**
+     * @param class-string $class
+     */
     private static function fused(string $json, string $class, bool $projection, bool $ascii = false): object|false
     {
-        if (!$projection && strlen($json) > 32768) {
-            return false;
-        }
-        if ($projection && str_contains($json, '\\u0000') && self::invalidPropertyName($json)) {
+        if (!$projection && strlen($json) > 32_768) {
             return false;
         }
         try {
@@ -198,15 +131,22 @@ final class DirectParser
                     : self::compile($class, $plan[0], $plan[1]);
             }
             $compiled = self::$compiled[$class];
-            if ($compiled === false || $projection && $compiled[10] === false) {
+            if ($compiled === false || $projection && $compiled->projectionPattern === false) {
                 return false;
             }
-            $pattern = $compiled[$projection ? ($ascii ? 12 : 10) : 9];
+            $pattern = $projection
+                ? ($ascii ? $compiled->asciiProjectionPattern : $compiled->projectionPattern)
+                : $compiled->fusedPattern;
+            if ($pattern === false) {
+                return false;
+            }
+            $matches = [];
             $matched = preg_match($pattern, $json, $matches, PREG_UNMATCHED_AS_NULL);
             if ($matched === false && preg_last_error() === PREG_BACKTRACK_LIMIT_ERROR) {
                 $limit = ini_get('pcre.backtrack_limit');
                 try {
                     ini_set('pcre.backtrack_limit', (string) max((int) $limit, strlen($json) * 32));
+                    $matches = [];
                     $matched = preg_match($pattern, $json, $matches, PREG_UNMATCHED_AS_NULL);
                 } finally {
                     ini_set('pcre.backtrack_limit', $limit);
@@ -217,110 +157,22 @@ final class DirectParser
             }
             // Projection's ignored values have a statically bounded depth of 3;
             // every key is unescaped. No native validation pass is necessary.
+            /**
+             * @psalm-suppress UnusedFunctionCall Reset json_last_error before invoking user constructors.
+             * @mago-expect analysis:unused-statement Reset json_last_error before invoking user constructors.
+             */
             json_validate('null');
-            return $compiled[$projection ? 1 : 5]($matches, false);
+            $factory = $projection ? $compiled->factory : $compiled->orderedFactory;
+            return $factory($matches, false);
         } catch (Throwable $error) {
             return DecodeError::cannotInstantiate($class, $error);
         }
     }
 
-    private static function fusedBatch(string $json, string|JsonType $type): mixed
-    {
-        $parent = null;
-        $name = null;
-        if (is_string($type)) {
-            $plan = self::plan($type);
-            if ($plan instanceof DecodeError || count($plan[0]) !== 1 || $plan[1] !== []) {
-                return false;
-            }
-            $name = array_key_first($plan[0]);
-            $collection = $plan[0][$name]['type'];
-            $parent = $type;
-        } else {
-            $item = $type->collectionItem();
-            $collection = $item instanceof NestedCollectionType ? $item->collection : null;
-        }
-        if (
-            !$collection instanceof ListType
-            || !is_string($collection->itemType)
-            || !class_exists($collection->itemType)
-            || enum_exists($collection->itemType)
-        ) {
-            return false;
-        }
-        $class = $collection->itemType;
-        $plan = self::plan($class);
-        if ($plan instanceof DecodeError) {
-            return false;
-        }
-        $compiled = self::$compiled[$class] ??= self::compile($class, $plan[0], $plan[1]);
-        if ($compiled === false || $compiled[11] === false) {
-            return false;
-        }
-        $white = '[\\x20\\x09\\x0a\\x0d]*+';
-        $prefix =
-            '~\\A'
-            . $white
-            . ($parent === null ? '' : '\\{' . $white . preg_quote(json_encode($name), '~') . $white . ':' . $white)
-            . '\\['
-            . $white
-            . '~';
-        if (preg_match($prefix, $json, $match) !== 1) {
-            return false;
-        }
-        $start = strlen($match[0]);
-        $count = preg_match_all($compiled[11], $json, $columns, PREG_PATTERN_ORDER | PREG_UNMATCHED_AS_NULL, $start);
-        if ($count === false || $count === 0 && $collection->nonEmpty) {
-            return false;
-        }
-        $end = $start;
-        foreach ($columns[0] as $row) {
-            $end += strlen($row);
-        }
-        if ($count > 0 && str_ends_with(rtrim($columns[0][$count - 1]), ',')) {
-            return false;
-        }
-        $suffix = '~\\G\\]' . $white . ($parent === null ? '' : '\\}' . $white) . '\\z~';
-        if (preg_match($suffix, $json, $match, 0, $end) !== 1) {
-            return false;
-        }
-        // Complete syntax and scalar types are proven before the first target
-        // constructor. Captures cost more memory, but eliminate the second scan.
-        json_validate('null');
-        $out = [];
-        $index = 0;
-        try {
-            if (!$compiled[8]($columns, $out, $start, $index)) {
-                throw new \LogicException('Validated scalar batch rejected by its factory.');
-            }
-        } catch (Throwable $error) {
-            return DecodeError::cannotInstantiate($class, $error);
-        }
-        if ($parent === null) {
-            return $out;
-        }
-        try {
-            return new $parent($out);
-        } catch (Throwable $error) {
-            return DecodeError::cannotInstantiate($parent, $error);
-        }
-    }
-
-    private static function invalidPropertyName(string $json): bool
-    {
-        $offset = 0;
-        while (
-            preg_match('~"((?:[^"\\\\]++|\\\\.)*+)"[ \t\r\n]*+(:)?~s', $json, $matches, PREG_OFFSET_CAPTURE, $offset)
-            === 1
-        ) {
-            if (isset($matches[2]) && str_starts_with($matches[1][0], '\\u0000')) {
-                return true;
-            }
-            $offset = $matches[0][1] + strlen($matches[0][0]);
-        }
-        return false;
-    }
-
+    /**
+     * @param class-string $class
+     * @return Plan|DecodeError
+     * @throws \ReflectionException */
     private static function plan(string $class): array|DecodeError
     {
         if (isset(self::$plans[$class])) {
@@ -340,6 +192,7 @@ final class DirectParser
             }
             $collection = $collection === false ? null : $collection;
             $arguments[$meta->name] = [
+                'property' => $reflection->getProperty($meta->name),
                 'validator' => ConstructorValueValidator::forParameter($meta, [$meta->name => true]),
                 'converter' => new FieldValueConverter($parameter, $collection),
                 'type' => self::directType($parameter, $collection),
@@ -349,7 +202,10 @@ final class DirectParser
                 'nullable' => $parameter->allowsNull(),
                 'enumCases' => self::enumCases($parameter),
                 'scalarNames' => $parameter->getType() instanceof ReflectionUnionType
-                    ? array_map(static fn($type) => $type->getName(), $parameter->getType()->getTypes())
+                    ? array_map(
+                        static fn(\ReflectionType $type): string => (string) $type,
+                        $parameter->getType()->getTypes(),
+                    )
                     : null,
             ];
         }
@@ -357,22 +213,42 @@ final class DirectParser
         if ($properties instanceof DecodeError) {
             return $properties;
         }
-        foreach ($properties as &$property) {
+        $directProperties = [];
+        foreach ($properties as $name => $property) {
             $collection = FieldTypeResolver::resolve($class, $property['property']);
+            if ($collection instanceof DecodeError) {
+                return $collection;
+            }
+            $property['validator'] = null;
             $property['type'] = self::directType($property['property'], $collection);
             $property['kind'] = $property['builtinType']?->getName() ?? 'convert';
             $property['nullable'] = $property['property']->getType()?->allowsNull() ?? false;
             $property['enumCases'] = self::enumCases($property['property']);
             $property['scalarNames'] = $property['property']->getType() instanceof ReflectionUnionType
-                ? array_map(static fn($type) => $type->getName(), $property['property']->getType()->getTypes())
+                ? array_map(
+                    static fn(\ReflectionType $type): string => (string) $type,
+                    $property['property']->getType()->getTypes(),
+                )
                 : null;
+            unset($property['builtinType']);
+            $directProperties[$name] = $property;
         }
         unset($property);
-        return self::$plans[$class] = [$arguments, $properties, $arguments + $properties, $reflection->getName()];
+        return self::$plans[$class] = [
+            $arguments,
+            $directProperties,
+            $arguments + $directProperties,
+            $reflection->getName(),
+        ];
     }
 
-    private static function directType($field, mixed $collection): mixed
-    {
+    /**
+     * @return string|ListType|MapType|TupleType|CollectionUnionType|null
+     */
+    private static function directType(
+        \ReflectionParameter|\ReflectionProperty $field,
+        ListType|MapType|TupleType|CollectionUnionType|null $collection,
+    ): string|ListType|MapType|TupleType|CollectionUnionType|null {
         if ($collection !== null) {
             return $collection;
         }
@@ -396,7 +272,11 @@ final class DirectParser
         return null;
     }
 
-    private static function enumCases($field): array|null
+    /**
+     * @return array<string, array<int|string, \BackedEnum>>|null
+     * @throws \ReflectionException
+     */
+    private static function enumCases(\ReflectionParameter|\ReflectionProperty $field): array|null
     {
         $type = $field->getType();
         if (!$type instanceof ReflectionNamedType || $type->isBuiltin()) {
@@ -407,13 +287,20 @@ final class DirectParser
             return null;
         }
         $cases = [];
-        foreach ($name::cases() as $case) {
+        foreach (new \ReflectionEnum($name)->getCases() as $reflectionCase) {
+            $case = $reflectionCase->getValue();
+            if (!$case instanceof \BackedEnum) {
+                return null;
+            }
             $cases[get_debug_type($case->value)][$case->value] = $case;
         }
         return $cases;
     }
 
-    private function object(string $class, string|Breadcrumb $path, int|null $objectEnd = null): object
+    /**
+     * @param class-string $class
+     */
+    private function object(string $class, string $path, int|null $objectEnd = null): object
     {
         $start = $this->position;
         try {
@@ -421,49 +308,32 @@ final class DirectParser
             if ($plan instanceof DecodeError) {
                 // No constructor has run for this object: reuse declaration/error contracts.
                 $this->skip();
-                return ObjectHydrator::hydrate(
-                    $class,
-                    json_decode(substr($this->json, $start, $this->position - $start)),
-                    (string) $path,
-                );
+                /** @var stdClass $raw The source interval begins with a validated object token. */
+                $raw = json_decode(substr($this->json, $start, $this->position - $start));
+                return ObjectHydrator::hydrate($class, $raw, $path);
             }
             [$arguments, $properties, $known, $displayClass] = $plan;
-            if (
-                in_array($this->mode, ['compiled', 'regex', 'ordered', 'chunks', 'packed', 'window', 'columns'], true)
-                && (($objectEnd ?? strlen($this->json)) - $start) <= 32768
-            ) {
+            if ((($objectEnd ?? strlen($this->json)) - $start) <= 32_768) {
                 $compiled = self::$compiled[$class] ??= self::compile($class, $arguments, $properties);
-                $numbered = in_array($this->mode, ['packed', 'window', 'columns'], true);
-                $pattern = $compiled === false
-                    ? ''
-                    : (
-                        $numbered
-                            ? $compiled[6]
-                            : (in_array($this->mode, ['ordered', 'chunks'], true) ? $compiled[2] : $compiled[0])
-                    );
-                // Limit captures/copies for unusually large scalar objects. Large
-                // strings then use the general parser's single substring allocation.
-                $source =
-                    $compiled !== false && (strlen($this->json) - $start) > 32768
-                        ? substr($this->json, $start, 32768)
+                if ($compiled !== false) {
+                    $source = (strlen($this->json) - $start) > 32_768
+                        ? substr($this->json, $start, 32_768)
                         : $this->json;
-                $offset = $source === $this->json ? $start : 0;
-                $matched =
-                    $compiled !== false
-                    && preg_match($pattern, $source, $matches, PREG_UNMATCHED_AS_NULL, $offset) === 1;
-                if (
-                    !$matched
-                    && $compiled !== false
-                    && in_array($this->mode, ['ordered', 'chunks', 'packed', 'window', 'columns'], true)
-                ) {
-                    $matched = preg_match($compiled[0], $source, $matches, PREG_UNMATCHED_AS_NULL, $offset) === 1;
-                    $numbered = false;
-                }
-                if ($matched) {
-                    $object = $compiled[$numbered ? 5 : 1]($matches, $this->mode === 'compiled');
-                    if ($object !== false) {
-                        $this->position += strlen($matches[0]);
-                        return $object;
+                    $offset = $source === $this->json ? $start : 0;
+                    $matches = [];
+                    $numbered =
+                        preg_match($compiled->orderedPattern, $source, $matches, PREG_UNMATCHED_AS_NULL, $offset) === 1;
+                    if (
+                        $numbered
+                        || preg_match($compiled->unorderedPattern, $source, $matches, PREG_UNMATCHED_AS_NULL, $offset)
+                            === 1
+                    ) {
+                        $factory = $numbered ? $compiled->orderedFactory : $compiled->factory;
+                        $object = $factory($matches, false);
+                        if ($object !== false) {
+                            $this->position += strlen($matches[0] ?? '');
+                            return $object;
+                        }
                     }
                 }
             }
@@ -481,7 +351,7 @@ final class DirectParser
                         if ($char === '{' || $char === '[') {
                             $begin = $this->position;
                             $this->skip();
-                            $values[$name] = new Span($begin, $this->position, $char);
+                            $values[$name] = new DirectJsonSpan($begin, $this->position, $char);
                         } else {
                             $values[$name] = $this->scalar();
                         }
@@ -502,10 +372,10 @@ final class DirectParser
                     continue;
                 }
                 $value = $values[$name];
-                $raw = $value instanceof Span ? ($value->kind === '{' ? new stdClass() : []) : $value;
+                $raw = $value instanceof DirectJsonSpan ? ($value->kind === '{' ? new stdClass() : []) : $value;
                 $error = $field['validator']->validate($displayClass, $name, $raw, '');
                 if ($error !== null) {
-                    return $field['validator']->validate($displayClass, $name, $raw, (string) $path);
+                    return $field['validator']->validate($displayClass, $name, $raw, $path) ?? $error;
                 }
             }
             $converted = [];
@@ -521,15 +391,20 @@ final class DirectParser
             }
             $assignments = [];
             foreach ($values as $name => $value) {
-                if (!isset($properties[$name])) {
+                $property = $properties[$name] ?? null;
+                if ($property === null) {
                     continue;
                 }
-                $value = $this->field($displayClass, $this->fieldPath($path, $name), $properties[$name], $value);
+                $value = $this->field($displayClass, $this->fieldPath($path, $name), $property, $value);
                 if ($value instanceof DecodeError) {
                     return $value;
                 }
-                $assignments[] = [$properties[$name]['property'], $value];
+                $assignments[] = [$property['property'], $value];
             }
+            /**
+             * @psalm-suppress MixedMethodCall The validated declaration supplies the constructor and named argument types.
+             * @mago-expect analysis:unknown-class-instantiation The target constructor is intentionally dynamic.
+             */
             $object = new $class(...$converted);
             foreach ($assignments as [$property, $value]) {
                 $property->setValue($object, $value);
@@ -541,11 +416,21 @@ final class DirectParser
         }
     }
 
-    private function field(string $class, string|Breadcrumb $path, array $field, mixed $value): mixed
-    {
-        if ($value instanceof Span) {
+    /**
+     * @param class-string $class
+     * @param Field $field
+     * @param array<array-key, mixed>|bool|float|int|object|string|null $value
+     * @return array<array-key, mixed>|bool|float|int|object|string|null
+     * @throws \UnhandledMatchError|\LogicException|\ReflectionException|\JsonException */
+    private function field(
+        string $class,
+        string $path,
+        array $field,
+        mixed $value,
+    ): array|bool|float|int|object|string|null {
+        if ($value instanceof DirectJsonSpan) {
             $type = $field['type'];
-            if (is_string($type) && $value->kind === '{') {
+            if (is_string($type) && class_exists($type) && $value->kind === '{') {
                 $this->position = $value->start;
                 return $this->object($type, $path, $value->end);
             }
@@ -560,46 +445,44 @@ final class DirectParser
                     return $this->collection($class, $path, $collection, $value->end);
                 }
             }
+            /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
             $value = json_decode(substr($this->json, $value->start, $value->end - $value->start));
         }
-        if ($this->lazyPaths && !is_array($value) && !is_object($value)) {
-            // Scalar conversion cannot invoke a target constructor. On failure,
-            // repeat it with the materialized path for the exact error contract.
-            $converted = $field['converter']->convert($class, $value, '');
-            return $converted instanceof DecodeError
-                ? $field['converter']->convert($class, $value, (string) $path)
-                : $converted;
-        }
-        return $field['converter']->convert($class, $value, (string) $path);
+
+        return $field['converter']->convert($class, $value, $path);
     }
 
+    /**
+     * @param class-string $class
+     * @return array<array-key, mixed>|object
+     * @throws \UnhandledMatchError|\LogicException|\ReflectionException|\JsonException */
     private function collection(
         string $class,
-        string|Breadcrumb $path,
+        string $path,
         ListType|MapType|TupleType $type,
         int|null $end = null,
-    ): mixed {
+    ): array|object {
         $start = $this->position;
         $map = $type instanceof MapType;
         if ($this->json[$start] !== ($map ? '{' : '[')) {
-            return CollectionValueConverter::convert($class, (string) $path, $type, $this->native());
+            return CollectionValueConverter::convert($class, $path, $type, $this->native());
         }
-        $item = $type instanceof ListType ? $type->itemType : ($map ? $type->valueType : null);
+        $item = $type instanceof ListType ? $type->itemType : ($type instanceof MapType ? $type->valueType : 'null');
         // Native bulk scalar conversion is much cheaper than a PHP loop.
-        if ($this->mode !== 'pure' && is_string($item) && in_array($item, ['string', 'int', 'float', 'bool'], true)) {
+        if (is_string($item) && in_array($item, ['string', 'int', 'float', 'bool'], true)) {
             if ($end !== null) {
                 $this->position = $end;
                 return CollectionValueConverter::convert(
                     $class,
-                    (string) $path,
+                    $path,
                     $type,
                     json_decode(substr($this->json, $start, $end - $start)),
                 );
             }
-            return CollectionValueConverter::convert($class, (string) $path, $type, $this->native());
+            return CollectionValueConverter::convert($class, $path, $type, $this->native());
         }
         // Map key and tuple length checks must precede child constructors.
-        if ($map || $type instanceof TupleType) {
+        if ($type instanceof MapType || $type instanceof TupleType) {
             $spans = [];
             ++$this->position;
             $this->white();
@@ -623,13 +506,13 @@ final class DirectParser
                 ++$this->position;
             }
             $end = $this->position;
-            $bad = $map
+            $bad = $type instanceof MapType
                 ? !$type->arrayObject && $spans === [] || count(array_filter(array_keys($spans), 'is_int')) > 0
                 : count($spans) < $type->required || count($spans) > count($type->types);
             if ($bad) {
                 return CollectionValueConverter::convert(
                     $class,
-                    (string) $path,
+                    $path,
                     $type,
                     json_decode(substr($this->json, $start, $end - $start)),
                 );
@@ -637,65 +520,45 @@ final class DirectParser
             $out = [];
             foreach ($spans as $key => $begin) {
                 $this->position = $begin;
-                $value = $this->item($class, $this->indexPath($path, $key, $map), $map ? $item : $type->types[$key]);
+                $value = $this->item(
+                    $class,
+                    $this->indexPath($path, $key, $map),
+                    $type instanceof MapType ? $item : $type->types[$key] ?? 'null',
+                );
                 if ($value instanceof DecodeError) {
                     return $value;
                 }
                 $out[$key] = $value;
             }
             $this->position = $end;
-            return $map && $type->arrayObject ? new ArrayObject($out) : $out;
+            return $type instanceof MapType && $type->arrayObject ? new ArrayObject($out) : $out;
         }
         ++$this->position;
         $this->white();
         $out = [];
         if ($this->json[$this->position] === ']') {
             ++$this->position;
-            return $type->nonEmpty ? CollectionValueConverter::convert($class, (string) $path, $type, []) : [];
+            return $type->nonEmpty ? CollectionValueConverter::convert($class, $path, $type, []) : [];
         }
         $index = 0;
-        do {
-            if (
-                in_array($this->mode, ['chunks', 'packed', 'window', 'columns'], true)
-                && is_string($item)
-                && class_exists($item)
-                && !enum_exists($item)
-            ) {
+        while (true) {
+            if (is_string($item) && !enum_exists($item) && class_exists($item)) {
                 $plan = self::plan($item);
                 $compiled = $plan instanceof DecodeError
                     ? false
                     : (self::$compiled[$item] ??= self::compile($item, $plan[0], $plan[1]));
-                $chunkPattern = $compiled === false
-                    ? ''
-                    : (self::$chunkPatterns[$item][$this->chunkSize] ??= str_replace(
-                        '{1,128}',
-                        '{1,' . $this->chunkSize . '}',
-                        $compiled[3],
-                    ));
-                $columns = $this->mode === 'columns';
-                $window = $this->mode === 'window' || $columns;
-                $matched = false;
-                if ($compiled !== false && $window) {
-                    $source = substr($this->json, $this->position, $this->chunkSize);
-                    $matched =
-                        preg_match_all(
-                            $compiled[7],
-                            $source,
-                            $rows,
-                            ($columns ? PREG_PATTERN_ORDER : PREG_SET_ORDER) | PREG_UNMATCHED_AS_NULL,
-                        ) > 0;
-                } elseif (
-                    $compiled !== false
-                    && preg_match($chunkPattern, $this->json, $chunk, PREG_OFFSET_CAPTURE, $this->position) === 1
-                ) {
-                    $source = substr($this->json, $this->position, $chunk[0][1] - $this->position);
-                    $rowPattern = $this->mode === 'packed' ? str_replace('\\G', '', $compiled[6]) : $compiled[4];
-                    $matched = preg_match_all($rowPattern, $source, $rows, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL) > 0;
-                }
-                if ($matched) {
-                    if ($columns) {
+                if ($compiled !== false) {
+                    $source = substr($this->json, $this->position, 8192);
+                    $rows = [];
+                    $matched = preg_match_all(
+                        $compiled->windowPattern,
+                        $source,
+                        $rows,
+                        PREG_PATTERN_ORDER | PREG_UNMATCHED_AS_NULL,
+                    );
+                    if ($matched !== false && $matched > 0) {
                         try {
-                            $complete = $compiled[8]($rows, $out, $this->position, $index);
+                            $complete = ($compiled->columns)($rows, $out, $this->position, $index);
                         } catch (Throwable $error) {
                             return DecodeError::cannotInstantiate($item, $error);
                         }
@@ -716,51 +579,8 @@ final class DirectParser
                             ++$this->position;
                             return $out;
                         }
-                        $separator = ',';
                         continue;
                     }
-                    foreach ($rows as $row) {
-                        try {
-                            $value = $compiled[$this->mode === 'chunks' ? 1 : 5]($row, false);
-                        } catch (Throwable $error) {
-                            return DecodeError::cannotInstantiate($item, $error);
-                        }
-                        if ($value === false) {
-                            $value = $this->object($item, $this->indexPath($path, $index));
-                            if ($window) {
-                                $this->white();
-                                // The general parser ends at the object; the window match
-                                // also includes its following comma, if present.
-                                if ($this->json[$this->position] === ',') {
-                                    ++$this->position;
-                                    $this->white();
-                                }
-                            }
-                        } else {
-                            $this->position += strlen($row[0]);
-                        }
-                        if ($value instanceof DecodeError) {
-                            return $value;
-                        }
-                        $out[] = $value;
-                        ++$index;
-                        if (!$window) {
-                            $this->white();
-                            $separator = $this->json[$this->position++];
-                            $this->white();
-                        }
-                    }
-                    if ($window) {
-                        $separator = $this->json[$this->position] === ']' ? ']' : ',';
-                        if ($separator === ']') {
-                            ++$this->position;
-                        }
-                    }
-                    unset($rows, $source, $row, $chunk);
-                    if ($separator !== ',') {
-                        return $out;
-                    }
-                    continue;
                 }
             }
             $value = $this->item($class, $this->indexPath($path, $index++), $item);
@@ -771,12 +591,21 @@ final class DirectParser
             $this->white();
             $separator = $this->json[$this->position++];
             $this->white();
-        } while ($separator === ',');
-        return $out;
+            if ($separator !== ',') {
+                return $out;
+            }
+        }
     }
 
-    private function item(string $class, string|Breadcrumb $path, mixed $type): mixed
-    {
+    /**
+     * @param class-string $class
+     * @return array<array-key, mixed>|bool|float|int|object|string|null
+     * @throws \UnhandledMatchError|\LogicException|\ReflectionException|\JsonException */
+    private function item(
+        string $class,
+        string $path,
+        string|CollectionUnionType|NestedCollectionType $type,
+    ): array|bool|float|int|object|string|null {
         if ($type instanceof NestedCollectionType && $this->json[$this->position] !== 'n') {
             return $this->collection($class, $path, $type->collection);
         }
@@ -799,33 +628,29 @@ final class DirectParser
         }
         $char = $this->json[$this->position];
         $value = $char === '{' || $char === '[' ? $this->native() : $this->scalar();
-        if ($this->lazyPaths && !is_array($value) && !is_object($value)) {
-            $converted = CollectionItemValueConverter::convert($class, '', $type, $value);
-            return $converted instanceof DecodeError
-                ? CollectionItemValueConverter::convert($class, (string) $path, $type, $value)
-                : $converted;
-        }
-        return CollectionItemValueConverter::convert($class, (string) $path, $type, $value);
+
+        return CollectionItemValueConverter::convert($class, $path, $type, $value);
     }
 
-    private function fieldPath(string|Breadcrumb $parent, string $name): string|Breadcrumb
+    private function fieldPath(string $parent, string $name): string
     {
-        return $this->lazyPaths
-            ? new Breadcrumb($parent, $parent === '' ? $name : '.' . $name)
-            : FieldPath::field((string) $parent, $name);
+        return FieldPath::field($parent, $name);
     }
 
-    private function indexPath(string|Breadcrumb $parent, int|string $key, bool $map = false): string|Breadcrumb
+    /** @throws \JsonException */
+    private function indexPath(string $parent, int|string $key, bool $map = false): string
     {
-        $segment = $map ? FieldPath::key('', $key) : '[' . $key . ']';
-        return $this->lazyPaths ? new Breadcrumb($parent, $segment) : $parent . $segment;
+        return $parent . ($map ? FieldPath::key('', (string) $key) : '[' . $key . ']');
     }
 
-    private function native(): mixed
+    /** @return array<array-key, mixed>|bool|float|int|object|string|null */
+    private function native(): array|bool|float|int|object|string|null
     {
         $start = $this->position;
         $this->skip();
-        return json_decode(substr($this->json, $start, $this->position - $start));
+        /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
+        $value = json_decode(substr($this->json, $start, $this->position - $start));
+        return $value;
     }
 
     private function white(): void
@@ -833,7 +658,7 @@ final class DirectParser
         $this->position += strspn($this->json, " \t\r\n", $this->position);
     }
 
-    private function scalar(): mixed
+    private function scalar(): bool|float|int|string|null
     {
         $char = $this->json[$this->position];
         if ($char === '"') {
@@ -854,6 +679,8 @@ final class DirectParser
         $start = $this->position;
         $this->position += strspn($this->json, '-+0123456789.eE', $start);
         $number = substr($this->json, $start, $this->position - $start);
+        /** @var numeric-string $number The entire document has already passed JSON validation. */
+        /** @psalm-suppress InvalidOperand Adding zero intentionally preserves PHP integer-overflow conversion. */
         return strpbrk($number, '.eE') === false ? $number + 0 : (float) $number;
     }
 
@@ -864,9 +691,7 @@ final class DirectParser
         if ($this->json[$this->position] === '"') {
             $out = substr($this->json, $start + 1, $this->position - $start - 1);
             ++$this->position;
-            return $this->mode === 'native-strings'
-                ? json_decode(substr($this->json, $start, $this->position - $start))
-                : $out;
+            return $out;
         }
         while ($this->json[$this->position] !== '"') {
             $this->position += 2;
@@ -874,63 +699,18 @@ final class DirectParser
         }
         ++$this->position;
         $token = substr($this->json, $start, $this->position - $start);
-        return $this->mode === 'pure' ? self::unescape(substr($token, 1, -1)) : json_decode($token);
-    }
-
-    private static function unescape(string $value): string
-    {
-        return preg_replace_callback(
-            '/\\\\(?:u[0-9a-fA-F]{4}(?:\\\\u[0-9a-fA-F]{4})?|["\\\\\/bfnrt])/',
-            static function (array $match): string {
-                $escape = $match[0];
-                if ($escape[1] !== 'u') {
-                    return match ($escape[1]) {
-                        'b' => "\x08",
-                        'f' => "\x0c",
-                        'n' => "\n",
-                        'r' => "\r",
-                        't' => "\t",
-                        default => $escape[1],
-                    };
-                }
-                $code = hexdec(substr($escape, 2, 4));
-                if ($code >= 0xD800 && $code <= 0xDBFF) {
-                    $code = 0x10000 + (($code - 0xD800) << 10) + hexdec(substr($escape, 8, 4)) - 0xDC00;
-                } elseif (strlen($escape) > 6) {
-                    return self::utf8($code) . self::unescape(substr($escape, 6));
-                }
-                return self::utf8($code);
-            },
-            $value,
-        );
-    }
-
-    private static function utf8(int $code): string
-    {
-        return match (true) {
-            $code < 0x80 => chr($code),
-            $code < 0x800 => chr(0xC0 | ($code >> 6)) . chr(0x80 | ($code & 63)),
-            $code < 0x10000 => chr(0xE0 | ($code >> 12)) . chr(0x80 | (($code >> 6) & 63)) . chr(0x80 | ($code & 63)),
-            default => chr(0xF0 | ($code >> 18))
-                . chr(0x80 | (($code >> 12) & 63))
-                . chr(0x80 | (($code >> 6) & 63))
-                . chr(0x80 | ($code & 63)),
-        };
+        /** @var string $value The token is a validated JSON string. */
+        $value = json_decode($token);
+        return $value;
     }
 
     private function skip(): void
     {
-        if (isset($this->ends[$this->position])) {
-            $this->position = $this->ends[$this->position];
-            return;
-        }
         $char = $this->json[$this->position];
-        if (
-            in_array($this->mode, ['regex', 'ordered', 'chunks', 'packed', 'window', 'columns'], true)
-            && ($char === '[' || $char === '{')
-        ) {
+        if ($char === '[' || $char === '{') {
             // \K leaves an empty match: report its end offset without copying the subtree.
             $pattern = '~(?(DEFINE)(?<s>"(?:[^"\\\\]++|\\\\.)*+")(?<o>\{(?:[^{}\[\]"]++|(?&s)|(?&o)|(?&a))*+\})(?<a>\[(?:[^{}\[\]"]++|(?&s)|(?&o)|(?&a))*+\]))\G(?:(?&o)|(?&a))\K~s';
+            $match = [];
             $matched = preg_match($pattern, $this->json, $match, PREG_OFFSET_CAPTURE, $this->position);
             if ($matched === false && preg_last_error() === PREG_BACKTRACK_LIMIT_ERROR) {
                 // This possessive scanner has linear work. Raise only its work budget,
@@ -938,12 +718,16 @@ final class DirectParser
                 $limit = ini_get('pcre.backtrack_limit');
                 try {
                     ini_set('pcre.backtrack_limit', (string) max((int) $limit, strlen($this->json) * 16));
+                    $match = [];
                     $matched = preg_match($pattern, $this->json, $match, PREG_OFFSET_CAPTURE, $this->position);
                 } finally {
                     ini_set('pcre.backtrack_limit', $limit);
                 }
             }
             if ($matched === 1) {
+                /**
+                 * @var array{array{string, int<-1, max>}} $match
+                 */
                 $this->position = $match[0][1];
                 return;
             }
@@ -979,34 +763,13 @@ final class DirectParser
         } while ($depth !== 0);
     }
 
-    private function indexEnds(): void
-    {
-        // Bound both indexing time and retained offsets. Large record/ignored
-        // trees keep their allocation-free scanner rather than an O(N) index.
-        $length = strlen($this->json);
-        if ($length > 65536 || (substr_count($this->json, '{') + substr_count($this->json, '[')) > 1024) {
-            return;
-        }
-        $stack = [];
-        while ($this->position < $length) {
-            $this->position += strcspn($this->json, '[]{}"', $this->position);
-            if ($this->position === $length) {
-                break;
-            }
-            $char = $this->json[$this->position];
-            if ($char === '"') {
-                $this->skip();
-            } elseif ($char === '[' || $char === '{') {
-                $stack[] = $this->position++;
-            } else {
-                ++$this->position;
-                $this->ends[array_pop($stack)] = $this->position;
-            }
-        }
-        $this->position = 0;
-    }
-
-    private static function compile(string $class, array $arguments, array $properties): array|false
+    /**
+     * @param class-string $class
+     * @param array<string, Field> $arguments
+     * @param array<string, Field> $properties
+     * @return DirectScalarPlan|false
+     * @throws \LogicException|\ReflectionException|\JsonException|\UnhandledMatchError */
+    private static function compile(string $class, array $arguments, array $properties): DirectScalarPlan|false
     {
         // Resolve aliases to the declared PHP identifier before generating code.
         $class = new ReflectionClass($class)->getName();
@@ -1014,8 +777,6 @@ final class DirectParser
             return false;
         }
         $alternatives = [];
-        $strictAlternatives = [];
-        $batchEligible = true;
         $expressions = [];
         $conversions = [];
         $index = 0;
@@ -1043,17 +804,12 @@ final class DirectParser
                 $token = '(?:' . $token . '|null)';
             }
             $capture = 'v' . $index++;
-            $alternatives[] = preg_quote(json_encode($name), '~') . '\s*+:\s*+(?<' . $capture . '>' . $token . ')';
-            $batchEligible =
-                $batchEligible && in_array($kind, ['string', 'int', 'float', 'bool', 'true', 'false', 'null'], true);
-            $strictToken = $kind === 'int' ? GraphParser::integerPattern() : GraphParser::strictTokens($token);
-            if ($kind === 'int' && $field['nullable']) {
-                $strictToken = '(?:null|' . $strictToken . ')';
-            }
-            $strictAlternatives[] =
-                preg_quote(json_encode($name), '~')
-                . '[\\x20\\x09\\x0a\\x0d]*+:[\\x20\\x09\\x0a\\x0d]*+('
-                . $strictToken
+            $alternatives[] =
+                preg_quote(json_encode($name, JSON_THROW_ON_ERROR), '~')
+                . '\s*+:\s*+(?<'
+                . $capture
+                . '>'
+                . $token
                 . ')';
             $value = '$m[' . var_export($capture, true) . ']';
             // json_decode on individual scalar tokens also preserves numeric overflow,
@@ -1065,7 +821,7 @@ final class DirectParser
                 'float' => '(' . $value . ' === "-0" ? 0.0 : (float) ' . $value . ')',
                 'bool', 'true', 'false' => '(' . $value . ' === "true")',
                 'null' => 'null',
-                'convert' => $native,
+                default => $native,
             };
             if ($field['nullable']) {
                 $fast = '(' . $value . ' === "null" ? null : ' . $fast . ')';
@@ -1117,6 +873,7 @@ final class DirectParser
             }
             $expressions[] = $local;
         }
+        unset($name, $field);
         if ($alternatives === []) {
             return false;
         }
@@ -1129,12 +886,6 @@ final class DirectParser
         }
         $ordered = '~\G\{\s*+' . implode('\s*+,\s*+', $alternatives) . '\s*+\}~';
         $raw = substr($ordered, 3, -1);
-        $boundary = preg_replace('/\(\?<v[0-9]+>/', '(?:', $raw);
-        if ($boundary === null) {
-            return false;
-        }
-        $chunk = '~(?(DEFINE)(?<row>' . $boundary . '))\G(?:(?&row)\s*+(?:,\s*+|(?=\]))){1,128}\K~';
-        $rows = '~' . $raw . '~';
         // Generated from reflection metadata only. Never interpolate JSON into PHP.
         $body =
             'return static function (array $m, bool $native) use ($class, $fields, $properties): object|false { '
@@ -1147,6 +898,7 @@ final class DirectParser
                 $body .= 'if (!is_int(' . $local . ') && ' . $local . ' !== null) { return false; }';
             }
         }
+        unset($name, $field);
         // Strict direct calls avoid the weak coercions of ReflectionClass::newInstanceArgs.
         $body .=
             '$object = new \\'
@@ -1159,17 +911,27 @@ final class DirectParser
             $body .= '$properties[' . var_export($name, true) . ']["property"]->setValue($object, $a' . $index++ . ');';
         }
         $body .= 'return $object; };';
+        /** @var \Closure(array<array-key, string|null>, bool): (object|false) $factory */
         $factory = eval($body);
         $numberedBody = preg_replace_callback(
             '/\$m\[\'v([0-9]+)\'\]/',
-            static fn(array $match) => '$m[' . ((int) $match[1] + 1) . ']',
+            /**
+             * @param array<array-key, string> $match
+             * @mago-expect analysis:possibly-undefined-int-array-index The capture always contains the numbered group.
+             */
+            static fn(array $match): string => '$m[' . ((int) $match[1] + 1) . ']',
             $body,
         );
         if ($numberedBody === null) {
             return false;
         }
+        /** @var \Closure(array<array-key, string|null>, bool): (object|false) $numberedFactory */
         $numberedFactory = eval($numberedBody);
-        $columnBody = substr($numberedBody, strpos($numberedBody, '{') + 1, -3);
+        $opening = strpos($numberedBody, '{');
+        if ($opening === false) {
+            return false;
+        }
+        $columnBody = substr($numberedBody, $opening + 1, -3);
         $columnBody = preg_replace('/\$m\[([0-9]+)\]/', '\$columns[$1][$i]', $columnBody);
         if ($columnBody === null) {
             return false;
@@ -1180,45 +942,45 @@ final class DirectParser
             '$out[] = $object; $position += strlen($columns[0][$i]); ++$index;',
             $columnBody,
         );
+        /** @var \Closure(array<array-key, array<array-key, string|null>>, array<array-key, mixed>, int, int): bool $columnFactory */
         $columnFactory =
             eval('return static function(array $columns, array &$out, int &$position, int &$index) use ($class, $fields, $properties): bool { $count = count($columns[0]); for ($i = 0; $i < $count; ++$i) {'
                 . $columnBody
                 . '} return true; };');
+        /** @var non-falsy-string|null $numbered Named captures are the only replaced text; delimiters remain. */
         $numbered = preg_replace('/\(\?<v[0-9]+>/', '(', $ordered);
         if ($numbered === null) {
             return false;
         }
         $window = substr($numbered, 0, -1) . '\s*+(?:,\s*+|(?=\]))~';
         $fused =
-            GraphParser::strictTokens(str_replace('\\G', '\\A[\\x20\\x09\\x0a\\x0d]*+', substr($numbered, 0, -1)))
-            . '[\\x20\\x09\\x0a\\x0d]*+\\z~u';
-        $projection = $properties === [] ? GraphParser::projection($alternatives, array_keys($fields)) : false;
-        $white = '[\\x20\\x09\\x0a\\x0d]*+';
-        $batch = $batchEligible
-            ? '~\\G\\{'
-            . $white
-            . implode($white . ',' . $white, $strictAlternatives)
-            . $white
-            . '\\}'
-            . $white
-            . '(?:,'
-            . $white
-            . '|(?=\\]))~u'
-            : false;
-        return [
+            DirectGraphCompiler::strictTokens(str_replace(
+                '\\G',
+                '\\A[\\x20\\x09\\x0a\\x0d]*+',
+                substr($numbered, 0, -1),
+            )) . '[\\x20\\x09\\x0a\\x0d]*+\\z~u';
+        $projection = $properties === [] ? DirectGraphCompiler::projection($alternatives, array_keys($fields)) : false;
+        return new DirectScalarPlan(
             $pattern,
-            $factory,
-            $ordered,
-            $chunk,
-            $rows,
-            $numberedFactory,
             $numbered,
             $window,
-            $columnFactory,
             $fused,
             $projection,
-            $batch,
-            $projection === false ? false : GraphParser::asciiPattern($projection),
-        ];
+            $projection === false ? false : DirectGraphCompiler::asciiPattern($projection),
+            $factory,
+            $numberedFactory,
+            $columnFactory,
+        );
+    }
+
+    /**
+     * @param class-string|JsonType<mixed> $type
+     * @return array<array-key, mixed>|bool|float|int|object|string|null
+     */
+    private static function fallback(string $json, string|JsonType $type): mixed
+    {
+        /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
+        $value = NativeJsonDecoder::decode($json, $type);
+        return $value;
     }
 }

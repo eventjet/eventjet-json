@@ -11,7 +11,7 @@ use Eventjet\Json\Benchmark\Fixtures\RecordBatch;
 use Eventjet\Json\Benchmark\Prototype\DeepNode;
 use Eventjet\Json\Benchmark\Prototype\DirectParser;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Json;
+use Eventjet\Json\Internal\NativeJsonDecoder as Json;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 
@@ -55,6 +55,7 @@ if (($argv[1] ?? '') !== '--worker') {
                     'pcre.jit',
                     'pcre.backtrack_limit',
                     'pcre.recursion_limit',
+                    'pcov.enabled',
                 ] as $setting) {
                     $command[] = '-d';
                     $command[] = $setting . '=' . ini_get($setting);
@@ -119,9 +120,11 @@ if (str_ends_with($mode, '-nogc')) {
     $mode = substr($mode, 0, -5);
 }
 [$json, $type] = \Eventjet\Json\Benchmark\Prototype\workload($scenario);
-$decode = $mode === 'native'
-    ? static fn() => Json::decode($json, $type)
-    : static fn() => DirectParser::decode($json, $type, $mode);
+$decode = match ($mode) {
+    'native' => static fn() => Json::decode($json, $type),
+    'production' => static fn() => \Eventjet\Json\Json::decode($json, $type),
+    default => static fn() => DirectParser::decode($json, $type, $mode),
+};
 if (str_starts_with($mode, 'trusted-')) {
     // Diagnostic ceiling only: deliberately omits the syntax-before-construction guarantee.
     $decode = static fn() => DirectParser::decode($json, $type, substr($mode, 8), syntaxValidated: true);
@@ -154,7 +157,7 @@ if ($result instanceof DecodeError) {
 // Check semantics outside timed/peak regions; a faster incomplete result is not a win.
 $expected = Json::decode($json, $type);
 if (serialize($result) !== serialize($expected)) {
-    throw new RuntimeException('Benchmark output differs from the production decoder.');
+    throw new RuntimeException('Benchmark output differs from the native reference.');
 }
 unset($expected);
 unset($result);

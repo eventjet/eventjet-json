@@ -1,15 +1,19 @@
 # Direct JSON decoding prototype
 
-This is an experiment against PR #30, not a replacement for `Json::decode()`.
-It asks whether removing the intermediate `stdClass` tree improves end-to-end
-runtime or peak allocation. Production code and its public API are unchanged.
-The second pass adds whole-schema validation and generated cursor-based construction.
+These experiments investigated whether removing the intermediate `stdClass` tree
+improves end-to-end runtime or peak allocation. The selected second-pass paths now
+back `Json::decode()`; the public API is unchanged. The historical variants remain
+here for comparison. `production` calls the public decoder directly, and `native`
+calls the previous implementation retained internally as a compatibility fallback.
+See the [integration results](RESULTS-PRODUCTION.md) for the current comparison.
 It uses PHP and the bundled JSON/PCRE facilities; no FFI or native add-on is required.
 
 Install the project's Composer dependencies, then run:
 
 ```sh
 php experiments/direct-json/verify.php
+php experiments/direct-json/bench.php 5 native,production
+php experiments/direct-json/paired.php 15 native,production
 php experiments/direct-json/bench.php 5 native,window-8192,extreme
 php experiments/direct-json/paired.php 15 native,window-8192,extreme
 ```
@@ -23,7 +27,7 @@ The second command emits JSON to stdout and a progress summary to stderr.
 Every sample uses a fresh subprocess; modes are shuffled deterministically
 within each sample. Each worker reports first-call time/allocation, warmed time,
 warmed peak allocation, and retained output size. It checks output equality
-against the production decoder outside the measurement region. Workload creation,
+against the native reference outside the measurement region. Workload creation,
 autoload setup, input storage and metadata already cached during warmup are
 excluded from warmed peak allocation. The complete returned graph is included.
 These are PHP allocator measurements, not process RSS. Runtime is elapsed time,
@@ -36,7 +40,7 @@ php experiments/direct-json/bench.php 5 native,window-8192 "record batch 1000,ro
 php -d opcache.enable_cli=1 -d opcache.jit=tracing -d opcache.jit_buffer_size=64M experiments/direct-json/bench.php 5 native,window-8192
 ```
 
-Workers inherit the loaded INI file and the explicit OPcache/JIT and PCRE settings.
+Workers inherit the loaded INI file and the explicit OPcache/JIT, PCRE and PCOV settings.
 On PHP versions where OPcache is a shared extension, enable it in that INI file.
 No PHP, Composer or tool configuration is added to the repository by this experiment.
 

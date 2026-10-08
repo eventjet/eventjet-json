@@ -5,7 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/bootstrap.php';
 
 use Eventjet\Json\Benchmark\Prototype\DirectParser;
-use Eventjet\Json\Json;
+use Eventjet\Json\Internal\NativeJsonDecoder as Json;
 
 use function Eventjet\Json\Benchmark\Prototype\workload;
 
@@ -29,9 +29,11 @@ foreach ($scenarios as $scenario) {
     $samples = [];
     $expected = serialize(Json::decode($json, $type));
     foreach ($modes as $mode) {
-        $function = $mode === 'native'
-            ? static fn() => Json::decode($json, $type)
-            : static fn() => DirectParser::decode($json, $type, $mode);
+        $function = match ($mode) {
+            'native' => static fn() => Json::decode($json, $type),
+            'production' => static fn() => \Eventjet\Json\Json::decode($json, $type),
+            default => static fn() => DirectParser::decode($json, $type, $mode),
+        };
         if (serialize($function()) !== $expected) {
             throw new RuntimeException('Output differs: ' . $scenario . ' / ' . $mode);
         }

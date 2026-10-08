@@ -8,13 +8,14 @@ use Eventjet\Json\Benchmark\Fixtures\Record;
 use Eventjet\Json\Benchmark\Fixtures\RecordBatch;
 use Eventjet\Json\Benchmark\Prototype\DirectParser;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Json;
+use Eventjet\Json\Internal\NativeJsonDecoder as Json;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Cases;
 
 $count = 0;
 $failures = [];
 $modes = [
+    'production',
     'graph',
     'graph-compact',
     'graph-flex',
@@ -464,7 +465,7 @@ for ($index = 0; $index < 1000; ++$index) {
 }
 
 // Warm declaration parsing, which also uses PCRE in the production decoder.
-// Clear prototype compiler caches so resource failures exercise cold compilation.
+// Clear compiler caches so resource failures exercise cold compilation.
 $resourceFixtures = [];
 foreach ([
     'scalar object',
@@ -482,6 +483,10 @@ $compilerCache = new ReflectionProperty(DirectParser::class, 'compiled');
 $graphCache = new ReflectionProperty(\Eventjet\Json\Benchmark\Prototype\GraphParser::class, 'cache');
 $savedCompiler = $compilerCache->getValue();
 $savedGraph = $graphCache->getValue();
+$productionCompiler = new ReflectionProperty(\Eventjet\Json\Internal\DirectJsonParser::class, 'compiled');
+$productionGraph = new ReflectionProperty(\Eventjet\Json\Internal\DirectGraphCompiler::class, 'cache');
+$savedProductionCompiler = $productionCompiler->getValue();
+$savedProductionGraph = $productionGraph->getValue();
 foreach ([
     ['pcre.backtrack_limit', '1'],
     ['pcre.recursion_limit', '1'],
@@ -489,9 +494,11 @@ foreach ([
     $old = ini_set($setting, $limit);
     $compilerCache->setValue(null, []);
     $graphCache->setValue(null, []);
+    $productionCompiler->setValue(null, []);
+    $productionGraph->setValue(null, []);
     try {
         foreach ($resourceFixtures as $scenario => [$json, $type, $expected]) {
-            foreach (['extreme', 'graph-flex-inline-direct-bulk', 'columns-8192'] as $mode) {
+            foreach (['production', 'extreme', 'graph-flex-inline-direct-bulk', 'columns-8192'] as $mode) {
                 $actual = DirectParser::decode($json, $type, $mode);
                 ++$count;
                 if (
@@ -507,6 +514,35 @@ foreach ([
         ini_set($setting, $old);
         $compilerCache->setValue(null, $savedCompiler);
         $graphCache->setValue(null, $savedGraph);
+        $productionCompiler->setValue(null, $savedProductionCompiler);
+        $productionGraph->setValue(null, $savedProductionGraph);
+    }
+}
+
+// Application-defined root descriptors retain their own decodeValue behavior.
+$customType = new readonly class extends JsonType {
+    public function decodeValue(mixed $value, string $path = ''): mixed
+    {
+        return 'custom descriptor result';
+    }
+
+    public function collectionItem(): string|\Eventjet\Json\Internal\NestedCollectionType
+    {
+        return new \Eventjet\Json\Internal\NestedCollectionType(
+            new \Eventjet\Json\Internal\ListType(Record::class, false),
+            false,
+        );
+    }
+
+    public function itemClass(): string
+    {
+        return Record::class;
+    }
+};
+foreach (['[]', '[{"id":1,"name":"text","amount":1.5,"active":true,"note":null}]'] as $json) {
+    ++$count;
+    if (\Eventjet\Json\Json::decode($json, $customType) !== Json::decode($json, $customType)) {
+        $failures[] = ['custom-root-descriptor'];
     }
 }
 

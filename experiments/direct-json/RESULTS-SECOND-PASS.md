@@ -1,5 +1,9 @@
 # Second pass: whole-graph compilation
 
+Historical prototype measurements. The selected paths have since been integrated
+into `Json::decode()`; see the [production integration report](RESULTS-PRODUCTION.md)
+for measurements against the updated `tabula-rasa` baseline.
+
 The first pass stopped too early. PHP-only direct construction can outperform
 the production `json_decode()` plus hydration path on more than scalar record
 batches. Compiling a whole type graph, validating it in one grammar and generating
