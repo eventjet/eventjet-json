@@ -8,6 +8,8 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassUnionValidator;
+use Eventjet\Json\Internal\CollectionTypeResolver;
+use Eventjet\Json\Internal\CollectionTypeValidator;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorParameters;
 use Eventjet\Json\Internal\EnumUnionValidator;
@@ -15,7 +17,14 @@ use Eventjet\Json\Internal\FieldCollectionUnionResolver;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
+use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\MetadataCache;
+use Eventjet\Json\Internal\NestedCollectionTypeResolver;
+use Eventjet\Json\Internal\PhpDocFieldType;
+use Eventjet\Json\Internal\PhpDocItemTypeResolver;
+use Eventjet\Json\Internal\PhpDocType;
+use Eventjet\Json\Internal\PhpDocTypeParser;
+use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
@@ -44,6 +53,15 @@ use function class_alias;
 #[CoversClass(PublicProperties::class)]
 #[CoversClass(BackedEnumCaseFinder::class)]
 #[UsesClass(DecodeError::class)]
+#[UsesClass(CollectionTypeResolver::class)]
+#[UsesClass(CollectionTypeValidator::class)]
+#[UsesClass(ListType::class)]
+#[UsesClass(NestedCollectionTypeResolver::class)]
+#[UsesClass(PhpDocFieldType::class)]
+#[UsesClass(PhpDocItemTypeResolver::class)]
+#[UsesClass(PhpDocType::class)]
+#[UsesClass(PhpDocTypeParser::class)]
+#[UsesClass(PhpDocTypeTokens::class)]
 #[CoversClass(FieldTypeResolver::class)]
 #[CoversClass(FieldTypeValidator::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
@@ -242,6 +260,38 @@ final class MetadataCacheTest extends TestCase
         foreach (['int', 'int|string', '\\' . NonBackedStatus::class . '|int'] as $declaration) {
             $class = CollectionDeclarationFixture::create($declaration, '', 'var');
             static::assertFalse(FieldTypeValidator::validate($class, new ReflectionProperty($class, 'value')));
+        }
+
+        $first = new class(1) {
+            /** @var list<int> */
+            public array $value;
+
+            public function __construct(int $value)
+            {
+                $this->value = [$value];
+            }
+        };
+        $second = new class {
+            /** @var list<string> */
+            public array $value = [];
+        };
+        $constructor = new ReflectionClass($first)->getConstructor();
+        static::assertNotNull($constructor);
+        $parameter = $constructor->getParameters()[0] ?? null;
+        static::assertNotNull($parameter);
+        $firstProperty = new ReflectionProperty($first, 'value');
+        $secondProperty = new ReflectionProperty($second, 'value');
+
+        for ($lookup = 0; $lookup < 2; ++$lookup) {
+            static::assertNull(FieldTypeResolver::resolve($first::class, $parameter));
+            $firstType = FieldTypeResolver::resolve($first::class, $firstProperty);
+            $secondType = FieldTypeResolver::resolve($second::class, $secondProperty);
+            static::assertInstanceOf(ListType::class, $firstType);
+            static::assertInstanceOf(ListType::class, $secondType);
+            static::assertSame('int', $firstType->itemType);
+            static::assertSame('string', $secondType->itemType);
+            static::assertSame($firstType, FieldTypeResolver::resolve($first::class, $firstProperty));
+            static::assertSame($secondType, FieldTypeResolver::resolve($second::class, $secondProperty));
         }
     }
 
