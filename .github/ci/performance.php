@@ -3,6 +3,14 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/performance-summary.php';
+const REPORT_GROUPS = [
+    'documents' => 'Realistic example documents',
+    'batches' => 'Synthetic batches',
+    'diagnostic' => 'Focused diagnostics',
+    'stress' => 'Stress diagnostics',
+    'errors' => 'Expected errors',
+    'uncategorized' => 'Uncategorized workloads',
+];
 
 // This runner targets the same Linux environment as the Performance workflow.
 // GNU timeout bounds each subprocess; the workflow also bounds the entire job.
@@ -109,7 +117,7 @@ function configureWorkloads(string $revision, string $workspace, bool $opcache):
     writeJson($workspace . '/phpbench.json', $config);
 }
 
-/** @return non-empty-list<array{string, string}> */
+/** @return non-empty-list<array{string, string, string}> */
 function workloadFilters(string $path): array
 {
     $xml = simplexml_load_file($path);
@@ -120,10 +128,22 @@ function workloadFilters(string $path): array
     foreach ($xml->suite as $suite) {
         foreach ($suite->benchmark as $benchmark) {
             foreach ($benchmark->subject as $subject) {
+                $categories = [];
+                foreach ($subject->group as $group) {
+                    $name = (string) $group['name'];
+                    if (isset(REPORT_GROUPS[$name])) {
+                        $categories[$name] = true;
+                    }
+                }
+                if (count($categories) > 1) {
+                    throw new RuntimeException('A benchmark subject must belong to only one report category');
+                }
+                $category = array_key_first($categories) ?? 'uncategorized';
                 foreach ($subject->variant as $variant) {
                     $filters[] = [
                         '--filter=^' . preg_quote($benchmark['class'] . '::' . $subject['name'], '{') . '$',
                         '--variant=^' . preg_quote((string) $variant->{'parameter-set'}['name'], '{') . '$',
+                        $category,
                     ];
                 }
             }
@@ -139,9 +159,11 @@ set_error_handler(static function (int $severity, string $message, string $file,
     throw new ErrorException($message, 0, $severity, $file, $line);
 });
 
-$options = getopt('', ['base:', 'candidate:', 'opcache:']);
+$options = getopt('', ['base:', 'candidate:', 'opcache:', 'workloads:']);
 if ($options === false || !isset($options['base']) || !is_string($options['base'])) {
-    throw new InvalidArgumentException('Usage: php .github/ci/performance.php --base REF [--candidate REF] [--opcache on|off]');
+    throw new InvalidArgumentException(
+        'Usage: php .github/ci/performance.php --base REF [--candidate REF] [--opcache on|off] [--workloads REF]',
+    );
 }
 $candidateOption = $options['candidate'] ?? 'HEAD';
 if (!is_string($candidateOption)) {
@@ -152,6 +174,11 @@ if ($opcacheOption !== 'on' && $opcacheOption !== 'off') {
     throw new InvalidArgumentException('OPcache must be on or off');
 }
 $opcache = $opcacheOption === 'on';
+$workloadsOption = $options['workloads'] ?? $options['base'];
+if (!is_string($workloadsOption)) {
+    throw new InvalidArgumentException('Workloads must be a single revision');
+}
+$workloads = trim(git('rev-parse', '--verify', $workloadsOption . '^{commit}'));
 $base = trim(git('rev-parse', '--verify', $options['base'] . '^{commit}'));
 $candidate = trim(git('rev-parse', '--verify', $candidateOption . '^{commit}'));
 $output = getcwd() . '/.perf';
@@ -166,11 +193,13 @@ if ($dependenciesHash === false) {
 }
 $metadata = [
     'baseline' => $base,
+    'workloads' => $workloads,
     'opcache' => $opcacheOption,
     'candidate' => $candidate,
     'dependencies_sha256' => $dependenciesHash,
     'workloads_changed' =>
-        git('diff', '--name-only', $base, $candidate, '--', 'benchmarks', 'tests', 'phpbench.json') !== '',
+        !isset($options['workloads'])
+            && git('diff', '--name-only', $base, $candidate, '--', 'benchmarks', 'tests', 'phpbench.json') !== '',
     'cpu' => 'unknown',
 ];
 $cpuInfo = file('/proc/cpuinfo', FILE_IGNORE_NEW_LINES);
@@ -184,22 +213,28 @@ foreach ($cpuInfo as $line) {
     }
 }
 writeJson($results . '/metadata.json', $metadata);
-if (trim(git('ls-tree', '--name-only', $base, '--', 'benchmarks')) === '') {
+if (trim(git('ls-tree', '--name-only', $workloads, '--', 'benchmarks')) === '') {
     publish(
         $results,
-        "## Performance comparison\n\nNo comparable baseline: `$base` has no benchmark suite. Candidate: `$candidate`. No regression verdict is available.\n",
+        "## Performance comparison\n\nNo comparable baseline: workload revision `$workloads` has no benchmark suite. Candidate: `$candidate`. No regression verdict is available.\n",
     );
     exit(0);
 }
+foreach ([$base, $candidate] as $revision) {
+    if (trim(git('ls-tree', '-d', '--name-only', $revision, '--', 'src')) === '') {
+        throw new InvalidArgumentException('Compared revision has no source directory: ' . $revision);
+    }
+}
 exportRevision($base, $output . '/baseline');
 exportRevision($candidate, $output . '/candidate');
+exportRevision($workloads, $output . '/workloads');
 $workspace = $output . '/workspace';
 mkdir($workspace);
 command(['cp', '-a', 'vendor', $workspace . '/vendor']);
 copy('composer.json', $workspace . '/composer.json');
-configureWorkloads($base, $workspace, $opcache);
+configureWorkloads($workloads, $workspace, $opcache);
 foreach (['benchmarks', 'tests'] as $name) {
-    command(['cp', '-a', $output . '/baseline/' . $name, $workspace . '/' . $name]);
+    command(['cp', '-a', $output . '/workloads/' . $name, $workspace . '/' . $name]);
 }
 $measure = static function (string $version, string $name, string|null $baseline = null, string ...$options) use (
     $workspace,
@@ -242,9 +277,10 @@ $measure = static function (string $version, string $name, string|null $baseline
 };
 $measure('baseline', 'discovery', null, '--revs=1');
 $status = 0;
-$report = '';
+$reports = [];
 $comparisonPaths = [];
-foreach (workloadFilters($results . '/discovery.xml') as $index => $filters) {
+foreach (workloadFilters($results . '/discovery.xml') as $index => [$subjectFilter, $variantFilter, $group]) {
+    $filters = [$subjectFilter, $variantFilter];
     $baselineName = 'baseline-' . $index;
     $candidateName = 'candidate-' . $index;
     $measure('baseline', $baselineName, null, ...$filters);
@@ -254,20 +290,25 @@ foreach (workloadFilters($results . '/discovery.xml') as $index => $filters) {
     if ($workloadReport === false) {
         throw new RuntimeException('Cannot read PHPBench report');
     }
-    $report .= $workloadReport . "\n";
+    $reports[$group] = ($reports[$group] ?? '') . $workloadReport . "\n";
+}
+$report = '';
+foreach (REPORT_GROUPS as $group => $title) {
+    if (isset($reports[$group])) {
+        $report .= "\n### $title\n\n```text\n" . $reports[$group] . "\n```\n";
+    }
 }
 $comment = performanceSummary($comparisonPaths, $status);
 file_put_contents($results . '/comment.md', $comment);
 publish(
     $results,
     $comment
-    . "\nBaseline: `$base`. Candidate: `$candidate`. OPcache: **$opcacheOption**.\n\n"
+    . "\nBaseline: `$base`. Candidate: `$candidate`. OPcache: **$opcacheOption**. Frozen workloads: `$workloads`.\n\n"
     . ($status === 0 ? 'PHPBench assertions passed.' : 'PHPBench assertions failed: performance regression.')
     . " PHPBench mode time per decode must be at most 105% of the target's mode for every workload.\n\n"
     . 'Each target workload is measured immediately before its candidate counterpart, using the same configuration and dependencies on this runner. '
-    . "Cold and warm workloads retain their own warmup and revolution settings. Memory is advisory.\n\n```text\n"
-    . $report
-    . "\n```\n",
+    . "Cold and warm workloads retain their own warmup and revolution settings. Memory is advisory.\n\n"
+    . $report,
 );
 if ($metadata['workloads_changed']) {
     configureWorkloads($candidate, $workspace, $opcache);
