@@ -6,6 +6,8 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\JsonType;
+use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use JsonException;
 use ReflectionException;
 use RuntimeException;
@@ -60,6 +62,14 @@ final class TypeValidationCases
      */
     private static function invalid(): iterable
     {
+        yield 'standalone backed enum with int values' => [
+            IntBackedStatus::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus from the JSON object: Backed enums are not supported as standalone targets. Use a typed field or a collection descriptor.',
+        ];
+        yield 'standalone backed enum with string values' => [
+            StringBackedStatus::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus from the JSON object: Backed enums are not supported as standalone targets. Use a typed field or a collection descriptor.',
+        ];
         foreach ([
             FieldDeclarationErrorCases::errors(),
             ConstructionErrorCases::declarations(),

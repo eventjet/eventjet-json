@@ -33,13 +33,12 @@ final class Json
     {
         $class = is_string($type) ? $type : $type->itemClass();
         try {
-            if (!is_string($type)) {
-                $error = ClassFieldTypeValidator::validate($class, '[]', $class);
-                if ($error !== null) {
-                    return $error;
-                }
+            if (is_string($type)) {
+                return new ClassGraphValidator()->validateRoot($class);
             }
-            return new ClassGraphValidator()->validate($class);
+            return (
+                ClassFieldTypeValidator::validate($class, '[]', $class) ?? new ClassGraphValidator()->validate($class)
+            );
         } catch (Throwable $error) {
             return DecodeError::cannotInstantiate($class, $error);
         }
