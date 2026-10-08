@@ -125,6 +125,7 @@ jobs:
           pattern: performance-${{ matrix.opcache }}-${{ github.sha }}-${{ github.run_attempt }}-${{ matrix.sample }}-*
           path: shard-results
       - name: Verify and combine all workloads
+        id: aggregate
         env:
           OPCACHE_MODE: ${{ matrix.opcache }}
         run: php .github/ci/performance-aggregate.php --artifacts shard-results --opcache "$OPCACHE_MODE" --output .perf/results
@@ -145,7 +146,7 @@ jobs:
       - name: Require measurements and tooling validation
         if: always()
         env:
-          MEASUREMENTS: ${{ needs.measure.result }}
+          MEASUREMENTS: ${{ steps.aggregate.outcome }}
           TOOLING: ${{ needs.tooling.result }}
         run: test "$MEASUREMENTS" = success && test "$TOOLING" = success
 

@@ -170,7 +170,8 @@ using the workload index modulo four. Each baseline/candidate pair stays on one
 runner; measurements never run concurrently on that runner. Each shard retains
 the full discovery list and its assigned workload indices. Only shard one runs
 the FPM measurements. Local comparisons remain unsharded unless `--shard 1`,
-`--shard 2`, `--shard 3`, or `--shard 4` is specified.
+`--shard 2`, `--shard 3`, or `--shard 4` is specified. Shard one requires
+`--fpm on`; the other shards require `--fpm off`.
 
 The final comparison checks validate all four artifacts before publishing one
 combined result. They reject missing or duplicate shards, inconsistent revisions,
