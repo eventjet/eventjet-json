@@ -1,9 +1,13 @@
 # Direct JSON parsing investigation
 
-Keep native `json_decode()` followed by typed hydration for now. Direct parsing
-could avoid the intermediate generic object tree, but no performance comparison
-has established a benefit for this package. Replacing the JSON parser would also
-make this package responsible for maintaining JSON syntax and numeric behavior.
+Keep native `json_decode()` followed by typed hydration as the default for now.
+The [direct parsing prototype](../../experiments/direct-json/README.md) now measures
+the tradeoff: removing the intermediate tree reduces allocation for object graphs
+and ignored subtrees, and specialized scalar-object parsing can improve runtime
+on large record collections. General real-document and scalar-collection parsing
+still often favors the native path. See the [results and optimization ledger](../../experiments/direct-json/RESULTS.md)
+for the measured limits. Replacing the JSON parser also makes this package
+responsible for maintaining JSON syntax and numeric behavior.
 This decision is separate from the internal parser for PHPDoc types.
 
 The current [decode entry point](../../src/Json.php) validates the complete document
@@ -55,6 +59,12 @@ current validation order rather than report whichever type error appears first
 in the JSON text. It would not make the existing string-in, object-out API a
 bounded-memory streaming API.
 
+The prototype also found that native validation is not equivalent to native
+decoding in every detail: `json_validate()` accepts property names beginning with
+`\u0000`, while `json_decode()` rejects them. The replacement must check names
+inside ignored members too, before construction. On malformed input, the native
+error path preserves invalid-property-name versus later syntax-error precedence.
+
 Reconsider replacement only with a dependency-free prototype that passes the
 existing acceptance and error-contract cases and generated differential checks
 against native decoding. Include malformed ignored subtrees, trailing content,
@@ -62,4 +72,8 @@ constructor side effects, nesting boundaries, Unicode, numeric limits, and
 object/array shape distinctions. Compare end-to-end time and peak memory on the
 same PHP build with small documents, large lists and maps, deeply nested
 objects, and large ignored fields, including validation and metadata costs.
-Until then, any speed or memory improvement remains a hypothesis.
+The prototype performs these differential checks and records first-call and warmed
+measurements. Its results establish a workload-specific benefit, not a universal
+replacement or a claim that PHP parsing outperforms the native JSON engine.
+Evaluate deployment runtimes and the cost of maintaining the additional parser
+before promoting any experimental path into the public decoder.

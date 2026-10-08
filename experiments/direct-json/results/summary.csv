@@ -1,0 +1,270 @@
+profile,php,jit,scenario,mode,input_bytes,median_us,min_us,max_us,cold_us,peak_bytes,cold_peak_bytes,retained_bytes
+chunk-tuning.json,8.5.11,disable,"record batch 1000",native,75781,3996.88,3941.928,4237.471,14148.6,812128,1124360,214704
+chunk-tuning.json,8.5.11,disable,"record batch 1000",native-compiled,75781,1990.211,1825.315,4085.425,1959.1,812072,820264,214704
+chunk-tuning.json,8.5.11,disable,"record batch 1000",chunks-128,75781,3456.127,3411.676,3872.412,12394.3,335928,600984,214704
+chunk-tuning.json,8.5.11,disable,"record batch 1000",packed-64,75781,3521.957,3194.039,4045.928,11714.6,249984,514008,214704
+chunk-tuning.json,8.5.11,disable,"record batch 1000",packed-128,75781,3297.728,3210.581,4902.496,11309.1,279024,551240,214704
+chunk-tuning.json,8.5.11,disable,"record batch 1000",window-4096,75781,2892.061,2828.28,3043.56,11142,244592,509432,214704
+chunk-tuning.json,8.5.11,disable,"record batch 1000",window-8192,75781,3127.462,2837.626,3166.187,12733.3,278128,542104,214704
+chunk-tuning.json,8.5.11,disable,"record batch 1000",window-32768,75781,2954.726,2910.519,3117.097,10955.8,452280,716256,214704
+chunk-tuning.json,8.5.11,disable,"record batch 1000",window-131072,75781,2957.133,2819.437,3051.306,12288.6,812600,1084768,214704
+chunk-tuning.json,8.5.11,disable,"root records 10000",native,794271,43079.3,38904.333,44667.1,45822.8,8239192,8507032,2212408
+chunk-tuning.json,8.5.11,disable,"root records 10000",native-compiled,794271,20123.74,19795.58,22560.975,20625.2,8239088,8374256,2212408
+chunk-tuning.json,8.5.11,disable,"root records 10000",chunks-128,794271,33981.533,32140.367,40802.2,36402.9,2350592,2480960,2212408
+chunk-tuning.json,8.5.11,disable,"root records 10000",packed-64,794271,31008.2,30600.267,36442.167,37471.7,2252072,2382232,2212408
+chunk-tuning.json,8.5.11,disable,"root records 10000",packed-128,794271,32711.167,30405,40693.9,35250.9,2289536,2419696,2212408
+chunk-tuning.json,8.5.11,disable,"root records 10000",window-4096,794271,28658.767,27006.667,31093.667,31472.6,2246456,2376568,2212408
+chunk-tuning.json,8.5.11,disable,"root records 10000",window-8192,794271,28150.767,26725.7,30248.133,31278.1,2274272,2404384,2212408
+chunk-tuning.json,8.5.11,disable,"root records 10000",window-32768,794271,27716.267,26648.967,37108.933,31961.5,2443880,2573992,2212408
+chunk-tuning.json,8.5.11,disable,"root records 10000",window-131072,794271,27979.7,26740.4,30670.233,32859.8,3185024,3315136,2212408
+deferred-paths.json,8.5.11,disable,"deep chain 128",native,2345,928.805,816.883,982.781,11578.2,703472,873872,10320
+deferred-paths.json,8.5.11,disable,"deep chain 128",window-8192,2345,3406.758,2724.16,3998.88,11525,705672,832336,10320
+deferred-paths.json,8.5.11,disable,"deep chain 128",validate-window-8192,2345,2920.408,2574.424,3785.34,12972.2,705672,832336,10320
+deferred-paths.json,8.5.11,disable,"deep chain 128",lazy-window-8192,2345,2871.981,2629.797,3663.805,10606.1,661672,785944,10320
+deferred-paths.json,8.5.11,disable,"deep chain 128",validate-lazy-window-8192,2345,2783.371,2681.231,3234.96,12743,661672,785944,10320
+deferred-paths.json,8.5.11,disable,"deep chain 384",native,7209,2695.534,2446.259,3265.984,15312.4,2434800,2603536,30800
+deferred-paths.json,8.5.11,disable,"deep chain 384",window-8192,7209,15527.483,13948.917,16914.617,25300.1,2703240,2829904,30800
+deferred-paths.json,8.5.11,disable,"deep chain 384",validate-window-8192,7209,17475.317,13929.8,24621.1,32963.5,2703240,2829904,30800
+deferred-paths.json,8.5.11,disable,"deep chain 384",lazy-window-8192,7209,16805.667,14383.114,17553.64,24026.8,2244776,2377240,30800
+deferred-paths.json,8.5.11,disable,"deep chain 384",validate-lazy-window-8192,7209,16341.517,14638.45,19466.05,22993.5,2244776,2377240,30800
+deferred-paths.json,8.5.11,disable,"large string field",native,4194357,8968.52,8464.811,9516.588,17163.8,6292512,6444864,6291592
+deferred-paths.json,8.5.11,disable,"large string field",window-8192,4194357,15074.1,15014.05,16925.52,25209.4,6292664,6414192,6291592
+deferred-paths.json,8.5.11,disable,"large string field",validate-window-8192,4194357,21136.96,19224.32,27661.18,32930.3,6292664,6414192,6291592
+deferred-paths.json,8.5.11,disable,"large string field",lazy-window-8192,4194357,15472.36,14178.55,16676.333,22498.5,6292664,6413072,6291592
+deferred-paths.json,8.5.11,disable,"large string field",validate-lazy-window-8192,4194357,21757.225,19530.95,26183.3,30972.6,6292664,6413072,6291592
+deferred-paths.json,8.5.11,disable,"ignored string",native,4194375,10578.675,8870.456,12618.05,17870.8,6292576,6510424,144
+deferred-paths.json,8.5.11,disable,"ignored string",window-8192,4194375,15130.083,13883.9,21946.25,19961.7,6291480,6291480,144
+deferred-paths.json,8.5.11,disable,"ignored string",validate-window-8192,4194375,17572.06,17295.24,18947.525,33021.1,1216,188240,144
+deferred-paths.json,8.5.11,disable,"ignored string",lazy-window-8192,4194375,13927.033,12531.3,14528.386,20205.2,6291520,6291520,144
+deferred-paths.json,8.5.11,disable,"ignored string",validate-lazy-window-8192,4194375,18013.62,17425.16,20069.1,35240,1216,187120,144
+deferred-paths.json,8.5.11,disable,"ignored tree",native,1650046,180857.333,178455.867,183908.033,132699.2,37853536,38587480,144
+deferred-paths.json,8.5.11,disable,"ignored tree",window-8192,1650046,187078.467,176122.9,267094.9,121934,1264,188744,144
+deferred-paths.json,8.5.11,disable,"ignored tree",validate-window-8192,1650046,191299.5,181588.967,254574.3,123199.3,1264,188744,144
+deferred-paths.json,8.5.11,disable,"ignored tree",lazy-window-8192,1650046,184439.9,180200.233,231803.767,116861.9,1264,187624,144
+deferred-paths.json,8.5.11,disable,"ignored tree",validate-lazy-window-8192,1650046,189113.7,184248,199854.767,134886.7,1264,187624,144
+deferred-paths.json,8.5.11,disable,"record batch 1000",native,75781,8667.044,7883.864,10377.092,30710.8,812128,1124408,214704
+deferred-paths.json,8.5.11,disable,"record batch 1000",window-8192,75781,7018.529,5891.929,7835.507,27068.8,278144,544032,214704
+deferred-paths.json,8.5.11,disable,"record batch 1000",validate-window-8192,75781,6403.627,5553.375,7663.356,27036.3,278144,544032,214704
+deferred-paths.json,8.5.11,disable,"record batch 1000",lazy-window-8192,75781,7574.725,6739.807,8587.544,30944.9,278224,541720,214704
+deferred-paths.json,8.5.11,disable,"record batch 1000",validate-lazy-window-8192,75781,7715.764,5649.6,8283.1,24396.8,278224,541720,214704
+deferred-paths.json,8.5.11,disable,"GitHub pull request webhook",native,6926,462.245,419.824,550.453,50653.8,51536,696184,11112
+deferred-paths.json,8.5.11,disable,"GitHub pull request webhook",window-8192,6926,1060.743,969.85,1223.03,49329.5,25864,806024,11112
+deferred-paths.json,8.5.11,disable,"GitHub pull request webhook",validate-window-8192,6926,936.586,875.575,1237.15,53254.7,25864,806024,11112
+deferred-paths.json,8.5.11,disable,"GitHub pull request webhook",lazy-window-8192,6926,1086.51,1028.504,1418.654,44419.4,25944,803712,11112
+deferred-paths.json,8.5.11,disable,"GitHub pull request webhook",validate-lazy-window-8192,6926,1098.143,980.792,1187.445,46093.4,25944,803712,11112
+final-snapshot.json,8.5.11,disable,"record batch 1000",native,75781,9593.027,8212.155,10971.667,32000.1,812128,1124408,214704
+final-snapshot.json,8.5.11,disable,"record batch 1000",window-8192,75781,6191.373,5613.624,9468.8,28893.6,278176,544064,214704
+final-snapshot.json,8.5.11,disable,"record batch 1000",validate-window-8192,75781,6345.45,6011.528,8785.857,30893.6,278176,544064,214704
+final-snapshot.json,8.5.11,disable,"ignored tree",native,1650046,173592.567,61244.433,195724.533,125026.4,37853536,38587480,144
+final-snapshot.json,8.5.11,disable,"ignored tree",window-8192,1650046,60402.333,59454.967,189010.667,65514.9,1296,188776,144
+final-snapshot.json,8.5.11,disable,"ignored tree",validate-window-8192,1650046,180027.233,57347.367,346371.967,110155.7,1296,188776,144
+final-snapshot.json,8.5.11,disable,"ignored string",native,4194375,6030.3,4817.316,6366.159,10965.2,6292576,6510424,144
+final-snapshot.json,8.5.11,disable,"ignored string",window-8192,4194375,7471.367,6981.25,10221.927,13021.8,6291480,6291480,144
+final-snapshot.json,8.5.11,disable,"ignored string",validate-window-8192,4194375,11114.933,10553.8,12662.388,18675.6,1248,188272,144
+final-snapshot.json,8.5.11,disable,"GitHub pull request webhook",native,6926,250.741,233.405,367.334,28118,51536,696184,11112
+final-snapshot.json,8.5.11,disable,"GitHub pull request webhook",window-8192,6926,552.543,526.323,955.716,26938.9,25896,806056,11112
+final-snapshot.json,8.5.11,disable,"GitHub pull request webhook",validate-window-8192,6926,536.213,487.35,563.202,30982.2,25896,806056,11112
+gc-control.json,8.5.11,disable,"record batch 10000",native,794283,156899.2,133010.833,181840.533,116536.2,8239648,8675952,2212464
+gc-control.json,8.5.11,disable,"record batch 10000",native-nogc,794283,164214.567,113050.633,186412.567,118897.7,8239648,8674808,2212464
+gc-control.json,8.5.11,disable,"record batch 10000",window-8192,794283,66833.033,59666.967,68910.7,81594.9,2274696,2540584,2212464
+gc-control.json,8.5.11,disable,"record batch 10000",window-8192-nogc,794283,65190.467,55247.633,70740.367,101591.6,2274696,2540584,2212464
+gc-control.json,8.5.11,disable,"root records 10000",native,794271,99896.933,90190.667,145783.5,92353.3,8239192,8572616,2212408
+gc-control.json,8.5.11,disable,"root records 10000",native-nogc,794271,153724.3,89472.3,170194.733,107520.3,8239192,8572336,2212408
+gc-control.json,8.5.11,disable,"root records 10000",window-8192,794271,76870.8,74889.067,103707.633,73569,2274272,2471912,2212408
+gc-control.json,8.5.11,disable,"root records 10000",window-8192-nogc,794271,75673.733,58284.767,90758.567,84204.5,2274272,2471912,2212408
+offset-index.json,8.5.11,disable,"deep chain 128",native,2345,397.169,386.088,406.747,5309.1,703472,873872,10320
+offset-index.json,8.5.11,disable,"deep chain 128",lazy-window-8192,2345,1614.339,1425.66,3227.23,5369.7,661704,785976,10320
+offset-index.json,8.5.11,disable,"deep chain 128",indexed-lazy-window-8192,2345,1083.338,1056.032,1142.818,4431.9,674048,798192,10320
+offset-index.json,8.5.11,disable,"deep chain 128",validate-indexed-lazy-window-8192,2345,1080.273,1011.286,1130.889,4848,674048,798192,10320
+offset-index.json,8.5.11,disable,"deep chain 384",native,7209,1252.605,1213.012,1330.663,6641.3,2434800,2603536,30800
+offset-index.json,8.5.11,disable,"deep chain 384",lazy-window-8192,7209,7537.454,7239.708,7884.633,12208.7,2244808,2377272,30800
+offset-index.json,8.5.11,disable,"deep chain 384",indexed-lazy-window-8192,7209,3363.855,3184.121,3369.996,6978.8,2265344,2397680,30800
+offset-index.json,8.5.11,disable,"deep chain 384",validate-indexed-lazy-window-8192,7209,3169.725,3053.103,3225.613,7530.7,2265344,2397680,30800
+offset-index.json,8.5.11,disable,"recursive collections",native,982,254.886,241.774,257.068,15038.5,65120,505088,29456
+offset-index.json,8.5.11,disable,"recursive collections",lazy-window-8192,982,502.595,464.15,524.621,11758.1,35112,358448,29456
+offset-index.json,8.5.11,disable,"recursive collections",indexed-lazy-window-8192,982,504.011,496.636,542.377,13496,43360,366568,29456
+offset-index.json,8.5.11,disable,"recursive collections",validate-indexed-lazy-window-8192,982,484.284,479.051,547.19,12969.3,43360,366568,29456
+offset-index.json,8.5.11,disable,"GitHub pull request webhook",native,6926,219.593,207.54,228.789,20419.2,51536,696184,11112
+offset-index.json,8.5.11,disable,"GitHub pull request webhook",lazy-window-8192,6926,556.712,509.684,864.57,24432.5,25976,803744,11112
+offset-index.json,8.5.11,disable,"GitHub pull request webhook",indexed-lazy-window-8192,6926,706.437,672.979,737.155,22081.6,28592,806232,11112
+offset-index.json,8.5.11,disable,"GitHub pull request webhook",validate-indexed-lazy-window-8192,6926,672.248,660.228,711.271,23449.6,28592,806232,11112
+offset-index.json,8.5.11,disable,"long scalar lists",native,27286,627.686,625.546,635.057,10789.7,143648,463520,122176
+offset-index.json,8.5.11,disable,"long scalar lists",lazy-window-8192,27286,1132.226,1123.522,1191.037,8975.4,131840,375304,122176
+offset-index.json,8.5.11,disable,"long scalar lists",indexed-lazy-window-8192,27286,1659.839,1650.354,1735.979,9178.6,132216,375552,122176
+offset-index.json,8.5.11,disable,"long scalar lists",validate-indexed-lazy-window-8192,27286,1278.173,1259.181,1309.36,9008.9,132216,375552,122176
+php84-cli.json,8.4.1,disable,"scalar object",native,58,6.013,5.458,7.382,7834.3,1064,218824,144
+php84-cli.json,8.4.1,disable,"scalar object",window-8192,58,8.562,7.935,9.31,6772.5,808,200448,144
+php84-cli.json,8.4.1,disable,"scalar object",validate-window-8192,58,9.138,7.801,12.282,8037.6,808,200448,144
+php84-cli.json,8.4.1,disable,"scalar object",lazy-window-8192,58,8.977,7.81,9.019,5700.7,808,200448,144
+php84-cli.json,8.4.1,disable,"long scalar lists",native,27286,1390.081,1214.367,1496.039,29981.9,143648,463360,122176
+php84-cli.json,8.4.1,disable,"long scalar lists",window-8192,27286,2502.007,2251.098,3246.656,25281.8,131728,377336,122176
+php84-cli.json,8.4.1,disable,"long scalar lists",validate-window-8192,27286,1645.655,1465.158,1831.192,21232.7,131728,377336,122176
+php84-cli.json,8.4.1,disable,"long scalar lists",lazy-window-8192,27286,2492.696,2191.102,2846.926,18609.8,131808,375024,122176
+php84-cli.json,8.4.1,disable,"record batch 1000",native,75781,4133.556,3873.031,9451.918,14457.2,812128,1124240,214704
+php84-cli.json,8.4.1,disable,"record batch 1000",window-8192,75781,2851.794,2725.539,3431.642,12341.4,278144,543056,214704
+php84-cli.json,8.4.1,disable,"record batch 1000",validate-window-8192,75781,3161.67,2758.25,7313.125,12120.9,278144,543056,214704
+php84-cli.json,8.4.1,disable,"record batch 1000",lazy-window-8192,75781,2920.555,2813.536,3045.619,11519.4,278224,540744,214704
+php84-cli.json,8.4.1,disable,"ignored tree",native,1650046,55672.367,53765.033,62278.6,66765.6,37853536,38587392,144
+php84-cli.json,8.4.1,disable,"ignored tree",window-8192,1650046,56396,54557.2,57448.067,60559.1,1264,188560,144
+php84-cli.json,8.4.1,disable,"ignored tree",validate-window-8192,1650046,55358.1,54892.733,55960.033,60184.7,1264,188560,144
+php84-cli.json,8.4.1,disable,"ignored tree",lazy-window-8192,1650046,55681.833,53609.433,57317.367,58512,1264,187440,144
+php84-cli.json,8.4.1,disable,"ignored string",native,4194375,4600.495,4362.591,4781.27,8447.3,6292576,6510336,144
+php84-cli.json,8.4.1,disable,"ignored string",window-8192,4194375,6533.687,6348.707,8447.16,9467.9,6291480,6291480,144
+php84-cli.json,8.4.1,disable,"ignored string",validate-window-8192,4194375,9088.07,8728.15,9329.027,14460.2,1216,188184,144
+php84-cli.json,8.4.1,disable,"ignored string",lazy-window-8192,4194375,6330.207,6213.087,6425.3,9720.7,6291520,6291520,144
+php84-cli.json,8.4.1,disable,"deep chain 128",native,2345,406.376,381.85,469.575,5027.4,703472,873784,10320
+php84-cli.json,8.4.1,disable,"deep chain 128",window-8192,2345,1438.472,1406.758,1550.772,5423.6,705672,832152,10320
+php84-cli.json,8.4.1,disable,"deep chain 128",validate-window-8192,2345,1463.808,1368.043,1560.41,5549.5,705672,832152,10320
+php84-cli.json,8.4.1,disable,"deep chain 128",lazy-window-8192,2345,1462.62,1431.459,1547.337,5311,661672,785760,10320
+php85-cli.json,8.5.11,disable,"scalar object",native,58,5.496,5.281,6.465,7599.3,1064,218912,144
+php85-cli.json,8.5.11,disable,"scalar object",window-8192,58,8.871,7.772,10.124,5836.7,792,135320,144
+php85-cli.json,8.5.11,disable,"scalar object",validate-window-8192,58,7.807,7.484,11.286,7510.4,792,135320,144
+php85-cli.json,8.5.11,disable,"public scalar properties",native,79,9.115,8.875,15.226,8594.1,2928,231112,192
+php85-cli.json,8.5.11,disable,"public scalar properties",window-8192,79,12.587,9.438,14.993,9291.5,896,145480,192
+php85-cli.json,8.5.11,disable,"public scalar properties",validate-window-8192,79,9.074,8.484,16.083,7034,896,145480,192
+php85-cli.json,8.5.11,disable,"named enums",native,65,10.519,9.479,12.875,11437.6,1072,246208,96
+php85-cli.json,8.5.11,disable,"named enums",window-8192,65,9.857,8.843,12.099,7087.4,688,209624,96
+php85-cli.json,8.5.11,disable,"named enums",validate-window-8192,65,9.085,8.792,11.1,8190.2,688,209624,96
+php85-cli.json,8.5.11,disable,"long scalar lists",native,27286,1345.933,1189,1507.821,21407.4,143648,463520,122176
+php85-cli.json,8.5.11,disable,"long scalar lists",window-8192,27286,2219.652,2171.642,2232.384,19846.5,131712,377568,122176
+php85-cli.json,8.5.11,disable,"long scalar lists",validate-window-8192,27286,1502.406,1461.163,1680.1,20162.8,131712,377568,122176
+php85-cli.json,8.5.11,disable,"long string map",native,21792,708.456,683.039,819.985,19304.6,133960,443352,112992
+php85-cli.json,8.5.11,disable,"long string map",window-8192,21792,1319.896,1215.028,1340.196,16924,138272,399872,112992
+php85-cli.json,8.5.11,disable,"long string map",validate-window-8192,21792,941.929,880.505,1149.643,20922.9,138272,399872,112992
+php85-cli.json,8.5.11,disable,"record batch 1000",native,75781,9274.713,8740.475,10443.509,32763.9,812128,1124408,214704
+php85-cli.json,8.5.11,disable,"record batch 1000",window-8192,75781,6642.823,5690.882,9083.958,26253,278128,544016,214704
+php85-cli.json,8.5.11,disable,"record batch 1000",validate-window-8192,75781,6324.367,5613.539,6807.862,22478.2,278128,544016,214704
+php85-cli.json,8.5.11,disable,"record batch 10000",native,794283,151192.833,89302.333,182615.067,109154.5,8239648,8675952,2212464
+php85-cli.json,8.5.11,disable,"record batch 10000",window-8192,794283,62661.4,60359.333,73396.8,88093.8,2274696,2540584,2212464
+php85-cli.json,8.5.11,disable,"record batch 10000",validate-window-8192,794283,63845.1,54914.167,69768.067,87778.6,2274696,2540584,2212464
+php85-cli.json,8.5.11,disable,"root records 10000",native,794271,102530.833,81586.767,116167.633,99961.8,8239192,8572616,2212408
+php85-cli.json,8.5.11,disable,"root records 10000",window-8192,794271,70988.9,52293.3,80208.3,72608.3,2274272,2471912,2212408
+php85-cli.json,8.5.11,disable,"root records 10000",validate-window-8192,794271,66266.3,55807.9,81230.2,81417.7,2274272,2471912,2212408
+php85-cli.json,8.5.11,disable,"recursive collections",native,982,578.128,499.389,792.569,40207,65120,505088,29456
+php85-cli.json,8.5.11,disable,"recursive collections",window-8192,982,948.638,875.088,1007.255,24906.5,34536,353904,29456
+php85-cli.json,8.5.11,disable,"recursive collections",validate-window-8192,982,1059.005,897.679,1590.733,31232.8,34536,353904,29456
+php85-cli.json,8.5.11,disable,"JSON:API compound document",native,1559,249.449,188.207,312.707,41952.8,25192,497624,10896
+php85-cli.json,8.5.11,disable,"JSON:API compound document",window-8192,1559,542.116,426.74,809.9,41367,14352,478016,10768
+php85-cli.json,8.5.11,disable,"JSON:API compound document",validate-window-8192,1559,463.92,421.793,575.905,41718.2,14352,478016,10768
+php85-cli.json,8.5.11,disable,"AWS Lambda Amazon MSK event",native,924,45.943,42.819,51.587,34739.9,8528,418256,2792
+php85-cli.json,8.5.11,disable,"AWS Lambda Amazon MSK event",window-8192,924,138.724,124.308,163.397,27099.5,6624,357352,2792
+php85-cli.json,8.5.11,disable,"AWS Lambda Amazon MSK event",validate-window-8192,924,145.265,110.785,160.905,29180.8,6624,357352,2792
+php85-cli.json,8.5.11,disable,"Stripe invoice",native,7903,672.406,611.454,821.412,86319.2,70816,944416,15856
+php85-cli.json,8.5.11,disable,"Stripe invoice",window-8192,7903,1862.941,1595.457,2371.416,85251.5,39336,1220440,15856
+php85-cli.json,8.5.11,disable,"Stripe invoice",validate-window-8192,7903,1748.322,1389.998,1979.066,96678.1,39336,1220440,15856
+php85-cli.json,8.5.11,disable,"GitHub pull request webhook",native,6926,745.087,480.315,1028.087,57159.7,51536,696184,11112
+php85-cli.json,8.5.11,disable,"GitHub pull request webhook",window-8192,6926,1254.109,1021.05,1983.26,50209.9,25848,806008,11112
+php85-cli.json,8.5.11,disable,"GitHub pull request webhook",validate-window-8192,6926,1110.991,952.637,1635.322,54740.2,25848,806008,11112
+php85-cli.json,8.5.11,disable,"Kubernetes deployment",native,6633,887.077,732.062,1077.154,67205.2,57848,743824,18376
+php85-cli.json,8.5.11,disable,"Kubernetes deployment",window-8192,6633,1793.278,1690.114,2570.111,96252.5,28288,909240,18376
+php85-cli.json,8.5.11,disable,"Kubernetes deployment",validate-window-8192,6633,1778.833,1607.473,2688.915,80450.3,28288,909240,18376
+php85-cli.json,8.5.11,disable,"ignored tree",native,1650046,178464.733,115365.3,219508.2,135051.8,37853536,38587480,144
+php85-cli.json,8.5.11,disable,"ignored tree",window-8192,1650046,194722.833,183574.4,200036.433,125244.7,38200,242072,144
+php85-cli.json,8.5.11,disable,"ignored tree",validate-window-8192,1650046,190288.867,183026.867,236349.6,120732.1,38200,242072,144
+php85-cli.json,8.5.11,disable,"ignored string",native,4194375,9089.556,9034.889,11321.713,18274.6,6292576,6510424,144
+php85-cli.json,8.5.11,disable,"ignored string",window-8192,4194375,13830.22,12547.833,19363.067,24471.2,6291480,6291480,144
+php85-cli.json,8.5.11,disable,"ignored string",validate-window-8192,4194375,19491.05,17259,21316.38,33118.4,38152,241568,144
+php85-jit.json,8.5.11,tracing,"scalar object",native,58,4.312,3.798,79.366,1496.8,1064,4896,144
+php85-jit.json,8.5.11,tracing,"scalar object",pure,58,16.453,14.817,1105.1,2087.8,1136,6752,144
+php85-jit.json,8.5.11,tracing,"scalar object",window-8192,58,6.389,5.934,8.735,2624.9,792,68504,144
+php85-jit.json,8.5.11,tracing,"scalar object",validate-window-8192,58,6.594,5.201,10.351,3736,792,68504,144
+php85-jit.json,8.5.11,tracing,"long scalar lists",native,27286,1035.153,940.944,1415.396,11610.8,143648,149712,122176
+php85-jit.json,8.5.11,tracing,"long scalar lists",pure,27286,14663.238,12004.4,21539.843,23356.9,123568,130008,122176
+php85-jit.json,8.5.11,tracing,"long scalar lists",window-8192,27286,2044.373,2022.631,2748.765,8325.6,131712,138656,122176
+php85-jit.json,8.5.11,tracing,"long scalar lists",validate-window-8192,27286,1445.871,1302.606,1774.262,6242.9,131712,138656,122176
+php85-jit.json,8.5.11,tracing,"record batch 1000",native,75781,6900.875,5918.24,7695.408,13894.8,812128,826464,214704
+php85-jit.json,8.5.11,tracing,"record batch 1000",pure,75781,21454.575,20515.4,22050.45,30993.4,216216,233688,214704
+php85-jit.json,8.5.11,tracing,"record batch 1000",window-8192,75781,6271.8,5697.665,7626.664,18525.1,278128,314968,214704
+php85-jit.json,8.5.11,tracing,"record batch 1000",validate-window-8192,75781,6154.761,5410.353,6413.624,12750.9,278128,314968,214704
+php85-jit.json,8.5.11,tracing,"GitHub pull request webhook",native,6926,362.986,314.766,553.995,24430.9,51536,173152,11112
+php85-jit.json,8.5.11,tracing,"GitHub pull request webhook",pure,6926,1230.501,1215.257,1286.129,23990.8,25784,223200,11112
+php85-jit.json,8.5.11,tracing,"GitHub pull request webhook",window-8192,6926,791.269,738.152,870.084,27916.2,25848,377320,11112
+php85-jit.json,8.5.11,tracing,"GitHub pull request webhook",validate-window-8192,6926,680.234,581.284,863.654,27140.2,25848,377320,11112
+php85-jit.json,8.5.11,tracing,"ignored string",native,4194375,9349.6,9307.691,10446.856,13460.7,6292576,6296408,144
+php85-jit.json,8.5.11,tracing,"ignored string",pure,4194375,14201.8,11990.4,15150.733,15124.4,6291480,6291480,144
+php85-jit.json,8.5.11,tracing,"ignored string",window-8192,4194375,12845.657,12296.529,16021.467,17894.2,6291480,6291480,144
+php85-jit.json,8.5.11,tracing,"ignored string",validate-window-8192,4194375,17513.14,17021.28,19409.8,31015.2,38152,68504,144
+pure-comparison.json,8.5.11,disable,"scalar object",native,58,2.772,2.725,3.112,3651.2,1064,218944,144
+pure-comparison.json,8.5.11,disable,"scalar object",pure,58,12.773,12.393,13.587,3239.5,1136,188192,144
+pure-comparison.json,8.5.11,disable,"scalar object",window-8192,58,3.916,3.887,4.036,2911.8,792,133672,144
+pure-comparison.json,8.5.11,disable,"scalar object",validate-window-8192,58,3.684,3.678,3.718,3243.1,792,133672,144
+pure-comparison.json,8.5.11,disable,"public scalar properties",native,79,4.735,4.552,5.027,3901.7,2928,229728,192
+pure-comparison.json,8.5.11,disable,"public scalar properties",pure,79,13.546,13.443,14.788,3182,2144,126688,192
+pure-comparison.json,8.5.11,disable,"public scalar properties",window-8192,79,13.964,13.743,14.356,2892.7,2208,127128,192
+pure-comparison.json,8.5.11,disable,"public scalar properties",validate-window-8192,79,13.877,13.512,14.578,3296.1,2208,127128,192
+pure-comparison.json,8.5.11,disable,"named enums",native,65,5.099,4.986,5.288,4364.1,1072,246240,96
+pure-comparison.json,8.5.11,disable,"named enums",pure,65,10.227,9.957,12.963,2982.9,1144,210144,96
+pure-comparison.json,8.5.11,disable,"named enums",window-8192,65,10.7,10.61,10.802,3103.9,1208,210584,96
+pure-comparison.json,8.5.11,disable,"named enums",validate-window-8192,65,10.502,10.46,11.462,3568.1,1208,210584,96
+pure-comparison.json,8.5.11,disable,"long scalar lists",native,27286,625.696,620.872,680.291,9050.2,143648,463552,122176
+pure-comparison.json,8.5.11,disable,"long scalar lists",pure,27286,10061.344,9729.81,12256.588,15947.2,123568,342456,122176
+pure-comparison.json,8.5.11,disable,"long scalar lists",window-8192,27286,1144.676,1136.318,1227.059,8623.5,131712,377600,122176
+pure-comparison.json,8.5.11,disable,"long scalar lists",validate-window-8192,27286,830.89,777.227,977.91,8251.3,131712,377600,122176
+pure-comparison.json,8.5.11,disable,"long string map",native,21792,363.356,349.855,401.098,8704.8,133960,443384,112992
+pure-comparison.json,8.5.11,disable,"long string map",pure,21792,4342.522,4310.909,4405.196,10592.1,155608,382744,112992
+pure-comparison.json,8.5.11,disable,"long string map",window-8192,21792,680.104,632.256,712.516,8632.5,138272,399904,112992
+pure-comparison.json,8.5.11,disable,"long string map",validate-window-8192,21792,520.435,454.803,615.198,7720.6,138272,399904,112992
+pure-comparison.json,8.5.11,disable,"record batch 1000",native,75781,4104.384,3934.038,4268.824,16386.4,812128,1124440,214704
+pure-comparison.json,8.5.11,disable,"record batch 1000",pure,75781,21074.44,18582.06,21605.72,27947,216216,464176,214704
+pure-comparison.json,8.5.11,disable,"record batch 1000",window-8192,75781,2977.862,2827.174,3870.482,10801.4,278128,542104,214704
+pure-comparison.json,8.5.11,disable,"record batch 1000",validate-window-8192,75781,3022.368,2823.379,3201.228,10946.6,278128,542104,214704
+pure-comparison.json,8.5.11,disable,"record batch 10000",native,794283,45446.133,42815.2,61601.067,52848.3,8239648,8675984,2212464
+pure-comparison.json,8.5.11,disable,"record batch 10000",pure,794283,692265.6,644336.033,696216.8,193946.7,2213976,2453744,2212464
+pure-comparison.json,8.5.11,disable,"record batch 10000",window-8192,794283,28724.767,28098.9,31262,36602,2274696,2538672,2212464
+pure-comparison.json,8.5.11,disable,"record batch 10000",validate-window-8192,794283,30005.733,28319.533,30505.267,38002.7,2274696,2538672,2212464
+pure-comparison.json,8.5.11,disable,"root records 10000",native,794271,46825.933,38639.667,82167.633,43702.6,8239192,8572648,2212408
+pure-comparison.json,8.5.11,disable,"root records 10000",pure,794271,577444.967,564038.167,584901.467,164588,2213544,2392232,2212408
+pure-comparison.json,8.5.11,disable,"root records 10000",window-8192,794271,65531.333,27149.967,90420.167,62457,2274272,2404464,2212408
+pure-comparison.json,8.5.11,disable,"root records 10000",validate-window-8192,794271,52384.933,27054.3,88726.2,60758.9,2274272,2404464,2212408
+pure-comparison.json,8.5.11,disable,"recursive collections",native,982,452.631,176.992,919.815,31566.4,65120,505120,29456
+pure-comparison.json,8.5.11,disable,"recursive collections",pure,982,2012.624,819.663,3064.646,29349.9,34472,353368,29456
+pure-comparison.json,8.5.11,disable,"recursive collections",window-8192,982,1026.453,309.813,1575.743,35990.2,34536,353936,29456
+pure-comparison.json,8.5.11,disable,"recursive collections",validate-window-8192,982,590.319,304.786,1578.056,14646.6,34536,353936,29456
+pure-comparison.json,8.5.11,disable,"JSON:API compound document",native,1559,106.094,84.373,212.352,17926.3,25192,497656,10896
+pure-comparison.json,8.5.11,disable,"JSON:API compound document",pure,1559,392.667,380.672,481.745,19293.2,14288,449112,10768
+pure-comparison.json,8.5.11,disable,"JSON:API compound document",window-8192,1559,234.906,223.711,275.686,20240.4,14352,470216,10768
+pure-comparison.json,8.5.11,disable,"JSON:API compound document",validate-window-8192,1559,242.263,202.858,296.138,22524.4,14352,470216,10768
+pure-comparison.json,8.5.11,disable,"AWS Lambda Amazon MSK event",native,924,24.646,22.944,66.704,16302.7,8528,418288,2792
+pure-comparison.json,8.5.11,disable,"AWS Lambda Amazon MSK event",pure,924,102.044,98.625,116.544,10952.3,6560,346344,2792
+pure-comparison.json,8.5.11,disable,"AWS Lambda Amazon MSK event",window-8192,924,67.19,60.584,101.223,12130.7,6624,357384,2792
+pure-comparison.json,8.5.11,disable,"AWS Lambda Amazon MSK event",validate-window-8192,924,62.101,60.913,123.864,13558.4,6624,357384,2792
+pure-comparison.json,8.5.11,disable,"Stripe invoice",native,7903,383.755,325.953,745.407,34777.5,70816,944448,15856
+pure-comparison.json,8.5.11,disable,"Stripe invoice",pure,7903,1247.444,1168.348,1295.653,36610.1,39272,953328,15856
+pure-comparison.json,8.5.11,disable,"Stripe invoice",window-8192,7903,1332.091,846.874,1749.231,41749.1,39336,1127664,15856
+pure-comparison.json,8.5.11,disable,"Stripe invoice",validate-window-8192,7903,840.382,803.51,853.764,41829.8,39336,1127664,15856
+pure-comparison.json,8.5.11,disable,"GitHub pull request webhook",native,6926,245.015,225.323,343.878,27924.2,51536,696216,11112
+pure-comparison.json,8.5.11,disable,"GitHub pull request webhook",pure,6926,1140.803,992.005,2369.342,23705.3,25784,664984,11112
+pure-comparison.json,8.5.11,disable,"GitHub pull request webhook",window-8192,6926,707.375,683.307,1095.936,29538.3,25848,747640,11112
+pure-comparison.json,8.5.11,disable,"GitHub pull request webhook",validate-window-8192,6926,624.167,594.858,791.876,25677,25848,747640,11112
+pure-comparison.json,8.5.11,disable,"Kubernetes deployment",native,6633,332.96,303.085,364.311,32110.5,57848,743856,18376
+pure-comparison.json,8.5.11,disable,"Kubernetes deployment",pure,6633,1500.776,1388.24,1809.91,25677.7,28144,691352,18376
+pure-comparison.json,8.5.11,disable,"Kubernetes deployment",window-8192,6633,774.791,762.262,1105.409,31140.3,28288,799064,18376
+pure-comparison.json,8.5.11,disable,"Kubernetes deployment",validate-window-8192,6633,789.791,679.054,1258.968,32217.6,28288,799064,18376
+pure-comparison.json,8.5.11,disable,"ignored tree",native,1650046,61063.133,57632.733,72571.767,75322.6,37853536,38587512,144
+pure-comparison.json,8.5.11,disable,"ignored tree",pure,1650046,494528.3,474979,543399.9,177447.2,1136,188192,144
+pure-comparison.json,8.5.11,disable,"ignored tree",window-8192,1650046,60797.467,58332.667,94428.367,72130.5,1336,203328,144
+pure-comparison.json,8.5.11,disable,"ignored tree",validate-window-8192,1650046,59224.367,57907.4,63749.5,63560.4,1336,203328,144
+pure-comparison.json,8.5.11,disable,"ignored string",native,4194375,5248.213,4903.233,6790.538,9646.8,6292576,6510456,144
+pure-comparison.json,8.5.11,disable,"ignored string",pure,4194375,8753.3,6629.247,9893.773,12721,6291480,6291480,144
+pure-comparison.json,8.5.11,disable,"ignored string",window-8192,4194375,7941.707,7218.067,10819.64,13744,6291480,6291480,144
+pure-comparison.json,8.5.11,disable,"ignored string",validate-window-8192,4194375,12972,9945.922,29207.3,19469.9,1288,202824,144
+validation-controls.json,8.5.11,disable,"scalar object",native,58,2.767,2.754,3.066,3748.3,1064,218944,144
+validation-controls.json,8.5.11,disable,"scalar object",window-8192,58,4.018,3.947,4.756,3248,792,133672,144
+validation-controls.json,8.5.11,disable,"scalar object",validate-window-8192,58,3.737,3.635,3.875,3345.6,792,133672,144
+validation-controls.json,8.5.11,disable,"scalar object",trusted-window-8192,58,2.848,2.77,3.089,2960.2,792,133672,144
+validation-controls.json,8.5.11,disable,"long scalar lists",native,27286,621.949,611.75,852.674,10788.5,143648,463552,122176
+validation-controls.json,8.5.11,disable,"long scalar lists",window-8192,27286,1222.762,1124.503,1588.191,8314.3,131712,377600,122176
+validation-controls.json,8.5.11,disable,"long scalar lists",validate-window-8192,27286,814.564,758.826,1181.214,8338.4,131712,377600,122176
+validation-controls.json,8.5.11,disable,"long scalar lists",trusted-window-8192,27286,729.154,678.409,845.717,7883.3,131712,377600,122176
+validation-controls.json,8.5.11,disable,"record batch 1000",native,75781,4011.788,3986.521,4600.604,13782,812128,1124440,214704
+validation-controls.json,8.5.11,disable,"record batch 1000",window-8192,75781,3137.857,2898.952,3283.032,11222.9,278128,542104,214704
+validation-controls.json,8.5.11,disable,"record batch 1000",validate-window-8192,75781,2928.821,2823.565,3104.082,10652.2,278128,542104,214704
+validation-controls.json,8.5.11,disable,"record batch 1000",trusted-window-8192,75781,1626.557,1520.664,1971.453,9349,278128,542104,214704
+validation-controls.json,8.5.11,disable,"ignored tree",native,1650046,54226.067,53557.167,59920.367,67141.7,37853536,38587512,144
+validation-controls.json,8.5.11,disable,"ignored tree",window-8192,1650046,54573.533,54100,55054.3,58550.1,1336,203328,144
+validation-controls.json,8.5.11,disable,"ignored tree",validate-window-8192,1650046,54822.6,54299.367,79879.6,60310.8,1336,203328,144
+validation-controls.json,8.5.11,disable,"ignored tree",trusted-window-8192,1650046,7033.858,7014.193,10195.393,10936.4,1336,203328,144
+validation-controls.json,8.5.11,disable,"ignored string",native,4194375,4662.3,4352.491,5494.15,8811.2,6292576,6510456,144
+validation-controls.json,8.5.11,disable,"ignored string",window-8192,4194375,6433.936,6153.225,7546.971,10292.3,6291480,6291480,144
+validation-controls.json,8.5.11,disable,"ignored string",validate-window-8192,4194375,8875.764,8768.409,13823.1,14793,1288,202824,144
+validation-controls.json,8.5.11,disable,"ignored string",trusted-window-8192,4194375,1955.761,1846.672,2322.95,5843.2,1288,202824,144
