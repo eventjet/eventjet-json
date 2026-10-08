@@ -56,6 +56,42 @@ final class ScalarValidationErrorCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields from the JSON object: Field boolean must be of type bool, int given.',
             3,
         ];
+        yield 'constructor boolean rejects a false string' => [
+            '{"string":"value","integer":42,"float":3.25,"boolean":"false"}',
+            ScalarFields::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields from the JSON object: Field boolean must be of type bool, string given.',
+            3,
+        ];
+        yield 'constructor boolean rejects an arbitrary string' => [
+            '{"string":"value","integer":42,"float":3.25,"boolean":"not a boolean"}',
+            ScalarFields::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields from the JSON object: Field boolean must be of type bool, string given.',
+            3,
+        ];
+        yield 'constructor integer rejects a fractional number' => [
+            '{"string":"value","integer":50.9,"float":3.25,"boolean":true}',
+            ScalarFields::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields from the JSON object: Field integer must be of type int, float given.',
+            3,
+        ];
+        yield 'public property boolean rejects a false string' => [
+            '{"string":"value","integer":42,"float":3.25,"boolean":"false"}',
+            ConstructorlessPublicProperties::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties from the JSON object: Field boolean must be of type bool, string given.',
+            3,
+        ];
+        yield 'public property boolean rejects an arbitrary string' => [
+            '{"string":"value","integer":42,"float":3.25,"boolean":"not a boolean"}',
+            ConstructorlessPublicProperties::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties from the JSON object: Field boolean must be of type bool, string given.',
+            3,
+        ];
+        yield 'public property integer rejects a fractional number' => [
+            '{"string":"value","integer":50.9,"float":3.25,"boolean":true}',
+            ConstructorlessPublicProperties::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties from the JSON object: Field integer must be of type int, float given.',
+            3,
+        ];
         yield 'nullable string property rejects an integer' => [
             '{"string":"value","integer":42,"float":3.25,"boolean":true,"nullable":42}',
             ConstructorlessPublicProperties::class,
