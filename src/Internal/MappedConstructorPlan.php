@@ -21,7 +21,7 @@ final readonly class MappedConstructorPlan
         $this->cacheable = $plan->cacheable;
     }
 
-    /** @param array<array-key, mixed> $values */
+    /** @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values */
     public function validate(array $values, string $path): DecodeError|null
     {
         return $this->plan->validate($values, $path);
