@@ -12,8 +12,8 @@ use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
-use stdClass;
 
+use function assert;
 use function class_exists;
 use function enum_exists;
 
@@ -22,12 +22,15 @@ final readonly class FieldValueConverter
 {
     private ReflectionType|null $type;
     private string $typeName;
+    private EnumUnionLookup|null $enumLookup;
 
+    /** @throws ReflectionException */
     public function __construct(
         private ReflectionParameter|ReflectionProperty $field,
         private ListType|MapType|TupleType|CollectionUnionType|null $collection,
     ) {
         $this->type = $field->getType();
+        $this->enumLookup = $this->type instanceof ReflectionUnionType ? new EnumUnionLookup($this->type) : null;
         $this->typeName = $this->type instanceof ReflectionNamedType
             ? FieldTypeNameResolver::resolve($field, $this->type)
             : (string) $this->type;
@@ -49,7 +52,8 @@ final readonly class FieldValueConverter
             return CollectionValueConverter::convert($class, $path, $this->collection, $value);
         }
         if ($this->type instanceof ReflectionUnionType) {
-            return $this->convertUnion($class, $this->type, $value, $path);
+            assert($this->enumLookup !== null, description: 'Union fields have a prepared union lookup.');
+            return $this->enumLookup->convertField($class, $this->field, $this->type, $value, $path);
         }
         if ($this->type instanceof ReflectionNamedType) {
             return $this->convertNamed($class, $this->type, $value, $path);
@@ -89,35 +93,6 @@ final readonly class FieldValueConverter
         }
         if (class_exists($this->typeName)) {
             return ConcreteClassValueConverter::convert($class, $this->field, $this->typeName, $value, $path);
-        }
-        return $value;
-    }
-
-    /**
-     * @param class-string $class
-     * @param array<array-key, mixed>|bool|float|int|object|string|null $value
-     * @return array<array-key, mixed>|bool|float|int|object|string|null
-     * @throws ReflectionException
-     */
-    private function convertUnion(
-        string $class,
-        ReflectionUnionType $type,
-        mixed $value,
-        string $path,
-    ): array|bool|float|int|object|string|null {
-        $converted = BackedEnumValueConverter::convert($class, $this->field, $value, $path);
-        if ($converted !== null) {
-            return $converted;
-        }
-        if ($value instanceof stdClass) {
-            $converted = ConcreteClassUnionValueConverter::convert($class, $this->field, $type, $value, $path);
-            if ($converted !== null) {
-                return $converted;
-            }
-        }
-        $matches = ValueTypeMatcher::matchesBuiltinUnion($value, $type);
-        if (!$matches) {
-            return DecodeError::fieldTypeMismatch($class, $path, (string) $type, $value);
         }
         return $value;
     }
