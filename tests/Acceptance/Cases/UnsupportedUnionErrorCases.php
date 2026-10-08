@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\ArrayScalarUnionPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedOutcome;
+use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionTypeField;
+use Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 
 /** @internal */
 final class UnsupportedUnionErrorCases
@@ -60,17 +64,13 @@ final class UnsupportedUnionErrorCases
             '{}',
             CollectionDeclarationFixture::create(
                 'array',
-                'non-empty-array<string, \Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|'
-                . NonBackedOutcome::class
-                . '>',
+                PhpType::nonEmptyArray(PhpType::union(NonBackedStatus::class, NonBackedOutcome::class)),
                 'param',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
                     'array',
-                    'non-empty-array<string, \Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|'
-                    . NonBackedOutcome::class
-                    . '>',
+                    PhpType::nonEmptyArray(PhpType::union(NonBackedStatus::class, NonBackedOutcome::class)),
                     'param',
                 )
                 . ' from the JSON object: Field value uses non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
@@ -89,13 +89,13 @@ final class UnsupportedUnionErrorCases
             '{}',
             CollectionDeclarationFixture::create(
                 'array',
-                'list<int|list<\Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface>>',
+                PhpType::list(PhpType::union(PhpType::Int, PhpType::list(RootTargetInterface::class))),
                 'var',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
                     'array',
-                    'list<int|list<\Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface>>',
+                    PhpType::list(PhpType::union(PhpType::Int, PhpType::list(RootTargetInterface::class))),
                     'var',
                 )
                 . ' from the JSON object: Field value uses interface Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
@@ -105,13 +105,13 @@ final class UnsupportedUnionErrorCases
             '{}',
             CollectionDeclarationFixture::create(
                 'array|\Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget',
-                'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget',
+                PhpType::union(PhpType::list(PhpType::Int), AbstractRootTarget::class),
                 'var',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
                     'array|\Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget',
-                    'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget',
+                    PhpType::union(PhpType::list(PhpType::Int), AbstractRootTarget::class),
                     'var',
                 )
                 . ' from the JSON object: Field value uses abstract class Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
@@ -121,13 +121,13 @@ final class UnsupportedUnionErrorCases
             '{}',
             CollectionDeclarationFixture::create(
                 'array',
-                'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface|int>',
+                PhpType::list(PhpType::union(NonBackedStatus::class, RootTargetInterface::class, PhpType::Int)),
                 'var',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
                     'array',
-                    'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface|int>',
+                    PhpType::list(PhpType::union(NonBackedStatus::class, RootTargetInterface::class, PhpType::Int)),
                     'var',
                 )
                 . ' from the JSON object: Field value uses interface Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
@@ -158,13 +158,13 @@ final class UnsupportedUnionErrorCases
             '{}',
             CollectionDeclarationFixture::create(
                 'array|(\Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface&\Countable)',
-                'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface',
+                PhpType::union(PhpType::list(PhpType::Int), RootTargetInterface::class),
                 'param',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
                     'array|(\Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface&\Countable)',
-                    'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface',
+                    PhpType::union(PhpType::list(PhpType::Int), RootTargetInterface::class),
                     'param',
                 )
                 . ' from the JSON object: Field value uses unsupported intersection type Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface&Countable. JSON does not identify a concrete class to instantiate.',
@@ -191,13 +191,18 @@ final class UnsupportedUnionErrorCases
             '{}',
             CollectionDeclarationFixture::create(
                 'array|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|string',
-                'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|string|bool',
+                PhpType::union(PhpType::list(PhpType::Int), StringBackedStatus::class, PhpType::String, PhpType::Bool),
                 'param',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
                     'array|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|string',
-                    'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|string|bool',
+                    PhpType::union(
+                        PhpType::list(PhpType::Int),
+                        StringBackedStatus::class,
+                        PhpType::String,
+                        PhpType::Bool,
+                    ),
                     'param',
                 )
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',

@@ -23,8 +23,12 @@ final class CollectionDeclarationFixture
      * @throws \RuntimeException
      * @throws \ReflectionException
      */
-    public static function object(string $nativeType, string $declaration, string $tag, mixed $value): object
-    {
+    public static function object(
+        string $nativeType,
+        string|PhpTypeExpression $declaration,
+        string $tag,
+        mixed $value,
+    ): object {
         $class = new ReflectionClass(self::create($nativeType, $declaration, $tag));
         $object = $tag === 'param' ? $class->newInstance($value) : $class->newInstance();
         if ($tag === 'var') {
@@ -37,8 +41,9 @@ final class CollectionDeclarationFixture
      * @return class-string
      * @throws RuntimeException
      */
-    public static function create(string $nativeType, string $declaration, string $tag): string
+    public static function create(string $nativeType, string|PhpTypeExpression $declaration, string $tag): string
     {
+        $declaration = (string) $declaration;
         $doc = match (true) {
             $declaration === '' => '',
             str_starts_with($declaration, '/**') => $declaration,

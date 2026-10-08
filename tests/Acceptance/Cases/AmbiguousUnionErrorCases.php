@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\OverlappingEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField;
@@ -41,13 +42,23 @@ final class AmbiguousUnionErrorCases
             '{}',
             CollectionDeclarationFixture::create(
                 'array',
-                'list<string|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|list<int>|list<string>>',
+                PhpType::list(PhpType::union(
+                    PhpType::String,
+                    StringBackedStatus::class,
+                    PhpType::list(PhpType::Int),
+                    PhpType::list(PhpType::String),
+                )),
                 'var',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
                     'array',
-                    'list<string|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|list<int>|list<string>>',
+                    PhpType::list(PhpType::union(
+                        PhpType::String,
+                        StringBackedStatus::class,
+                        PhpType::list(PhpType::Int),
+                        PhpType::list(PhpType::String),
+                    )),
                     'var',
                 )
                 . ' from the JSON object: Field value uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus together with its backing type string. JSON cannot distinguish an enum case from the scalar value.',
@@ -72,13 +83,23 @@ final class AmbiguousUnionErrorCases
             '{}',
             CollectionDeclarationFixture::create(
                 'array',
-                'list<\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates|\Eventjet\Json\Test\Acceptance\Fixtures\Person|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|string>',
+                PhpType::list(PhpType::union(
+                    Coordinates::class,
+                    Person::class,
+                    StringBackedStatus::class,
+                    PhpType::String,
+                )),
                 'param',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
                     'array',
-                    'list<\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates|\Eventjet\Json\Test\Acceptance\Fixtures\Person|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|string>',
+                    PhpType::list(PhpType::union(
+                        Coordinates::class,
+                        Person::class,
+                        StringBackedStatus::class,
+                        PhpType::String,
+                    )),
                     'param',
                 )
                 . ' from the JSON object: Field value uses multiple class types: Eventjet\Json\Test\Acceptance\Fixtures\Coordinates, Eventjet\Json\Test\Acceptance\Fixtures\Person. JSON does not identify which class to instantiate.',
@@ -97,13 +118,13 @@ final class AmbiguousUnionErrorCases
             '{}',
             CollectionDeclarationFixture::create(
                 'array',
-                'list<ArrayObject<string, int>|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates>',
+                PhpType::list(PhpType::union(PhpType::arrayObject(PhpType::Int), Coordinates::class)),
                 'param',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
                     'array',
-                    'list<ArrayObject<string, int>|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates>',
+                    PhpType::list(PhpType::union(PhpType::arrayObject(PhpType::Int), Coordinates::class)),
                     'param',
                 )
                 . ' from the JSON object: Field value has multiple union members with the same JSON shape. JSON cannot identify which type to restore.',
@@ -113,13 +134,13 @@ final class AmbiguousUnionErrorCases
             '{}',
             CollectionDeclarationFixture::create(
                 'array|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates',
-                'non-empty-array<string, int>|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates',
+                PhpType::union(PhpType::nonEmptyArray(PhpType::Int), Coordinates::class),
                 'param',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
                     'array|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates',
-                    'non-empty-array<string, int>|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates',
+                    PhpType::union(PhpType::nonEmptyArray(PhpType::Int), Coordinates::class),
                     'param',
                 )
                 . ' from the JSON object: Field value has multiple union members with the same JSON shape. JSON cannot identify which type to restore.',
@@ -127,17 +148,41 @@ final class AmbiguousUnionErrorCases
         ];
         yield 'nested list alternatives have the same JSON shape' => [
             '{}',
-            CollectionDeclarationFixture::create('array', 'list<int|list<int>|list<string>>', 'param'),
+            CollectionDeclarationFixture::create(
+                'array',
+                PhpType::list(PhpType::union(
+                    PhpType::Int,
+                    PhpType::list(PhpType::Int),
+                    PhpType::list(PhpType::String),
+                )),
+                'param',
+            ),
             'Could not create '
-                . CollectionDeclarationFixture::create('array', 'list<int|list<int>|list<string>>', 'param')
+                . CollectionDeclarationFixture::create(
+                    'array',
+                    PhpType::list(PhpType::union(
+                        PhpType::Int,
+                        PhpType::list(PhpType::Int),
+                        PhpType::list(PhpType::String),
+                    )),
+                    'param',
+                )
                 . ' from the JSON object: Field value has multiple union members with the same JSON shape. JSON cannot identify which type to restore.',
             3,
         ];
         yield 'tuple and list alternatives have the same JSON shape' => [
             '{}',
-            CollectionDeclarationFixture::create('array', 'list<array{int}|list<int>>', 'var'),
+            CollectionDeclarationFixture::create(
+                'array',
+                PhpType::list(PhpType::union(PhpType::tuple(PhpType::Int), PhpType::list(PhpType::Int))),
+                'var',
+            ),
             'Could not create '
-                . CollectionDeclarationFixture::create('array', 'list<array{int}|list<int>>', 'var')
+                . CollectionDeclarationFixture::create(
+                    'array',
+                    PhpType::list(PhpType::union(PhpType::tuple(PhpType::Int), PhpType::list(PhpType::Int))),
+                    'var',
+                )
                 . ' from the JSON object: Field value has multiple union members with the same JSON shape. JSON cannot identify which type to restore.',
             3,
         ];

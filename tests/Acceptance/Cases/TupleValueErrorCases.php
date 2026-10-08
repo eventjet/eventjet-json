@@ -75,9 +75,17 @@ final class TupleValueErrorCases
     {
         yield 'nullable tuple list rejects a boolean item' => [
             '{"value":[false]}',
-            CollectionDeclarationFixture::create('array', 'list<null|array{int}>', 'param'),
+            CollectionDeclarationFixture::create(
+                'array',
+                PhpType::list(PhpType::union(PhpType::Null, PhpType::tuple(PhpType::Int))),
+                'param',
+            ),
             'Could not create '
-                . CollectionDeclarationFixture::create('array', 'list<null|array{int}>', 'param')
+                . CollectionDeclarationFixture::create(
+                    'array',
+                    PhpType::list(PhpType::union(PhpType::Null, PhpType::tuple(PhpType::Int))),
+                    'param',
+                )
                 . ' from the JSON object: Field value[0] must be of type array{int}, bool given.',
             3,
         ];
@@ -85,13 +93,13 @@ final class TupleValueErrorCases
             '{"value":[42]}',
             CollectionDeclarationFixture::create(
                 'array',
-                'array{\Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus|float}',
+                PhpType::tuple(PhpType::union(IntBackedStatus::class, PhpType::Float)),
                 'var',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
                     'array',
-                    'array{\Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus|float}',
+                    PhpType::tuple(PhpType::union(IntBackedStatus::class, PhpType::Float)),
                     'var',
                 )
                 . ' from the JSON object: Field value[0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus, which has no case with backing value 42.',
