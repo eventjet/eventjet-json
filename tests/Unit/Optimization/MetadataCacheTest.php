@@ -14,9 +14,9 @@ use Eventjet\Json\Internal\CollectionItemValueConverter;
 use Eventjet\Json\Internal\CollectionTypeResolver;
 use Eventjet\Json\Internal\CollectionTypeValidator;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
+use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
-use Eventjet\Json\Internal\ConstructorParameters;
-use Eventjet\Json\Internal\ConstructorValidationPlan;
+use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\EnumUnionValidator;
@@ -30,8 +30,6 @@ use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
 use Eventjet\Json\Internal\ObjectHydrator;
-use Eventjet\Json\Internal\ObjectTypeValidator;
-use Eventjet\Json\Internal\ObjectValueConverter;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocItemTypeResolver;
 use Eventjet\Json\Internal\PhpDocType;
@@ -71,12 +69,10 @@ use function class_alias;
 
 #[CoversClass(MetadataCache::class)]
 #[CoversClass(ConstructorParameter::class)]
-#[CoversClass(ConstructorParameters::class)]
-#[UsesClass(ConstructorValidationPlan::class)]
+#[UsesClass(ConstructorPlan::class)]
 #[UsesClass(ConstructorValueValidator::class)]
 #[CoversClass(FieldValueConverter::class)]
-#[CoversClass(ObjectTypeValidator::class)]
-#[CoversClass(ObjectValueConverter::class)]
+#[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ClassJsonType::class)]
 #[UsesClass(CollectionItemValueConverter::class)]
 #[UsesClass(ConcreteClassValueConverter::class)]
@@ -142,39 +138,34 @@ final class MetadataCacheTest extends TestCase
         };
         $firstClass = new ReflectionClass($first);
         $secondClass = new ReflectionClass($second);
-        $firstParameters = ConstructorParameters::resolve($firstClass);
-        $secondParameters = ConstructorParameters::resolve($secondClass);
+        $planCache = new ReflectionProperty(ConstructorDecoder::class, 'plans');
+        static::assertSame(['value' => 1], ConstructorDecoder::convert($firstClass, ['value' => 1], ''));
+        static::assertSame(['value' => 'second'], ConstructorDecoder::convert($secondClass, ['value' => 'second'], ''));
+        /** @var array<class-string, ConstructorPlan> $cachedPlans */
+        $cachedPlans = $planCache->getValue();
+        $firstPlan = $cachedPlans[$firstClass->getName()] ?? null;
+        $secondPlan = $cachedPlans[$secondClass->getName()] ?? null;
+        static::assertNotNull($firstPlan);
+        static::assertNotNull($secondPlan);
+        static::assertNotSame($firstPlan, $secondPlan);
+        static::assertSame(['value' => 2], ConstructorDecoder::convert($firstClass, ['value' => 2], ''));
+        static::assertSame($cachedPlans, $planCache->getValue());
 
-        $firstParameter = $firstParameters[0] ?? null;
-        $secondParameter = $secondParameters[0] ?? null;
-        static::assertNotNull($firstParameter);
-        static::assertNotNull($secondParameter);
-        static::assertSame('int', $firstParameter->typeName);
-        static::assertTrue($firstParameter->builtin);
-        static::assertSame('string', $secondParameter->typeName);
-        static::assertTrue($secondParameter->builtin);
-        static::assertNotSame($firstParameters, $secondParameters);
-        static::assertSame($firstParameters, ConstructorParameters::resolve($firstClass));
-        static::assertSame($secondParameters, ConstructorParameters::resolve($secondClass));
-
-        $converterCache = new ReflectionProperty(ObjectValueConverter::class, 'fields');
-        static::assertSame(['value' => 1], ObjectValueConverter::convert($firstClass, ['value' => 1], [], ''));
-        /** @var array<class-string, array<string, FieldValueConverter>> $scalarConverters */
-        $scalarConverters = $converterCache->getValue();
-        static::assertArrayNotHasKey($firstClass->getName(), $scalarConverters);
+        $converters = new ReflectionProperty(ConstructorPlan::class, 'converters');
+        static::assertSame(['value' => null], $converters->getValue($firstPlan));
 
         $unionClass = new ReflectionClass(DistinctEnumScalarUnionField::class);
         static::assertSame(
             ['value' => IntBackedStatus::Ready],
-            ObjectValueConverter::convert($unionClass, ['value' => 1], [], ''),
+            ConstructorDecoder::convert($unionClass, ['value' => 1], ''),
         );
-        /** @var array<class-string, array<string, FieldValueConverter>> $cachedConverters */
-        $cachedConverters = $converterCache->getValue();
+        /** @var array<class-string, ConstructorPlan> $cachedPlans */
+        $cachedPlans = $planCache->getValue();
         static::assertSame(
             ['value' => IntBackedStatus::Pending],
-            ObjectValueConverter::convert($unionClass, ['value' => 0], [], ''),
+            ConstructorDecoder::convert($unionClass, ['value' => 0], ''),
         );
-        static::assertSame($cachedConverters, $converterCache->getValue());
+        static::assertSame($cachedPlans, $planCache->getValue());
 
         $descriptor = new ClassJsonType($firstClass->getName());
         $input = new stdClass();
@@ -182,12 +173,6 @@ final class MetadataCacheTest extends TestCase
         static::assertEquals($firstClass->newInstance(3), $descriptor->decodeValue($input));
         static::assertInstanceOf(DecodeError::class, $descriptor->decodeValue(false));
         static::assertSame(IntBackedStatus::Ready, new ClassJsonType(IntBackedStatus::class)->decodeValue(1));
-
-        $union = ConstructorParameters::resolve($unionClass);
-        $unionParameter = $union[0] ?? null;
-        static::assertNotNull($unionParameter);
-        static::assertSame(IntBackedStatus::class . '|string', $unionParameter->typeName);
-        static::assertFalse($unionParameter->builtin);
 
         $scalarProperty = new ReflectionProperty(ScalarFields::class, 'string');
         $scalarType = EnumFieldTypes::resolve($scalarProperty);
@@ -340,6 +325,7 @@ final class MetadataCacheTest extends TestCase
     /**
      * @throws ReflectionException
      * @throws RuntimeException
+     * @throws JsonException
      */
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
@@ -351,8 +337,8 @@ final class MetadataCacheTest extends TestCase
         }
 
         $collectionClass = new ReflectionClass(CollectionDeclarationFixture::create('array', 'list<int>', 'param'));
-        $collections = ObjectTypeValidator::validate($collectionClass, [], '');
-        static::assertSame($collections, ObjectTypeValidator::validate($collectionClass, [], ''));
+        $collections = ConstructorDecoder::convert($collectionClass, [], '');
+        static::assertSame($collections, ConstructorDecoder::convert($collectionClass, [], ''));
 
         $first = new class(1) {
             /** @var list<int> */

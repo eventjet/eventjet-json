@@ -37,13 +37,7 @@ final class ObjectHydrator
             }
             /** @var array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values */
             $values = get_object_vars($object);
-            $collections = ObjectTypeValidator::validate($reflection, $values, $path);
-
-            if ($collections instanceof DecodeError) {
-                return $collections;
-            }
-
-            $convertedValues = ObjectValueConverter::convert($reflection, $values, $collections, $path);
+            $convertedValues = ConstructorDecoder::convert($reflection, $values, $path);
 
             if ($convertedValues instanceof DecodeError) {
                 return $convertedValues;

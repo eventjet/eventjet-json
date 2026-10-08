@@ -5,10 +5,11 @@ Removing a cache or adding unnecessary autoloading can leave decoded results
 unchanged while making decoding slower. Direct checks make those regressions
 visible to mutation testing without relying on timing thresholds.
 
-- `MetadataCacheTest` checks metadata reuse, cache independence, and retries after
+- `MetadataCacheTest` checks constructor-plan reuse, cache independence, and retries after
   unresolved dependencies or loader failures.
-- `ConstructorValidationPlanTest` checks that cached plans still validate each
-  input, preserve error paths and parameter order, and recheck unresolved dependencies.
+- `ConstructorValidationPlanTest` checks that cached plans still validate and convert each
+  input, preserve error paths and validation-before-conversion order, and recheck
+  unresolved dependencies.
 - `AutoloadingTest` checks that built-in types and irrelevant or absent values do
   not trigger unnecessary class loading.
 
