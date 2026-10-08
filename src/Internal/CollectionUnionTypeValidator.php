@@ -8,6 +8,7 @@ use Eventjet\Json\DecodeError;
 use ReflectionException;
 
 use function class_exists;
+use function count;
 use function enum_exists;
 
 /** @internal */
@@ -32,6 +33,7 @@ final class CollectionUnionTypeValidator
         }
         $names = $type->names();
         $classes = [];
+        $hasEnum = false;
         $nonEncodableError = null;
         foreach ($names as $member) {
             $isNonEncodable = FieldTypeValidator::isNonEncodable($member);
@@ -44,7 +46,11 @@ final class CollectionUnionTypeValidator
             if ($error !== null) {
                 return $error;
             }
-            if (!enum_exists($member) && class_exists($member)) {
+            if (enum_exists($member)) {
+                $hasEnum = true;
+                continue;
+            }
+            if (class_exists($member)) {
                 $classes[] = $member;
             }
         }
@@ -52,8 +58,8 @@ final class CollectionUnionTypeValidator
             return $nonEncodableError;
         }
         return (
-            ClassUnionValidator::validateNames($class, $path, $classes)
-            ?? EnumUnionValidator::validateNames($class, $path, $names)
+            (count($classes) < 2 ? null : ClassUnionValidator::validateNames($class, $path, $classes))
+            ?? ($hasEnum ? EnumUnionValidator::validateNames($class, $path, $names) : null)
             ?? CollectionUnionShapeValidator::validate($class, $path, $type)
         );
     }
