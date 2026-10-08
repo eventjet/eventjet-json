@@ -5,6 +5,11 @@ on:
   push:
     branches: [master, tabula-rasa]
   workflow_dispatch:
+    inputs:
+      calibrate:
+        description: Compare unchanged code on five independent runners
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -18,9 +23,13 @@ env:
 
 jobs:
   compare:
-    name: Compare decoder performance
+    name: ${{ github.event_name == 'workflow_dispatch' && inputs.calibrate && format('Calibrate decoder performance ({0})', matrix.sample) || 'Compare decoder performance' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        sample: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.calibrate && '[1,2,3,4,5]' || '[1]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,15 +39,95 @@ jobs:
       - name: Validate performance tooling
         run: |
           vendor/bin/phpstan analyze .github/ci --no-progress
-          vendor/bin/phpunit .github/ci/tests
           bash .github/ci/tests/configuration.sh
+          node --test .github/ci/tests/comment.cjs
       - name: Compare target with proposed merge
         shell: bash
-        run: php .github/ci/performance.php --base HEAD^1 --candidate HEAD
+        env:
+          CALIBRATE: ${{ github.event_name == 'workflow_dispatch' && inputs.calibrate }}
+        run: |
+          base=HEAD^1
+          if [ "$CALIBRATE" = true ]; then base=HEAD; fi
+          php .github/ci/performance.php --base "$base" --candidate HEAD
       - name: Save measurements and environment
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: performance-${{ github.sha }}-${{ github.run_attempt }}
+          name: performance-${{ github.sha }}-${{ github.run_attempt }}-${{ matrix.sample }}
           path: .perf/results
           retention-days: 90
+      - name: Save PR summary
+        if: always() && github.event_name == 'pull_request' && hashFiles('.perf/results/comment.md') != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: performance-comment-${{ github.run_attempt }}
+          path: .perf/results/comment.md
+          retention-days: 7
+
+  comment:
+    name: Update performance comment
+    needs: compare
+    if: >-
+      always() && !cancelled() && github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Find PR summary
+        id: summary
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+              ...context.repo, run_id: context.runId, per_page: 100,
+            });
+            core.setOutput('available', artifacts.some(artifact =>
+              artifact.name === `performance-comment-${process.env.GITHUB_RUN_ATTEMPT}` && !artifact.expired));
+      - name: Download PR summary
+        if: steps.summary.outputs.available == 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: performance-comment-${{ github.run_attempt }}
+          path: report
+      - name: Create or update comment
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          SUMMARY_AVAILABLE: ${{ steps.summary.outputs.available }}
+          COMPARISON_RESULT: ${{ needs.compare.result }}
+        with:
+          script: |
+            const marker = '<!-- eventjet-performance -->';
+            const issue_number = context.payload.pull_request.number;
+            const {data: pr} = await github.rest.pulls.get({...context.repo, pull_number: issue_number});
+            if (pr.state !== 'open' || pr.head.sha !== context.payload.pull_request.head.sha ||
+                pr.base.sha !== context.payload.pull_request.base.sha) {
+              core.info('Skipping results for an outdated PR revision.');
+              return;
+            }
+            let summary = '## ⚠️ Performance comparison unavailable\n\nThe benchmark run did not produce a complete comparison.';
+            if (process.env.SUMMARY_AVAILABLE === 'true') {
+              const fs = require('node:fs');
+              if (fs.statSync('report/comment.md').size > 50000) {
+                throw new Error('Performance summary exceeds the comment size limit');
+              }
+              summary = fs.readFileSync('report/comment.md', 'utf8');
+              if (process.env.COMPARISON_RESULT !== 'success') {
+                summary += '\n\n**The performance job failed.** See the run for assertion failures or benchmark errors.';
+              }
+            }
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/attempts/${process.env.GITHUB_RUN_ATTEMPT}`;
+            const body = `${marker}\n${summary}\n\nCommit: \`${pr.head.sha}\` · [Full benchmark results](${runUrl})`;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              ...context.repo, issue_number, per_page: 100,
+            });
+            const previous = comments.find(comment =>
+              comment.user?.login === 'github-actions[bot]' && comment.body?.startsWith(marker));
+            if (previous) {
+              await github.rest.issues.updateComment({...context.repo, comment_id: previous.id, body});
+            } else {
+              await github.rest.issues.createComment({...context.repo, issue_number, body});
+            }
