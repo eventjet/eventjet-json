@@ -8,7 +8,9 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\ArrayJsonType;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\ClassJsonType;
+use Eventjet\Json\Internal\ClassTypeDependencies;
 use Eventjet\Json\Internal\ClassUnionValidator;
 use Eventjet\Json\Internal\CollectionItemValueConverter;
 use Eventjet\Json\Internal\CollectionTypeResolver;
@@ -79,6 +81,7 @@ use Eventjet\Json\Test\Acceptance\Cases\ObjectRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\ParserSyntaxCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootCollectionRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\SupportedDocumentRoundTripCases;
+use Eventjet\Json\Test\Acceptance\Cases\TypeValidationCases;
 use Eventjet\Json\Test\Acceptance\Cases\UnknownFieldCases;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -92,6 +95,8 @@ use function json_encode;
 
 use const JSON_THROW_ON_ERROR;
 
+#[CoversClass(ClassGraphValidator::class)]
+#[CoversClass(ClassTypeDependencies::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[CoversClass(Json::class)]
 #[CoversClass(JsonType::class)]
@@ -168,6 +173,18 @@ final class AcceptanceTest extends TestCase
         static::assertEquals($expected, PhpDocTypeParser::parse($source));
     }
 
+    /** @param class-string|JsonType<mixed> $type */
+    #[DataProviderExternal(TypeValidationCases::class, 'declarations')]
+    public function testTypeDeclarationsCanBeValidatedWithoutValues(
+        string|JsonType $type,
+        string|null $expectedError = null,
+    ): void {
+        for ($attempt = 0; $attempt < 2; ++$attempt) {
+            $error = Json::validateType($type);
+            static::assertSame($expectedError, $error?->getMessage());
+        }
+    }
+
     /** @throws JsonException */
     #[DataProviderExternal(ObjectRoundTripCases::class, 'objects')]
     public function testDecodeIsTheExactInverseOfJsonEncode(object $original): void
@@ -218,20 +235,11 @@ final class AcceptanceTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, class-string, callable(object): bool}>
-     * @throws \RuntimeException
-     */
-    public static function supportedDocuments(): iterable
-    {
-        yield from SupportedDocumentRoundTripCases::objects();
-    }
-
-    /**
      * @param class-string $class
      * @param callable(object): bool $isFullyHydrated
      * @throws JsonException
      */
-    #[DataProvider('supportedDocuments')]
+    #[DataProviderExternal(SupportedDocumentRoundTripCases::class, 'objects')]
     public function testSupportedDocumentIsFullyHydratedAndRoundTrips(
         string $json,
         string $class,
