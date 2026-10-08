@@ -231,6 +231,60 @@ fi
 grep -Fq 'OPcache must be on or off' invalid.log
 echo 'OPcache modes and explicit frozen workloads passed.'
 
+EXPLICIT_WORKLOADS=1 php "$runner" --base "$baseline" --candidate "$candidate" --workloads "$candidate" --shard 2 > shard.log 2>&1 && status=0 || status=$?
+if [ "$status" -ne 2 ]; then cat shard.log; exit 1; fi
+php <<'PHP'
+<?php
+$completion = json_decode(file_get_contents('.perf/results/complete.json'), true, flags: JSON_THROW_ON_ERROR);
+if ($completion !== ['indices' => [1], 'status' => 2]
+    || count(glob('.perf/results/candidate-*.xml')) !== 1
+    || !is_file('.perf/results/baseline-1.xml') || !is_file('.perf/results/candidate-1.xml')) {
+    throw new RuntimeException('Shard must measure exactly its assigned workload and retain its regression verdict');
+}
+foreach (['baseline', 'candidate'] as $version) {
+    $xml = simplexml_load_file('.perf/results/' . $version . '-1.xml');
+    if (count($xml->xpath('//variant/iteration')) !== 20) {
+        throw new RuntimeException('Sharding must preserve all 20 iterations');
+    }
+}
+PHP
+mv .perf shard-results
+for shard in 0 5 invalid; do
+    if php "$runner" --base "$baseline" --shard "$shard" > invalid-shard.log 2>&1; then
+        echo 'Invalid shards must fail'
+        exit 1
+    fi
+done
+echo 'Shard selection preserves sampling, isolated revisions, and native regression assertions.'
+
+php <<'PHP'
+<?php
+$source = 'opcache-off-results/results';
+$metadata = json_decode(file_get_contents($source . '/metadata.json'), true, flags: JSON_THROW_ON_ERROR);
+for ($shard = 1; $shard <= 4; $shard++) {
+    $directory = 'aggregate-artifacts/' . $shard;
+    mkdir($directory, 0777, true);
+    file_put_contents($directory . '/metadata.json', json_encode(array_replace($metadata, ['shard' => $shard, 'fpm' => $shard === 1]), JSON_THROW_ON_ERROR));
+    copy($source . '/discovery.xml', $directory . '/discovery.xml');
+    $indices = $shard <= 3 ? [$shard - 1] : [];
+    file_put_contents($directory . '/complete.json', json_encode(['indices' => $indices, 'status' => $shard <= 2 ? 2 : 0], JSON_THROW_ON_ERROR));
+    foreach ($indices as $index) {
+        foreach (['baseline', 'candidate'] as $version) {
+            copy($source . '/' . $version . '-' . $index . '.xml', $directory . '/' . $version . '-' . $index . '.xml');
+        }
+    }
+}
+file_put_contents('aggregate-artifacts/1/fpm.json', '{}');
+file_put_contents('aggregate-artifacts/1/fpm.md', 'FPM integration is tested separately.');
+PHP
+status=0
+php "$project/.github/ci/performance-aggregate.php" --artifacts aggregate-artifacts --opcache off --output aggregate-report > aggregate.log 2>&1 || status=$?
+if [ "$status" -ne 2 ]; then cat aggregate.log; exit 1; fi
+grep -Fq '**3 workloads**' aggregate-report/comment.md
+grep -Fq 'Performance regression' aggregate-report/comment.md
+echo 'Aggregation accepts real OPcache-off XML, preserves all samples, and retains regressions.'
+
+
 git rm --quiet -rf benchmarks tests phpbench.json
 git commit --quiet -m 'Source without a benchmark suite'
 no_benchmarks=$(git rev-parse HEAD)
