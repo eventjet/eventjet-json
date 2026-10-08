@@ -11,7 +11,6 @@ final class ScalarMapFields
 {
     /** @var non-empty-array<string, string> */
     public array $publicStrings = ['default' => ''];
-
     /** @var non-empty-array<string, string> */
     private array $floatValueTypes;
 

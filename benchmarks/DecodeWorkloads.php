@@ -41,6 +41,12 @@ final class DecodeWorkloads
             'enum union' => new DistinctEnumScalarUnionField(IntBackedStatus::Ready),
             'enum union collections' => self::enumUnions(),
             'scalar lists' => new ScalarListFields(['a', 'b'], [1, 2], [1.5, 2.5], [true, false]),
+            'long scalar lists' => new ScalarListFields(
+                array_fill(0, count: 1000, value: 'value'),
+                array_fill(0, count: 1000, value: 42),
+                array_fill(0, count: 1000, value: 1.5),
+                array_fill(0, count: 1000, value: true),
+            ),
             'object collections' => self::collections(),
             'recursive collections' => self::recursive(),
             'root array' => array_fill(0, count: 100, value: self::collections()),

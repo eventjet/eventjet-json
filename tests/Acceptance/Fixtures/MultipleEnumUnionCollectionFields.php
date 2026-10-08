@@ -10,7 +10,6 @@ final class MultipleEnumUnionCollectionFields
 {
     /** @var non-empty-list<MultipleEnumUnionPublicProperty> */
     public array $publicList;
-
     /** @var ArrayObject<string, DisjointStringBackedEnumUnionPublicProperty> */
     public ArrayObject $publicMap;
 

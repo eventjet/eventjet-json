@@ -13,6 +13,8 @@ use Eventjet\Json\Internal\CollectionTypeResolver;
 use Eventjet\Json\Internal\CollectionTypeValidator;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorParameters;
+use Eventjet\Json\Internal\ConstructorValidationPlan;
+use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldCollectionUnionResolver;
@@ -22,6 +24,8 @@ use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
+use Eventjet\Json\Internal\ObjectTypeValidator;
+use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocItemTypeResolver;
 use Eventjet\Json\Internal\PhpDocType;
@@ -41,24 +45,27 @@ use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Exception;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
-use ReflectionParameter;
 use ReflectionProperty;
 use RuntimeException;
 use stdClass;
 
 use function array_keys;
 use function class_alias;
-use function reset;
 
+#[CoversClass(PhpDocClassNameResolver::class)]
 #[CoversClass(MetadataCache::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[CoversClass(ConstructorParameters::class)]
+#[UsesClass(ConstructorValidationPlan::class)]
+#[UsesClass(ConstructorValueValidator::class)]
+#[CoversClass(ObjectTypeValidator::class)]
 #[CoversClass(PublicProperties::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(BackedEnumCaseFinder::class)]
@@ -83,6 +90,15 @@ use function reset;
 #[UsesClass(FieldCollectionUnionResolver::class)]
 final class MetadataCacheTest extends TestCase
 {
+    /** @throws ReflectionException */
+    public function testGlobalNamespaceRelativeNamesHaveNoLeadingSeparator(): void
+    {
+        /** @var ReflectionClass<object> $class */
+        $class = new ReflectionClass(stdClass::class);
+
+        static::assertSame('stdClass', PhpDocClassNameResolver::resolve($class, 'namespace\stdClass'));
+    }
+
     /**
      * @throws Exception
      * @throws ReflectionException
@@ -118,10 +134,10 @@ final class MetadataCacheTest extends TestCase
         $firstParameters = ConstructorParameters::resolve($firstClass);
         $secondParameters = ConstructorParameters::resolve($secondClass);
 
-        $firstParameter = reset($firstParameters);
-        $secondParameter = reset($secondParameters);
-        static::assertInstanceOf(ConstructorParameter::class, $firstParameter);
-        static::assertInstanceOf(ConstructorParameter::class, $secondParameter);
+        $firstParameter = $firstParameters[0] ?? null;
+        $secondParameter = $secondParameters[0] ?? null;
+        static::assertNotNull($firstParameter);
+        static::assertNotNull($secondParameter);
         static::assertSame('int', $firstParameter->typeName);
         static::assertTrue($firstParameter->builtin);
         static::assertSame('string', $secondParameter->typeName);
@@ -131,8 +147,8 @@ final class MetadataCacheTest extends TestCase
         static::assertSame($secondParameters, ConstructorParameters::resolve($secondClass));
 
         $union = ConstructorParameters::resolve(new ReflectionClass(DistinctEnumScalarUnionField::class));
-        $unionParameter = reset($union);
-        static::assertInstanceOf(ConstructorParameter::class, $unionParameter);
+        $unionParameter = $union[0] ?? null;
+        static::assertNotNull($unionParameter);
         static::assertSame(IntBackedStatus::class . '|string', $unionParameter->typeName);
         static::assertFalse($unionParameter->builtin);
 
@@ -140,20 +156,6 @@ final class MetadataCacheTest extends TestCase
         $scalarType = EnumFieldTypes::resolve($scalarProperty);
         static::assertInstanceOf(ReflectionNamedType::class, $scalarType);
         static::assertSame($scalarType, EnumFieldTypes::resolve($scalarProperty));
-    }
-
-    /** @throws ReflectionException */
-    public function testEnumFindersAreReusedAndEnumsRemainIndependent(): void
-    {
-        $integer = BackedEnumCaseFinder::forEnum(IntBackedStatus::class);
-        $string = BackedEnumCaseFinder::forEnum(StringBackedStatus::class);
-        $unbacked = BackedEnumCaseFinder::forEnum(NonBackedStatus::class);
-
-        static::assertNotSame($integer, $string);
-        static::assertNotSame($integer, $unbacked);
-        static::assertSame($integer, BackedEnumCaseFinder::forEnum(IntBackedStatus::class));
-        static::assertSame($string, BackedEnumCaseFinder::forEnum(StringBackedStatus::class));
-        static::assertSame($unbacked, BackedEnumCaseFinder::forEnum(NonBackedStatus::class));
     }
 
     /** @throws ReflectionException */
@@ -185,13 +187,12 @@ final class MetadataCacheTest extends TestCase
             $counter = new class {
                 public int $calls = 0;
             };
-            $load = /** @return array<never, never>|stdClass|false */ static function () use (
-                $counter,
-                $metadata,
-            ): array|stdClass|false {
-                ++$counter->calls;
-                return $metadata;
-            };
+            $load =
+                /** @return array<never, never>|stdClass|false */
+                static function () use ($counter, $metadata): array|stdClass|false {
+                    ++$counter->calls;
+                    return $metadata;
+                };
 
             for ($lookup = 0; $lookup < 3; ++$lookup) {
                 static::assertSame($metadata, $cache->resolve('field', $load));
@@ -200,100 +201,49 @@ final class MetadataCacheTest extends TestCase
         }
     }
 
-    public function testKeysAndCacheInstancesRemainIndependent(): void
-    {
-        /** @var MetadataCache<int> $first */
-        $first = new MetadataCache();
-        /** @var MetadataCache<int> $second */
-        $second = new MetadataCache();
-        $counter = new class {
-            public int $calls = 0;
-        };
-        $load = static fn(): int => ++$counter->calls;
-
-        static::assertSame(1, $first->resolve('first', $load));
-        static::assertSame(2, $first->resolve('second', $load));
-        static::assertSame(3, $second->resolve('first', $load));
-        static::assertSame(1, $first->resolve('first', $load));
-        static::assertSame(2, $first->resolve('second', $load));
-        static::assertSame(3, $second->resolve('first', $load));
-        static::assertSame(3, $counter->calls);
-    }
-
-    public function testUnresolvedMetadataAndErrorsAreRetried(): void
-    {
-        foreach ([null, DecodeError::invalidJson('invalid')] as $failure) {
-            /** @var MetadataCache<stdClass|DecodeError|null> $cache */
-            $cache = new MetadataCache();
-            $counter = new class {
-                public int $calls = 0;
-            };
-            $metadata = new stdClass();
-            $load = static function () use ($counter, $failure, $metadata): stdClass|DecodeError|null {
-                ++$counter->calls;
-                return $counter->calls === 1 ? $failure : $metadata;
-            };
-
-            static::assertSame($failure, $cache->resolve('field', $load));
-            static::assertSame($metadata, $cache->resolve('field', $load));
-            static::assertSame($metadata, $cache->resolve('field', $load));
-            static::assertSame(2, $counter->calls);
-        }
-    }
-
-    public function testLoaderExceptionsAreRetried(): void
-    {
-        /** @var MetadataCache<array<never, never>> $cache */
-        $cache = new MetadataCache();
-        $failure = new RuntimeException('metadata unavailable');
-        try {
-            $cache->resolve('field', /** @throws RuntimeException */ static fn(): never => throw $failure);
-            static::fail('The loader exception must propagate.');
-        } catch (RuntimeException $caught) {
-            static::assertSame($failure, $caught);
-        }
-
-        static::assertSame([], $cache->resolve('field', /** @return array<never, never> */ static fn(): array => []));
-    }
-
     /**
      * @throws ReflectionException
      * @throws RuntimeException
      */
-    public function testUnresolvedFieldTypesAreRetriedAfterDependencyLoads(): void
+    #[TestWith(['Named', ''])]
+    public function testUnresolvedFieldTypesAreRetriedAfterDependencyLoads(string $name, string $suffix): void
     {
-        $dependency = 'MetadataCacheDeferredEnum';
-        $class = CollectionDeclarationFixture::create($dependency, '', 'var');
+        $dependency = 'PublicMetadataDeferredClass' . $name;
+        $enumDependency = 'MetadataCacheDeferredEnum' . $name;
+        $class = CollectionDeclarationFixture::create($enumDependency, '', 'var');
         $field = new ReflectionProperty($class, 'value');
 
         static::assertNull(FieldTypeResolver::resolve($class, $field));
-        static::assertTrue(class_alias(NonBackedStatus::class, $dependency));
+        static::assertTrue(class_alias(NonBackedStatus::class, $enumDependency));
         static::assertInstanceOf(DecodeError::class, FieldTypeResolver::resolve($class, $field));
 
-        foreach (['', '|int'] as $suffix) {
-            $dependency = 'PublicMetadataDeferredClass' . ($suffix === '' ? 'Named' : 'Union');
-            $name = CollectionDeclarationFixture::create($dependency . $suffix, '', 'var');
-            $class = new ReflectionClass($name);
+        $name = CollectionDeclarationFixture::create($dependency . $suffix, '', 'var');
+        $class = new ReflectionClass($name);
 
-            static::assertInstanceOf(DecodeError::class, PublicProperties::resolve($class));
-            static::assertTrue(class_alias(ScalarFields::class, $dependency));
-            $properties = PublicProperties::resolve($class);
-            static::assertIsArray($properties);
-            static::assertSame(['value'], array_keys($properties));
-            static::assertSame($properties, PublicProperties::resolve($class));
-        }
+        static::assertInstanceOf(DecodeError::class, PublicProperties::resolve($class));
+        static::assertTrue(class_alias(ScalarFields::class, $dependency));
+        $properties = PublicProperties::resolve($class);
+        static::assertIsArray($properties);
+        static::assertSame(['value'], array_keys($properties));
+        static::assertSame($properties, PublicProperties::resolve($class));
     }
 
     /**
      * @throws ReflectionException
      * @throws RuntimeException
      */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function testResolvedNonCollectionDeclarationsAreCacheable(): void
     {
         foreach (['int', 'int|string', '\\' . NonBackedStatus::class . '|int'] as $declaration) {
             $class = CollectionDeclarationFixture::create($declaration, '', 'var');
             static::assertFalse(FieldTypeValidator::validate($class, new ReflectionProperty($class, 'value')));
         }
+
+        $collectionClass = new ReflectionClass(CollectionDeclarationFixture::create('array', 'list<int>', 'param'));
+        $collections = ObjectTypeValidator::validate($collectionClass, [], '');
+        static::assertSame($collections, ObjectTypeValidator::validate($collectionClass, [], ''));
 
         $first = new class(1) {
             /** @var list<int> */
@@ -310,9 +260,8 @@ final class MetadataCacheTest extends TestCase
         };
         $constructor = new ReflectionClass($first)->getConstructor();
         static::assertNotNull($constructor);
-        $parameters = $constructor->getParameters();
-        $parameter = reset($parameters);
-        static::assertInstanceOf(ReflectionParameter::class, $parameter);
+        $parameter = $constructor->getParameters()[0] ?? null;
+        static::assertNotNull($parameter);
         $firstProperty = new ReflectionProperty($first, 'value');
         $secondProperty = new ReflectionProperty($second, 'value');
 

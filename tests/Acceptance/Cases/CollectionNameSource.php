@@ -27,7 +27,6 @@ final class CollectionNameSource
         if (class_exists($class)) {
             return $class;
         }
-
         $path = tempnam(sys_get_temp_dir(), prefix: 'json-names-');
         if ($path === false) {
             throw new RuntimeException('Could not create the collection name fixture.');
@@ -38,12 +37,10 @@ final class CollectionNameSource
         if ($written === false) {
             throw new RuntimeException('Could not write the collection name fixture.');
         }
-
         $exists = is_file($path);
         if (!$exists) {
             throw new RuntimeException('The collection name fixture file is missing.');
         }
-
         require $path;
         if ($compiledSource !== $source) {
             $written = file_put_contents($path, '<?php ' . $source);
@@ -54,11 +51,9 @@ final class CollectionNameSource
         register_shutdown_function(static function () use ($path): void {
             unlink($path);
         });
-
         if (!class_exists($class)) {
             throw new RuntimeException('The collection name fixture did not declare its class.');
         }
-
         return $class;
     }
 }

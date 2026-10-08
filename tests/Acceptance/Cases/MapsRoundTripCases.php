@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use ArrayObject;
+use Eventjet\Json\JsonType;
+use Eventjet\Json\Test\Acceptance\Fixtures\Person;
+
 /** @internal */
-final class RoundTripCases
+final class MapsRoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
@@ -15,12 +19,10 @@ final class RoundTripCases
      */
     public static function objects(): iterable
     {
-        yield from NestedValuesRoundTripCases::objects();
-        yield from NameResolutionRoundTripCases::objects();
-        yield from CollectionsRoundTripCases::objects();
-        yield from TargetsRoundTripCases::objects();
-        yield from UnionsRoundTripCases::objects();
-        yield from EnumsRoundTripCases::objects();
-        yield from MapsRoundTripCases::objects();
+        yield 'list of maps' => [
+            [new ArrayObject(['author' => new Person('Ada', 'Lovelace')])],
+            null,
+            static fn(): JsonType => JsonType::array(JsonType::map(Person::class)),
+        ];
     }
 }

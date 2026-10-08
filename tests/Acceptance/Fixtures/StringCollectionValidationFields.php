@@ -10,13 +10,10 @@ final class StringCollectionValidationFields
 {
     /** @var list<string> */
     public array $publicList;
-
     /** @var non-empty-list<string> */
     public array $publicNonEmptyList;
-
     /** @var non-empty-array<string, string> */
     public array $publicMap;
-
     /** @var ArrayObject<string, string> */
     public ArrayObject $publicObjectMap;
 
