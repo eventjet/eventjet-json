@@ -10,12 +10,13 @@ use ReflectionClass;
 use ReflectionEnum;
 use ReflectionException;
 use ReflectionNamedType;
+use ReflectionParameter;
+use ReflectionProperty;
+use ReflectionType;
 
 use function class_exists;
 use function enum_exists;
-use function in_array;
 use function interface_exists;
-use function is_a;
 
 /** @internal */
 final class ClassFieldTypeValidator
@@ -30,13 +31,9 @@ final class ClassFieldTypeValidator
         string $type,
         ReflectionNamedType $declaration,
     ): DecodeError|false|null {
-        if ($declaration->isBuiltin()) {
-            return false;
-        }
         if (enum_exists($type)) {
             $enum = new ReflectionEnum($type);
-            $hasSupportedValue =
-                $enum->isBacked() || $declaration->allowsNull() && !$enum->implementsInterface(JsonSerializable::class);
+            $hasSupportedValue = $declaration->allowsNull() && !$enum->implementsInterface(JsonSerializable::class);
             return $hasSupportedValue ? false : DecodeError::nonBackedEnum($class, $type, $field);
         }
 
@@ -77,16 +74,20 @@ final class ClassFieldTypeValidator
         return $names instanceof DecodeError ? $names : null;
     }
 
-    public static function isNonEncodable(string $type): bool
-    {
-        if (in_array($type, ['resource', 'open-resource', 'closed-resource'], strict: true)) {
-            return true;
+    public static function classUnionMember(
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionType $type,
+    ): string|null {
+        if (!$type instanceof ReflectionNamedType || $type->isBuiltin()) {
+            return null;
         }
 
-        return (
-            enum_exists($type)
-            && !new ReflectionEnum($type)->isBacked()
-            && !is_a($type, JsonSerializable::class, allow_string: true)
-        );
+        $name = FieldTypeNameResolver::resolve($field, $type);
+
+        if (enum_exists($name) || interface_exists($name)) {
+            return null;
+        }
+
+        return $name;
     }
 }

@@ -247,6 +247,7 @@ final class AutoloadingTest extends TestCase
             static::assertSame($expected, RootTypeValidator::fieldNames($class));
             static::assertSame($expected, RootTypeValidator::fieldNames($class));
             static::assertSame(1, $class->propertyLookups);
+            static::assertSame(1, $class->parentLookups);
         }
     }
 }

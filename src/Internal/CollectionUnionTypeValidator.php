@@ -34,7 +34,7 @@ final class CollectionUnionTypeValidator
         $classes = [];
         $nonEncodableError = null;
         foreach ($names as $member) {
-            $isNonEncodable = ClassFieldTypeValidator::isNonEncodable($member);
+            $isNonEncodable = FieldTypeValidator::isNonEncodable($member);
             if ($isNonEncodable) {
                 $nonEncodableError ??= CollectionTypeValidator::named($class, $path, $member);
                 continue;

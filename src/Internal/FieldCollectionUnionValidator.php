@@ -41,7 +41,7 @@ final class FieldCollectionUnionValidator
             $name = FieldTypeNameResolver::resolve($field, $member);
             $name = class_exists($name) || interface_exists($name) ? new ReflectionClass($name)->getName() : $name;
             $expected[] = $name;
-            $isNonEncodable = ClassFieldTypeValidator::isNonEncodable($name);
+            $isNonEncodable = FieldTypeValidator::isNonEncodable($name);
             if (in_array($name, ['array', ArrayObject::class], strict: true) || $isNonEncodable) {
                 continue;
             }

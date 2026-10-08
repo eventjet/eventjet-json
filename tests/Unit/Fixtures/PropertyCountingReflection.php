@@ -16,6 +16,18 @@ use ReflectionProperty;
 final class PropertyCountingReflection extends ReflectionClass
 {
     public int $propertyLookups = 0;
+    public int $parentLookups = 0;
+
+    /**
+     * @return ReflectionClass<object>|false
+     * @psalm-external-mutation-free
+     */
+    #[Override]
+    public function getParentClass(): ReflectionClass|false
+    {
+        ++$this->parentLookups;
+        return parent::getParentClass();
+    }
 
     /**
      * @return list<ReflectionProperty>
