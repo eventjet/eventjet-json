@@ -8,8 +8,11 @@ use BackedEnum;
 use Eventjet\Json\DecodeError;
 use ReflectionEnum;
 use ReflectionException;
+use ReflectionParameter;
+use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
+use stdClass;
 
 use function enum_exists;
 use function get_debug_type;
@@ -51,7 +54,7 @@ final readonly class EnumUnionLookup
     }
 
     /** @param class-string $class */
-    public function convert(string $class, mixed $value, string $path): BackedEnum|DecodeError|null
+    private function convert(string $class, mixed $value, string $path): BackedEnum|DecodeError|null
     {
         $enums = $this->enums[get_debug_type($value)] ?? null;
         if ($enums === null) {
@@ -66,5 +69,35 @@ final readonly class EnumUnionLookup
             return null;
         }
         return $this->cases[get_debug_type($value)][$value] ?? null;
+    }
+
+    /**
+     * @param class-string $class
+     * @param array<array-key, mixed>|bool|float|int|object|string|null $value
+     * @return array<array-key, mixed>|bool|float|int|object|string|null
+     * @throws ReflectionException
+     */
+    public function convertField(
+        string $class,
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionUnionType $type,
+        mixed $value,
+        string $path,
+    ): array|bool|float|int|object|string|null {
+        $converted = $this->convert($class, $value, $path);
+        if ($converted !== null) {
+            return $converted;
+        }
+        if ($value instanceof stdClass) {
+            $converted = ConcreteClassUnionValueConverter::convert($class, $field, $type, $value, $path);
+            if ($converted !== null) {
+                return $converted;
+            }
+        }
+        $matches = ValueTypeMatcher::matchesBuiltinUnion($value, $type);
+        if (!$matches) {
+            return DecodeError::fieldTypeMismatch($class, $path, (string) $type, $value);
+        }
+        return $value;
     }
 }
