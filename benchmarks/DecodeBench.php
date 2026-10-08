@@ -52,6 +52,7 @@ final class DecodeBench
     {
         foreach ([
             'scalar object',
+            'public scalar properties',
             'scalar lists',
             'named enums',
             'enum union',
