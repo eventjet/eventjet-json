@@ -16,29 +16,17 @@ use function trim;
 /** @internal */
 final class PhpDocFieldType
 {
-    /** @mutation-free */
-    public static function hasPhpDoc(ReflectionParameter|ReflectionProperty $field): bool
-    {
-        return (
-            (
-                $field instanceof ReflectionParameter
-                    ? $field->getDeclaringFunction()->getDocComment()
-                    : $field->getDocComment()
-            ) !== false
-        );
-    }
-
     public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|null
     {
         $doc = $field instanceof ReflectionParameter
             ? $field->getDeclaringFunction()->getDocComment()
             : $field->getDocComment();
-        if ($doc === false) {
-            return null;
-        }
         $doc =
-            preg_replace('/^[ \t]*\*[ \t]?/m', replacement: '', subject: str_replace('*/', replace: '', subject: $doc))
-            ?? '';
+            preg_replace(
+                '/^[ \t]*\*[ \t]?/m',
+                replacement: '',
+                subject: str_replace('*/', replace: '', subject: $doc === false ? '' : $doc),
+            ) ?? '';
         $matches = [];
         // Keep the remaining comment intact: quoted literals can contain @ characters.
         $pattern = $field instanceof ReflectionParameter ? '/@param\s+(?=([\s\S]*))/' : '/@var\s+(?=([\s\S]*))/';

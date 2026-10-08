@@ -137,6 +137,11 @@ final class AutoloadingTest extends TestCase
         for ($lookup = 0; $lookup < 2; ++$lookup) {
             static::assertEquals($target, ObjectHydrator::hydrate($target::class, $input));
             static::assertFalse(class_exists(PublicPropertyHydrator::class, autoload: false));
+            static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralField::class, autoload: false));
+            static::assertFalse(class_exists(
+                \Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class,
+                autoload: false,
+            ));
         }
     }
 

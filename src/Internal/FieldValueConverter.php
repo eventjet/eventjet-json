@@ -33,7 +33,9 @@ final readonly class FieldValueConverter
         private ListType|MapType|TupleType|CollectionUnionType|null $collection,
     ) {
         $this->type = $field->getType();
-        $this->literals = PhpDocFieldType::hasPhpDoc($field) ? PhpDocLiteralField::resolve($field, $collection) : null;
+        $this->literals = FieldTypeNameResolver::hasPhpDoc($field)
+            ? PhpDocLiteralField::resolve($field, $collection)
+            : null;
         $this->literalConstrained = $this->literals !== null;
         $this->enumLookup = $this->type instanceof ReflectionUnionType ? new EnumUnionLookup($this->type) : null;
         $this->typeName = $this->type instanceof ReflectionNamedType

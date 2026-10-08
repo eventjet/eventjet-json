@@ -50,7 +50,7 @@ final readonly class ConstructorParameter
     public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
     {
         $collection = $resolved === false ? null : $resolved;
-        $literal = PhpDocFieldType::hasPhpDoc($this->reflection)
+        $literal = FieldTypeNameResolver::hasPhpDoc($this->reflection)
             ? PhpDocLiteralField::resolve($this->reflection, $collection)
             : null;
         return $this->builtin && $collection === null && $literal === null

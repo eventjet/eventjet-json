@@ -26,7 +26,7 @@ final class PhpDocImports
         self::$imports = $cache;
 
         return $cache->resolve(
-            $class->getName() . ($kind === PhpDocImportKind::Constant ? ':constants' : ''),
+            $class->getName() . ':' . $kind->name,
             /** @return array<string, string> */ static fn(): array => self::load($class, $kind),
         );
     }

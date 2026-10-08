@@ -19,6 +19,18 @@ use function strcasecmp;
 /** @internal */
 final class FieldTypeNameResolver
 {
+    /** @mutation-free */
+    public static function hasPhpDoc(ReflectionParameter|ReflectionProperty $field): bool
+    {
+        return (
+            (
+                $field instanceof ReflectionParameter
+                    ? $field->getDeclaringFunction()->getDocComment()
+                    : $field->getDocComment()
+            ) !== false
+        );
+    }
+
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
     {
         $name = $type->getName();
@@ -47,7 +59,7 @@ final class FieldTypeNameResolver
     /** @return 'bool'|'float'|'int'|'string'|class-string|null */
     public static function resolvePhpDoc(ReflectionParameter|ReflectionProperty $field, string $type): string|null
     {
-        if ($type === 'non-empty-string' || $type === 'numeric-string' || $type === 'literal-string') {
+        if (in_array($type, ['non-empty-string', 'numeric-string', 'literal-string'], strict: true)) {
             return 'string';
         }
 

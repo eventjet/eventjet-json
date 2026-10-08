@@ -77,7 +77,7 @@ final class FieldTypeValidator
         }
 
         if ($type->isBuiltin() || enum_exists($typeName) && is_a($typeName, BackedEnum::class, allow_string: true)) {
-            return PhpDocFieldType::hasPhpDoc($field)
+            return FieldTypeNameResolver::hasPhpDoc($field)
                 ? PhpDocLiteralFieldValidator::validate($class, $field) ?? false
                 : false;
         }

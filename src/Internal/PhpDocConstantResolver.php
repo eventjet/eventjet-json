@@ -39,7 +39,7 @@ final class PhpDocConstantResolver
         $owner = $parts[0];
         $member = $parts[1];
         $parent = $declaring->getParentClass();
-        $class = match ($owner) {
+        $class = match (strtolower($owner)) {
             'self', 'static' => $declaring->getName(),
             'parent' => $parent === false ? 'parent' : $parent->getName(),
             default => PhpDocClassNameResolver::resolve($declaring, $owner),

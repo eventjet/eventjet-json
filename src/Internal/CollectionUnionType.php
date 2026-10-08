@@ -11,6 +11,7 @@ use Stringable;
 use function array_filter;
 use function array_values;
 use function implode;
+use function in_array;
 use function is_array;
 use function is_string;
 
@@ -41,7 +42,10 @@ final readonly class CollectionUnionType implements Stringable
         $this->names = $names;
         $this->literalNames = array_values(array_filter(
             $names,
-            static fn(string $name): bool => PhpDocLiteral::value($name) !== null,
+            static fn(string $name): bool => (
+                !in_array($name, ['true', 'false'], strict: true)
+                && PhpDocLiteral::value($name) !== null
+            ),
         ));
         $this->collections = $collections;
     }

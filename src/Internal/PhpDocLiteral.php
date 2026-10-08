@@ -8,21 +8,20 @@ use BackedEnum;
 
 use function constant;
 use function defined;
+use function enum_exists;
 use function is_float;
 use function is_int;
 use function preg_match;
-use function str_contains;
+use function strstr;
 
 /** @internal */
 final class PhpDocLiteral
 {
     public static function value(string $name): string|int|float|bool|BackedEnum|null
     {
-        $scoped = preg_match('/\A(?:self|static|parent)::/i', $name) === 1;
-        if ($scoped) {
-            return null;
-        }
-        if (str_contains($name, '::') && defined($name)) {
+        $owner = strstr($name, needle: '::', before_needle: true);
+        $enumCase = $owner !== false && enum_exists($owner);
+        if ($enumCase && defined($name)) {
             /**
              * @var mixed $value
              * @mago-expect analysis:unhandled-thrown-type The complete constant name was checked with defined().

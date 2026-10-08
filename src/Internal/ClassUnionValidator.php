@@ -80,7 +80,7 @@ final class ClassUnionValidator
             return FieldCollectionUnionResolver::resolve($class, $field, $type);
         }
         $fieldName = $field->getName();
-        $literals = PhpDocFieldType::hasPhpDoc($field) ? PhpDocLiteralField::resolve($field) : null;
+        $literals = FieldTypeNameResolver::hasPhpDoc($field) ? PhpDocLiteralField::resolve($field) : null;
         $unionError = self::validate($class, $field, $type) ?? EnumUnionValidator::validate(
             $class,
             $fieldName,
