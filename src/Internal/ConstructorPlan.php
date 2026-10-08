@@ -9,6 +9,7 @@ use JsonException;
 use ReflectionException;
 use stdClass;
 
+use function array_all;
 use function array_key_exists;
 use function is_array;
 use function is_bool;
@@ -19,6 +20,8 @@ use function is_string;
 /** @internal */
 final readonly class ConstructorPlan
 {
+    public bool $scalarOnly;
+
     /**
      * @param class-string $class
      * @param array<string, ConstructorValueValidator> $fields
@@ -28,13 +31,22 @@ final readonly class ConstructorPlan
         private string $class,
         private array $fields,
         private array $converters,
-    ) {}
+    ) {
+        $this->scalarOnly = array_all(
+            $converters,
+            static fn(FieldValueConverter|null $converter): bool => $converter === null,
+        );
+    }
 
     /**
      * @param array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values
+     * @return array<string, mixed>|DecodeError
+     * @throws JsonException
+     * @throws ReflectionException
      */
-    public function validate(array $values, string $path): DecodeError|null
+    public function decode(array $values, string $path): array|DecodeError
     {
+        $converted = [];
         foreach ($this->fields as $name => $field) {
             if (!array_key_exists($name, $values)) {
                 continue;
@@ -61,8 +73,11 @@ final readonly class ConstructorPlan
                     $value,
                 );
             }
+            if ($this->scalarOnly) {
+                $converted[$name] = $value;
+            }
         }
-        return null;
+        return $this->scalarOnly ? $converted : $this->convert($values, $path);
     }
 
     /**
