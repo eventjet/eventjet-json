@@ -1,5 +1,11 @@
 # Direct parsing: results and optimization ledger
 
+**Historical first pass.** The conclusion below was too narrow: whole-graph
+compilation subsequently improved several real-document workloads as well.
+See [the second-pass report](RESULTS-SECOND-PASS.md) for the current implementation,
+measurements and expanded optimization ledger. Numbers below describe the earlier
+`window-8192` implementation, not the current `extreme` mode.
+
 Direct construction can reduce temporary allocation substantially and can beat
 the current decoder for homogeneous scalar-object collections. It does not beat
 `json_decode()` plus hydration consistently. Keep the production decoder as the
@@ -133,11 +139,11 @@ the input string already exists. The returned object graph stays fully resident.
 This is neither a streaming API nor a constant-memory decoder. Class caches grow
 with encountered declarations, and schema compilation has a cold cost.
 
-The experiments exhaust the concrete PHP-level optimization avenues investigated
-here: scalar/token handling, scanning, validation, schema dispatch, construction,
-capture layout, batch sizing, deep traversal, JIT, and GC. A native extension or a
-different streaming/output contract would be a separate implementation project.
-The evidence supports a memory-focused direct parser and selective specialized
+This first pass investigated scalar/token handling, scanning, validation, schema
+dispatch, construction, capture layout, batch sizing, deep traversal, JIT, and GC.
+It did not exhaust PHP-level optimization: the second pass replaces the repeated
+per-object work with whole-graph compilation. This earlier evidence supported
+a memory-focused direct parser and selective specialized
 record paths, but does not support replacing the default decoder. Native parsing
 with faster general hydration is also worth investigating independently, given
 the hand-written construction control.

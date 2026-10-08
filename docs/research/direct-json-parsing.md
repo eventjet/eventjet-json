@@ -3,10 +3,12 @@
 Keep native `json_decode()` followed by typed hydration as the default for now.
 The [direct parsing prototype](../../experiments/direct-json/README.md) now measures
 the tradeoff: removing the intermediate tree reduces allocation for object graphs
-and ignored subtrees, and specialized scalar-object parsing can improve runtime
-on large record collections. General real-document and scalar-collection parsing
-still often favors the native path. See the [results and optimization ledger](../../experiments/direct-json/RESULTS.md)
-for the measured limits. Replacing the JSON parser also makes this package
+and ignored subtrees. The second pass compiles whole type graphs, improving runtime
+on record collections and several real documents, beyond the narrower gains in
+the first pass. Some documents and large retained strings still favor native
+decoding, and schema compilation adds cold cost. See the
+[second-pass results and optimization ledger](../../experiments/direct-json/RESULTS-SECOND-PASS.md)
+for the measured limits. The prototype requires no FFI. Replacing the JSON parser also makes this package
 responsible for maintaining JSON syntax and numeric behavior.
 This decision is separate from the internal parser for PHPDoc types.
 

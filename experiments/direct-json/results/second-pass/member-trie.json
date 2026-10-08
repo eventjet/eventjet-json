@@ -1,0 +1,188 @@
+{
+    "php": "8.5.11",
+    "os": "Windows",
+    "jit": "disable",
+    "rounds": 9,
+    "rows": [
+        {
+            "scenario": "Stripe invoice",
+            "mode": "native",
+            "median_us": 1880.4666666666667,
+            "median_paired_ratio": 1,
+            "min_us": 1346.2166666666667,
+            "max_us": 4227.933333333333,
+            "iterations": 6,
+            "samples_us": [
+                1542.8166666666666,
+                1871.2333333333333,
+                1749.5666666666666,
+                1346.2166666666667,
+                2515.233333333333,
+                2264.116666666667,
+                4227.933333333333,
+                3077.8333333333335,
+                1880.4666666666667
+            ]
+        },
+        {
+            "scenario": "Stripe invoice",
+            "mode": "graph-flex-direct-bulk",
+            "median_us": 2548.94,
+            "median_paired_ratio": 1.3554826816038572,
+            "min_us": 1861.35,
+            "max_us": 3912.03,
+            "iterations": 10,
+            "samples_us": [
+                2234.19,
+                2727.02,
+                1921.12,
+                1861.35,
+                2621.33,
+                3912.03,
+                2299.35,
+                3095.62,
+                2548.94
+            ]
+        },
+        {
+            "scenario": "Stripe invoice",
+            "mode": "graph-flex-direct-bulk-trie",
+            "median_us": 2531.28,
+            "median_paired_ratio": 1.4497263342035862,
+            "min_us": 2198.07,
+            "max_us": 3846.36,
+            "iterations": 10,
+            "samples_us": [
+                2411.52,
+                3089.43,
+                2371.91,
+                2198.07,
+                3646.4,
+                2796.56,
+                2293.93,
+                2531.28,
+                3846.36
+            ]
+        },
+        {
+            "scenario": "GitHub pull request webhook",
+            "mode": "native",
+            "median_us": 1986.425,
+            "median_paired_ratio": 1,
+            "min_us": 985.8958333333334,
+            "max_us": 10150.058333333332,
+            "iterations": 24,
+            "samples_us": [
+                10150.058333333332,
+                3960.7458333333334,
+                1586.075,
+                2068.3458333333333,
+                2309.05,
+                1526.8708333333334,
+                1986.425,
+                1335.7583333333334,
+                985.8958333333334
+            ]
+        },
+        {
+            "scenario": "GitHub pull request webhook",
+            "mode": "graph-flex-direct-bulk",
+            "median_us": 1349.2,
+            "median_paired_ratio": 0.644684526359739,
+            "min_us": 913.45,
+            "max_us": 4251.35,
+            "iterations": 2,
+            "samples_us": [
+                4251.35,
+                1616.65,
+                1241.65,
+                1349.2,
+                1488.5,
+                984.35,
+                950.95,
+                913.45,
+                1387.75
+            ]
+        },
+        {
+            "scenario": "GitHub pull request webhook",
+            "mode": "graph-flex-direct-bulk-trie",
+            "median_us": 1197.5,
+            "median_paired_ratio": 0.7842837611782267,
+            "min_us": 918.4,
+            "max_us": 4292.225,
+            "iterations": 4,
+            "samples_us": [
+                3375.225,
+                4292.225,
+                1143.025,
+                1086.9,
+                2666.025,
+                1197.5,
+                918.4,
+                1933.5,
+                998.25
+            ]
+        },
+        {
+            "scenario": "Kubernetes deployment",
+            "mode": "native",
+            "median_us": 1271.9235294117648,
+            "median_paired_ratio": 1,
+            "min_us": 966.8294117647059,
+            "max_us": 1991.0294117647059,
+            "iterations": 17,
+            "samples_us": [
+                1361.7235294117647,
+                1349.3411764705882,
+                1138.3176470588235,
+                1271.9235294117648,
+                1991.0294117647059,
+                1779.5882352941176,
+                1018.4470588235295,
+                966.8294117647059,
+                1151.3588235294117
+            ]
+        },
+        {
+            "scenario": "Kubernetes deployment",
+            "mode": "graph-flex-direct-bulk",
+            "median_us": 911.0428571428571,
+            "median_paired_ratio": 0.6943510814319582,
+            "min_us": 646,
+            "max_us": 1019.504761904762,
+            "iterations": 21,
+            "samples_us": [
+                1019.504761904762,
+                1013.3095238095239,
+                911.0428571428571,
+                916.4095238095238,
+                956.7,
+                646,
+                674.6666666666666,
+                671.3190476190476,
+                686.1190476190476
+            ]
+        },
+        {
+            "scenario": "Kubernetes deployment",
+            "mode": "graph-flex-direct-bulk-trie",
+            "median_us": 779.6033333333334,
+            "median_paired_ratio": 0.6259862706014204,
+            "min_us": 680.2266666666667,
+            "max_us": 850.27,
+            "iterations": 30,
+            "samples_us": [
+                804.31,
+                781.5666666666667,
+                850.27,
+                796.2066666666667,
+                779.6033333333334,
+                680.2266666666667,
+                743.11,
+                707.11,
+                760.4066666666666
+            ]
+        }
+    ]
+}

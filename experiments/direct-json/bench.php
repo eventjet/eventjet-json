@@ -47,8 +47,15 @@ if (($argv[1] ?? '') !== '--worker') {
                 if (php_ini_loaded_file() !== false) {
                     $command = [...$command, '-c', php_ini_loaded_file()];
                 }
-                // Propagate opcache/JIT explicitly; PHP workers do not inherit -d flags.
-                foreach (['opcache.enable_cli', 'opcache.jit', 'opcache.jit_buffer_size'] as $setting) {
+                // PHP workers do not inherit -d flags.
+                foreach ([
+                    'opcache.enable_cli',
+                    'opcache.jit',
+                    'opcache.jit_buffer_size',
+                    'pcre.jit',
+                    'pcre.backtrack_limit',
+                    'pcre.recursion_limit',
+                ] as $setting) {
                     $command[] = '-d';
                     $command[] = $setting . '=' . ini_get($setting);
                 }
@@ -98,6 +105,7 @@ if (($argv[1] ?? '') !== '--worker') {
             'os' => PHP_OS_FAMILY,
             'opcache' => ini_get('opcache.enable_cli'),
             'jit' => ini_get('opcache.jit'),
+            'pcre_jit' => ini_get('pcre.jit'),
             'samples' => $samples,
             'rows' => $rows,
         ], JSON_PRETTY_PRINT),
@@ -110,52 +118,7 @@ if (str_ends_with($mode, '-nogc')) {
     gc_disable();
     $mode = substr($mode, 0, -5);
 }
-if (str_starts_with($scenario, 'deep chain ')) {
-    $node = null;
-    for ($index = (int) substr($scenario, 11); $index >= 0; --$index) {
-        $node = new DeepNode($index, $node);
-    }
-    $type = DeepNode::class;
-    $json = json_encode($node, JSON_THROW_ON_ERROR);
-    unset($node);
-} elseif ($scenario === 'large string field') {
-    $type = ScalarFields::class;
-    $json = json_encode(new ScalarFields(str_repeat('x', 4 * 1024 * 1024), 42, 1.5, true), JSON_THROW_ON_ERROR);
-} elseif (str_starts_with($scenario, 'record batch ') || $scenario === 'root records 10000') {
-    $size = $scenario === 'root records 10000' ? 10000 : (int) substr($scenario, 13);
-    $records = [];
-    for ($index = 0; $index < $size; ++$index) {
-        $records[] = new Record(
-            $index,
-            'record-' . $index,
-            ($index / 4) + 0.5,
-            (bool) ($index % 2),
-            $index % 3 ? 'note-' . $index : null,
-        );
-    }
-    $type = $scenario === 'root records 10000' ? JsonType::array(Record::class) : RecordBatch::class;
-    $json = json_encode(is_string($type) ? new RecordBatch($records) : $records, JSON_THROW_ON_ERROR);
-    unset($records);
-} elseif (in_array($scenario, DocumentWorkloads::names('documents'), true)) {
-    $workload = DocumentWorkloads::named($scenario);
-    $json = $workload->json;
-    $type = $workload->class;
-    unset($workload);
-} else {
-    $object = DecodeWorkloads::create(str_starts_with($scenario, 'ignored ') ? 'scalar object' : $scenario);
-    $type = $object::class;
-    $json = json_encode($object, JSON_THROW_ON_ERROR);
-    unset($object);
-    if ($scenario === 'ignored tree') {
-        $json =
-            substr($json, 0, -1)
-            . ',"ignored":['
-            . str_repeat('{"x":[1,2,3],"text":"ignore me"},', 49999)
-            . '{"x":[]}]}';
-    } elseif ($scenario === 'ignored string') {
-        $json = substr($json, 0, -1) . ',"ignored":"' . str_repeat('x', 4 * 1024 * 1024) . '"}';
-    }
-}
+[$json, $type] = \Eventjet\Json\Benchmark\Prototype\workload($scenario);
 $decode = $mode === 'native'
     ? static fn() => Json::decode($json, $type)
     : static fn() => DirectParser::decode($json, $type, $mode);
@@ -224,5 +187,6 @@ echo
         'cold_peak_bytes' => $coldPeak,
         'retained_bytes' => $retained,
         'iterations' => $iterations,
+        'graph_matches' => \Eventjet\Json\Benchmark\Prototype\GraphParser::$matches,
     ]),
     "\n";

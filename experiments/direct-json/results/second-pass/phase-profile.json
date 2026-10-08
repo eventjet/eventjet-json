@@ -1,0 +1,135 @@
+{
+    "php": "8.5.11",
+    "rows": [
+        {
+            "scenario": "Stripe invoice",
+            "mode": "graph-flex-direct-bulk",
+            "phases": {
+                "native-validation": {
+                    "median_us": 72.28757016840417,
+                    "min_us": 72.11708099438653,
+                    "max_us": 74.28540497193264
+                },
+                "typed-validation": {
+                    "median_us": 15.09139072847682,
+                    "min_us": 14.480239265114292,
+                    "max_us": 16.111001922666098
+                },
+                "construction-only": {
+                    "median_us": 411.3248803827751,
+                    "min_us": 400.31866028708134,
+                    "max_us": 420.8578947368421
+                },
+                "complete": {
+                    "median_us": 451.13829787234044,
+                    "min_us": 437.6187234042553,
+                    "max_us": 500.22851063829785
+                }
+            }
+        },
+        {
+            "scenario": "GitHub pull request webhook",
+            "mode": "graph-flex-direct-bulk",
+            "phases": {
+                "native-validation": {
+                    "median_us": 58.57222222222222,
+                    "min_us": 56.181666666666665,
+                    "max_us": 98.68166666666667
+                },
+                "typed-validation": {
+                    "median_us": 13.033815331010453,
+                    "min_us": 12.765087108013937,
+                    "max_us": 13.234738675958187
+                },
+                "construction-only": {
+                    "median_us": 501.6590062111801,
+                    "min_us": 477.40910973084885,
+                    "max_us": 515.5554865424431
+                },
+                "complete": {
+                    "median_us": 560.1311827956989,
+                    "min_us": 489.73709677419356,
+                    "max_us": 870.3908602150537
+                }
+            }
+        },
+        {
+            "scenario": "Kubernetes deployment",
+            "mode": "graph-flex-direct-bulk",
+            "phases": {
+                "native-validation": {
+                    "median_us": 129.08929254302103,
+                    "min_us": 121.8055449330784,
+                    "max_us": 138.86749521988528
+                },
+                "typed-validation": {
+                    "median_us": 28.73154513331192,
+                    "min_us": 25.46983617089624,
+                    "max_us": 33.752714423385804
+                },
+                "construction-only": {
+                    "median_us": 444.16915422885575,
+                    "min_us": 425.39651741293534,
+                    "max_us": 507.426368159204
+                },
+                "complete": {
+                    "median_us": 600.6956284153006,
+                    "min_us": 471.2573770491803,
+                    "max_us": 651.4693989071038
+                }
+            }
+        },
+        {
+            "scenario": "record batch 1000",
+            "mode": "graph-flex-direct-bulk",
+            "phases": {
+                "native-validation": {
+                    "median_us": 2785.7628571428572,
+                    "min_us": 2725.3314285714287,
+                    "max_us": 3103.7085714285713
+                },
+                "typed-validation": {
+                    "median_us": 262.244801980198,
+                    "min_us": 214.38168316831684,
+                    "max_us": 288.9272277227723
+                },
+                "construction-only": {
+                    "median_us": 8444.166666666666,
+                    "min_us": 7775.091666666666,
+                    "max_us": 9562.766666666666
+                },
+                "complete": {
+                    "median_us": 9178.375,
+                    "min_us": 8126.475,
+                    "max_us": 11014.358333333334
+                }
+            }
+        },
+        {
+            "scenario": "large string field",
+            "mode": "graph-flex-direct-bulk",
+            "phases": {
+                "native-validation": {
+                    "median_us": 22952.475,
+                    "min_us": 19718.3,
+                    "max_us": 26833.6
+                },
+                "typed-validation": {
+                    "median_us": 19042.05,
+                    "min_us": 16326.925,
+                    "max_us": 19913.925
+                },
+                "construction-only": {
+                    "median_us": 7325.95,
+                    "min_us": 6135.983333333334,
+                    "max_us": 7824.508333333333
+                },
+                "complete": {
+                    "median_us": 28862.733333333334,
+                    "min_us": 26458.066666666666,
+                    "max_us": 30287.8
+                }
+            }
+        }
+    ]
+}

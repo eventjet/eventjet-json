@@ -1,0 +1,258 @@
+{
+    "php": "8.5.11",
+    "os": "Windows",
+    "opcache": "0",
+    "jit": "disable",
+    "pcre_jit": "1",
+    "samples": 5,
+    "rows": [
+        {
+            "scenario": "record batch 1000",
+            "mode": "native",
+            "bytes": 75781,
+            "warm_us": 3231.509677419355,
+            "cold_us": 11710.5,
+            "peak_bytes": 812128,
+            "cold_peak_bytes": 1124304,
+            "retained_bytes": 214704,
+            "samples": [
+                {
+                    "bytes": 75781,
+                    "cold_us": 11806,
+                    "warm_us": 3197.8709677419356,
+                    "peak_bytes": 812128,
+                    "cold_peak_bytes": 1124304,
+                    "retained_bytes": 214704,
+                    "iterations": 31,
+                    "graph_matches": 0
+                },
+                {
+                    "bytes": 75781,
+                    "cold_us": 13276.3,
+                    "warm_us": 3385.9833333333336,
+                    "peak_bytes": 812128,
+                    "cold_peak_bytes": 1124304,
+                    "retained_bytes": 214704,
+                    "iterations": 30,
+                    "graph_matches": 0
+                },
+                {
+                    "bytes": 75781,
+                    "cold_us": 11455.3,
+                    "warm_us": 3231.509677419355,
+                    "peak_bytes": 812128,
+                    "cold_peak_bytes": 1124304,
+                    "retained_bytes": 214704,
+                    "iterations": 31,
+                    "graph_matches": 0
+                },
+                {
+                    "bytes": 75781,
+                    "cold_us": 11168,
+                    "warm_us": 3201.1387096774192,
+                    "peak_bytes": 812128,
+                    "cold_peak_bytes": 1124304,
+                    "retained_bytes": 214704,
+                    "iterations": 31,
+                    "graph_matches": 0
+                },
+                {
+                    "bytes": 75781,
+                    "cold_us": 11710.5,
+                    "warm_us": 3232.9677419354834,
+                    "peak_bytes": 812128,
+                    "cold_peak_bytes": 1124304,
+                    "retained_bytes": 214704,
+                    "iterations": 31,
+                    "graph_matches": 0
+                }
+            ]
+        },
+        {
+            "scenario": "record batch 1000",
+            "mode": "extreme",
+            "bytes": 75781,
+            "warm_us": 962.7519230769232,
+            "cold_us": 9805.4,
+            "peak_bytes": 215232,
+            "cold_peak_bytes": 486040,
+            "retained_bytes": 214704,
+            "samples": [
+                {
+                    "bytes": 75781,
+                    "cold_us": 9292,
+                    "warm_us": 962.7519230769232,
+                    "peak_bytes": 215232,
+                    "cold_peak_bytes": 486040,
+                    "retained_bytes": 214704,
+                    "iterations": 104,
+                    "graph_matches": 124
+                },
+                {
+                    "bytes": 75781,
+                    "cold_us": 9998,
+                    "warm_us": 963.9417475728155,
+                    "peak_bytes": 215232,
+                    "cold_peak_bytes": 486040,
+                    "retained_bytes": 214704,
+                    "iterations": 103,
+                    "graph_matches": 123
+                },
+                {
+                    "bytes": 75781,
+                    "cold_us": 10248,
+                    "warm_us": 1014.1196078431373,
+                    "peak_bytes": 215232,
+                    "cold_peak_bytes": 486040,
+                    "retained_bytes": 214704,
+                    "iterations": 102,
+                    "graph_matches": 122
+                },
+                {
+                    "bytes": 75781,
+                    "cold_us": 9805.4,
+                    "warm_us": 960.4875,
+                    "peak_bytes": 215232,
+                    "cold_peak_bytes": 486040,
+                    "retained_bytes": 214704,
+                    "iterations": 104,
+                    "graph_matches": 124
+                },
+                {
+                    "bytes": 75781,
+                    "cold_us": 9274.1,
+                    "warm_us": 955.7442307692307,
+                    "peak_bytes": 215232,
+                    "cold_peak_bytes": 486040,
+                    "retained_bytes": 214704,
+                    "iterations": 104,
+                    "graph_matches": 124
+                }
+            ]
+        },
+        {
+            "scenario": "Stripe invoice",
+            "mode": "native",
+            "bytes": 7903,
+            "warm_us": 345.888253968254,
+            "cold_us": 36780.9,
+            "peak_bytes": 70816,
+            "cold_peak_bytes": 1009816,
+            "retained_bytes": 15856,
+            "samples": [
+                {
+                    "bytes": 7903,
+                    "cold_us": 25120.3,
+                    "warm_us": 259.65483870967745,
+                    "peak_bytes": 70816,
+                    "cold_peak_bytes": 1009816,
+                    "retained_bytes": 15856,
+                    "iterations": 372,
+                    "graph_matches": 0
+                },
+                {
+                    "bytes": 7903,
+                    "cold_us": 36780.9,
+                    "warm_us": 348.43697749196144,
+                    "peak_bytes": 70816,
+                    "cold_peak_bytes": 1009816,
+                    "retained_bytes": 15856,
+                    "iterations": 311,
+                    "graph_matches": 0
+                },
+                {
+                    "bytes": 7903,
+                    "cold_us": 30602.1,
+                    "warm_us": 320.4,
+                    "peak_bytes": 70816,
+                    "cold_peak_bytes": 1009816,
+                    "retained_bytes": 15856,
+                    "iterations": 313,
+                    "graph_matches": 0
+                },
+                {
+                    "bytes": 7903,
+                    "cold_us": 39764.1,
+                    "warm_us": 345.888253968254,
+                    "peak_bytes": 70816,
+                    "cold_peak_bytes": 1009816,
+                    "retained_bytes": 15856,
+                    "iterations": 315,
+                    "graph_matches": 0
+                },
+                {
+                    "bytes": 7903,
+                    "cold_us": 37734,
+                    "warm_us": 358.5829431438127,
+                    "peak_bytes": 70816,
+                    "cold_peak_bytes": 1009816,
+                    "retained_bytes": 15856,
+                    "iterations": 299,
+                    "graph_matches": 0
+                }
+            ]
+        },
+        {
+            "scenario": "Stripe invoice",
+            "mode": "extreme",
+            "bytes": 7903,
+            "warm_us": 423.8393939393939,
+            "cold_us": 40740.7,
+            "peak_bytes": 36752,
+            "cold_peak_bytes": 1732576,
+            "retained_bytes": 15856,
+            "samples": [
+                {
+                    "bytes": 7903,
+                    "cold_us": 44258.7,
+                    "warm_us": 423.8393939393939,
+                    "peak_bytes": 36752,
+                    "cold_peak_bytes": 1732576,
+                    "retained_bytes": 15856,
+                    "iterations": 198,
+                    "graph_matches": 218
+                },
+                {
+                    "bytes": 7903,
+                    "cold_us": 36409.8,
+                    "warm_us": 441.4612,
+                    "peak_bytes": 36752,
+                    "cold_peak_bytes": 1732576,
+                    "retained_bytes": 15856,
+                    "iterations": 250,
+                    "graph_matches": 270
+                },
+                {
+                    "bytes": 7903,
+                    "cold_us": 35931.1,
+                    "warm_us": 413.8294605809129,
+                    "peak_bytes": 36752,
+                    "cold_peak_bytes": 1732576,
+                    "retained_bytes": 15856,
+                    "iterations": 241,
+                    "graph_matches": 261
+                },
+                {
+                    "bytes": 7903,
+                    "cold_us": 40740.7,
+                    "warm_us": 827.3484848484849,
+                    "peak_bytes": 36752,
+                    "cold_peak_bytes": 1732576,
+                    "retained_bytes": 15856,
+                    "iterations": 99,
+                    "graph_matches": 119
+                },
+                {
+                    "bytes": 7903,
+                    "cold_us": 44730.5,
+                    "warm_us": 422.41031746031746,
+                    "peak_bytes": 36752,
+                    "cold_peak_bytes": 1732576,
+                    "retained_bytes": 15856,
+                    "iterations": 252,
+                    "graph_matches": 272
+                }
+            ]
+        }
+    ]
+}

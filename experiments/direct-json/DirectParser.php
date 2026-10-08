@@ -66,6 +66,61 @@ final class DirectParser
         string $mode = 'hybrid',
         bool $syntaxValidated = false,
     ): mixed {
+        if ($mode === 'fused-batch') {
+            try {
+                $result = self::fusedBatch($json, $type);
+            } catch (Throwable) {
+                $result = false;
+            }
+            if ($result !== false) {
+                return $result;
+            }
+            $mode = 'extreme';
+        }
+        if ($mode === 'extreme') {
+            if (is_string($type)) {
+                $result = self::fused($json, $type, false);
+                if ($result !== false) {
+                    return $result;
+                }
+                $result = self::fused($json, $type, true, true);
+                if ($result !== false) {
+                    return $result;
+                }
+                $result = self::fused($json, $type, true);
+                if ($result !== false) {
+                    return $result;
+                }
+            }
+            if (!str_contains($json, "\n") && !str_contains($json, ': ')) {
+                $result = GraphParser::decode($json, $type, self::plan(...), 'graph-compact-inline-bulk-loop');
+                if ($result !== false) {
+                    return $result;
+                }
+            }
+            $result = GraphParser::decode($json, $type, self::plan(...), 'graph-flex-inline-direct-bulk');
+            if ($result !== false) {
+                return $result;
+            }
+            $mode = 'columns-8192';
+        }
+        if (in_array($mode, ['fused', 'projection', 'projection-ascii'], true) && is_string($type)) {
+            $result = self::fused($json, $type, $mode !== 'fused', $mode === 'projection-ascii');
+            if ($result !== false) {
+                return $result;
+            }
+            $mode = 'columns-8192';
+        }
+        if (in_array($mode, ['fused', 'projection', 'projection-ascii'], true)) {
+            $mode = 'columns-8192';
+        }
+        if (str_starts_with($mode, 'graph')) {
+            $result = GraphParser::decode($json, $type, self::plan(...), $mode);
+            if ($result !== false) {
+                return $result;
+            }
+            $mode = 'window-8192';
+        }
         $regexValidation = str_starts_with($mode, 'validate-');
         if ($regexValidation) {
             $mode = substr($mode, 9);
@@ -91,9 +146,10 @@ final class DirectParser
             str_starts_with($mode, 'chunks-')
             || str_starts_with($mode, 'packed-')
             || str_starts_with($mode, 'window-')
+            || str_starts_with($mode, 'columns-')
         ) {
             [$mode, $size] = explode('-', $mode, 2);
-            $chunkSize = max(1, min($mode === 'window' ? 262144 : 4096, (int) $size));
+            $chunkSize = max(1, min(in_array($mode, ['window', 'columns'], true) ? 262144 : 4096, (int) $size));
         }
         $parser = new self($json, $mode, $chunkSize, $lazyPaths);
         if ($indexed) {
@@ -118,6 +174,133 @@ final class DirectParser
             return Json::decode($json, $type);
         }
         return $parser->item($type->itemClass(), '', $item);
+    }
+
+    private static function fused(string $json, string $class, bool $projection, bool $ascii = false): object|false
+    {
+        if (!$projection && strlen($json) > 32768) {
+            return false;
+        }
+        if ($projection && str_contains($json, '\\u0000') && self::invalidPropertyName($json)) {
+            return false;
+        }
+        try {
+            if (!isset(self::$compiled[$class])) {
+                if (!json_validate($json)) {
+                    return false;
+                }
+                $plan = self::plan($class);
+                self::$compiled[$class] = $plan instanceof DecodeError
+                    ? false
+                    : self::compile($class, $plan[0], $plan[1]);
+            }
+            $compiled = self::$compiled[$class];
+            if ($compiled === false || $projection && $compiled[10] === false) {
+                return false;
+            }
+            $pattern = $compiled[$projection ? ($ascii ? 12 : 10) : 9];
+            $matched = preg_match($pattern, $json, $matches, PREG_UNMATCHED_AS_NULL);
+            if ($matched === false && preg_last_error() === PREG_BACKTRACK_LIMIT_ERROR) {
+                $limit = ini_get('pcre.backtrack_limit');
+                try {
+                    ini_set('pcre.backtrack_limit', (string) max((int) $limit, strlen($json) * 32));
+                    $matched = preg_match($pattern, $json, $matches, PREG_UNMATCHED_AS_NULL);
+                } finally {
+                    ini_set('pcre.backtrack_limit', $limit);
+                }
+            }
+            if ($matched !== 1) {
+                return false;
+            }
+            // Projection's ignored values have a statically bounded depth of 3;
+            // every key is unescaped. No native validation pass is necessary.
+            json_validate('null');
+            return $compiled[$projection ? 1 : 5]($matches, false);
+        } catch (Throwable $error) {
+            return DecodeError::cannotInstantiate($class, $error);
+        }
+    }
+
+    private static function fusedBatch(string $json, string|JsonType $type): mixed
+    {
+        $parent = null;
+        $name = null;
+        if (is_string($type)) {
+            $plan = self::plan($type);
+            if ($plan instanceof DecodeError || count($plan[0]) !== 1 || $plan[1] !== []) {
+                return false;
+            }
+            $name = array_key_first($plan[0]);
+            $collection = $plan[0][$name]['type'];
+            $parent = $type;
+        } else {
+            $item = $type->collectionItem();
+            $collection = $item instanceof NestedCollectionType ? $item->collection : null;
+        }
+        if (
+            !$collection instanceof ListType
+            || !is_string($collection->itemType)
+            || !class_exists($collection->itemType)
+            || enum_exists($collection->itemType)
+        ) {
+            return false;
+        }
+        $class = $collection->itemType;
+        $plan = self::plan($class);
+        if ($plan instanceof DecodeError) {
+            return false;
+        }
+        $compiled = self::$compiled[$class] ??= self::compile($class, $plan[0], $plan[1]);
+        if ($compiled === false || $compiled[11] === false) {
+            return false;
+        }
+        $white = '[\\x20\\x09\\x0a\\x0d]*+';
+        $prefix =
+            '~\\A'
+            . $white
+            . ($parent === null ? '' : '\\{' . $white . preg_quote(json_encode($name), '~') . $white . ':' . $white)
+            . '\\['
+            . $white
+            . '~';
+        if (preg_match($prefix, $json, $match) !== 1) {
+            return false;
+        }
+        $start = strlen($match[0]);
+        $count = preg_match_all($compiled[11], $json, $columns, PREG_PATTERN_ORDER | PREG_UNMATCHED_AS_NULL, $start);
+        if ($count === false || $count === 0 && $collection->nonEmpty) {
+            return false;
+        }
+        $end = $start;
+        foreach ($columns[0] as $row) {
+            $end += strlen($row);
+        }
+        if ($count > 0 && str_ends_with(rtrim($columns[0][$count - 1]), ',')) {
+            return false;
+        }
+        $suffix = '~\\G\\]' . $white . ($parent === null ? '' : '\\}' . $white) . '\\z~';
+        if (preg_match($suffix, $json, $match, 0, $end) !== 1) {
+            return false;
+        }
+        // Complete syntax and scalar types are proven before the first target
+        // constructor. Captures cost more memory, but eliminate the second scan.
+        json_validate('null');
+        $out = [];
+        $index = 0;
+        try {
+            if (!$compiled[8]($columns, $out, $start, $index)) {
+                throw new \LogicException('Validated scalar batch rejected by its factory.');
+            }
+        } catch (Throwable $error) {
+            return DecodeError::cannotInstantiate($class, $error);
+        }
+        if ($parent === null) {
+            return $out;
+        }
+        try {
+            return new $parent($out);
+        } catch (Throwable $error) {
+            return DecodeError::cannotInstantiate($parent, $error);
+        }
     }
 
     private static function invalidPropertyName(string $json): bool
@@ -162,6 +345,9 @@ final class DirectParser
                     : 'convert',
                 'nullable' => $parameter->allowsNull(),
                 'enumCases' => self::enumCases($parameter),
+                'scalarNames' => $parameter->getType() instanceof ReflectionUnionType
+                    ? array_map(static fn($type) => $type->getName(), $parameter->getType()->getTypes())
+                    : null,
             ];
         }
         $properties = PublicProperties::resolve($reflection);
@@ -174,6 +360,9 @@ final class DirectParser
             $property['kind'] = $property['builtinType']?->getName() ?? 'convert';
             $property['nullable'] = $property['property']->getType()?->allowsNull() ?? false;
             $property['enumCases'] = self::enumCases($property['property']);
+            $property['scalarNames'] = $property['property']->getType() instanceof ReflectionUnionType
+                ? array_map(static fn($type) => $type->getName(), $property['property']->getType()->getTypes())
+                : null;
         }
         unset($property);
         return self::$plans[$class] = [$arguments, $properties, $arguments + $properties, $reflection->getName()];
@@ -237,11 +426,11 @@ final class DirectParser
             }
             [$arguments, $properties, $known, $displayClass] = $plan;
             if (
-                in_array($this->mode, ['compiled', 'regex', 'ordered', 'chunks', 'packed', 'window'], true)
+                in_array($this->mode, ['compiled', 'regex', 'ordered', 'chunks', 'packed', 'window', 'columns'], true)
                 && (($objectEnd ?? strlen($this->json)) - $start) <= 32768
             ) {
                 $compiled = self::$compiled[$class] ??= self::compile($class, $arguments, $properties);
-                $numbered = in_array($this->mode, ['packed', 'window'], true);
+                $numbered = in_array($this->mode, ['packed', 'window', 'columns'], true);
                 $pattern = $compiled === false
                     ? ''
                     : (
@@ -262,7 +451,7 @@ final class DirectParser
                 if (
                     !$matched
                     && $compiled !== false
-                    && in_array($this->mode, ['ordered', 'chunks', 'packed', 'window'], true)
+                    && in_array($this->mode, ['ordered', 'chunks', 'packed', 'window', 'columns'], true)
                 ) {
                     $matched = preg_match($compiled[0], $source, $matches, PREG_UNMATCHED_AS_NULL, $offset) === 1;
                     $numbered = false;
@@ -464,7 +653,7 @@ final class DirectParser
         $index = 0;
         do {
             if (
-                in_array($this->mode, ['chunks', 'packed', 'window'], true)
+                in_array($this->mode, ['chunks', 'packed', 'window', 'columns'], true)
                 && is_string($item)
                 && class_exists($item)
                 && !enum_exists($item)
@@ -480,12 +669,18 @@ final class DirectParser
                         '{1,' . $this->chunkSize . '}',
                         $compiled[3],
                     ));
-                $window = $this->mode === 'window';
+                $columns = $this->mode === 'columns';
+                $window = $this->mode === 'window' || $columns;
                 $matched = false;
                 if ($compiled !== false && $window) {
                     $source = substr($this->json, $this->position, $this->chunkSize);
                     $matched =
-                        preg_match_all($compiled[7], $source, $rows, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL) > 0;
+                        preg_match_all(
+                            $compiled[7],
+                            $source,
+                            $rows,
+                            ($columns ? PREG_PATTERN_ORDER : PREG_SET_ORDER) | PREG_UNMATCHED_AS_NULL,
+                        ) > 0;
                 } elseif (
                     $compiled !== false
                     && preg_match($chunkPattern, $this->json, $chunk, PREG_OFFSET_CAPTURE, $this->position) === 1
@@ -495,6 +690,32 @@ final class DirectParser
                     $matched = preg_match_all($rowPattern, $source, $rows, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL) > 0;
                 }
                 if ($matched) {
+                    if ($columns) {
+                        try {
+                            $complete = $compiled[8]($rows, $out, $this->position, $index);
+                        } catch (Throwable $error) {
+                            return DecodeError::cannotInstantiate($item, $error);
+                        }
+                        unset($rows, $source);
+                        if (!$complete) {
+                            $value = $this->object($item, $this->indexPath($path, $index++));
+                            if ($value instanceof DecodeError) {
+                                return $value;
+                            }
+                            $out[] = $value;
+                            $this->white();
+                            if ($this->json[$this->position] === ',') {
+                                ++$this->position;
+                                $this->white();
+                            }
+                        }
+                        if ($this->json[$this->position] === ']') {
+                            ++$this->position;
+                            return $out;
+                        }
+                        $separator = ',';
+                        continue;
+                    }
                     foreach ($rows as $row) {
                         try {
                             $value = $compiled[$this->mode === 'chunks' ? 1 : 5]($row, false);
@@ -702,7 +923,7 @@ final class DirectParser
         }
         $char = $this->json[$this->position];
         if (
-            in_array($this->mode, ['regex', 'ordered', 'chunks', 'packed', 'window'], true)
+            in_array($this->mode, ['regex', 'ordered', 'chunks', 'packed', 'window', 'columns'], true)
             && ($char === '[' || $char === '{')
         ) {
             // \K leaves an empty match: report its end offset without copying the subtree.
@@ -790,6 +1011,8 @@ final class DirectParser
             return false;
         }
         $alternatives = [];
+        $strictAlternatives = [];
+        $batchEligible = true;
         $expressions = [];
         $conversions = [];
         $index = 0;
@@ -818,6 +1041,17 @@ final class DirectParser
             }
             $capture = 'v' . $index++;
             $alternatives[] = preg_quote(json_encode($name), '~') . '\s*+:\s*+(?<' . $capture . '>' . $token . ')';
+            $batchEligible =
+                $batchEligible && in_array($kind, ['string', 'int', 'float', 'bool', 'true', 'false', 'null'], true);
+            $strictToken = $kind === 'int' ? GraphParser::integerPattern() : GraphParser::strictTokens($token);
+            if ($kind === 'int' && $field['nullable']) {
+                $strictToken = '(?:null|' . $strictToken . ')';
+            }
+            $strictAlternatives[] =
+                preg_quote(json_encode($name), '~')
+                . '[\\x20\\x09\\x0a\\x0d]*+:[\\x20\\x09\\x0a\\x0d]*+('
+                . $strictToken
+                . ')';
             $value = '$m[' . var_export($capture, true) . ']';
             // json_decode on individual scalar tokens also preserves numeric overflow,
             // negative zero, escaped strings and strict integer validation.
@@ -893,6 +1127,9 @@ final class DirectParser
         $ordered = '~\G\{\s*+' . implode('\s*+,\s*+', $alternatives) . '\s*+\}~';
         $raw = substr($ordered, 3, -1);
         $boundary = preg_replace('/\(\?<v[0-9]+>/', '(?:', $raw);
+        if ($boundary === null) {
+            return false;
+        }
         $chunk = '~(?(DEFINE)(?<row>' . $boundary . '))\G(?:(?&row)\s*+(?:,\s*+|(?=\]))){1,128}\K~';
         $rows = '~' . $raw . '~';
         // Generated from reflection metadata only. Never interpolate JSON into PHP.
@@ -925,9 +1162,60 @@ final class DirectParser
             static fn(array $match) => '$m[' . ((int) $match[1] + 1) . ']',
             $body,
         );
+        if ($numberedBody === null) {
+            return false;
+        }
         $numberedFactory = eval($numberedBody);
+        $columnBody = substr($numberedBody, strpos($numberedBody, '{') + 1, -3);
+        $columnBody = preg_replace('/\$m\[([0-9]+)\]/', '\$columns[$1][$i]', $columnBody);
+        if ($columnBody === null) {
+            return false;
+        }
+        $columnBody = str_replace('$native ?', 'false ?', $columnBody);
+        $columnBody = str_replace(
+            'return $object;',
+            '$out[] = $object; $position += strlen($columns[0][$i]); ++$index;',
+            $columnBody,
+        );
+        $columnFactory =
+            eval('return static function(array $columns, array &$out, int &$position, int &$index) use ($class, $fields, $properties): bool { $count = count($columns[0]); for ($i = 0; $i < $count; ++$i) {'
+                . $columnBody
+                . '} return true; };');
         $numbered = preg_replace('/\(\?<v[0-9]+>/', '(', $ordered);
+        if ($numbered === null) {
+            return false;
+        }
         $window = substr($numbered, 0, -1) . '\s*+(?:,\s*+|(?=\]))~';
-        return [$pattern, $factory, $ordered, $chunk, $rows, $numberedFactory, $numbered, $window];
+        $fused =
+            GraphParser::strictTokens(str_replace('\\G', '\\A[\\x20\\x09\\x0a\\x0d]*+', substr($numbered, 0, -1)))
+            . '[\\x20\\x09\\x0a\\x0d]*+\\z~u';
+        $projection = $properties === [] ? GraphParser::projection($alternatives, array_keys($fields)) : false;
+        $white = '[\\x20\\x09\\x0a\\x0d]*+';
+        $batch = $batchEligible
+            ? '~\\G\\{'
+            . $white
+            . implode($white . ',' . $white, $strictAlternatives)
+            . $white
+            . '\\}'
+            . $white
+            . '(?:,'
+            . $white
+            . '|(?=\\]))~u'
+            : false;
+        return [
+            $pattern,
+            $factory,
+            $ordered,
+            $chunk,
+            $rows,
+            $numberedFactory,
+            $numbered,
+            $window,
+            $columnFactory,
+            $fused,
+            $projection,
+            $batch,
+            $projection === false ? false : GraphParser::asciiPattern($projection),
+        ];
     }
 }

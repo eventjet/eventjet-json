@@ -1,0 +1,57 @@
+profile,php,jit,scenario,mode,input_bytes,median_us,min_us,max_us,cold_us,peak_bytes,cold_peak_bytes,retained_bytes
+isolated-php85.json,8.5.11,disable,"scalar object",native,58,2.775,2.72,2.906,4249.8,1064,218880,144
+isolated-php85.json,8.5.11,disable,"scalar object",window-8192,58,4.53,4.424,4.532,3196.7,840,212664,144
+isolated-php85.json,8.5.11,disable,"scalar object",extreme,58,1.841,1.808,1.864,3368.7,616,212440,144
+isolated-php85.json,8.5.11,disable,"public scalar properties",native,79,4.694,4.611,4.734,4236.2,2928,231080,192
+isolated-php85.json,8.5.11,disable,"public scalar properties",window-8192,79,5.345,5.21,5.395,3290.6,944,228920,192
+isolated-php85.json,8.5.11,disable,"public scalar properties",extreme,79,2.254,2.228,2.367,3340.8,720,228696,192
+isolated-php85.json,8.5.11,disable,"named enums",native,65,4.984,4.973,5.301,4539.1,1072,246176,96
+isolated-php85.json,8.5.11,disable,"named enums",window-8192,65,4.985,4.89,5.023,3255.9,736,226048,96
+isolated-php85.json,8.5.11,disable,"named enums",extreme,65,2.466,2.421,2.575,3236.5,512,225824,96
+isolated-php85.json,8.5.11,disable,"long scalar lists",native,27286,619.504,612.886,632.06,9210.8,143648,463416,122176
+isolated-php85.json,8.5.11,disable,"long scalar lists",window-8192,27286,1128.514,1124.549,1234.675,8351.8,131760,377544,122176
+isolated-php85.json,8.5.11,disable,"long scalar lists",extreme,27286,556.714,551.429,583.174,7702.2,130784,360664,122176
+isolated-php85.json,8.5.11,disable,"long string map",native,21792,347,345.965,350.835,8452.5,133960,443248,112992
+isolated-php85.json,8.5.11,disable,"long string map",window-8192,21792,638.483,629.671,644.911,7556.7,138320,399848,112992
+isolated-php85.json,8.5.11,disable,"long string map",extreme,21792,325,315.851,348.251,6700.8,138040,364392,112992
+isolated-php85.json,8.5.11,disable,"record batch 1000",native,75781,3986.692,3931.12,4053.283,13953.8,812128,1124304,214704
+isolated-php85.json,8.5.11,disable,"record batch 1000",window-8192,75781,2870.615,2852.221,2934.715,11262.9,278176,566656,214704
+isolated-php85.json,8.5.11,disable,"record batch 1000",extreme,75781,1194.349,1176.02,1201.415,11517.5,215232,486040,214704
+isolated-php85.json,8.5.11,disable,"record batch 10000",native,794283,44659.3,41737.1,45720.3,52177.2,8239648,8675848,2212464
+isolated-php85.json,8.5.11,disable,"record batch 10000",window-8192,794283,29636.367,28768.167,31424.033,39000.8,2274744,2563224,2212464
+isolated-php85.json,8.5.11,disable,"record batch 10000",extreme,794283,12591.771,11857.925,14158.925,46028.1,2212992,2475608,2212464
+isolated-php85.json,8.5.11,disable,"root records 10000",native,794271,39898.9,38937.8,40807.667,47086.5,8239192,8572584,2212408
+isolated-php85.json,8.5.11,disable,"root records 10000",window-8192,794271,27844.867,27071.2,27898.733,31977.9,2274320,2494592,2212408
+isolated-php85.json,8.5.11,disable,"root records 10000",extreme,794271,12177.713,11941.275,13745.086,28676.7,2213368,2383600,2212408
+isolated-php85.json,8.5.11,disable,"recursive collections",native,982,252.248,244.404,275.3,15385.3,65120,570488,29456
+isolated-php85.json,8.5.11,disable,"recursive collections",window-8192,982,482.993,454.147,488.963,11703,34584,353848,29456
+isolated-php85.json,8.5.11,disable,"recursive collections",extreme,982,350.833,333.336,379.894,13203,32016,412144,29456
+isolated-php85.json,8.5.11,disable,"JSON:API compound document",native,1559,84.167,84.057,91.6,17630.1,25192,563024,10896
+isolated-php85.json,8.5.11,disable,"JSON:API compound document",window-8192,1559,224.438,218.534,240.575,17326.3,14400,552664,10768
+isolated-php85.json,8.5.11,disable,"JSON:API compound document",extreme,1559,80.553,79.366,91.897,14279.3,12208,465712,10672
+isolated-php85.json,8.5.11,disable,"AWS Lambda Amazon MSK event",native,924,22.624,22.529,24.008,12643.9,8528,418120,2792
+isolated-php85.json,8.5.11,disable,"AWS Lambda Amazon MSK event",window-8192,924,65.795,64.485,67.913,11833.3,6672,357296,2792
+isolated-php85.json,8.5.11,disable,"AWS Lambda Amazon MSK event",extreme,924,17.27,16.505,18.18,12125.9,3640,390560,2792
+isolated-php85.json,8.5.11,disable,"Stripe invoice",native,7903,337.583,318.984,390.322,32912.6,70816,1009816,15856
+isolated-php85.json,8.5.11,disable,"Stripe invoice",window-8192,7903,862.43,803.552,972.288,36732.6,39384,1347848,15856
+isolated-php85.json,8.5.11,disable,"Stripe invoice",extreme,7903,417.568,403.139,422.527,36852.5,36752,1732576,15856
+isolated-php85.json,8.5.11,disable,"GitHub pull request webhook",native,6926,222.085,215.307,235.318,20429.3,51536,696048,11112
+isolated-php85.json,8.5.11,disable,"GitHub pull request webhook",window-8192,6926,519.961,489.478,532.862,23729.6,25896,906536,11112
+isolated-php85.json,8.5.11,disable,"GitHub pull request webhook",extreme,6926,180.768,176.435,199.743,21977.4,12688,1002760,11112
+isolated-php85.json,8.5.11,disable,"Kubernetes deployment",native,6633,309.978,291.983,334.873,26061.9,57848,743648,18376
+isolated-php85.json,8.5.11,disable,"Kubernetes deployment",window-8192,6633,746.397,695.335,750.104,31959.4,28336,1114584,18376
+isolated-php85.json,8.5.11,disable,"Kubernetes deployment",extreme,6633,174.943,173.523,205.907,28808.4,22272,1109056,18376
+isolated-php85.json,8.5.11,disable,"ignored tree",native,1650046,56284.067,55484.667,58284.7,67392.4,37853536,38587448,144
+isolated-php85.json,8.5.11,disable,"ignored tree",window-8192,1650046,56975.433,54676.567,61324.533,60912.5,1296,188776,144
+isolated-php85.json,8.5.11,disable,"ignored tree",extreme,1650046,6921.021,6603.72,7587.527,58574.3,2080,212440,144
+isolated-php85.json,8.5.11,disable,"ignored string",native,4194375,3609.885,3504.25,4534.01,7191.1,6292576,6510392,144
+isolated-php85.json,8.5.11,disable,"ignored string",window-8192,4194375,6315.607,5013.49,7177.823,9947.2,6291480,6291480,144
+isolated-php85.json,8.5.11,disable,"ignored string",extreme,4194375,5240.233,4105.883,5616.074,13915.1,2040,6291528,144
+isolated-extra-php85.json,8.5.11,disable,"deep chain 384",native,7209,1194.319,1178.22,1239.192,7071.7,2434800,2669040,30800
+isolated-extra-php85.json,8.5.11,disable,"deep chain 384",extreme,7209,200.778,198.689,208.198,3936.7,31328,187160,30800
+isolated-extra-php85.json,8.5.11,disable,"large string field",native,4194357,4508.205,4408.443,4787.13,8843.4,6292512,6510368,6291592
+isolated-extra-php85.json,8.5.11,disable,"large string field",extreme,4194357,9014.727,8766.109,9107.327,24864.5,6292152,6482328,6291592
+final-snapshot.json,8.5.11,disable,"record batch 1000",native,75781,3231.51,3197.871,3385.983,11710.5,812128,1124304,214704
+final-snapshot.json,8.5.11,disable,"record batch 1000",extreme,75781,962.752,955.744,1014.12,9805.4,215232,486040,214704
+final-snapshot.json,8.5.11,disable,"Stripe invoice",native,7903,345.888,259.655,358.583,36780.9,70816,1009816,15856
+final-snapshot.json,8.5.11,disable,"Stripe invoice",extreme,7903,423.839,413.829,827.348,40740.7,36752,1732576,15856

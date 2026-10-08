@@ -3,12 +3,15 @@
 This is an experiment against PR #30, not a replacement for `Json::decode()`.
 It asks whether removing the intermediate `stdClass` tree improves end-to-end
 runtime or peak allocation. Production code and its public API are unchanged.
+The second pass adds whole-schema validation and generated cursor-based construction.
+It uses PHP and the bundled JSON/PCRE facilities; no FFI or native add-on is required.
 
 Install the project's Composer dependencies, then run:
 
 ```sh
 php experiments/direct-json/verify.php
-php experiments/direct-json/bench.php 5 native,pure,window-8192,validate-window-8192
+php experiments/direct-json/bench.php 5 native,window-8192,extreme
+php experiments/direct-json/paired.php 15 native,window-8192,extreme
 ```
 
 The first command checks the existing acceptance providers, real documents,
@@ -33,7 +36,7 @@ php experiments/direct-json/bench.php 5 native,window-8192 "record batch 1000,ro
 php -d opcache.enable_cli=1 -d opcache.jit=tracing -d opcache.jit_buffer_size=64M experiments/direct-json/bench.php 5 native,window-8192
 ```
 
-Workers inherit the loaded INI file and the explicit OPcache/JIT settings.
+Workers inherit the loaded INI file and the explicit OPcache/JIT and PCRE settings.
 On PHP versions where OPcache is a shared extension, enable it in that INI file.
 No PHP, Composer or tool configuration is added to the repository by this experiment.
 
@@ -55,6 +58,30 @@ No PHP, Composer or tool configuration is added to the repository by this experi
 | `lazy-window-N` | Store linked error-path components; avoid building successful scalar/class paths and materialize them at error or converter boundaries. |
 | `validate-lazy-window-N` | Combine deferred paths and the custom validation fast path. |
 | `indexed-lazy-window-N` | Cache container end offsets once for documents up to 64 KiB and 1,024 delimiters, avoiding repeated scans in deep graphs. |
+| `columns-N` | Column-oriented captures and a generated loop construct a window of scalar records together. |
+| `fused` | One strict match validates and captures a small scalar root object. |
+| `projection`, `projection-ascii` | Fused scalar-root parsing with allocation-free validation of ignored subtrees up to three container levels. The ASCII variant falls back on raw non-ASCII bytes. |
+| `fused-batch` | Capture an entire strict scalar-record batch before construction; an allocation-heavy alternative to cursor parsing. |
+| `graph` | Compile the complete type graph to a strict grammar and forward cursor constructors. |
+| `extreme` | Combined path: small fused object, ASCII/Unicode projection, compact inlined graph, flexible inlined graph, then column-window fallback. |
+
+Graph mode suffixes expose individual optimization experiments: `compact` removes
+whitespace handling; `flex` allows omitted defaults and flexible public-property
+order; `inline` emits scalar reads directly; `bulk` decodes validated scalar
+collection leaves natively; `registers` replaces property/value pairs with locals;
+`direct` uses presence masks where property assignment order is unobservable;
+`loop` inlines scalar-only record constructors into list loops; `ascii` removes
+the UTF-8 prepass only for grammars that exclude raw non-ASCII bytes; `trie`
+factors member-name alternatives; `guard` tests whitespace before skipping it;
+`header` matches a key, colon and whitespace together. The verifier lists exact
+combinations. Slower variants remain available for comparison.
+
+`paired.php` corroborates warmed timings using randomized approximately 25 ms
+blocks in one process and reports the median per-round ratio to `native`.
+It requires `native` among its modes. It does not measure cold cost or memory.
+`profile.php` splits graph validation and construction for diagnosis; its
+construction-only measurement assumes already validated input and is not a
+compatible standalone decoder.
 
 `native-compiled` is a **diagnostic control**, available for record workloads:
 native JSON decoding followed by a hand-written, unvalidated record hydrator.
@@ -82,7 +109,7 @@ JSON objects and arrays retain distinct token kinds.
 
 The fast path compiles eligible scalar, enum, scalar-union and public-property schemas.
 Named enum cases are cached with their backing types, so numeric strings cannot
-bypass strict enum checks. Public-property fast paths require declaration order
+bypass strict enum checks. The original window fast paths require declaration order
 to preserve observable property-hook and readonly-assignment behavior.
 PHP source is generated
 from reflection metadata, never JSON input. Class aliases resolve to the declared
@@ -109,9 +136,27 @@ That conservative count proves the nesting limit cannot be exceeded. Large or
 deep documents, grammar mismatches, and PCRE resource failures fall back to native
 validation. No target constructor runs during either validation strategy.
 
+The whole-graph compiler additionally validates field types before constructing
+anything. Eligible acyclic schemas prove the nesting limit statically, avoiding
+a separate `json_validate()` pass even for large flat collections. Recursive or
+larger schemas retain a conservative native depth check. Generated functions
+consume the validated source with a shared cursor; ordinary paths avoid rescanning
+each nested object. Optional child arguments and interleaved public children are
+deferred when needed to preserve construction order. Readonly and asymmetric
+setters use reflection; hooks, magic setters and constructor-created references
+prevent assignment reordering. Syntax/type mismatches use the fallback before
+any constructor runs. All five document fixtures exercise the flexible graph path.
+
+Scalar collections can still use `json_decode()` on a leaf. This avoids building
+a generic object graph to copy into target objects, but it does not claim every
+token is parsed in PHP. Generated code and compiled patterns are process-local
+caches; cold schema compilation and persistent cache growth must be considered
+separately from warmed throughput.
+
 The existing converters remain authoritative for enums, scalar unions, collection
 shape rules and errors. Some fallback/error paths materialize a single subtree.
 This is not a bounded-memory streaming API: the input string and complete result
 remain in memory, and class-level caches grow with encountered declarations.
 
-See [RESULTS.md](RESULTS.md) for measured results and the optimization ledger.
+See [the second-pass results](RESULTS-SECOND-PASS.md) for the current conclusion
+and [RESULTS.md](RESULTS.md) for the historical first-pass measurements.
