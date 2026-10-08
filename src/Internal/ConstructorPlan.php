@@ -68,7 +68,7 @@ final readonly class ConstructorPlan
             if (!$matches) {
                 return DecodeError::fieldTypeMismatch(
                     $this->class,
-                    FieldPath::field($path, (string) $name),
+                    $path === '' ? (string) $name : FieldPath::field($path, (string) $name),
                     $field->expected,
                     $value,
                 );
@@ -92,7 +92,8 @@ final readonly class ConstructorPlan
             }
             $value = $values[$name];
             if ($converter !== null) {
-                $value = $converter->convert($this->class, $value, FieldPath::field($path, (string) $name));
+                $fieldPath = $path === '' ? (string) $name : FieldPath::field($path, (string) $name);
+                $value = $converter->convert($this->class, $value, $fieldPath);
                 if ($value instanceof DecodeError) {
                     return $value;
                 }

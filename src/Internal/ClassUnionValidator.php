@@ -7,14 +7,21 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use ReflectionException;
 use ReflectionIntersectionType;
+use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
+use ReflectionType;
 use ReflectionUnionType;
 
+use function array_any;
+use function array_filter;
+use function array_map;
+use function array_values;
 use function count;
 use function implode;
 use function in_array;
 use function sort;
+use function strtolower;
 
 /** @internal */
 final class ClassUnionValidator
@@ -27,15 +34,13 @@ final class ClassUnionValidator
         ReflectionParameter|ReflectionProperty $field,
         ReflectionUnionType $type,
     ): DecodeError|null {
-        $classNames = [];
-
-        foreach ($type->getTypes() as $member) {
-            $className = ClassFieldTypeValidator::classUnionMember($field, $member);
-
-            if ($className !== null) {
-                $classNames[] = $className;
-            }
-        }
+        $classNames = array_values(array_filter(array_map(
+            static fn(ReflectionType $member): string|null => ClassFieldTypeValidator::classUnionMember(
+                $field,
+                $member,
+            ),
+            $type->getTypes(),
+        )));
 
         return self::validateNames($class, $field->getName(), $classNames);
     }
@@ -70,7 +75,7 @@ final class ClassUnionValidator
         ReflectionParameter|ReflectionProperty $field,
         ReflectionUnionType $type,
     ): CollectionUnionType|DecodeError|false|null {
-        $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
+        $hasCollection = self::hasCollection($type);
         if ($hasCollection) {
             return FieldCollectionUnionResolver::resolve($class, $field, $type);
         }
@@ -112,5 +117,14 @@ final class ClassUnionValidator
             return $nonEncodableError;
         }
         return in_array(null, $memberResults, strict: true) ? null : false;
+    }
+
+    private static function hasCollection(ReflectionUnionType $type): bool
+    {
+        return array_any(
+            $type->getTypes(),
+            static fn(ReflectionType $member): bool => $member instanceof ReflectionNamedType
+            && in_array(strtolower($member->getName()), ['array', 'arrayobject'], strict: true),
+        );
     }
 }

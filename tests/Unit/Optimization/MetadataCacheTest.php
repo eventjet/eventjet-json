@@ -101,7 +101,7 @@ use function class_alias;
 #[CoversClass(FieldTypeValidator::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
-#[UsesClass(ClassUnionValidator::class)]
+#[CoversClass(ClassUnionValidator::class)]
 #[UsesClass(EnumUnionValidator::class)]
 #[UsesClass(FieldCollectionUnionResolver::class)]
 #[UsesClass(FieldNameCollisions::class)]

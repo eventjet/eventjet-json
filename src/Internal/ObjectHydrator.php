@@ -63,7 +63,9 @@ final class ObjectHydrator
              * @psalm-suppress MixedMethodCall PHP validates the intentionally dynamic constructor at runtime.
              */
             $object = new $class(...$convertedValues);
-            PublicPropertyHydrator::assign($object, $assignments);
+            if ($assignments !== []) {
+                PublicPropertyHydrator::assign($object, $assignments);
+            }
 
             return $object;
         } catch (Throwable $error) {
