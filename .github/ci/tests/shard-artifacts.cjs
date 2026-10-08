@@ -98,3 +98,12 @@ test('workflow selection passes the matrix values and downloads the selected art
   assert.ok(download.includes('artifact-ids: ${{ steps.shards.outputs.ids }}'));
   assert.ok(!download.includes('pattern:'));
 });
+
+
+test('carried-forward jobs keep their original execution attempt', async () => {
+  const original = [1, 2, 3, 4].map(shard => job(shard, 1, {started_at: '2026-10-08T14:34:29Z', completed_at: '2026-10-08T14:37:04Z'}));
+  const copied = original.map(entry => ({...entry, run_attempt: 2}));
+  copied[1] = job(2, 2, {started_at: '2026-10-08T14:46:30Z'});
+  const artifacts = [...[1, 2, 3, 4].map(shard => artifact(shard)), artifact(2, 2)];
+  assert.deepEqual(await select({jobs: [...copied, ...original], artifacts}), [11, 22, 13, 14]);
+});

@@ -12,7 +12,13 @@ module.exports = async function shardArtifacts({github, context, mode, sample}) 
         latest.status !== 'completed' || !['success', 'failure'].includes(latest.conclusion)) {
       throw new Error(`Shard ${shard} has no completed measurement execution`);
     }
-    const artifactName = `performance-${mode}-${context.sha}-${latest.run_attempt}-${sample}-${shard}`;
+    // Partial reruns copy successful jobs with a new run_attempt but retain their execution timestamps.
+    const original = latest.started_at && latest.completed_at
+      ? executions.filter(job => job.started_at === latest.started_at && job.completed_at === latest.completed_at &&
+          job.status === latest.status && job.conclusion === latest.conclusion)
+        .sort((a, b) => a.run_attempt - b.run_attempt)[0]
+      : latest;
+    const artifactName = `performance-${mode}-${context.sha}-${original.run_attempt}-${sample}-${shard}`;
     const matches = artifacts.filter(artifact => artifact.name === artifactName && !artifact.expired);
     if (matches.length !== 1) {
       throw new Error(`Expected one artifact for the latest execution of shard ${shard}: ${artifactName}`);
