@@ -55,10 +55,16 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup-php
+      - name: Prepare request benchmark runtime
+        run: |
+          command -v php-fpm8.4
+          sudo apt-get update -qq
+          sudo apt-get install -y libfcgi-bin
       - name: Validate performance tooling
         run: |
           vendor/bin/phpstan analyze .github/ci --no-progress
           bash .github/ci/tests/configuration.sh
+          bash .github/ci/tests/fpm.sh
           bash .github/ci/tests/workloads.sh
           node --test .github/ci/tests/comment.cjs
       - name: Compare revisions
@@ -71,7 +77,7 @@ jobs:
           OPCACHE_MODE: ${{ matrix.opcache }}
         run: |
           if [ "$CALIBRATE" = true ]; then BASE_REF="$CANDIDATE_REF"; fi
-          php .github/ci/performance.php --base "$BASE_REF" --candidate "$CANDIDATE_REF" --opcache "$OPCACHE_MODE" --workloads "$WORKLOADS_REF"
+          php .github/ci/performance.php --base "$BASE_REF" --candidate "$CANDIDATE_REF" --opcache "$OPCACHE_MODE" --workloads "$WORKLOADS_REF" --fpm on
       - name: Save measurements and environment
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
