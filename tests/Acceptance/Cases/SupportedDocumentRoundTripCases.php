@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Closure;
 use Eventjet\Json\Test\Acceptance\NorthStar\AwsMsk\Hydration as AwsMskHydration;
 use Eventjet\Json\Test\Acceptance\NorthStar\AwsMsk\MskEvent;
 use Eventjet\Json\Test\Acceptance\NorthStar\GitHub\Hydration as GitHubHydration;
@@ -27,51 +28,66 @@ final class SupportedDocumentRoundTripCases
      */
     public static function objects(): iterable
     {
-        yield 'JSON:API compound document' => self::document(
-            __DIR__ . '/../NorthStar/JsonApi/compound-document.json',
-            JsonApiDocument::class,
-            JsonApiHydration::isComplete(...),
-        );
+        foreach (self::factories() as $name => $factory) {
+            yield $name => $factory();
+        }
+    }
 
-        yield 'AWS Lambda Amazon MSK event' => self::document(
-            __DIR__ . '/../NorthStar/AwsMsk/event.json',
-            MskEvent::class,
-            AwsMskHydration::isComplete(...),
-        );
+    /** @return array<string, Closure(): array{string, class-string, callable(object): bool}> */
+    public static function factories(): array
+    {
+        return [
+            'JSON:API compound document' => self::documentFactory(
+                __DIR__ . '/../NorthStar/JsonApi/compound-document.json',
+                JsonApiDocument::class,
+                JsonApiHydration::isComplete(...),
+            ),
 
-        yield 'Stripe invoice' => self::document(
-            __DIR__ . '/../NorthStar/Stripe/invoice.json',
-            Invoice::class,
-            StripeHydration::isComplete(...),
-        );
+            'AWS Lambda Amazon MSK event' => self::documentFactory(
+                __DIR__ . '/../NorthStar/AwsMsk/event.json',
+                MskEvent::class,
+                AwsMskHydration::isComplete(...),
+            ),
 
-        yield 'GitHub pull request webhook' => self::document(
-            __DIR__ . '/../NorthStar/GitHub/pull-request-opened.json',
-            PullRequestEvent::class,
-            GitHubHydration::isComplete(...),
-        );
+            'Stripe invoice' => self::documentFactory(
+                __DIR__ . '/../NorthStar/Stripe/invoice.json',
+                Invoice::class,
+                StripeHydration::isComplete(...),
+            ),
 
-        yield 'Kubernetes deployment' => self::document(
-            __DIR__ . '/../NorthStar/Kubernetes/deployment.json',
-            Deployment::class,
-            KubernetesHydration::isComplete(...),
-        );
+            'GitHub pull request webhook' => self::documentFactory(
+                __DIR__ . '/../NorthStar/GitHub/pull-request-opened.json',
+                PullRequestEvent::class,
+                GitHubHydration::isComplete(...),
+            ),
+
+            'Kubernetes deployment' => self::documentFactory(
+                __DIR__ . '/../NorthStar/Kubernetes/deployment.json',
+                Deployment::class,
+                KubernetesHydration::isComplete(...),
+            ),
+        ];
     }
 
     /**
      * @param class-string $class
      * @param callable(object): bool $isFullyHydrated
-     * @return array{string, class-string, callable(object): bool}
-     * @throws RuntimeException
+     * @return Closure(): array{string, class-string, callable(object): bool}
      */
-    private static function document(string $path, string $class, callable $isFullyHydrated): array
+    private static function documentFactory(string $path, string $class, callable $isFullyHydrated): Closure
     {
-        $json = file_get_contents($path);
-
-        if ($json === false) {
-            throw new RuntimeException('Could not read supported JSON document ' . $path . '.');
-        }
-
-        return [$json, $class, $isFullyHydrated];
+        return (
+            /**
+             * @return array{string, class-string, callable(object): bool}
+             * @throws RuntimeException
+             */
+            static function () use ($path, $class, $isFullyHydrated): array {
+                $json = file_get_contents($path);
+                if ($json === false) {
+                    throw new RuntimeException('Could not read supported JSON document ' . $path . '.');
+                }
+                return [$json, $class, $isFullyHydrated];
+            }
+        );
     }
 }
