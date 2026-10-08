@@ -25,7 +25,7 @@ final class CollectionTypeResolver
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         string $nativeType,
-    ): ListType|MapType|TupleType|FieldCollectionUnionType|DecodeError {
+    ): ListType|MapType|TupleType|CollectionUnionType|DecodeError {
         $native = $field->getType();
         if ($native instanceof ReflectionNamedType && $native->allowsNull()) {
             return FieldCollectionUnionResolver::resolve($class, $field, $native);

@@ -29,7 +29,6 @@ final class CollectionUnionValueConverter
         string $path,
         CollectionUnionType $type,
         mixed $value,
-        string|null $expected = null,
     ): array|bool|float|int|object|string|null {
         $collection = $type->collectionFor($value);
         if ($collection !== null) {
@@ -57,6 +56,6 @@ final class CollectionUnionValueConverter
         if (is_int($value) && in_array('float', $names, strict: true)) {
             return (float) $value;
         }
-        return DecodeError::fieldTypeMismatch($class, $path, $expected ?? (string) $type, $value);
+        return DecodeError::fieldTypeMismatch($class, $path, (string) $type, $value);
     }
 }

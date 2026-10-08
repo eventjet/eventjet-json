@@ -21,7 +21,7 @@ final class ObjectTypeValidator
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<array-key, mixed> $values
-     * @return array<string, ListType|MapType|TupleType|FieldCollectionUnionType|null>|DecodeError
+     * @return array<string, ListType|MapType|TupleType|CollectionUnionType|null>|DecodeError
      * @phpstan-impure
      * @throws ReflectionException
      */

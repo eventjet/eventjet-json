@@ -21,7 +21,7 @@ final class ObjectValueConverter
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<array-key, mixed> $values
-     * @param array<string, ListType|MapType|TupleType|FieldCollectionUnionType|null> $collections
+     * @param array<string, ListType|MapType|TupleType|CollectionUnionType|null> $collections
      * @return array<array-key, mixed>|DecodeError
      * @throws JsonException
      * @throws ReflectionException
