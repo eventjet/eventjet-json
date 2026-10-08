@@ -7,8 +7,14 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use JsonException;
 use ReflectionException;
+use stdClass;
 
 use function array_key_exists;
+use function is_array;
+use function is_bool;
+use function is_float;
+use function is_int;
+use function is_string;
 
 /** @internal */
 final readonly class ConstructorPlan
@@ -25,7 +31,7 @@ final readonly class ConstructorPlan
     ) {}
 
     /**
-     * @param array<array-key, mixed> $values
+     * @param array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values
      */
     public function validate(array $values, string $path): DecodeError|null
     {
@@ -33,9 +39,27 @@ final readonly class ConstructorPlan
             if (!array_key_exists($name, $values)) {
                 continue;
             }
-            $error = $field->validate($this->class, $name, $values[$name], $path);
-            if ($error !== null) {
-                return $error;
+            $value = $values[$name];
+            $matches = $value === null
+                ? $field->nullable
+                : match ($field->typeName) {
+                    'array' => is_array($value) || $value instanceof stdClass,
+                    'bool' => is_bool($value),
+                    'false' => $value === false,
+                    'float' => is_float($value) || is_int($value),
+                    'int' => is_int($value),
+                    'null' => false,
+                    'string' => is_string($value),
+                    'true' => $value === true,
+                    default => true,
+                };
+            if (!$matches) {
+                return DecodeError::fieldTypeMismatch(
+                    $this->class,
+                    FieldPath::field($path, $name),
+                    $field->expected,
+                    $value,
+                );
             }
         }
         return null;
