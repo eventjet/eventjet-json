@@ -30,7 +30,7 @@ final class ConstructorDecoder
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @param array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values
+     * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
      * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
      * @phpstan-impure
      * @throws ReflectionException

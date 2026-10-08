@@ -74,7 +74,9 @@ final readonly class ConstructorParameter
                 '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
             );
         }
-        $resolved = FieldTypeValidator::validate($class, $this->reflection);
+        $resolved = $this->type instanceof ReflectionNamedType
+            ? FieldTypeValidator::validateNamedType($class, $this->reflection, $this->type)
+            : FieldTypeValidator::validate($class, $this->reflection);
         if ($resolved instanceof DecodeError) {
             return $resolved;
         }

@@ -356,7 +356,7 @@ runs varied substantially; the tables describe the final optimized
 implementation, not a pass obtained by retrying the CI regression gate.
 
 The subsequent CI fix keeps constructor-plan construction in the decoder and
-scans for mapped properties through the existing property metadata class.
+scans for mapped properties through the existing class metadata cache.
 Detailed mapping validation is loaded only when an annotated property is found.
 This avoids two additional class loads for ordinary cold decodes while retaining
 validation of invalid and inherited attributes. The tables above predate that

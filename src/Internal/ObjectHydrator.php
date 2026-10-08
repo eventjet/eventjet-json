@@ -27,7 +27,7 @@ final class ObjectHydrator
         try {
             /** @var ReflectionClass<T>|ConstructorPlan|null $reflection */
             $reflection = self::$validatedClasses[$class] ?? null;
-            /** @var array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values */
+            /** @var array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values */
             $values = get_object_vars($object);
             $uncached = $reflection === null;
             if ($reflection === null) {

@@ -5,15 +5,10 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Field;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionProperty;
-
-use function array_filter;
-use function array_push;
-use function array_values;
 
 /** @internal */
 final class PublicProperties
@@ -72,25 +67,5 @@ final class PublicProperties
         }
 
         return self::$properties[$name] = $properties;
-    }
-
-    /**
-     * @template T of object
-     * @param ReflectionClass<T> $class
-     * @return list<ReflectionProperty>
-     */
-    public static function mappedFields(ReflectionClass $class): array
-    {
-        $properties = RootTypeValidator::declarations($class);
-        // Reflection omits private ancestor properties from the effective child declarations.
-        $parent = $class->getParentClass();
-        while ($parent !== false) {
-            array_push($properties, ...$parent->getProperties(ReflectionProperty::IS_PRIVATE));
-            $parent = $parent->getParentClass();
-        }
-        return array_values(array_filter(
-            $properties,
-            static fn(ReflectionProperty $property): bool => $property->getAttributes(Field::class) !== [],
-        ));
     }
 }
