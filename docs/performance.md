@@ -57,12 +57,25 @@ file-update protection to zero so newly exported source files can be cached.
 The runner checks the actual runtime OPcache state. OPcache-off remains available
 for consumers whose runtime does not enable it.
 
+**Fresh PHP-FPM requests** cover the request lifecycle missing from CLI loops.
+The harness starts an isolated one-worker pool for each measured revision and
+invocation. One discarded request per document warms bytecode; 15 subsequent
+requests each time exactly one `Json::decode()` using `hrtime`. Each request has
+fresh request-local decoder metadata. With OPcache disabled, class compilation
+is included on each request; that mode does not have warm bytecode. Fixture loading, FastCGI transport, and
+verification are outside the timer. The harness checks PHP version, OPcache and
+JIT state, worker identity, and zero OPcache misses during measured decodes when
+OPcache is enabled. It stops the pool before replacing any source files. This
+measures decoder time, not HTTP latency or server throughput. It does not model
+application preloading, concurrent traffic, or framework startup.
+
 PHPBench category groups also determine CI report sections. Reports keep these
 groups separate, with no overall score or workload weighting. Older suites without
 category groups appear under "Uncategorized workloads."
 A large focused gain is not evidence of the same gain for consumers. Compare
 realistic document results before prioritizing an optimization. Peak memory is
-whole-process memory, not incremental decoder allocation.
+whole-process/request memory, not incremental decoder allocation; CLI and FPM
+memory figures are not directly comparable.
 
 Run one group, or store a baseline and compare after a code change:
 
@@ -93,7 +106,7 @@ in that mode, changed candidate workloads also receive a separate verification r
 without a regression verdict. Baseline and candidate revisions only need compatible
 source code; they do not need their own benchmark suites.
 
-The comparison runner defaults to `--opcache on`; add
+The comparison runner defaults to `--opcache on` and CLI-only measurements; add
 `--opcache off` for the secondary mode. Reports and metadata record the selected
 mode; compare timings only within a mode.
 
@@ -109,7 +122,31 @@ with separate summaries and artifacts. OPcache on is the primary result; off is
 a secondary compatibility measurement. Compare baseline and candidate within each
 mode, not absolute timings between jobs on different runners. A failed job does
 not cancel the other mode. Native PHPBench assertions gate CLI performance in
-both modes; benchmark errors also fail CI.
+both modes; PHP-FPM timings remain advisory, and benchmark errors fail CI.
+Both modes include PHP-FPM measurements. CLI and FPM receive the same resolved
+settings from the frozen workload configuration. FPM overrides OPcache enablement
+for its SAPI and disables timestamp validation for its isolated pool. The FPM
+request adapter belongs to the comparison runner; frozen workloads provide only
+the document definitions and fixtures, so older workload revisions do not need
+an FPM endpoint.
+
+For local PHP-FPM checks, build the optional FPM variant in a separate Compose
+project. It uses the same PHP version and project dependencies and exposes no ports:
+
+```bash
+docker compose -p json-bench-fpm -f compose.yaml -f benchmarks/compose.yaml up -d --build
+docker compose -p json-bench-fpm -f compose.yaml -f benchmarks/compose.yaml exec -e BENCHMARK_FPM_BINARY=php-fpm php bash .github/ci/tests/fpm.sh
+```
+
+To include it in a revision comparison, add `--fpm on --workloads REF` to the
+comparison command and set `BENCHMARK_FPM_BINARY=php-fpm` in that container. On CI,
+the binary is `php-fpm8.4`. Both environments require `cgi-fcgi` from `libfcgi-bin`.
+As with PHPBench, local Git worktrees need a read-only mount of their Git metadata
+for revision comparisons. The standalone FPM smoke check does not require Git.
+The artifact includes per-request timing, payload bytes, worker PID, and runtime
+settings alongside the advisory per-request samples. The request summary uses
+PHPBench's mode and variation statistics. CLI reports separate realistic documents,
+synthetic batches, focused diagnostics, stress cases, and errors.
 
 The gate uses PHPBench's native baseline comparison and assertion:
 
