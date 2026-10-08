@@ -82,7 +82,7 @@ final class ConstructorValidationPlanTest extends TestCase
         $plan = ConstructorDecoder::scalarPlan($class);
         static::assertInstanceOf(ConstructorPlan::class, $plan);
         static::assertTrue($plan->scalarOnly);
-        $cache = new ReflectionProperty(ObjectHydrator::class, 'scalarPlans');
+        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
         static::assertIsArray($cache->getValue());
         static::assertSame($plan, $cache->getValue()[$class] ?? null);
         $input->value = 3;
@@ -116,9 +116,9 @@ final class ConstructorValidationPlanTest extends TestCase
         $input->label = 'first';
         $target->label = 'first';
         static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
-        $cache = new ReflectionProperty(ObjectHydrator::class, 'scalarPlans');
+        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
         static::assertIsArray($cache->getValue());
-        static::assertFalse($cache->getValue()[$class] ?? null);
+        static::assertInstanceOf(ReflectionClass::class, $cache->getValue()[$class] ?? null);
         $target->label = 'second';
         $input->label = 'second';
         static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
