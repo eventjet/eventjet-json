@@ -27,6 +27,17 @@ final class ObjectHydrator
         try {
             /** @var ReflectionClass<T>|ConstructorPlan|null $reflection */
             $reflection = self::$validatedClasses[$class] ?? null;
+            if (
+                $reflection instanceof ConstructorPlan
+                && $reflection->scalarOnly
+                && ($hydrate = $reflection->hydrate) !== null
+            ) {
+                $result = $hydrate($object);
+                if ($result !== null) {
+                    /** @var T $result */
+                    return $result;
+                }
+            }
             /** @var array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values */
             $values = get_object_vars($object);
             $uncached = $reflection === null;
@@ -51,11 +62,7 @@ final class ObjectHydrator
                     return $assignments;
                 }
                 if ($uncached) {
-                    $properties = PublicProperties::resolve($reflection);
-                    $plan = ConstructorDecoder::cachedPlan($class);
-                    if ($properties === [] && $plan !== null) {
-                        self::$validatedClasses[$class] = $plan;
-                    }
+                    self::rememberConstructorPlan($class, $reflection);
                 }
             }
             /**
@@ -68,6 +75,20 @@ final class ObjectHydrator
             return $object;
         } catch (Throwable $error) {
             return DecodeError::cannotInstantiate($class, $error);
+        }
+    }
+
+    /**
+     * @param class-string $class
+     * @param ReflectionClass<object> $reflection
+     * @throws \ReflectionException
+     */
+    private static function rememberConstructorPlan(string $class, ReflectionClass $reflection): void
+    {
+        $properties = PublicProperties::resolve($reflection);
+        $plan = ConstructorDecoder::cachedPlan($class);
+        if ($properties === [] && $plan !== null) {
+            self::$validatedClasses[$class] = $plan;
         }
     }
 }

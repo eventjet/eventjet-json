@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use Closure;
 use Eventjet\Json\DecodeError;
 use JsonException;
 use ReflectionException;
@@ -19,19 +20,43 @@ use function is_int;
 use function is_string;
 
 /** @internal */
-final readonly class ConstructorPlan
+final class ConstructorPlan
 {
-    public bool $scalarOnly;
+    public readonly bool $scalarOnly;
+
+    /**
+     * @var (Closure(stdClass): (object|null))|false|null
+     * @psalm-suppress UnusedProperty Psalm does not track references from the hydrate property hook.
+     */
+    private Closure|false|null $compiledHydrator = false;
+
+    /** @psalm-suppress UnusedProperty Psalm does not track references from the hydrate property hook. */
+    private int $hydrations = 0;
+
+    /** @var (Closure(stdClass): (object|null))|null */
+    public Closure|null $hydrate {
+        get {
+            if ($this->compiledHydrator !== false) {
+                return $this->compiledHydrator;
+            }
+            // Short requests cannot amortize reflection and runtime compilation.
+            if (++$this->hydrations < 128) {
+                return null;
+            }
+            return $this->compiledHydrator = ScalarHydratorCompiler::compile($this->class);
+        }
+    }
 
     /**
      * @param class-string $class
      * @param array<string, ConstructorValueValidator> $fields
      * @param array<string, FieldValueConverter|null> $converters
+     * @throws ReflectionException
      */
     public function __construct(
-        private string $class,
-        private array $fields,
-        private array $converters,
+        private readonly string $class,
+        private readonly array $fields,
+        private readonly array $converters,
     ) {
         $this->scalarOnly = array_all(
             $converters,

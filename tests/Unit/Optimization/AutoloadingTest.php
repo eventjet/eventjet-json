@@ -47,6 +47,7 @@ use function spl_autoload_unregister;
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
+#[UsesClass(\Eventjet\Json\Internal\ScalarHydratorCompiler::class)]
 #[CoversClass(\Eventjet\Json\Internal\ListValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\ListInputNormalizer::class)]
 #[UsesClass(\Eventjet\Json\Internal\ListType::class)]
@@ -61,10 +62,39 @@ use function spl_autoload_unregister;
 #[UsesClass(FieldTypeValidator::class)]
 #[UsesClass(MetadataCache::class)]
 #[UsesClass(RootTypeValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\ObjectHydrator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PublicProperties::class)]
+#[UsesClass(\Eventjet\Json\Internal\PublicPropertyHydrator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PublicPropertyTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[\PHPUnit\Framework\Attributes\UsesClass(\Eventjet\Json\Internal\EnumUnionLookup::class)]
 final class AutoloadingTest extends TestCase
 {
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+    public function testShortRequestsDoNotLoadTheScalarCompiler(): void
+    {
+        $class = \Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields::class;
+        $original = new $class('value', 42, 1.5, true);
+        $input = new stdClass();
+        $input->string = 'value';
+        $input->integer = 42;
+        $input->float = 1.5;
+        $input->boolean = true;
+        static::assertFalse(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));
+        static::assertEquals($original, \Eventjet\Json\Internal\ObjectHydrator::hydrate($class, $input));
+        static::assertFalse(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));
+        for ($index = 0; $index < 127; ++$index) {
+            static::assertEquals($original, \Eventjet\Json\Internal\ObjectHydrator::hydrate($class, $input));
+        }
+        static::assertFalse(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));
+        static::assertEquals($original, \Eventjet\Json\Internal\ObjectHydrator::hydrate($class, $input));
+        static::assertTrue(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));
+        $plan = ConstructorDecoder::cachedPlan($class);
+        static::assertNotNull($plan);
+        static::assertSame($plan->hydrate, $plan->hydrate);
+    }
+
     /**
      * @throws ReflectionException
      * @throws JsonException
