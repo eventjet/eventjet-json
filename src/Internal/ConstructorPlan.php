@@ -20,12 +20,19 @@ use function is_int;
 use function is_string;
 
 /** @internal */
-final readonly class ConstructorPlan
+final class ConstructorPlan
 {
-    public bool $scalarOnly;
+    public readonly bool $scalarOnly;
+
+    /** @var (Closure(stdClass): (object|null))|false|null */
+    private Closure|false|null $compiledHydrator = false;
 
     /** @var (Closure(stdClass): (object|null))|null */
-    public Closure|null $hydrate;
+    public Closure|null $hydrate {
+        get => $this->compiledHydrator === false
+            ? ($this->compiledHydrator = ScalarHydratorCompiler::compile($this->class))
+            : $this->compiledHydrator;
+    }
 
     /**
      * @param class-string $class
@@ -34,15 +41,14 @@ final readonly class ConstructorPlan
      * @throws ReflectionException
      */
     public function __construct(
-        private string $class,
-        private array $fields,
-        private array $converters,
+        private readonly string $class,
+        private readonly array $fields,
+        private readonly array $converters,
     ) {
         $this->scalarOnly = array_all(
             $converters,
             static fn(FieldValueConverter|null $converter): bool => $converter === null,
         );
-        $this->hydrate = $this->scalarOnly ? ScalarHydratorCompiler::compile($class) : null;
     }
 
     /**

@@ -27,8 +27,8 @@ final class ObjectHydrator
         try {
             /** @var ReflectionClass<T>|ConstructorPlan|null $reflection */
             $reflection = self::$validatedClasses[$class] ?? null;
-            if ($reflection instanceof ConstructorPlan && $reflection->hydrate !== null) {
-                $result = ($reflection->hydrate)($object);
+            if ($reflection instanceof ConstructorPlan && ($hydrate = $reflection->hydrate) !== null) {
+                $result = $hydrate($object);
                 if ($result !== null) {
                     /** @var T $result */
                     return $result;

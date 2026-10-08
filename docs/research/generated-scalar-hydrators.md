@@ -8,7 +8,10 @@ retain the original path. JSON strings and values never enter generated source;
 property names are quoted and class names come from Reflection's canonical name.
 
 This draft uses runtime `eval` with a narrowly scoped lint exception. It avoids
-filesystem writes but incurs compilation cost on the first decode. Build-time
+filesystem writes. Compilation is deferred until an eligible constructor plan
+is reused, so the first decode does not load the compiler. Plans for classes
+with additional public properties never access the compiler. The resulting
+closure (including an unsupported result) is cached. Build-time
 generation is an alternative deployment design, not part of these measurements.
 
 The prototype reduced warm end-to-end decode time for **record batch 1000** against
@@ -40,3 +43,12 @@ include class loading and compilation and are not fresh PHP-FPM measurements.
 Both OPcache modes and fresh PHP-FPM requests need the existing performance
 workflow before merging; a warm diagnostic gain does not establish a passing
 regression gate. See [performance methodology](../performance.md).
+
+The initial implementation eagerly compiled while constructing metadata, which
+regressed cold scalar decoding by 8.49% with OPcache and 15.44% without it in CI.
+An interleaved 21-pair local PHP 8.4.26 comparison reproduced a 12.71% regression
+without OPcache. Deferring compilation changed that comparison to -2.33%; a
+separate warm comparison retained a 12.58% reduction with OPcache. These local
+diagnostics do not replace the full CI gate. A process-isolated autoload test
+locks down the absence of compiler work on the first decode and reuse of the
+same closure afterward.
