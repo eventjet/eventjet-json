@@ -37,14 +37,14 @@ indicate faster direct decoding; these measurements do not replace the CI gate.
 
 | Workload | Median paired runtime ratio |
 | --- | ---: |
-| Eight-field scalar root (generated width experiment) | 0.627 |
-| 1,000-record batch | 0.791 |
-| Stripe invoice | 1.014 |
-| GitHub pull request webhook | 1.000 |
-| Long scalar lists | 0.999 |
-| Ignored tree | 0.998 |
+| Small scalar object (native hydration) | 1.021 |
+| 1,000-record batch | 0.805 |
+| Stripe invoice | 1.015 |
+| GitHub pull request webhook | 1.013 |
+| Long scalar lists | 0.998 |
+| Ignored tree | 1.006 |
 
-The eight-field result comes from fifteen randomized paired rounds of 10,000 decodes per implementation; smaller scalar roots use native hydration to avoid setup regressions in short runs.
+A separate field-width experiment, with fifteen randomized paired rounds of 10,000 decodes per implementation, measured an eight-field scalar root at 0.627× native runtime. Smaller scalar roots use native hydration to avoid setup regressions in short runs.
 
 Reproduce the other workloads with `php -d opcache.enable_cli=1 experiments/direct-json/paired.php 15 native,production`.
 
