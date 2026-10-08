@@ -15,7 +15,7 @@ final class MapInputNormalizer
 {
     /**
      * @param class-string $class
-     * @return array<string, mixed>|DecodeError
+     * @return array<string, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
      */
     public static function normalize(string $class, string $path, MapType $collection, mixed $value): array|DecodeError
     {
@@ -23,6 +23,7 @@ final class MapInputNormalizer
             return DecodeError::fieldTypeMismatch($class, $path, 'JSON object', $value);
         }
 
+        /** @var array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values */
         $values = (array) $value;
 
         if (!$collection->arrayObject && $values === []) {
@@ -34,8 +35,8 @@ final class MapInputNormalizer
 
     /**
      * @param class-string $class
-     * @param array<array-key, mixed> $values
-     * @return array<string, mixed>|DecodeError
+     * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
+     * @return array<string, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
      */
     private static function stringKeys(string $class, string $path, array $values): array|DecodeError
     {
@@ -45,7 +46,7 @@ final class MapInputNormalizer
             }
         }
 
-        /** @var array<string, mixed> $values */
+        /** @var array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values */
         return $values;
     }
 }
