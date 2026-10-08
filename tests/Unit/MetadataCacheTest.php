@@ -13,6 +13,8 @@ use Eventjet\Json\Internal\CollectionTypeResolver;
 use Eventjet\Json\Internal\CollectionTypeValidator;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorParameters;
+use Eventjet\Json\Internal\ConstructorValidationPlan;
+use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldCollectionUnionResolver;
@@ -22,6 +24,7 @@ use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
+use Eventjet\Json\Internal\ObjectTypeValidator;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocItemTypeResolver;
 use Eventjet\Json\Internal\PhpDocType;
@@ -58,6 +61,9 @@ use function class_alias;
 #[CoversClass(MetadataCache::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[CoversClass(ConstructorParameters::class)]
+#[UsesClass(ConstructorValidationPlan::class)]
+#[UsesClass(ConstructorValueValidator::class)]
+#[CoversClass(ObjectTypeValidator::class)]
 #[CoversClass(PublicProperties::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(BackedEnumCaseFinder::class)]
@@ -287,12 +293,18 @@ final class MetadataCacheTest extends TestCase
      * @throws ReflectionException
      * @throws RuntimeException
      */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function testResolvedNonCollectionDeclarationsAreCacheable(): void
     {
         foreach (['int', 'int|string', '\\' . NonBackedStatus::class . '|int'] as $declaration) {
             $class = CollectionDeclarationFixture::create($declaration, '', 'var');
             static::assertFalse(FieldTypeValidator::validate($class, new ReflectionProperty($class, 'value')));
         }
+
+        $collectionClass = new ReflectionClass(CollectionDeclarationFixture::create('array', 'list<int>', 'param'));
+        $collections = ObjectTypeValidator::validate($collectionClass, [], '');
+        static::assertSame($collections, ObjectTypeValidator::validate($collectionClass, [], ''));
 
         $first = new class(1) {
             /** @var list<int> */
