@@ -9,6 +9,8 @@ use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\FloatUnionList;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\MultipleEnumUnionPublicProperty;
+use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\UnionPublicProperty;
 
@@ -69,25 +71,41 @@ final class UnionsRoundTripCases
     {
         yield 'non-backed-enum-or-true list preserves true' => [CollectionDeclarationFixture::object(
             'array',
-            'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|true>',
+            PhpType::list(PhpType::union(NonBackedStatus::class, PhpType::True)),
             'param',
             [true],
         )];
         yield 'mixed encodable union restores a backed enum' => [CollectionDeclarationFixture::object(
             'array',
-            'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome|\Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus|bool|null>',
+            PhpType::list(PhpType::union(
+                NonBackedStatus::class,
+                Coordinates::class,
+                StringBackedStatus::class,
+                StringBackedOutcome::class,
+                IntBackedStatus::class,
+                PhpType::Bool,
+                PhpType::Null,
+            )),
             'param',
             [StringBackedStatus::Ready],
         )];
         yield 'non-backed-enum-or-false list preserves false' => [CollectionDeclarationFixture::object(
             'array',
-            'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|false>',
+            PhpType::list(PhpType::union(NonBackedStatus::class, PhpType::False)),
             'param',
             [false],
         )];
         yield 'mixed encodable union restores a final class' => [CollectionDeclarationFixture::object(
             'array',
-            'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome|\Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus|bool|null>',
+            PhpType::list(PhpType::union(
+                NonBackedStatus::class,
+                Coordinates::class,
+                StringBackedStatus::class,
+                StringBackedOutcome::class,
+                IntBackedStatus::class,
+                PhpType::Bool,
+                PhpType::Null,
+            )),
             'param',
             [new Coordinates(1.0, 2.0)],
         )];
@@ -152,13 +170,32 @@ final class UnionsRoundTripCases
         yield 'duplicate list alternatives preserve lists and strings' => [CollectionDeclarationFixture::object(
             'array',
             'list<\\'
-            . CollectionDeclarationFixture::create('array|string', 'list<int>|list<int>|string', 'param')
+            . CollectionDeclarationFixture::create(
+                'array|string',
+                PhpType::union(PhpType::list(PhpType::Int), PhpType::list(PhpType::Int), PhpType::String),
+                'param',
+            )
             . '>',
             'param',
             [
-                CollectionDeclarationFixture::object('array|string', 'list<int>|list<int>|string', 'param', []),
-                CollectionDeclarationFixture::object('array|string', 'list<int>|list<int>|string', 'param', [1]),
-                CollectionDeclarationFixture::object('array|string', 'list<int>|list<int>|string', 'param', ''),
+                CollectionDeclarationFixture::object(
+                    'array|string',
+                    PhpType::union(PhpType::list(PhpType::Int), PhpType::list(PhpType::Int), PhpType::String),
+                    'param',
+                    [],
+                ),
+                CollectionDeclarationFixture::object(
+                    'array|string',
+                    PhpType::union(PhpType::list(PhpType::Int), PhpType::list(PhpType::Int), PhpType::String),
+                    'param',
+                    [1],
+                ),
+                CollectionDeclarationFixture::object(
+                    'array|string',
+                    PhpType::union(PhpType::list(PhpType::Int), PhpType::list(PhpType::Int), PhpType::String),
+                    'param',
+                    '',
+                ),
             ],
         )];
     }
@@ -176,7 +213,7 @@ final class UnionsRoundTripCases
                 'list<\\'
                 . CollectionDeclarationFixture::create(
                     'array|\eventjet\json\test\acceptance\fixtures\coordinates',
-                    'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates',
+                    PhpType::union(PhpType::list(PhpType::Int), Coordinates::class),
                     'param',
                 )
                 . '>',
@@ -184,13 +221,13 @@ final class UnionsRoundTripCases
                 [
                     CollectionDeclarationFixture::object(
                         'array|\eventjet\json\test\acceptance\fixtures\coordinates',
-                        'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates',
+                        PhpType::union(PhpType::list(PhpType::Int), Coordinates::class),
                         'param',
                         [],
                     ),
                     CollectionDeclarationFixture::object(
                         'array|\eventjet\json\test\acceptance\fixtures\coordinates',
-                        'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates',
+                        PhpType::union(PhpType::list(PhpType::Int), Coordinates::class),
                         'param',
                         new Coordinates(3.0, 4.5),
                     ),
@@ -201,7 +238,7 @@ final class UnionsRoundTripCases
             'list<\\'
             . CollectionDeclarationFixture::create(
                 '\ArrayObject|int|null',
-                'ArrayObject<string, list<int>>|int|null',
+                PhpType::union(PhpType::arrayObject(PhpType::list(PhpType::Int)), PhpType::Int, PhpType::Null),
                 'param',
             )
             . '>',
@@ -209,25 +246,25 @@ final class UnionsRoundTripCases
             [
                 CollectionDeclarationFixture::object(
                     '\ArrayObject|int|null',
-                    'ArrayObject<string, list<int>>|int|null',
+                    PhpType::union(PhpType::arrayObject(PhpType::list(PhpType::Int)), PhpType::Int, PhpType::Null),
                     'param',
                     new ArrayObject([]),
                 ),
                 CollectionDeclarationFixture::object(
                     '\ArrayObject|int|null',
-                    'ArrayObject<string, list<int>>|int|null',
+                    PhpType::union(PhpType::arrayObject(PhpType::list(PhpType::Int)), PhpType::Int, PhpType::Null),
                     'param',
                     new ArrayObject(['01' => [0, 1]]),
                 ),
                 CollectionDeclarationFixture::object(
                     '\ArrayObject|int|null',
-                    'ArrayObject<string, list<int>>|int|null',
+                    PhpType::union(PhpType::arrayObject(PhpType::list(PhpType::Int)), PhpType::Int, PhpType::Null),
                     'param',
                     42,
                 ),
                 CollectionDeclarationFixture::object(
                     '\ArrayObject|int|null',
-                    'ArrayObject<string, list<int>>|int|null',
+                    PhpType::union(PhpType::arrayObject(PhpType::list(PhpType::Int)), PhpType::Int, PhpType::Null),
                     'param',
                     null,
                 ),

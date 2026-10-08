@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\ClassScalarUnionField;
+use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 
 /** @internal */
@@ -127,19 +128,23 @@ final class ErrorPathCases
     {
         yield 'error path includes both list indices and the nested property' => [
             '{"value":[[{"latitude":true,"longitude":3}]]}',
-            CollectionDeclarationFixture::create(
-                'array',
-                'list<list<\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates>>',
-                'param',
-            ),
+            CollectionDeclarationFixture::create('array', PhpType::list(PhpType::list(Coordinates::class)), 'param'),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Coordinates from the JSON object: Field value[0][0].latitude must be of type float, bool given.',
             3,
         ];
         yield 'error path includes both indices of an invalid scalar item' => [
             '{"value":[[true]]}',
-            CollectionDeclarationFixture::create('array', 'list<list<int|null>>', 'param'),
+            CollectionDeclarationFixture::create(
+                'array',
+                PhpType::list(PhpType::list(PhpType::union(PhpType::Int, PhpType::Null))),
+                'param',
+            ),
             'Could not create '
-                . CollectionDeclarationFixture::create('array', 'list<list<int|null>>', 'param')
+                . CollectionDeclarationFixture::create(
+                    'array',
+                    PhpType::list(PhpType::list(PhpType::union(PhpType::Int, PhpType::Null))),
+                    'param',
+                )
                 . ' from the JSON object: Field value[0][0] must be of type int|null, bool given.',
             3,
         ];

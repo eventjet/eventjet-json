@@ -22,13 +22,13 @@ final class NestedValuesErrorCases
             '{"value":[42]}',
             \Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture::create(
                 'array',
-                'list<list<int>|null>',
+                PhpType::list(PhpType::union(PhpType::list(PhpType::Int), PhpType::Null)),
                 'param',
             ),
             'Could not create '
                 . \Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture::create(
                     'array',
-                    'list<list<int>|null>',
+                    PhpType::list(PhpType::union(PhpType::list(PhpType::Int), PhpType::Null)),
                     'param',
                 )
                 . ' from the JSON object: Field value[0] must be of type list<int>, int given.',
@@ -36,9 +36,17 @@ final class NestedValuesErrorCases
         ];
         yield 'nested list field rejects an object' => [
             '{"value":{}}',
-            CollectionDeclarationFixture::create('array', 'list<list<int>|null>', 'param'),
+            CollectionDeclarationFixture::create(
+                'array',
+                PhpType::list(PhpType::union(PhpType::list(PhpType::Int), PhpType::Null)),
+                'param',
+            ),
             'Could not create '
-                . CollectionDeclarationFixture::create('array', 'list<list<int>|null>', 'param')
+                . CollectionDeclarationFixture::create(
+                    'array',
+                    PhpType::list(PhpType::union(PhpType::list(PhpType::Int), PhpType::Null)),
+                    'param',
+                )
                 . ' from the JSON object: Field value must be of type list<list<int>|null>, stdClass given.',
             3,
         ];
@@ -56,9 +64,13 @@ final class NestedValuesErrorCases
         ];
         yield 'nested non-empty map rejects an empty object' => [
             '{"value":[{}]}',
-            CollectionDeclarationFixture::create('array', 'list<non-empty-array<string, int>>', 'var'),
+            CollectionDeclarationFixture::create('array', PhpType::list(PhpType::nonEmptyArray(PhpType::Int)), 'var'),
             'Could not create '
-                . CollectionDeclarationFixture::create('array', 'list<non-empty-array<string, int>>', 'var')
+                . CollectionDeclarationFixture::create(
+                    'array',
+                    PhpType::list(PhpType::nonEmptyArray(PhpType::Int)),
+                    'var',
+                )
                 . ' from the JSON object: Field value[0] uses non-empty-array<string, TValue> and cannot accept an empty JSON object. Use ArrayObject<string, TValue> when the map may be empty.',
             3,
         ];
