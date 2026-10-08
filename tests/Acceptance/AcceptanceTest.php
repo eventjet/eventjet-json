@@ -35,6 +35,7 @@ use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\FloatListValueConverter;
+use Eventjet\Json\Internal\FloatMapValueConverter;
 use Eventjet\Json\Internal\ListInputNormalizer;
 use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\ListValueConverter;
@@ -65,6 +66,7 @@ use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ScalarListValueConverter;
+use Eventjet\Json\Internal\ScalarMapValueConverter;
 use Eventjet\Json\Internal\TupleType;
 use Eventjet\Json\Internal\TupleTypeResolver;
 use Eventjet\Json\Internal\TupleValueConverter;
@@ -147,6 +149,8 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(MapDecodeError::class)]
 #[CoversClass(MapInputNormalizer::class)]
 #[CoversClass(MapValueConverter::class)]
+#[CoversClass(ScalarMapValueConverter::class)]
+#[CoversClass(FloatMapValueConverter::class)]
 #[CoversClass(MetadataCache::class)]
 #[CoversClass(NestedCollectionType::class)]
 #[CoversClass(NestedCollectionTypeResolver::class)]
