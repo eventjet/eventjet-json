@@ -55,6 +55,9 @@ use function class_alias;
 #[CoversClass(BackedEnumValueConverter::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\ClassUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(FieldTypeResolver::class)]
@@ -202,7 +205,7 @@ final class ConstructorValidationPlanTest extends TestCase
             );
             static::assertSame(['ref' => null], ConstructorDecoder::convert($class, ['$ref' => null], ''));
             static::assertSame([], ConstructorDecoder::convert($class, ['ref' => 'ignored'], ''));
-            static::assertNull(ConstructorDecoder::scalarPlan($class->getName()));
+            static::assertNull(ConstructorDecoder::cachedPlan($class->getName()));
             static::assertEquals(
                 DecodeError::fieldTypeMismatch($class->getName(), 'nested.$ref', 'string|null', 42),
                 ConstructorDecoder::convert($class, ['$ref' => 42], 'nested'),

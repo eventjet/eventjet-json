@@ -53,6 +53,9 @@ use stdClass;
 #[CoversClass(BackedEnumValueConverter::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\ClassUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(FieldTypeResolver::class)]
@@ -106,13 +109,13 @@ final class ConstructorHydrationPlanTest extends TestCase
             ) {}
         };
         $class = $target::class;
-        static::assertNull(ConstructorDecoder::scalarPlan($class));
+        static::assertNull(ConstructorDecoder::cachedPlan($class));
         $input = new stdClass();
         $input->value = 2;
         $target->value = 2;
         $first = ObjectHydrator::hydrate($class, $input);
         static::assertEquals($target, $first);
-        $plan = ConstructorDecoder::scalarPlan($class);
+        $plan = ConstructorDecoder::cachedPlan($class);
         static::assertInstanceOf(ConstructorPlan::class, $plan);
         static::assertTrue($plan->scalarOnly);
         $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
@@ -128,7 +131,7 @@ final class ConstructorHydrationPlanTest extends TestCase
             DecodeError::fieldTypeMismatch($class, 'nested.value', 'int', null),
             ObjectHydrator::hydrate($class, $input, 'nested'),
         );
-        static::assertSame($plan, ConstructorDecoder::scalarPlan($class));
+        static::assertSame($plan, ConstructorDecoder::cachedPlan($class));
     }
 
     /**
@@ -162,6 +165,45 @@ final class ConstructorHydrationPlanTest extends TestCase
         );
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     * @throws UnknownClassOrInterfaceException
+     */
+    public function testNonScalarHydrationReusesPlansAndRechecksValues(): void
+    {
+        $target = new class {
+            public function __construct(
+                public StringBackedStatus|bool|null $value = null,
+            ) {}
+        };
+        $class = $target::class;
+        static::assertNull(ConstructorDecoder::cachedPlan($class));
+        $input = new stdClass();
+        $input->value = StringBackedStatus::Ready->value;
+        $target->value = StringBackedStatus::Ready;
+        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
+        $plan = ConstructorDecoder::cachedPlan($class);
+        static::assertInstanceOf(ConstructorPlan::class, $plan);
+        static::assertFalse($plan->scalarOnly);
+        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
+        static::assertIsArray($cache->getValue());
+        static::assertSame($plan, $cache->getValue()[$class] ?? null);
+
+        foreach ([false, null, StringBackedStatus::Pending] as $value) {
+            $target->value = $value;
+            $input->value = $value instanceof StringBackedStatus ? $value->value : $value;
+            static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
+        }
+        $target->value = null;
+        static::assertEquals($target, ObjectHydrator::hydrate($class, new stdClass()));
+        $input->value = [];
+        $error = ObjectHydrator::hydrate($class, $input, 'nested');
+        static::assertInstanceOf(DecodeError::class, $error);
+        static::assertStringContainsString('Field nested.value must be of type', $error->getMessage());
+        static::assertSame($plan, ConstructorDecoder::cachedPlan($class));
+    }
+
     /** @throws ReflectionException */
     public function testMappedScalarHydrationKeepsJsonNamesAfterWarming(): void
     {
@@ -173,7 +215,7 @@ final class ConstructorHydrationPlanTest extends TestCase
         $invalid->{'$ref'} = 42;
         for ($attempt = 0; $attempt < 3; ++$attempt) {
             static::assertEquals(new MappedDefaults(ref: 'next', count: 9), ObjectHydrator::hydrate($class, $input));
-            static::assertNull(ConstructorDecoder::scalarPlan($class));
+            static::assertNull(ConstructorDecoder::cachedPlan($class));
             static::assertEquals(new MappedDefaults(), ObjectHydrator::hydrate($class, new stdClass()));
             static::assertEquals(
                 DecodeError::fieldTypeMismatch($class, 'nested.$ref', 'string|null', 42),

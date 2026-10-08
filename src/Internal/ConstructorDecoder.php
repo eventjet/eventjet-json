@@ -21,10 +21,10 @@ final class ConstructorDecoder
      * @param class-string $class
      * @phpstan-impure
      */
-    public static function scalarPlan(string $class): ConstructorPlan|null
+    public static function cachedPlan(string $class): ConstructorPlan|null
     {
         $plan = self::$plans[$class] ?? null;
-        return $plan instanceof ConstructorPlan && $plan->scalarOnly ? $plan : null;
+        return $plan instanceof ConstructorPlan ? $plan : null;
     }
 
     /**

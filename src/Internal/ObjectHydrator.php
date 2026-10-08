@@ -55,7 +55,7 @@ final class ObjectHydrator
                     return $assignments;
                 }
                 if ($uncached && $properties === []) {
-                    self::cacheScalarPlan($class);
+                    self::cacheConstructorPlan($class);
                 }
             }
             /**
@@ -74,9 +74,9 @@ final class ObjectHydrator
     }
 
     /** @param class-string $class */
-    private static function cacheScalarPlan(string $class): void
+    private static function cacheConstructorPlan(string $class): void
     {
-        $plan = ConstructorDecoder::scalarPlan($class);
+        $plan = ConstructorDecoder::cachedPlan($class);
         if ($plan !== null) {
             self::$validatedClasses[$class] = $plan;
         }
