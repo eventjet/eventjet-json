@@ -86,19 +86,19 @@ final class ConstructorHydrationPlanTest extends TestCase
         $class = ScalarFields::class;
         $cache = new ReflectionProperty(ClassFieldTypeValidator::class, 'validated');
         static::assertNull(ClassFieldTypeValidator::validate($class, 'first', $class));
-        /** @var array<class-string, null> $validated */
+        /** @var array<string, null> $validated */
         $validated = $cache->getValue();
         static::assertArrayHasKey($class, $validated);
         static::assertNull(ClassFieldTypeValidator::validate($class, 'second', $class));
 
         $dependency = __NAMESPACE__ . '\\LateClassFieldValidationTarget';
         static::assertNull(ClassFieldTypeValidator::validate($class, 'first', $dependency));
-        /** @var array<class-string, null> $validated */
+        /** @var array<string, null> $validated */
         $validated = $cache->getValue();
         static::assertArrayNotHasKey($dependency, $validated);
         static::assertTrue(class_alias(ScalarFields::class, $dependency));
         static::assertNull(ClassFieldTypeValidator::validate($class, 'second', $dependency));
-        /** @var array<class-string, null> $validated */
+        /** @var array<string, null> $validated */
         $validated = $cache->getValue();
         static::assertArrayHasKey($dependency, $validated);
 
@@ -108,7 +108,7 @@ final class ConstructorHydrationPlanTest extends TestCase
                 ClassFieldTypeValidator::validate($class, $field, JsonSerializable::class),
             );
         }
-        /** @var array<class-string, null> $validated */
+        /** @var array<string, null> $validated */
         $validated = $cache->getValue();
         static::assertArrayNotHasKey(JsonSerializable::class, $validated);
     }
