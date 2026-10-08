@@ -23,6 +23,7 @@ final class ScalarValidationErrorCases
         yield from self::integerBoundaries();
         yield from self::literalBooleans();
         yield from self::cachedProperties();
+        yield from self::constructorPlans();
     }
 
     /**
@@ -153,6 +154,67 @@ final class ScalarValidationErrorCases
             '[{}, {"integer":"wrong"}]',
             JsonType::array(ConstructorlessPublicProperties::class),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties from the JSON object: Field [1].integer must be of type int, string given.',
+            3,
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{string, class-string|\Eventjet\Json\JsonType<list<mixed>|object>, string, int}>
+     * @throws \ReflectionException
+     * @throws \RuntimeException
+     */
+    private static function constructorPlans(): iterable
+    {
+        foreach (['array', 'false', 'float', 'true'] as $type) {
+            $declaration = $type === 'array' ? 'list<int>' : $type;
+            $class = CollectionDeclarationFixture::create(
+                $type,
+                '/** @param ' . $declaration . ' $value Uncached constructor validation. */',
+                'param',
+            );
+            yield 'first decode rejects a string for constructor ' . $type => [
+                '{"value":"wrong"}',
+                $class,
+                'Could not create '
+                    . $class
+                    . ' from the JSON object: Field value must be of type '
+                    . $type
+                    . ', string given.',
+                3,
+            ];
+        }
+        foreach ([
+            ['array',  'list<int>', '[1]',     '"wrong"', 'string'],
+            ['bool',   'bool',      'false',   '"wrong"', 'string'],
+            ['false',  'false',     'false',   '"wrong"', 'string'],
+            ['float',  'float',     '1.5',     '"wrong"', 'string'],
+            ['int',    'int',       '42',      '"wrong"', 'string'],
+            ['string', 'string',    '"valid"', '42',      'int'],
+            ['true',   'true',      'true',    '"wrong"', 'string'],
+        ] as [$type, $declaration, $valid, $invalid, $actual]) {
+            $class = CollectionDeclarationFixture::create(
+                $type,
+                '/** @param ' . $declaration . ' $value Cached constructor validation. */',
+                'param',
+            );
+            yield 'cached constructor validates ' . $type . ' after a valid value' => [
+                '[{"value":' . $valid . '},{"value":' . $invalid . '}]',
+                JsonType::array($class),
+                'Could not create '
+                    . $class
+                    . ' from the JSON object: Field [1].value must be of type '
+                    . $type
+                    . ', '
+                    . $actual
+                    . ' given.',
+                3,
+            ];
+        }
+        $class = CollectionDeclarationFixture::create('null', '', 'param');
+        yield 'cached null-only constructor rejects a non-null value' => [
+            '[{"value":null},{"value":1}]',
+            JsonType::array($class),
+            'Could not create ' . $class . ' from the JSON object: Field [1].value must be of type null, int given.',
             3,
         ];
     }

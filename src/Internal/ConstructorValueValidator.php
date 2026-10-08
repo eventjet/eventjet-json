@@ -13,10 +13,16 @@ use function enum_exists;
 /** @internal */
 final readonly class ConstructorValueValidator
 {
+    public string $typeName;
+    public bool $nullable;
+
     private function __construct(
         private ReflectionNamedType $type,
-        private string $expected,
-    ) {}
+        public string $expected,
+    ) {
+        $this->typeName = $type->getName();
+        $this->nullable = $type->allowsNull();
+    }
 
     /** @param array<array-key, mixed> $values */
     public static function forParameter(ConstructorParameter $parameter, array $values): self|null
