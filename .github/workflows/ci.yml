@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master, tabula-rasa]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  COMPOSER_ROOT_VERSION: dev-tabula-rasa
+
+jobs:
+  quality:
+    name: Code quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-php
+      - name: Restore analyzer caches
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache
+          key: analysis-${{ runner.os }}-php8.4-${{ hashFiles('vendor/composer/installed.json', 'phpstan.neon', 'psalm.xml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: analysis-${{ runner.os }}-php8.4-${{ hashFiles('vendor/composer/installed.json', 'phpstan.neon', 'psalm.xml') }}-
+      - name: Restore Mago binary
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: vendor/carthage-software/mago/composer/bin/[0-9]*
+          key: mago-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('vendor/composer/installed.json') }}
+      - run: mkdir -p .cache
+      - name: Validate dependencies
+        run: |
+          composer validate --strict
+          composer check-deps
+      - name: Formatting and Mago
+        run: |
+          composer cs-check
+          composer mago
+      - name: Psalm
+        run: composer psalm -- --threads=2 --no-progress
+      - name: PHPStan
+        run: composer phpstan -- --no-progress
+
+  tests:
+    name: Tests (PHP ${{ matrix.php }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.4', '8.5']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-php
+        with:
+          php-version: ${{ matrix.php }}
+      - name: Restore PHPUnit cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .phpunit.cache
+          key: phpunit-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('vendor/composer/installed.json', 'phpunit.xml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: phpunit-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('vendor/composer/installed.json', 'phpunit.xml') }}-
+      - name: PHPUnit
+        timeout-minutes: 2
+        run: composer phpunit -- --no-progress
+
+  mutation:
+    name: Mutation tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-php
+        with:
+          coverage: pcov
+          ini-values: pcov.enabled=0
+      - name: Restore PHPStan analysis
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache
+          key: analysis-${{ runner.os }}-php8.4-${{ hashFiles('vendor/composer/installed.json', 'phpstan.neon', 'psalm.xml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: analysis-${{ runner.os }}-php8.4-${{ hashFiles('vendor/composer/installed.json', 'phpstan.neon', 'psalm.xml') }}-
+      - name: Full mutation coverage
+        shell: bash
+        timeout-minutes: 6
+        run: |
+          mkdir -p build
+          composer infection -- --threads=4 --no-progress --initial-tests-php-options="-d pcov.enabled=1" --logger-summary-json=build/mutation-summary.json 2>&1 | tee "$RUNNER_TEMP/mutation-output.txt"
+      - name: Save mutation report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-report
+          path: |
+            infection-log.txt
+            build/mutation-summary.json
+            ${{ runner.temp }}/mutation-output.txt
+          retention-days: 7

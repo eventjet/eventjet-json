@@ -7,6 +7,9 @@ inputs:
   coverage:
     description: Coverage driver
     default: none
+  ini-values:
+    description: Additional PHP INI settings
+    default: ''
 runs:
   using: composite
   steps:
@@ -15,7 +18,7 @@ runs:
         php-version: ${{ inputs.php-version }}
         extensions: bcmath, intl, mbstring, pcntl
         coverage: ${{ inputs.coverage }}
-        ini-values: memory_limit=1G, pcov.directory=src
+        ini-values: memory_limit=1G, pcov.directory=src, ${{ inputs.ini-values }}
         tools: composer:v2
     - id: composer-cache
       shell: bash
