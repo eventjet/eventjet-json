@@ -48,11 +48,21 @@ final class DecodeBench
     }
 
     /** @throws DecodeError */
-    #[Bench\ParamProviders(DecodeWorkloads::class . '::allScenarios')]
+    #[Bench\ParamProviders(DecodeWorkloads::class . '::diagnosticScenarios')]
     #[Bench\Groups(['cold', 'diagnostic'])]
     #[Bench\Revs(1)]
     #[Bench\Warmup(0)]
     public function benchCold(): void
+    {
+        $this->decode();
+    }
+
+    /** @throws DecodeError */
+    #[Bench\ParamProviders(DecodeWorkloads::class . '::stressScenarios')]
+    #[Bench\Groups(['cold', 'stress'])]
+    #[Bench\Revs(1)]
+    #[Bench\Warmup(0)]
+    public function benchColdStress(): void
     {
         $this->decode();
     }

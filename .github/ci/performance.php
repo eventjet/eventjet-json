@@ -3,6 +3,14 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/performance-summary.php';
+const REPORT_GROUPS = [
+    'documents' => 'Realistic example documents',
+    'batches' => 'Synthetic batches',
+    'diagnostic' => 'Focused diagnostics',
+    'stress' => 'Stress diagnostics',
+    'errors' => 'Expected errors',
+    'uncategorized' => 'Uncategorized workloads',
+];
 
 // This runner targets the same Linux environment as the Performance workflow.
 // GNU timeout bounds each subprocess; the workflow also bounds the entire job.
@@ -120,21 +128,22 @@ function workloadFilters(string $path): array
     foreach ($xml->suite as $suite) {
         foreach ($suite->benchmark as $benchmark) {
             foreach ($benchmark->subject as $subject) {
+                $categories = [];
+                foreach ($subject->group as $group) {
+                    $name = (string) $group['name'];
+                    if (isset(REPORT_GROUPS[$name])) {
+                        $categories[$name] = true;
+                    }
+                }
+                if (count($categories) > 1) {
+                    throw new RuntimeException('A benchmark subject must belong to only one report category');
+                }
+                $category = array_key_first($categories) ?? 'uncategorized';
                 foreach ($subject->variant as $variant) {
                     $filters[] = [
                         '--filter=^' . preg_quote($benchmark['class'] . '::' . $subject['name'], '{') . '$',
                         '--variant=^' . preg_quote((string) $variant->{'parameter-set'}['name'], '{') . '$',
-                        match (true) {
-                            str_contains((string) $benchmark['class'], 'ErrorBench') => 'Expected errors',
-                            str_contains((string) $variant->{'parameter-set'}['name'], 'record batch')
-                                => 'Synthetic batches',
-                            str_contains((string) $benchmark['class'], 'DocumentBench')
-                                => 'Realistic example documents',
-                            str_contains((string) $variant->{'parameter-set'}['name'], 'collections')
-                                || str_contains((string) $variant->{'parameter-set'}['name'], 'enum-heavy')
-                                => 'Stress diagnostics',
-                            default => 'Focused diagnostics',
-                        },
+                        $category,
                     ];
                 }
             }
@@ -204,15 +213,17 @@ foreach ($cpuInfo as $line) {
     }
 }
 writeJson($results . '/metadata.json', $metadata);
-if (
-    trim(git('ls-tree', '--name-only', $base, '--', 'benchmarks')) === ''
-    || trim(git('ls-tree', '--name-only', $workloads, '--', 'benchmarks')) === ''
-) {
+if (trim(git('ls-tree', '--name-only', $workloads, '--', 'benchmarks')) === '') {
     publish(
         $results,
-        "## Performance comparison\n\nNo comparable baseline: baseline `$base` or workload revision `$workloads` has no benchmark suite. Candidate: `$candidate`. No regression verdict is available.\n",
+        "## Performance comparison\n\nNo comparable baseline: workload revision `$workloads` has no benchmark suite. Candidate: `$candidate`. No regression verdict is available.\n",
     );
     exit(0);
+}
+foreach ([$base, $candidate] as $revision) {
+    if (trim(git('ls-tree', '-d', '--name-only', $revision, '--', 'src')) === '') {
+        throw new InvalidArgumentException('Compared revision has no source directory: ' . $revision);
+    }
 }
 exportRevision($base, $output . '/baseline');
 exportRevision($candidate, $output . '/candidate');
@@ -282,15 +293,9 @@ foreach (workloadFilters($results . '/discovery.xml') as $index => [$subjectFilt
     $reports[$group] = ($reports[$group] ?? '') . $workloadReport . "\n";
 }
 $report = '';
-foreach ([
-    'Realistic example documents',
-    'Synthetic batches',
-    'Focused diagnostics',
-    'Stress diagnostics',
-    'Expected errors',
-] as $group) {
+foreach (REPORT_GROUPS as $group => $title) {
     if (isset($reports[$group])) {
-        $report .= "\n### $group\n\n```text\n" . $reports[$group] . "\n```\n";
+        $report .= "\n### $title\n\n```text\n" . $reports[$group] . "\n```\n";
     }
 }
 $comment = performanceSummary($comparisonPaths, $status);

@@ -134,11 +134,10 @@ final class DecodeWorkloads
      * @api Used by PHPBench parameter providers.
      * @return iterable<string, array{scenario: string}>
      */
-    public static function allScenarios(): iterable
+    public static function diagnosticScenarios(): iterable
     {
         yield from self::smallScenarios();
         yield from self::listScenario();
-        yield from self::stressScenarios();
     }
 
     /**
