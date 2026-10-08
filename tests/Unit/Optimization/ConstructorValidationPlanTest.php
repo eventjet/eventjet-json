@@ -19,6 +19,7 @@ use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\MetadataCache;
+use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
@@ -36,6 +37,7 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
 use RuntimeException;
+use stdClass;
 
 use function class_alias;
 
@@ -56,6 +58,10 @@ use function class_alias;
 #[UsesClass(MetadataCache::class)]
 #[UsesClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
+#[CoversClass(ObjectHydrator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PublicProperties::class)]
+#[UsesClass(\Eventjet\Json\Internal\PublicPropertyHydrator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PublicPropertyTypeValidator::class)]
 final class ConstructorValidationPlanTest extends TestCase
 {
     /** @throws ReflectionException */
@@ -78,6 +84,75 @@ final class ConstructorValidationPlanTest extends TestCase
         static::assertNull(new EnumUnionLookup(new ReflectionProperty(ScalarFields::class, 'string')->getType())->find(
             'ready',
         ));
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     * @throws UnknownClassOrInterfaceException
+     */
+    public function testScalarHydrationReusesPlansButRechecksValuesAndDefaults(): void
+    {
+        $target = new class {
+            public function __construct(
+                public int $value = 1,
+            ) {}
+        };
+        $class = $target::class;
+        static::assertNull(ConstructorDecoder::scalarPlan($class));
+        $input = new stdClass();
+        $input->value = 2;
+        $target->value = 2;
+        $first = ObjectHydrator::hydrate($class, $input);
+        static::assertEquals($target, $first);
+        $plan = ConstructorDecoder::scalarPlan($class);
+        static::assertInstanceOf(ConstructorPlan::class, $plan);
+        static::assertTrue($plan->scalarOnly);
+        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
+        static::assertIsArray($cache->getValue());
+        static::assertSame($plan, $cache->getValue()[$class] ?? null);
+        $input->value = 3;
+        $target->value = 3;
+        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
+        $target->value = 1;
+        static::assertEquals($target, ObjectHydrator::hydrate($class, new stdClass()));
+        $input->value = null;
+        static::assertEquals(
+            DecodeError::fieldTypeMismatch($class, 'nested.value', 'int', null),
+            ObjectHydrator::hydrate($class, $input, 'nested'),
+        );
+        static::assertSame($plan, ConstructorDecoder::scalarPlan($class));
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     */
+    public function testPublicPropertiesKeepTheirValidationAfterWarming(): void
+    {
+        $target = new class {
+            public string $label = '';
+
+            public function __construct(
+                public int $value = 1,
+            ) {}
+        };
+        $class = $target::class;
+        $input = new stdClass();
+        $input->label = 'first';
+        $target->label = 'first';
+        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
+        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
+        static::assertIsArray($cache->getValue());
+        static::assertInstanceOf(ReflectionClass::class, $cache->getValue()[$class] ?? null);
+        $target->label = 'second';
+        $input->label = 'second';
+        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
+        $input->label = false;
+        static::assertEquals(
+            DecodeError::fieldTypeMismatch($class, 'nested.label', 'string', false),
+            ObjectHydrator::hydrate($class, $input, 'nested'),
+        );
     }
 
     /**
