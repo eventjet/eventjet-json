@@ -24,7 +24,10 @@ final class ConstructorPlan
 {
     public readonly bool $scalarOnly;
 
-    /** @var (Closure(stdClass): (object|null))|false|null */
+    /**
+     * @var (Closure(stdClass): (object|null))|false|null
+     * @psalm-suppress UnusedProperty Psalm does not track references from the hydrate property hook.
+     */
     private Closure|false|null $compiledHydrator = false;
 
     /** @var (Closure(stdClass): (object|null))|null */
