@@ -496,6 +496,7 @@ final class ConstructorValidationPlanTest extends TestCase
         static::assertSame(JSON_ERROR_NONE, json_last_error());
         static::assertEquals(\Eventjet\Json\Json::decode($json, $target::class), $actual);
         static::assertSame(4, \Eventjet\Json\Test\Unit\Fixtures\DirectRecord::constructionCount());
+        static::assertEquals($actual, $plan->decode(str_replace(':', replace: ': ', subject: $json)));
         static::assertEquals($target, $plan->decode('{"records":[]}'));
         static::assertEquals($target, $plan->decode("{\"records\":[ \n\t ]}"));
         static::assertIsObject($plan->decode(' { "records" : [ ' . $first . " ,\n" . $second . ' ] } '));
