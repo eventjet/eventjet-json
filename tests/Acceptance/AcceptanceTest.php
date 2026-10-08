@@ -24,6 +24,7 @@ use Eventjet\Json\Internal\ConcreteClassUnionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorParameters;
+use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldCollectionUnionMemberResolver;
 use Eventjet\Json\Internal\FieldCollectionUnionResolver;
@@ -113,6 +114,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(DecodeError::class)]
 #[CoversClass(BackedEnumCaseFinder::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
+#[CoversClass(EnumFieldTypes::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(CollectionUnionValueConverter::class)]
 #[CoversClass(CollectionUnionShapeValidator::class)]

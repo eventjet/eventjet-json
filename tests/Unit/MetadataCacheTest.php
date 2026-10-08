@@ -6,10 +6,12 @@ namespace Eventjet\Json\Test\Unit;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\BackedEnumCaseFinder;
+use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassUnionValidator;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorParameters;
+use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldCollectionUnionResolver;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
@@ -27,10 +29,14 @@ use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StaticConstructorParameterProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Exception;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionNamedType;
 use ReflectionProperty;
 use RuntimeException;
 use stdClass;
@@ -43,6 +49,8 @@ use function class_alias;
 #[CoversClass(ConstructorParameters::class)]
 #[CoversClass(PublicProperties::class)]
 #[CoversClass(BackedEnumCaseFinder::class)]
+#[CoversClass(BackedEnumValueConverter::class)]
+#[CoversClass(EnumFieldTypes::class)]
 #[UsesClass(DecodeError::class)]
 #[CoversClass(FieldTypeResolver::class)]
 #[CoversClass(FieldTypeValidator::class)]
@@ -53,7 +61,12 @@ use function class_alias;
 #[UsesClass(FieldCollectionUnionResolver::class)]
 final class MetadataCacheTest extends TestCase
 {
-    /** @throws ReflectionException */
+    /**
+     * @throws Exception
+     * @throws ReflectionException
+     */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function testClassMetadataIsReusedIncludingEmptyClasses(): void
     {
         foreach ([
@@ -102,6 +115,11 @@ final class MetadataCacheTest extends TestCase
         static::assertNotNull($unionParameter);
         static::assertSame(IntBackedStatus::class . '|string', $unionParameter->typeName);
         static::assertFalse($unionParameter->builtin);
+
+        $scalarProperty = new ReflectionProperty(ScalarFields::class, 'string');
+        $scalarType = EnumFieldTypes::resolve($scalarProperty);
+        static::assertInstanceOf(ReflectionNamedType::class, $scalarType);
+        static::assertSame($scalarType, EnumFieldTypes::resolve($scalarProperty));
     }
 
     /** @throws ReflectionException */
@@ -258,5 +276,29 @@ final class MetadataCacheTest extends TestCase
         static::assertNull(FieldTypeResolver::resolve($class, $field));
         static::assertTrue(class_alias(ParentClassFieldBase::class, $dependency));
         static::assertInstanceOf(DecodeError::class, FieldTypeResolver::resolve($class, $field));
+
+        $untypedClass = CollectionDeclarationFixture::create('', '', 'var');
+        $untyped = new ReflectionProperty($untypedClass, 'value');
+        for ($lookup = 0; $lookup < 2; ++$lookup) {
+            static::assertFalse(EnumFieldTypes::resolve($untyped));
+            static::assertNull(BackedEnumValueConverter::convert($untypedClass, $untyped, 'value', 'value'));
+        }
+
+        $enumDependency = 'EnumConversionDeferredUnion';
+        $enumClass = CollectionDeclarationFixture::create($enumDependency . '|int', '', 'var');
+        $enumField = new ReflectionProperty($enumClass, 'value');
+        static::assertNull(BackedEnumValueConverter::convert(
+            $enumClass,
+            $enumField,
+            StringBackedStatus::Ready->value,
+            'value',
+        ));
+        static::assertTrue(class_alias(StringBackedStatus::class, $enumDependency));
+        static::assertSame(StringBackedStatus::Ready, BackedEnumValueConverter::convert(
+            $enumClass,
+            $enumField,
+            StringBackedStatus::Ready->value,
+            'value',
+        ));
     }
 }
