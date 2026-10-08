@@ -272,4 +272,75 @@ final class ConstructorValidationPlanTest extends TestCase
             }
         }
     }
+
+    /**
+     * @throws RuntimeException
+     * @throws ReflectionException
+     * @throws JsonException
+     */
+    public function testPrivateAncestorMappingsAreRejected(): void
+    {
+        foreach (['', 'static '] as $modifier) {
+            foreach ([1, 2] as $depth) {
+                $name = 'PrivateAncestorMapping' . ($modifier === '' ? 'Instance' : 'Static') . $depth;
+                $parent = $name . 'Base';
+                $source =
+                    'use Eventjet\\Json\\Field; class '
+                    . $parent
+                    . ' { #[Field("hidden")] private '
+                    . $modifier
+                    . 'string $value = "secret"; }';
+                if ($depth === 2) {
+                    $source .= ' class ' . $name . 'Middle extends ' . $parent . ' {}';
+                    $parent = $name . 'Middle';
+                }
+                $class = CollectionNameSource::load(
+                    $name,
+                    $source
+                    . ' final class '
+                    . $name
+                    . ' extends '
+                    . $parent
+                    . ' implements JsonSerializable { use Eventjet\\Json\\MappedJsonFields; #[Field("wire")] public string $value = "public"; }',
+                );
+                $reflection = new ReflectionClass($class);
+                $error = DecodeError::nonInstantiableTarget(
+                    $class,
+                    '#[Field] requires a public instance property; value is not one.',
+                );
+                for ($attempt = 0; $attempt < 2; ++$attempt) {
+                    static::assertEquals($error, RootTypeValidator::validate($reflection));
+                    static::assertEquals($error, ConstructorDecoder::convert($reflection, [], ''));
+                    static::assertEquals($error, PublicProperties::resolve($reflection));
+                    try {
+                        MappedObjectSerializer::serialize($reflection->newInstance());
+                        static::fail('Private ancestor mappings must not serialize.');
+                    } catch (DecodeError $caught) {
+                        static::assertSame($error->getMessage(), $caught->getMessage());
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * @throws RuntimeException
+     * @throws ReflectionException
+     * @throws DecodeError
+     */
+    public function testAncestorDiscoveryPreservesEffectivePublicMappings(): void
+    {
+        $class = CollectionNameSource::load(
+            'EffectiveMappedChild',
+            'use Eventjet\\Json\\Field; class EffectiveMappedParent { private string $secret = "hidden"; #[Field("old")] public string $value = "parent"; #[Field("inherited")] public string $other = "kept"; } final class EffectiveMappedChild extends EffectiveMappedParent implements JsonSerializable { use Eventjet\\Json\\MappedJsonFields; #[Field("wire")] public string $value = "child"; public string $old = "ordinary"; }',
+        );
+        $reflection = new ReflectionClass($class);
+        for ($attempt = 0; $attempt < 2; ++$attempt) {
+            static::assertSame(['value' => 'wire', 'other' => 'inherited'], FieldNames::resolve($reflection));
+            static::assertEquals(
+                (object) ['wire' => 'child', 'inherited' => 'kept', 'old' => 'ordinary'],
+                MappedObjectSerializer::serialize($reflection->newInstance()),
+            );
+        }
+    }
 }
