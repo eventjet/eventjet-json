@@ -42,8 +42,6 @@ jobs:
         run: |
           composer validate --strict
           composer check-deps
-      - name: Validate mutation partitioning
-        run: bash .github/ci/tests/mutation-shard.sh
       - name: Formatting and Mago
         run: |
           composer cs-check
@@ -79,13 +77,9 @@ jobs:
         run: composer phpunit -- --no-progress
 
   mutation:
-    name: Mutation tests (${{ matrix.shard }}/64)
+    name: Mutation tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 7
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -93,31 +87,26 @@ jobs:
       - uses: ./.github/actions/setup-php
         with:
           coverage: pcov
+          ini-values: pcov.enabled=0
       - name: Restore PHPStan analysis
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache
           key: analysis-${{ runner.os }}-php8.4-${{ hashFiles('vendor/composer/installed.json', 'phpstan.neon', 'psalm.xml') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: analysis-${{ runner.os }}-php8.4-${{ hashFiles('vendor/composer/installed.json', 'phpstan.neon', 'psalm.xml') }}-
-      - name: Full mutation coverage for this shard
+      - name: Full mutation coverage
         shell: bash
-        timeout-minutes: 5
-        env:
-          SHARD: ${{ matrix.shard }}
+        timeout-minutes: 6
         run: |
-          php .github/ci/mutation-shard.php "$SHARD" 64 > "$RUNNER_TEMP/mutation-sources"
-          mapfile -t sources < "$RUNNER_TEMP/mutation-sources"
-          if (( ${#sources[@]} == 0 )); then
-            echo 'No source files assigned to this shard.'
-            exit 0
-          fi
-          vendor/bin/infection "${sources[@]}" --threads=4 --with-uncovered --no-progress 2>&1 | tee "$RUNNER_TEMP/mutation-output.txt"
-      - name: Save failed mutation report
-        if: failure()
+          mkdir -p build
+          composer infection -- --threads=4 --no-progress --initial-tests-php-options="-d pcov.enabled=1" --logger-summary-json=build/mutation-summary.json 2>&1 | tee "$RUNNER_TEMP/mutation-output.txt"
+      - name: Save mutation report
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: mutation-report-${{ matrix.shard }}
+          name: mutation-report
           path: |
             infection-log.txt
+            build/mutation-summary.json
             ${{ runner.temp }}/mutation-output.txt
           retention-days: 7

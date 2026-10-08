@@ -8,10 +8,8 @@ final class TupleFields
 {
     /** @var array{int, string, float, bool, StringBackedStatus, IntBackedStatus, Person} */
     public array $publicValue;
-
     /** @var array{} */
     public array $empty = [];
-
     /** @var array{int<-5, 5>} */
     public array $single = [0];
 

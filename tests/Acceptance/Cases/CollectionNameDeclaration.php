@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use ArrayObject;
 use RuntimeException;
 
 use function sha1;
@@ -20,10 +21,10 @@ final class CollectionNameDeclaration
     public static function source(array $specification, string $tag, string $shape, string $scope): array
     {
         [$imports, $itemType] = $specification;
-        $container = $specification[3] ?? 'ArrayObject';
+        $container = $specification[3] ?? ArrayObject::class;
         $field = self::field($itemType, $tag, $shape, $container);
         $key = sha1($imports . $field . $scope);
-        $namespace = 'CollectionNames_' . $key . '\\Nested';
+        $namespace = 'CollectionNames_' . $key . '\Nested';
         $class = 'Target_' . $key;
         $parent = $scope === 'inherited' ? 'class ParentTarget {' . $field . '} ' : '';
         $body =
@@ -47,7 +48,6 @@ final class CollectionNameDeclaration
         $itemClass = $itemType === 'GlobalPerson'
             ? 'GlobalPerson_' . $key
             : ($scope === 'global' ? '' : $namespace . '\\') . 'LocalPerson' . ($scope === 'global' ? '_' . $key : '');
-
         return [$className, $itemClass];
     }
 
@@ -89,11 +89,11 @@ final class CollectionNameDeclaration
 
     private static function field(string $itemType, string $tag, string $shape, string $container): string
     {
-        $native = $shape === 'ArrayObject' ? '\\ArrayObject' : 'array';
+        $native = $shape === ArrayObject::class ? '\ArrayObject' : 'array';
         $declaration = match ($shape) {
             'tuple' => 'array{' . $itemType . '}',
             'non-empty-array' => $shape . '<string, ' . $itemType . '>',
-            'ArrayObject' => $container . '<string, ' . $itemType . '>',
+            ArrayObject::class => $container . '<string, ' . $itemType . '>',
             default => $shape . '<' . $itemType . '>',
         };
         $doc = '/** @' . $tag . ' ' . $declaration . ($tag === 'param' ? ' $value' : '') . ' */';

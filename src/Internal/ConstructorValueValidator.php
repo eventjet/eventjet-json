@@ -1,0 +1,50 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Eventjet\Json\Internal;
+
+use Eventjet\Json\DecodeError;
+use ReflectionNamedType;
+
+use function array_key_exists;
+use function enum_exists;
+
+/** @internal */
+final readonly class ConstructorValueValidator
+{
+    private function __construct(
+        private ReflectionNamedType $type,
+        private string $expected,
+    ) {}
+
+    /** @param array<array-key, mixed> $values */
+    public static function forParameter(ConstructorParameter $parameter, array $values): self|null
+    {
+        $type = $parameter->type;
+        if (!$type instanceof ReflectionNamedType) {
+            return null;
+        }
+        if (enum_exists(
+            $parameter->typeName,
+            autoload: array_key_exists($parameter->name, $values) && !$parameter->builtin,
+        )) {
+            return null;
+        }
+        $expected = $parameter->typeName;
+        if ($type->allowsNull() && $expected !== 'null') {
+            $expected .= '|null';
+        }
+        return new self($type, $expected);
+    }
+
+    /** @param class-string $class */
+    public function validate(string $class, string $name, mixed $value, string $path): DecodeError|null
+    {
+        $matches = ValueTypeMatcher::matches($value, $this->type);
+        if ($matches) {
+            return null;
+        }
+        return DecodeError::fieldTypeMismatch($class, FieldPath::field($path, $name), $this->expected, $value);
+    }
+}
