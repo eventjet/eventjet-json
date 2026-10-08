@@ -28,7 +28,8 @@ final class PhpDocFieldType
                 subject: str_replace('*/', replace: '', subject: $doc === false ? '' : $doc),
             ) ?? '';
         $matches = [];
-        $pattern = $field instanceof ReflectionParameter ? '/@param\s+([^@]+)/' : '/@var\s+([^@]+)/';
+        // Keep the remaining comment intact: quoted literals can contain @ characters.
+        $pattern = $field instanceof ReflectionParameter ? '/@param\s+(?=([\s\S]*))/' : '/@var\s+(?=([\s\S]*))/';
         preg_match_all($pattern, $doc, $matches);
 
         /** @var array{list<string>, list<string>} $matches */
