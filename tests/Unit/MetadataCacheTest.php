@@ -95,6 +95,7 @@ final class MetadataCacheTest extends TestCase
     {
         /** @var ReflectionClass<object> $class */
         $class = new ReflectionClass(stdClass::class);
+
         static::assertSame('stdClass', PhpDocClassNameResolver::resolve($class, 'namespace\stdClass'));
     }
 
@@ -117,6 +118,7 @@ final class MetadataCacheTest extends TestCase
             static::assertSame($expected, array_keys($properties));
             static::assertSame($properties, PublicProperties::resolve($class));
         }
+
         $first = new class(1) {
             public function __construct(
                 public int $value,
@@ -131,6 +133,7 @@ final class MetadataCacheTest extends TestCase
         $secondClass = new ReflectionClass($second);
         $firstParameters = ConstructorParameters::resolve($firstClass);
         $secondParameters = ConstructorParameters::resolve($secondClass);
+
         $firstParameter = $firstParameters[0] ?? null;
         $secondParameter = $secondParameters[0] ?? null;
         static::assertNotNull($firstParameter);
@@ -142,11 +145,13 @@ final class MetadataCacheTest extends TestCase
         static::assertNotSame($firstParameters, $secondParameters);
         static::assertSame($firstParameters, ConstructorParameters::resolve($firstClass));
         static::assertSame($secondParameters, ConstructorParameters::resolve($secondClass));
+
         $union = ConstructorParameters::resolve(new ReflectionClass(DistinctEnumScalarUnionField::class));
         $unionParameter = $union[0] ?? null;
         static::assertNotNull($unionParameter);
         static::assertSame(IntBackedStatus::class . '|string', $unionParameter->typeName);
         static::assertFalse($unionParameter->builtin);
+
         $scalarProperty = new ReflectionProperty(ScalarFields::class, 'string');
         $scalarType = EnumFieldTypes::resolve($scalarProperty);
         static::assertInstanceOf(ReflectionNamedType::class, $scalarType);
@@ -188,6 +193,7 @@ final class MetadataCacheTest extends TestCase
                     ++$counter->calls;
                     return $metadata;
                 };
+
             for ($lookup = 0; $lookup < 3; ++$lookup) {
                 static::assertSame($metadata, $cache->resolve('field', $load));
             }
@@ -206,11 +212,14 @@ final class MetadataCacheTest extends TestCase
         $enumDependency = 'MetadataCacheDeferredEnum' . $name;
         $class = CollectionDeclarationFixture::create($enumDependency, '', 'var');
         $field = new ReflectionProperty($class, 'value');
+
         static::assertNull(FieldTypeResolver::resolve($class, $field));
         static::assertTrue(class_alias(NonBackedStatus::class, $enumDependency));
         static::assertInstanceOf(DecodeError::class, FieldTypeResolver::resolve($class, $field));
+
         $name = CollectionDeclarationFixture::create($dependency . $suffix, '', 'var');
         $class = new ReflectionClass($name);
+
         static::assertInstanceOf(DecodeError::class, PublicProperties::resolve($class));
         static::assertTrue(class_alias(ScalarFields::class, $dependency));
         $properties = PublicProperties::resolve($class);
@@ -231,9 +240,11 @@ final class MetadataCacheTest extends TestCase
             $class = CollectionDeclarationFixture::create($declaration, '', 'var');
             static::assertFalse(FieldTypeValidator::validate($class, new ReflectionProperty($class, 'value')));
         }
+
         $collectionClass = new ReflectionClass(CollectionDeclarationFixture::create('array', 'list<int>', 'param'));
         $collections = ObjectTypeValidator::validate($collectionClass, [], '');
         static::assertSame($collections, ObjectTypeValidator::validate($collectionClass, [], ''));
+
         $first = new class(1) {
             /** @var list<int> */
             public array $value;
@@ -253,6 +264,7 @@ final class MetadataCacheTest extends TestCase
         static::assertNotNull($parameter);
         $firstProperty = new ReflectionProperty($first, 'value');
         $secondProperty = new ReflectionProperty($second, 'value');
+
         for ($lookup = 0; $lookup < 2; ++$lookup) {
             static::assertNull(FieldTypeResolver::resolve($first::class, $parameter));
             $firstType = FieldTypeResolver::resolve($first::class, $firstProperty);
@@ -275,15 +287,18 @@ final class MetadataCacheTest extends TestCase
         $dependency = 'MetadataCacheDeferredUnionClass';
         $class = CollectionDeclarationFixture::create($dependency . '|int', '', 'var');
         $field = new ReflectionProperty($class, 'value');
+
         static::assertNull(FieldTypeResolver::resolve($class, $field));
         static::assertTrue(class_alias(ParentClassFieldBase::class, $dependency));
         static::assertInstanceOf(DecodeError::class, FieldTypeResolver::resolve($class, $field));
+
         $untypedClass = CollectionDeclarationFixture::create('', '', 'var');
         $untyped = new ReflectionProperty($untypedClass, 'value');
         for ($lookup = 0; $lookup < 2; ++$lookup) {
             static::assertFalse(EnumFieldTypes::resolve($untyped));
             static::assertNull(BackedEnumValueConverter::convert($untypedClass, $untyped, 'value', 'value'));
         }
+
         $enumDependency = 'EnumConversionDeferredUnion';
         $enumClass = CollectionDeclarationFixture::create($enumDependency . '|int', '', 'var');
         $enumField = new ReflectionProperty($enumClass, 'value');
