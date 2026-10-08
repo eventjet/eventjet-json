@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance;
 
-use Closure;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\ArrayJsonType;
 use Eventjet\Json\Internal\BackedEnumCaseFinder;
@@ -80,7 +79,10 @@ use Eventjet\Json\Json;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Cases\ConstructorDefaultCases;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
+use Eventjet\Json\Test\Acceptance\Cases\EmptyShapeRoundTripCases;
+use Eventjet\Json\Test\Acceptance\Cases\JsonFormattingRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\ParserSyntaxCases;
+use Eventjet\Json\Test\Acceptance\Cases\RootCollectionRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\RoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\UnknownFieldCases;
 use JsonException;
@@ -89,7 +91,6 @@ use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
-use function is_object;
 use function is_string;
 use function json_encode;
 
@@ -177,22 +178,42 @@ final class AcceptanceTest extends TestCase
         static::assertEquals($expected, PhpDocTypeParser::parse($source));
     }
 
-    /**
-     * @param list<mixed>|object $original
-     * @param JsonType<list<mixed>|object>|(Closure(): JsonType<list<mixed>|object>)|null $type
-     * @throws JsonException
-     */
+    /** @throws JsonException */
     #[DataProviderExternal(RoundTripCases::class, 'objects')]
-    public function testDecodeIsTheExactInverseOfJsonEncode(
-        array|object $original,
-        string|null $json = null,
-        JsonType|Closure|null $type = null,
-    ): void {
-        $json ??= json_encode($original, JSON_THROW_ON_ERROR);
+    public function testDecodeIsTheExactInverseOfJsonEncode(object $original): void
+    {
+        $json = json_encode($original, JSON_THROW_ON_ERROR);
 
-        $decoded = self::decodeOriginal($json, $original, $type instanceof Closure ? $type() : $type);
+        $decoded = Json::decode($json, $original::class);
 
         static::assertEquals($original, $decoded);
+        static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param list<mixed>|object $original
+     * @param callable(): JsonType<list<mixed>|object> $createType
+     * @throws JsonException
+     */
+    #[DataProviderExternal(RootCollectionRoundTripCases::class, 'objects')]
+    public function testRootCollectionRoundTrips(array|object $original, callable $createType): void
+    {
+        $json = json_encode($original, JSON_THROW_ON_ERROR);
+
+        $decoded = Json::decode($json, $createType());
+
+        static::assertEquals($original, $decoded);
+        static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
+    }
+
+    /** @throws JsonException */
+    #[DataProviderExternal(JsonFormattingRoundTripCases::class, 'objects')]
+    #[DataProviderExternal(EmptyShapeRoundTripCases::class, 'objects')]
+    public function testJsonDocumentDecodesWithoutChangingItsMeaning(object $expected, string $json): void
+    {
+        $decoded = Json::decode($json, $expected::class);
+
+        static::assertEquals($expected, $decoded);
         static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
     }
 
@@ -239,20 +260,6 @@ final class AcceptanceTest extends TestCase
         if ($previous !== null) {
             static::assertSame($previous, $decoded->getPrevious());
         }
-    }
-
-    /**
-     * @param list<mixed>|object $original
-     * @param JsonType<list<mixed>|object>|null $type
-     * @return list<mixed>|object
-     */
-    private static function decodeOriginal(string $json, array|object $original, JsonType|null $type): array|object
-    {
-        if ($type === null && is_object($original)) {
-            return Json::decode($json, $original::class);
-        }
-        static::assertNotNull($type);
-        return Json::decode($json, $type);
     }
 
     /** @param class-string $class */

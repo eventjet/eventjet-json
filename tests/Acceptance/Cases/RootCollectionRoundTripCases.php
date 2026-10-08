@@ -16,18 +16,20 @@ use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 final class RootCollectionRoundTripCases
 {
     /**
-     * @return iterable<string, array{0: list<mixed>|object, 1?: string|null, 2?: \Eventjet\Json\JsonType<list<mixed>|object>|(\Closure(): \Eventjet\Json\JsonType<list<mixed>|object>)}>
+     * @return iterable<string, array{list<mixed>|object, callable(): JsonType<list<mixed>|object>}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
     public static function objects(): iterable
     {
+        yield from MapsRoundTripCases::objects();
+        yield from TargetsRoundTripCases::collections();
         yield from self::group1();
         yield from self::group2();
     }
 
     /**
-     * @return iterable<string, array{0: list<mixed>|object, 1?: string|null, 2?: \Eventjet\Json\JsonType<list<mixed>|object>|(\Closure(): \Eventjet\Json\JsonType<list<mixed>|object>)}>
+     * @return iterable<string, array{list<mixed>|object, callable(): JsonType<list<mixed>|object>}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -63,8 +65,7 @@ final class RootCollectionRoundTripCases
                     return $object;
                 })(),
             ],
-            null,
-            JsonType::array(ConstructorlessPublicProperties::class),
+            static fn(): JsonType => JsonType::array(ConstructorlessPublicProperties::class),
         ];
         yield 'people depth 2' => [
             [
@@ -72,19 +73,16 @@ final class RootCollectionRoundTripCases
                 [new Person('Ada', 'Lovelace'), new Person('Grace', 'Hopper')],
                 [new Person('Grace', 'Hopper'), new Person('Ada', 'Lovelace')],
             ],
-            null,
-            JsonType::array(JsonType::array(Person::class)),
+            static fn(): JsonType => JsonType::array(JsonType::array(Person::class)),
         ];
         yield 'empty objects depth 2' => [
             [[], [new EmptyObject(), new EmptyObject()], [new EmptyObject(), new EmptyObject()]],
-            null,
-            JsonType::array(JsonType::array(EmptyObject::class)),
+            static fn(): JsonType => JsonType::array(JsonType::array(EmptyObject::class)),
         ];
-        yield 'empty root array depth 1' => [[], null, JsonType::array(EmptyObject::class)];
+        yield 'empty root array depth 1' => [[], static fn(): JsonType => JsonType::array(EmptyObject::class)];
         yield 'Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus length 2 depth 1' => [
             [StringBackedStatus::Ready, StringBackedStatus::Pending],
-            null,
-            JsonType::array(StringBackedStatus::class),
+            static fn(): JsonType => JsonType::array(StringBackedStatus::class),
         ];
         yield 'Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject keys' => [
             new ArrayObject([
@@ -99,13 +97,12 @@ key' => new EmptyObject(),
                 'é' => new EmptyObject(),
                 'primary' => new EmptyObject(),
             ]),
-            null,
-            JsonType::map(EmptyObject::class),
+            static fn(): JsonType => JsonType::map(EmptyObject::class),
         ];
     }
 
     /**
-     * @return iterable<string, array{0: list<mixed>|object, 1?: string|null, 2?: \Eventjet\Json\JsonType<list<mixed>|object>|(\Closure(): \Eventjet\Json\JsonType<list<mixed>|object>)}>
+     * @return iterable<string, array{list<mixed>|object, callable(): JsonType<list<mixed>|object>}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -113,8 +110,7 @@ key' => new EmptyObject(),
     {
         yield 'Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject empty' => [
             new ArrayObject([]),
-            null,
-            JsonType::map(EmptyObject::class),
+            static fn(): JsonType => JsonType::map(EmptyObject::class),
         ];
         yield 'Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject map of maps' => [
             new ArrayObject([
@@ -132,13 +128,11 @@ key' => new EmptyObject(),
                     'primary' => new EmptyObject(),
                 ]),
             ]),
-            null,
-            JsonType::map(JsonType::map(EmptyObject::class)),
+            static fn(): JsonType => JsonType::map(JsonType::map(EmptyObject::class)),
         ];
         yield 'Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject map of lists' => [
             new ArrayObject(['empty' => [], 'values' => [new EmptyObject()]]),
-            null,
-            JsonType::map(JsonType::array(EmptyObject::class)),
+            static fn(): JsonType => JsonType::map(JsonType::array(EmptyObject::class)),
         ];
         yield 'Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus keys' => [
             new ArrayObject([
@@ -153,8 +147,7 @@ key' => StringBackedStatus::Ready,
                 'é' => StringBackedStatus::Pending,
                 'primary' => StringBackedStatus::Ready,
             ]),
-            null,
-            JsonType::map(StringBackedStatus::class),
+            static fn(): JsonType => JsonType::map(StringBackedStatus::class),
         ];
         yield 'Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus keys' => [
             new ArrayObject([
@@ -169,8 +162,7 @@ key' => IntBackedStatus::Ready,
                 'é' => IntBackedStatus::Pending,
                 'primary' => IntBackedStatus::Ready,
             ]),
-            null,
-            JsonType::map(IntBackedStatus::class),
+            static fn(): JsonType => JsonType::map(IntBackedStatus::class),
         ];
     }
 }

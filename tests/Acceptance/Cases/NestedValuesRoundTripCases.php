@@ -13,7 +13,7 @@ final class NestedValuesRoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{0: list<mixed>|object, 1?: string|null, 2?: \Eventjet\Json\JsonType<list<mixed>|object>|(\Closure(): \Eventjet\Json\JsonType<list<mixed>|object>)}>
+     * @return iterable<string, array{object}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
