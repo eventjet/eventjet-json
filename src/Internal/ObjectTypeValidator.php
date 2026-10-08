@@ -7,25 +7,34 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use ReflectionClass;
 use ReflectionException;
-use ReflectionNamedType;
 
 use function array_key_exists;
-use function enum_exists;
 use function sprintf;
 
 /** @internal */
 final class ObjectTypeValidator
 {
+    /** @var array<class-string, ConstructorValidationPlan> */
+    private static array $plans = [];
+
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<array-key, mixed> $values
      * @return array<string, ListType|MapType|TupleType|FieldCollectionUnionType|null>|DecodeError
+     * @phpstan-impure
      * @throws ReflectionException
      */
     public static function validate(ReflectionClass $class, array $values, string $path): array|DecodeError
     {
         $className = $class->getName();
+        $plan = self::$plans[$className] ?? null;
+        if ($plan !== null) {
+            return $plan->validate($values, $path);
+        }
+
+        $fields = [];
+        $cacheable = true;
         $collections = [];
 
         foreach (ConstructorParameters::resolve($class) as $parameter) {
@@ -49,7 +58,9 @@ final class ObjectTypeValidator
                 );
             }
 
-            $collection = FieldTypeResolver::resolve($className, $parameter->reflection);
+            $resolved = FieldTypeValidator::validate($className, $parameter->reflection);
+            $cacheable = $cacheable && $resolved !== null;
+            $collection = $resolved === false ? null : $resolved;
 
             if ($collection instanceof DecodeError) {
                 return $collection;
@@ -61,32 +72,21 @@ final class ObjectTypeValidator
                 return self::unrecoverableConstructorParameter($className, $name);
             }
 
-            if ($type instanceof ReflectionNamedType) {
-                $typeName = $parameter->typeName;
-
-                if (array_key_exists($name, $values) && !enum_exists($typeName, autoload: !$parameter->builtin)) {
-                    /** @var mixed $value */
-                    $value = $values[$name];
-                    $valueMatchesType = ValueTypeMatcher::matches($value, $type);
-
-                    if (!$valueMatchesType) {
-                        $expectedType = $typeName;
-
-                        if ($type->allowsNull() && $expectedType !== 'null') {
-                            $expectedType .= '|null';
-                        }
-
-                        return DecodeError::fieldTypeMismatch(
-                            $className,
-                            FieldPath::field($path, $name),
-                            $expectedType,
-                            $value,
-                        );
+            $field = ConstructorValueValidator::forParameter($parameter, $values);
+            if ($field !== null) {
+                $fields[$name] = $field;
+                if (array_key_exists($name, $values)) {
+                    $error = $field->validate($className, $name, $values[$name], $path);
+                    if ($error !== null) {
+                        return $error;
                     }
                 }
             }
         }
 
+        if ($cacheable) {
+            self::$plans[$className] = new ConstructorValidationPlan($className, $fields, $collections);
+        }
         return $collections;
     }
 

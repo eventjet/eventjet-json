@@ -10,6 +10,9 @@ use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorParameters;
+use Eventjet\Json\Internal\ConstructorValidationPlan;
+use Eventjet\Json\Internal\ConstructorValueValidator;
+use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
@@ -19,6 +22,8 @@ use Eventjet\Json\Internal\ObjectTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyNamedValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
+use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
+use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredEnumBacking;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredValueEnum;
 use JsonException;
@@ -31,10 +36,12 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
+use RuntimeException;
 use TypeError;
 
 use function array_fill_keys;
 use function array_keys;
+use function class_alias;
 use function class_exists;
 use function enum_exists;
 use function spl_autoload_register;
@@ -42,6 +49,9 @@ use function spl_autoload_unregister;
 
 #[CoversClass(NamedFieldValueConverter::class)]
 #[CoversClass(ObjectTypeValidator::class)]
+#[CoversClass(ConstructorValidationPlan::class)]
+#[CoversClass(ConstructorValueValidator::class)]
+#[UsesClass(FieldPath::class)]
 #[CoversClass(PublicPropertyNamedValueConverter::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
 #[UsesClass(BackedEnumCaseFinder::class)]
@@ -102,6 +112,10 @@ final class AutoloadingTest extends TestCase
                 $parameter = new ReflectionParameter([$class->getName(), '__construct'], $name);
                 $type = $parameter->getType();
                 static::assertInstanceOf(ReflectionNamedType::class, $type);
+                static::assertNotNull(ConstructorValueValidator::forParameter(
+                    new ConstructorParameter($parameter, $class),
+                    [],
+                ));
                 static::assertSame($value, NamedFieldValueConverter::convert(
                     $class->getName(),
                     new ConstructorParameter($parameter, $class),
@@ -168,6 +182,106 @@ final class AutoloadingTest extends TestCase
             );
             static::assertSame(DeferredValueEnum::Ready, $converted);
             static::assertContains(DeferredEnumBacking::class, $requests->names);
+        } finally {
+            spl_autoload_unregister($autoload);
+        }
+    }
+
+    /** @throws ReflectionException */
+    public function testConstructorPlansRecheckValuesAndPathsAfterWarming(): void
+    {
+        $target = new class {
+            public function __construct(
+                public int|null $first = null,
+                public string $second = '',
+            ) {}
+        };
+        $class = new ReflectionClass($target);
+        for ($lookup = 0; $lookup < 3; ++$lookup) {
+            static::assertEquals(
+                DecodeError::fieldTypeMismatch($class->getName(), 'before.first', 'int|null', false),
+                ObjectTypeValidator::validate($class, ['first' => false, 'second' => 1], 'before'),
+            );
+            static::assertSame(['first' => null, 'second' => null], ObjectTypeValidator::validate($class, [], ''));
+            static::assertSame(
+                ['first' => null, 'second' => null],
+                ObjectTypeValidator::validate($class, ['first' => null, 'second' => 'valid'], ''),
+            );
+            static::assertEquals(
+                DecodeError::fieldTypeMismatch($class->getName(), 'after.second', 'string', 1),
+                ObjectTypeValidator::validate($class, ['first' => 1, 'second' => 1], 'after'),
+            );
+        }
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     * @throws UnknownClassOrInterfaceException
+     */
+    public function testConstructorErrorsRetainParameterOrder(): void
+    {
+        $target = new class {
+            public function __construct(
+                public int $first = 1,
+                public mixed $second = null,
+            ) {}
+        };
+        $class = new ReflectionClass($target);
+        for ($lookup = 0; $lookup < 2; ++$lookup) {
+            static::assertEquals(
+                DecodeError::fieldTypeMismatch($class->getName(), 'first', 'int', false),
+                ObjectTypeValidator::validate($class, ['first' => false], ''),
+            );
+            static::assertInstanceOf(DecodeError::class, ObjectTypeValidator::validate($class, ['first' => 1], ''));
+        }
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RuntimeException
+     */
+    public function testConstructorPlansRetryUnresolvedDependencies(): void
+    {
+        $dependency = 'ConstructorPlanDeferredEnum';
+        $class = new ReflectionClass(CollectionDeclarationFixture::create($dependency, '', 'param'));
+        static::assertSame(['value' => null], ObjectTypeValidator::validate($class, [], ''));
+        static::assertTrue(class_alias(NonBackedStatus::class, $dependency));
+        static::assertInstanceOf(DecodeError::class, ObjectTypeValidator::validate($class, [], ''));
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RuntimeException
+     * @throws TypeError
+     */
+    public function testConstructorValueChecksOnlyAutoloadPresentClasses(): void
+    {
+        $dependency = 'ConstructorValueDeferredClass';
+        $class = new ReflectionClass(CollectionDeclarationFixture::create($dependency, '', 'param'));
+        $parameter = new ConstructorParameter(
+            new ReflectionParameter([$class->getName(), '__construct'], 'value'),
+            $class,
+        );
+        $requests = new class {
+            /** @var list<string> */
+            public array $names = [];
+
+            /** @return list<string> */
+            public function snapshot(): array
+            {
+                return $this->names;
+            }
+        };
+        $autoload = static function (string $name) use ($requests): void {
+            $requests->names[] = $name;
+        };
+        spl_autoload_register($autoload);
+        try {
+            static::assertNotNull(ConstructorValueValidator::forParameter($parameter, []));
+            static::assertSame([], $requests->snapshot());
+            static::assertNotNull(ConstructorValueValidator::forParameter($parameter, ['value' => null]));
+            static::assertSame([$dependency], $requests->snapshot());
         } finally {
             spl_autoload_unregister($autoload);
         }
