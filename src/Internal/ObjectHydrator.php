@@ -27,7 +27,11 @@ final class ObjectHydrator
         try {
             /** @var ReflectionClass<T>|ConstructorPlan|null $reflection */
             $reflection = self::$validatedClasses[$class] ?? null;
-            if ($reflection instanceof ConstructorPlan && ($hydrate = $reflection->hydrate) !== null) {
+            if (
+                $reflection instanceof ConstructorPlan
+                && $reflection->scalarOnly
+                && ($hydrate = $reflection->hydrate) !== null
+            ) {
                 $result = $hydrate($object);
                 if ($result !== null) {
                     /** @var T $result */
@@ -58,7 +62,7 @@ final class ObjectHydrator
                     return $assignments;
                 }
                 if ($uncached) {
-                    self::rememberScalarPlan($class, $reflection);
+                    self::rememberConstructorPlan($class, $reflection);
                 }
             }
             /**
@@ -79,10 +83,10 @@ final class ObjectHydrator
      * @param ReflectionClass<object> $reflection
      * @throws \ReflectionException
      */
-    private static function rememberScalarPlan(string $class, ReflectionClass $reflection): void
+    private static function rememberConstructorPlan(string $class, ReflectionClass $reflection): void
     {
         $properties = PublicProperties::resolve($reflection);
-        $plan = ConstructorDecoder::scalarPlan($class);
+        $plan = ConstructorDecoder::cachedPlan($class);
         if ($properties === [] && $plan !== null) {
             self::$validatedClasses[$class] = $plan;
         }

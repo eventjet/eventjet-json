@@ -22,6 +22,7 @@ use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredEnumBacking;
+use Eventjet\Json\Test\Unit\Fixtures\DeferredListItem;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredValueEnum;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -47,6 +48,9 @@ use function spl_autoload_unregister;
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[UsesClass(\Eventjet\Json\Internal\ScalarHydratorCompiler::class)]
+#[CoversClass(\Eventjet\Json\Internal\ListValueConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\ListInputNormalizer::class)]
+#[UsesClass(\Eventjet\Json\Internal\ListType::class)]
 #[CoversClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
@@ -86,9 +90,43 @@ final class AutoloadingTest extends TestCase
         static::assertFalse(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));
         static::assertEquals($original, \Eventjet\Json\Internal\ObjectHydrator::hydrate($class, $input));
         static::assertTrue(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));
-        $plan = ConstructorDecoder::scalarPlan($class);
+        $plan = ConstructorDecoder::cachedPlan($class);
         static::assertNotNull($plan);
         static::assertSame($plan->hydrate, $plan->hydrate);
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws JsonException
+     * @throws TypeError
+     */
+    public function testEmptyObjectListsDoNotAutoloadItemClasses(): void
+    {
+        static::assertFalse(class_exists(DeferredListItem::class, autoload: false));
+        $requests = new class {
+            public int $count = 0;
+        };
+        $autoload = static function (string $name) use ($requests): void {
+            if ($name === DeferredListItem::class) {
+                ++$requests->count;
+            }
+        };
+        spl_autoload_register($autoload, prepend: true);
+        try {
+            static::assertSame(
+                [],
+                \Eventjet\Json\Internal\ListValueConverter::convert(
+                    stdClass::class,
+                    'items',
+                    new \Eventjet\Json\Internal\ListType(DeferredListItem::class, false),
+                    [],
+                ),
+            );
+            static::assertSame(0, $requests->count);
+            static::assertFalse(class_exists(DeferredListItem::class, autoload: false));
+        } finally {
+            spl_autoload_unregister($autoload);
+        }
     }
 
     /** @throws ReflectionException */

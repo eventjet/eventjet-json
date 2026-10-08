@@ -57,6 +57,9 @@ use function class_alias;
 #[CoversClass(BackedEnumValueConverter::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\ClassUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(FieldTypeResolver::class)]
@@ -129,6 +132,25 @@ final class ConstructorValidationPlanTest extends TestCase
         static::assertNotNull($literals);
         static::assertNull($literals(self::input(['true' => false, 'false' => false])));
         static::assertNull($literals(self::input(['true' => true, 'false' => true])));
+
+        $anonymous = new class {
+            public function __construct(
+                public int $value = 0,
+            ) {}
+        };
+        static::assertNull(ScalarHydratorCompiler::compile($anonymous::class));
+        static::assertNull(ScalarHydratorCompiler::compile(
+            \Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField::class,
+        ));
+        static::assertNull(ScalarHydratorCompiler::compile(
+            \Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields::class,
+        ));
+        static::assertNull(ScalarHydratorCompiler::compile(
+            \Eventjet\Json\Test\Acceptance\Fixtures\ScalarListFields::class,
+        ));
+        $empty = ScalarHydratorCompiler::compile(stdClass::class);
+        static::assertNotNull($empty);
+        static::assertEquals(new stdClass(), $empty(new stdClass()));
     }
 
     /**
@@ -146,7 +168,7 @@ final class ConstructorValidationPlanTest extends TestCase
             static::assertEquals($original, ObjectHydrator::hydrate($class, $input));
         }
         static::assertEquals($original, ObjectHydrator::hydrate($class, $input));
-        $plan = ConstructorDecoder::scalarPlan($class);
+        $plan = ConstructorDecoder::cachedPlan($class);
         static::assertNotNull($plan);
         static::assertNotNull($plan->hydrate);
         static::assertEquals(
@@ -186,29 +208,6 @@ final class ConstructorValidationPlanTest extends TestCase
     }
 
     /** @throws ReflectionException */
-    public function testScalarCompilerLeavesUnsupportedDeclarationsOnTheOriginalPath(): void
-    {
-        $anonymous = new class {
-            public function __construct(
-                public int $value = 0,
-            ) {}
-        };
-        static::assertNull(ScalarHydratorCompiler::compile($anonymous::class));
-        static::assertNull(ScalarHydratorCompiler::compile(
-            \Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField::class,
-        ));
-        static::assertNull(ScalarHydratorCompiler::compile(
-            \Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields::class,
-        ));
-        static::assertNull(ScalarHydratorCompiler::compile(
-            \Eventjet\Json\Test\Acceptance\Fixtures\ScalarListFields::class,
-        ));
-        $empty = ScalarHydratorCompiler::compile(stdClass::class);
-        static::assertNotNull($empty);
-        static::assertEquals(new stdClass(), $empty(new stdClass()));
-    }
-
-    /** @throws ReflectionException */
     public function testEnumUnionLookupPreservesBackingTypesAndLeavesOtherValuesUnmatched(): void
     {
         $target = new class {
@@ -243,13 +242,13 @@ final class ConstructorValidationPlanTest extends TestCase
             ) {}
         };
         $class = $target::class;
-        static::assertNull(ConstructorDecoder::scalarPlan($class));
+        static::assertNull(ConstructorDecoder::cachedPlan($class));
         $input = new stdClass();
         $input->value = 2;
         $target->value = 2;
         $first = ObjectHydrator::hydrate($class, $input);
         static::assertEquals($target, $first);
-        $plan = ConstructorDecoder::scalarPlan($class);
+        $plan = ConstructorDecoder::cachedPlan($class);
         static::assertInstanceOf(ConstructorPlan::class, $plan);
         static::assertTrue($plan->scalarOnly);
         $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
@@ -265,7 +264,7 @@ final class ConstructorValidationPlanTest extends TestCase
             DecodeError::fieldTypeMismatch($class, 'nested.value', 'int', null),
             ObjectHydrator::hydrate($class, $input, 'nested'),
         );
-        static::assertSame($plan, ConstructorDecoder::scalarPlan($class));
+        static::assertSame($plan, ConstructorDecoder::cachedPlan($class));
     }
 
     /**
@@ -297,6 +296,45 @@ final class ConstructorValidationPlanTest extends TestCase
             DecodeError::fieldTypeMismatch($class, 'nested.label', 'string', false),
             ObjectHydrator::hydrate($class, $input, 'nested'),
         );
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     * @throws UnknownClassOrInterfaceException
+     */
+    public function testNonScalarHydrationReusesPlansAndRechecksValues(): void
+    {
+        $target = new class {
+            public function __construct(
+                public StringBackedStatus|bool|null $value = null,
+            ) {}
+        };
+        $class = $target::class;
+        static::assertNull(ConstructorDecoder::cachedPlan($class));
+        $input = new stdClass();
+        $input->value = StringBackedStatus::Ready->value;
+        $target->value = StringBackedStatus::Ready;
+        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
+        $plan = ConstructorDecoder::cachedPlan($class);
+        static::assertInstanceOf(ConstructorPlan::class, $plan);
+        static::assertFalse($plan->scalarOnly);
+        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
+        static::assertIsArray($cache->getValue());
+        static::assertSame($plan, $cache->getValue()[$class] ?? null);
+
+        foreach ([false, null, StringBackedStatus::Pending] as $value) {
+            $target->value = $value;
+            $input->value = $value instanceof StringBackedStatus ? $value->value : $value;
+            static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
+        }
+        $target->value = null;
+        static::assertEquals($target, ObjectHydrator::hydrate($class, new stdClass()));
+        $input->value = [];
+        $error = ObjectHydrator::hydrate($class, $input, 'nested');
+        static::assertInstanceOf(DecodeError::class, $error);
+        static::assertStringContainsString('Field nested.value must be of type', $error->getMessage());
+        static::assertSame($plan, ConstructorDecoder::cachedPlan($class));
     }
 
     /**
