@@ -69,6 +69,16 @@ final class UnionsRoundTripCases
      */
     private static function encodableMembers(): iterable
     {
+        foreach (['resource', 'open-resource', 'closed-resource'] as $resource) {
+            foreach (['param', 'var'] as $tag) {
+                yield $resource . ' union in ' . $tag . ' preserves strings' => [CollectionDeclarationFixture::object(
+                    'array',
+                    'list<string|' . $resource . '>',
+                    $tag,
+                    ['answer'],
+                )];
+            }
+        }
         yield 'non-backed-enum-or-true list preserves true' => [CollectionDeclarationFixture::object(
             'array',
             PhpType::list(PhpType::union(NonBackedStatus::class, PhpType::True)),

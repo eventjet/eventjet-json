@@ -4,6 +4,7 @@ const shardArtifacts = require('../shard-artifacts.cjs');
 
 function job(shard, attempt = 1, overrides = {}) {
   return {name: `Measure decoder performance (OPcache on, sample 1, shard ${shard})`,
+    started_at: `2026-10-08T12:0${attempt}:00Z`, completed_at: `2026-10-08T12:0${attempt}:30Z`,
     run_attempt: attempt, status: 'completed', conclusion: 'success', ...overrides};
 }
 function artifact(shard, attempt = 1, overrides = {}) {
@@ -39,6 +40,15 @@ test('a partial rerun combines the latest shard with untouched earlier shards', 
   assert.deepEqual(await select({jobs, artifacts}), [11, 22, 13, 14]);
 });
 
+test('carried-over jobs retain the artifact from their actual execution', async () => {
+  const original = [1, 2, 3, 4].map(shard => job(shard));
+  const carried = original.map(previous => ({...previous, run_attempt: 2}));
+  assert.deepEqual(await select({jobs: [...carried, ...original]}), [11, 12, 13, 14]);
+  const jobs = [...original, ...carried.filter(previous => previous.name !== job(2).name), job(2, 2)];
+  const artifacts = [...[1, 2, 3, 4].map(shard => artifact(shard)), artifact(2, 2)];
+  assert.deepEqual(await select({jobs, artifacts}), [11, 22, 13, 14]);
+});
+
 test('a newer regression keeps its own artifact instead of the old passing result', async () => {
   const jobs = [...[1, 2, 3, 4].map(shard => job(shard)), job(2, 2, {conclusion: 'failure'})];
   const artifacts = [artifact(2, 2), ...[1, 2, 3, 4].map(shard => artifact(shard))];
@@ -51,7 +61,8 @@ test('a newer failure without an artifact cannot fall back to earlier success', 
 });
 
 test('unfinished, canceled, and skipped latest executions cannot reuse older artifacts', async () => {
-  for (const overrides of [{status: 'in_progress'}, {conclusion: 'cancelled'}, {conclusion: 'skipped'}]) {
+  for (const overrides of [{status: 'in_progress'}, {conclusion: 'cancelled'}, {conclusion: 'skipped'},
+    {started_at: null}, {completed_at: null}]) {
     const jobs = [...[1, 2, 3, 4].map(shard => job(shard)), job(2, 2, overrides)];
     await assert.rejects(select({jobs}), /no completed measurement execution/);
   }
@@ -97,13 +108,4 @@ test('workflow selection passes the matrix values and downloads the selected art
   const download = workflow.split('      - name: Download shard measurements\n')[1].split('      - name:')[0];
   assert.ok(download.includes('artifact-ids: ${{ steps.shards.outputs.ids }}'));
   assert.ok(!download.includes('pattern:'));
-});
-
-
-test('carried-forward jobs keep their original execution attempt', async () => {
-  const original = [1, 2, 3, 4].map(shard => job(shard, 1, {started_at: '2026-10-08T14:34:29Z', completed_at: '2026-10-08T14:37:04Z'}));
-  const copied = original.map(entry => ({...entry, run_attempt: 2}));
-  copied[1] = job(2, 2, {started_at: '2026-10-08T14:46:30Z'});
-  const artifacts = [...[1, 2, 3, 4].map(shard => artifact(shard)), artifact(2, 2)];
-  assert.deepEqual(await select({jobs: [...copied, ...original], artifacts}), [11, 22, 13, 14]);
 });
