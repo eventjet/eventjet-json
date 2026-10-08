@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Eventjet\Json\Test\Unit;
+namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\BackedEnumCaseFinder;

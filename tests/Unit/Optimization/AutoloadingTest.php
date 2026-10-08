@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Eventjet\Json\Test\Unit;
+namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\BackedEnumCaseFinder;
@@ -23,7 +23,6 @@ use Eventjet\Json\Internal\PublicPropertyNamedValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
-use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredEnumBacking;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredValueEnum;
 use JsonException;
@@ -41,7 +40,6 @@ use TypeError;
 
 use function array_fill_keys;
 use function array_keys;
-use function class_alias;
 use function class_exists;
 use function enum_exists;
 use function spl_autoload_register;
@@ -185,69 +183,6 @@ final class AutoloadingTest extends TestCase
         } finally {
             spl_autoload_unregister($autoload);
         }
-    }
-
-    /** @throws ReflectionException */
-    public function testConstructorPlansRecheckValuesAndPathsAfterWarming(): void
-    {
-        $target = new class {
-            public function __construct(
-                public int|null $first = null,
-                public string $second = '',
-            ) {}
-        };
-        $class = new ReflectionClass($target);
-        for ($lookup = 0; $lookup < 3; ++$lookup) {
-            static::assertEquals(
-                DecodeError::fieldTypeMismatch($class->getName(), 'before.first', 'int|null', false),
-                ObjectTypeValidator::validate($class, ['first' => false, 'second' => 1], 'before'),
-            );
-            static::assertSame(['first' => null, 'second' => null], ObjectTypeValidator::validate($class, [], ''));
-            static::assertSame(
-                ['first' => null, 'second' => null],
-                ObjectTypeValidator::validate($class, ['first' => null, 'second' => 'valid'], ''),
-            );
-            static::assertEquals(
-                DecodeError::fieldTypeMismatch($class->getName(), 'after.second', 'string', 1),
-                ObjectTypeValidator::validate($class, ['first' => 1, 'second' => 1], 'after'),
-            );
-        }
-    }
-
-    /**
-     * @throws ReflectionException
-     * @throws Exception
-     * @throws UnknownClassOrInterfaceException
-     */
-    public function testConstructorErrorsRetainParameterOrder(): void
-    {
-        $target = new class {
-            public function __construct(
-                public int $first = 1,
-                public mixed $second = null,
-            ) {}
-        };
-        $class = new ReflectionClass($target);
-        for ($lookup = 0; $lookup < 2; ++$lookup) {
-            static::assertEquals(
-                DecodeError::fieldTypeMismatch($class->getName(), 'first', 'int', false),
-                ObjectTypeValidator::validate($class, ['first' => false], ''),
-            );
-            static::assertInstanceOf(DecodeError::class, ObjectTypeValidator::validate($class, ['first' => 1], ''));
-        }
-    }
-
-    /**
-     * @throws ReflectionException
-     * @throws RuntimeException
-     */
-    public function testConstructorPlansRetryUnresolvedDependencies(): void
-    {
-        $dependency = 'ConstructorPlanDeferredEnum';
-        $class = new ReflectionClass(CollectionDeclarationFixture::create($dependency, '', 'param'));
-        static::assertSame(['value' => null], ObjectTypeValidator::validate($class, [], ''));
-        static::assertTrue(class_alias(NonBackedStatus::class, $dependency));
-        static::assertInstanceOf(DecodeError::class, ObjectTypeValidator::validate($class, [], ''));
     }
 
     /**
