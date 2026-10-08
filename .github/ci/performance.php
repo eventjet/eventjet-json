@@ -205,7 +205,7 @@ $measure = static function (string $version, string $name, string|null $baseline
     ];
     if ($baseline !== null) {
         $arguments[] = '--file=../results/' . $baseline . '.xml';
-        $arguments[] = '--assert=mode(variant.time.avg) <= mode(baseline.time.avg) * 1.04';
+        $arguments[] = '--assert=mode(variant.time.avg) <= mode(baseline.time.avg) * 1.05';
     }
     $result = execute($arguments, $workspace);
     file_put_contents($results . '/' . $name . '.txt', $result['output']);
@@ -233,7 +233,7 @@ publish(
     $results,
     "## Performance comparison\n\nBaseline: `$base`. Candidate: `$candidate`.\n\n"
     . ($status === 0 ? 'PHPBench assertions passed.' : 'PHPBench assertions failed: performance regression.')
-    . " PHPBench mode time per decode must be at most 104% of the target's mode for every workload.\n\n"
+    . " PHPBench mode time per decode must be at most 105% of the target's mode for every workload.\n\n"
     . 'Each target workload is measured immediately before its candidate counterpart, using the same configuration and dependencies on this runner. '
     . "Cold and warm workloads retain their own warmup and revolution settings. Memory is advisory.\n\n```text\n"
     . $report

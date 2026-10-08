@@ -62,7 +62,7 @@ The gate uses PHPBench's native baseline comparison and assertion:
 
 ```text
 --file=../results/baseline-N.xml
---assert="mode(variant.time.avg) <= mode(baseline.time.avg) * 1.04"
+--assert="mode(variant.time.avg) <= mode(baseline.time.avg) * 1.05"
 ```
 
 The runner discovers workloads with a single-iteration discovery run, then
@@ -70,7 +70,7 @@ measures each target workload immediately before its candidate counterpart to
 reduce the time between comparable measurements. Each version runs 20 iterations
 per workload, preserving cold/warm revolution
 and warmup settings. PHPBench estimates the mode of per-decode times and fails
-with exit code 2 when any workload is more than 4% slower than its freshly
+with exit code 2 when any workload is more than 5% slower than its freshly
 measured target baseline. There is no stored timing baseline, minimum increase
 in microseconds, custom verdict engine, or automatic retry-until-pass policy.
 Memory remains advisory. Raw XML, PHPBench's aggregate report, commit IDs,
@@ -83,11 +83,16 @@ commit against itself on five independent GitHub runners. Normal PR runs still
 compare the target with the proposed merge. Each calibration job archives its
 own samples and report.
 
-The 4% limit was selected from hosted unchanged-code calibration, not local
-machine timings. With adjacent workload measurements, [five GitHub runners](https://github.com/eventjet/eventjet-json/actions/runs/37764898344)
-produced 100 comparisons with a largest apparent slowdown of 3.22%. A 3% gate
-would have failed one comparison; 4% failed none, including reversed comparisons.
-This is an empirical operating limit, not a guarantee against false positives.
+The 5% limit was selected from hosted unchanged-code calibration, not local
+machine timings. Two batches of five independent GitHub runners produced 200
+workload comparisons:
+
+- [Selection batch](https://github.com/eventjet/eventjet-json/actions/runs/37764898344): largest apparent slowdown 3.22%; a 3% limit would have failed one comparison.
+- [Independent validation batch](https://github.com/eventjet/eventjet-json/actions/runs/37765567166): largest apparent slowdown 4.11%; the provisional 4% limit failed one unchanged workload. Reversing the comparisons exposed variation up to 4.59%.
+
+A 5% limit was the lowest whole-percentage limit with no observed false positives
+in either direction across these 200 comparisons. This is an empirical operating
+limit, not a guarantee against future false positives on shared runners.
 Changes to sampling or thresholds should be checked with unchanged-code runs on
 the CI runner. A consistently noisy benchmark needs more stable measurement,
 not a larger limit chosen just to pass a particular PR. The workflow retains
