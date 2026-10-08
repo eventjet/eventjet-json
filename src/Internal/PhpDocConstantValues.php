@@ -23,25 +23,24 @@ use function var_export;
 /** @internal */
 final class PhpDocConstantValues
 {
-    /** @return list<string>|null */
-    public static function names(mixed $value): array|null
+    public static function name(mixed $value): string|null
     {
         if ($value instanceof BackedEnum) {
-            return ['\\' . $value::class . '::' . $value->name];
+            return $value::class . '::' . $value->name;
         }
         if ($value === null) {
-            return ['null'];
+            return 'null';
         }
         if (is_int($value)) {
-            return [(string) $value];
+            return (string) $value;
         }
         if (is_string($value)) {
-            return ["'" . str_replace(['\\', "'"], replace: ['\\\\', "\\'"], subject: $value) . "'"];
+            return "'" . str_replace(['\\', "'"], replace: ['\\\\', "\\'"], subject: $value) . "'";
         }
         if (is_float($value) && !is_finite($value)) {
             return null;
         }
-        return is_scalar($value) ? [var_export($value, return: true)] : null;
+        return is_scalar($value) ? var_export($value, return: true) : null;
     }
 
     /**
@@ -60,11 +59,11 @@ final class PhpDocConstantValues
             if ($matches !== 1) {
                 continue;
             }
-            $values = self::names($candidate->getValue());
-            if ($values === null) {
+            $value = self::name($candidate->getValue());
+            if ($value === null) {
                 return null;
             }
-            $names = [...$names, ...$values];
+            $names[] = $value;
         }
         return $names === [] ? null : $names;
     }

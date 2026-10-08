@@ -33,10 +33,20 @@ final class LiteralSyntaxRoundTripCases
         yield from self::collectionUnions();
     }
 
-    /** @return list<array{string, string, string|int|float|StringBackedStatus}> */
+    /** @return list<array{string, string, string|int|float|bool|StringBackedStatus|null}> */
     private static function values(): array
     {
         return [
+            ['null', 'null', null],
+            ["'foo'|string", 'string', 'other'],
+            ['float|3.0', 'float', 4.0],
+            ['\\' . ExtendedLiteralFields::class . '::NUMBER|43', 'int', 43],
+            ['\\' . ExtendedLiteralFields::class . '::CLASS', 'string', ExtendedLiteralFields::class],
+            [
+                '\\' . StringBackedStatus::class . '|\\' . StringBackedStatus::class . '::Ready',
+                '\\' . StringBackedStatus::class,
+                StringBackedStatus::Pending,
+            ],
             ["'foo'", 'string', 'foo'],
             ['"foo"', 'string', 'foo'],
             ["'it\\'s'", 'string', "it's"],
@@ -94,6 +104,15 @@ final class LiteralSyntaxRoundTripCases
     private static function collectionUnions(): iterable
     {
         foreach (['param', 'var'] as $tag) {
+            foreach ([true, false] as $boolean) {
+                $name = $boolean ? 'true' : 'false';
+                yield 'collection union with native ' . $name . ' ' . $tag => [CollectionDeclarationFixture::object(
+                    'array|' . $name,
+                    'list<42>|' . $name,
+                    $tag,
+                    $boolean,
+                )];
+            }
             yield 'collection field union with literal string ' . $tag => [CollectionDeclarationFixture::object(
                 'array|string',
                 "list<42>|'foo'",

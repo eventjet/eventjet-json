@@ -48,7 +48,7 @@ final class CollectionItemValueConverter
             default => self::convertClass($class, $path, $type, $value),
         };
 
-        if ($converted === null) {
+        if ($converted === null && $type !== 'null') {
             return DecodeError::fieldTypeMismatch($class, $path, $type, $value);
         }
 

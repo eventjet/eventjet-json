@@ -12,7 +12,6 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function class_exists;
-use function in_array;
 use function is_string;
 
 /** @internal */
@@ -37,8 +36,7 @@ final class FieldCollectionUnionMemberResolver
             $error = CollectionTypeValidator::validate($class, $field->getName(), $collection);
             return $error ?? $resolved;
         }
-        $isLiteral = $type->arguments === [] && in_array($type->name, ['null', 'true', 'false'], strict: true);
-        $name = $isLiteral ? $type->name : $resolved;
+        $name = $resolved;
         if (!is_string($name)) {
             return CollectionTypeResolver::invalidDeclaration($class, $field);
         }

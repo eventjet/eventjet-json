@@ -9,6 +9,7 @@ use ReflectionException;
 use RuntimeException;
 
 use function sha1;
+use function str_contains;
 
 use const PHP_INT_MAX;
 
@@ -23,6 +24,9 @@ final class LiteralConstantCases
     public static function objects(): iterable
     {
         $cases = [
+            ['USE CONST PHP_INT_MAX AS Maximum;',                                                 'Maximum',          PHP_INT_MAX],
+            ['class Base {public const int VALUE = 42;}',                                         'parent::VALUE',    42],
+            ['class Base {public const int VALUE = 42;}',                                         'static::VALUE',    42],
             ['use const PHP_INT_MAX as Maximum;',                                                 'Maximum',          PHP_INT_MAX],
             ['const LOCAL = 42;',                                                                 'LOCAL',            42],
             ['const PHP_INT_MAX = 42;',                                                           '\\PHP_INT_MAX',    PHP_INT_MAX],
@@ -39,7 +43,15 @@ final class LiteralConstantCases
                     : $doc . ' public array $value;';
                 $class = CollectionNameSource::load(
                     $namespace . '\\Target',
-                    'namespace ' . $namespace . '; ' . $imports . ' final class Target {' . $field . '}',
+                    'namespace '
+                    . $namespace
+                    . '; '
+                    . $imports
+                    . ' final class Target'
+                    . (str_contains($imports, 'class Base') ? ' extends Base' : '')
+                    . ' {'
+                    . $field
+                    . '}',
                 );
                 $reflection = new ReflectionClass($class);
                 $object = $tag === 'param' ? $reflection->newInstance([$value]) : $reflection->newInstance();

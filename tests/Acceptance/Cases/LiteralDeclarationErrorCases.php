@@ -24,6 +24,8 @@ final class LiteralDeclarationErrorCases
             ['float', '1e999'],
             ['string', '"\\u{110000}"'],
             ['int', '\\' . ExtendedLiteralFields::class . '::MISSING'],
+            ['int', 'parent::NUMBER'],
+            ['int', 'MissingLiteralClass::VALUE'],
         ] as [$native, $declaration]) {
             foreach (['param', 'var'] as $tag) {
                 $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
@@ -44,6 +46,9 @@ final class LiteralDeclarationErrorCases
             ['array', 'list<1|1.0>'],
             ['array', 'list<\\' . StringBackedStatus::class . '|\'ready\'>'],
             ['array', 'list<\\' . StringBackedStatus::class . '::Ready|\'ready\'>'],
+            ['array', 'list<1|float>'],
+            ['array', 'list<1.0|int>'],
+            ['array', 'list<\\' . StringBackedStatus::class . '::Ready|string>'],
         ] as [$native, $declaration]) {
             $class = CollectionDeclarationFixture::create($native, $declaration, 'param');
             yield 'ambiguous literal declaration ' . $declaration => [

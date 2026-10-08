@@ -9,6 +9,8 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function array_any;
+use function count;
+use function in_array;
 use function is_string;
 
 /** @internal */
@@ -42,10 +44,9 @@ final class PhpDocLiteralField
             }
             $names[] = $resolved;
         }
-        $hasLiteral = array_any(
-            $names,
-            static fn(string $name): bool => $name === 'null' || PhpDocLiteral::value($name) !== null,
-        );
+        $hasLiteral =
+            count($names) === 1 && in_array('null', $names, strict: true)
+            || array_any($names, static fn(string $name): bool => PhpDocLiteral::value($name) !== null);
         return $hasLiteral ? $names : null;
     }
 }

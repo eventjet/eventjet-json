@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use BackedEnum;
-use Error;
 
 use function constant;
 use function defined;
@@ -19,16 +18,17 @@ final class PhpDocLiteral
 {
     public static function value(string $name): string|int|float|bool|BackedEnum|null
     {
+        $scoped = preg_match('/\A(?:self|static|parent)::/i', $name) === 1;
+        if ($scoped) {
+            return null;
+        }
         if (str_contains($name, '::') && defined($name)) {
-            try {
-                /** @var mixed $value */
-                $value = constant($name);
-                return $value instanceof BackedEnum ? $value : null;
-
-                /** @mago-expect analysis:avoid-catching-error Invalid PHPDoc constant references must not crash decoding. */
-            } catch (Error) {
-                return null;
-            }
+            /**
+             * @var mixed $value
+             * @mago-expect analysis:unhandled-thrown-type The complete constant name was checked with defined().
+             */
+            $value = constant($name);
+            return $value instanceof BackedEnum ? $value : null;
         }
         if ($name === 'true' || $name === 'false') {
             return $name === 'true';

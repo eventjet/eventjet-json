@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use function assert;
 use function intdiv;
 use function is_finite;
 use function is_numeric;
@@ -44,25 +45,19 @@ final class PhpDocLiteralNumber
             $digits = substr($digits, offset: 2);
         }
         $value = 0;
-        /**
-         * @mago-expect analysis:unhandled-thrown-type The divisor is positive, so division by zero is impossible.
-         * @mago-expect analysis:unhandled-thrown-type The divisor cannot be -1, so PHP_INT_MIN cannot overflow.
-         */
-        $minimum = intdiv(PHP_INT_MIN, $base);
         // Accumulate negatively so PHP_INT_MIN remains representable.
         for ($index = 0; $index < strlen($digits); $index++) {
             $digit = strpos('0123456789abcdef', $digits[$index]);
-            if ($digit === false) {
-                return null;
-            }
+            assert($digit !== false, description: 'The integer pattern only accepts hexadecimal digits.');
+            /**
+             * @mago-expect analysis:unhandled-thrown-type The divisor is positive, so division by zero is impossible.
+             * @mago-expect analysis:unhandled-thrown-type The divisor cannot be -1, so PHP_INT_MIN cannot overflow.
+             */
+            $minimum = intdiv(PHP_INT_MIN + $digit, $base);
             if ($value < $minimum) {
                 return null;
             }
-            $value *= $base;
-            if ($value < (PHP_INT_MIN + $digit)) {
-                return null;
-            }
-            $value -= $digit;
+            $value = ($value * $base) - $digit;
         }
         if ($negative) {
             return $value;

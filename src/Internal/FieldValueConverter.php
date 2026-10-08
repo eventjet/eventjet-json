@@ -51,23 +51,8 @@ final readonly class FieldValueConverter
     public function convert(string $class, mixed $value, string $path): array|bool|float|int|object|string|null
     {
         if ($this->literalConstrained) {
-            $value = PhpDocLiteralScalarConverter::convert($class, $path, $this->literals, $value);
-            if ($value instanceof DecodeError) {
-                return $value;
-            }
+            return $this->convertLiteral($class, $value, $path);
         }
-        return $this->convertValue($class, $value, $path);
-    }
-
-    /**
-     * @param class-string $class
-     * @param array<array-key, mixed>|bool|float|int|object|string|null $value
-     * @return array<array-key, mixed>|bool|float|int|object|string|null
-     * @throws JsonException
-     * @throws ReflectionException
-     */
-    private function convertValue(string $class, mixed $value, string $path): array|bool|float|int|object|string|null
-    {
         if ($this->collection instanceof CollectionUnionType) {
             return CollectionUnionValueConverter::convert($class, $path, $this->collection, $value);
         }
@@ -82,6 +67,25 @@ final readonly class FieldValueConverter
             return $this->convertNamed($class, $this->type, $value, $path);
         }
         return $value;
+    }
+
+    /**
+     * @param class-string $class
+     * @param array<array-key, mixed>|bool|float|int|object|string|null $value
+     * @return array<array-key, mixed>|bool|float|int|object|string|null
+     * @throws ReflectionException
+     */
+    private function convertLiteral(string $class, mixed $value, string $path): array|bool|float|int|object|string|null
+    {
+        $value = PhpDocLiteralScalarConverter::convert($class, $path, $this->literals, $value);
+        if ($value instanceof DecodeError) {
+            return $value;
+        }
+        assert(
+            $this->type instanceof ReflectionNamedType,
+            description: 'Literal unions have a collection converter; constrained scalar fields have named native types.',
+        );
+        return $this->convertNamed($class, $this->type, $value, $path);
     }
 
     /**

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use Error;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionParameter;
@@ -13,9 +12,7 @@ use ReflectionProperty;
 use function constant;
 use function defined;
 use function explode;
-use function ltrim;
 use function str_contains;
-use function str_starts_with;
 use function strtolower;
 
 /** @internal */
@@ -31,30 +28,25 @@ final class PhpDocConstantResolver
         $declaring = $field->getDeclaringClass();
         if (!str_contains($name, '::')) {
             $imports = PhpDocImports::forClass($declaring, kind: PhpDocImportKind::Constant);
-            $qualified = str_starts_with($name, '\\')
-                ? ltrim($name, characters: '\\')
-                : $imports[$name] ?? PhpDocClassNameResolver::resolve($declaring, $name);
+            $qualified = $imports[$name] ?? PhpDocClassNameResolver::resolve($declaring, $name);
             $constant = defined($qualified) ? $qualified : $name;
-            try {
-                return defined($constant) ? PhpDocConstantValues::names(constant($constant)) : null;
-
-                /** @mago-expect analysis:avoid-catching-error Invalid PHPDoc constant references must not crash decoding. */
-            } catch (Error) {
-                return null;
-            }
+            /** @mago-expect analysis:unhandled-thrown-type Global constants are initialized and checked with defined() before lookup. */
+            $value = defined($constant) ? PhpDocConstantValues::name(constant($constant)) : null;
+            return $value === null ? null : [$value];
         }
         /** @var array{string, string} $parts */
-        $parts = explode('::', $name, limit: 2);
+        $parts = explode('::', $name);
         $owner = $parts[0];
         $member = $parts[1];
         $parent = $declaring->getParentClass();
         $class = match ($owner) {
             'self', 'static' => $declaring->getName(),
-            'parent' => ($parent === false ? $declaring : $parent)->getName(),
+            'parent' => $parent === false ? 'parent' : $parent->getName(),
             default => PhpDocClassNameResolver::resolve($declaring, $owner),
         };
         if (strtolower($member) === 'class') {
-            return PhpDocConstantValues::names($class);
+            $value = PhpDocConstantValues::name($class);
+            return $value === null ? null : [$value];
         }
         return PhpDocConstantValues::resolve($class, $member);
     }
