@@ -10,13 +10,10 @@ final class BoolCollectionValidationFields
 {
     /** @var list<bool> */
     public array $publicList;
-
     /** @var non-empty-list<bool> */
     public array $publicNonEmptyList;
-
     /** @var non-empty-array<string, bool> */
     public array $publicMap;
-
     /** @var ArrayObject<string, bool> */
     public ArrayObject $publicObjectMap;
 

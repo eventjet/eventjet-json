@@ -30,10 +30,9 @@ final class CollectionNameFixture
             }
             $value = new ReflectionClass($itemClass)->newInstance();
         }
-
         $collection = match ($shape) {
             'non-empty-array' => ['primary' => $value],
-            'ArrayObject' => new ArrayObject(['primary' => $value]),
+            ArrayObject::class => new ArrayObject(['primary' => $value]),
             default => [$value],
         };
         $reflection = new ReflectionClass($className);
@@ -41,7 +40,6 @@ final class CollectionNameFixture
         if ($tag === 'var') {
             $reflection->getProperty('value')->setValue($original, $collection);
         }
-
         return $original;
     }
 }

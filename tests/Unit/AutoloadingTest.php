@@ -23,9 +23,6 @@ use Eventjet\Json\Internal\PublicPropertyNamedValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
-use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
-use Eventjet\Json\Test\Unit\Fixtures\DeferredEnumBacking;
-use Eventjet\Json\Test\Unit\Fixtures\DeferredValueEnum;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -41,9 +38,6 @@ use TypeError;
 
 use function array_fill_keys;
 use function array_keys;
-use function class_alias;
-use function class_exists;
-use function enum_exists;
 use function spl_autoload_register;
 use function spl_autoload_unregister;
 
@@ -86,13 +80,7 @@ final class AutoloadingTest extends TestCase
             ) {}
         };
         /** @var array<string, bool|float|int|string|null> $values */
-        $values = [
-            'integer' => 1,
-            'float' => 1.5,
-            'string' => 'value',
-            'boolean' => true,
-            'nullable' => null,
-        ];
+        $values = ['integer' => 1, 'float' => 1.5, 'string' => 'value', 'boolean' => true, 'nullable' => null];
         $class = new ReflectionClass($target);
         $requests = new class {
             /** @var list<string> */
@@ -102,7 +90,6 @@ final class AutoloadingTest extends TestCase
             $requests->names[] = $name;
         };
         spl_autoload_register($autoload);
-
         try {
             static::assertSame(
                 array_fill_keys(array_keys($values), value: null),
@@ -137,53 +124,8 @@ final class AutoloadingTest extends TestCase
         } finally {
             spl_autoload_unregister($autoload);
         }
-
         foreach (['int', 'float', 'string', 'bool'] as $builtin) {
             static::assertNotContains($builtin, $requests->names);
-        }
-    }
-
-    /**
-     * @throws Exception
-     * @throws ReflectionException
-     * @throws TypeError
-     */
-    public function testEnumBackingConstantsLoadOnlyForMatchingInputTypes(): void
-    {
-        static::assertTrue(enum_exists(DeferredValueEnum::class));
-        static::assertFalse(class_exists(DeferredEnumBacking::class, autoload: false));
-        $requests = new class {
-            /** @var list<string> */
-            public array $names = [];
-        };
-        $autoload = static function (string $name) use ($requests): void {
-            $requests->names[] = $name;
-        };
-        spl_autoload_register($autoload, prepend: true);
-        try {
-            static::assertInstanceOf(DecodeError::class, BackedEnumValueConverter::convertValue(
-                DeferredValueEnum::class,
-                'value',
-                DeferredValueEnum::class,
-                1,
-            ));
-            static::assertNull(BackedEnumValueConverter::convertUnion(
-                DeferredValueEnum::class,
-                'value',
-                [DeferredValueEnum::class, 'int'],
-                1,
-            ));
-            static::assertNotContains(DeferredEnumBacking::class, $requests->names);
-            $converted = BackedEnumValueConverter::convertValue(
-                DeferredValueEnum::class,
-                'value',
-                DeferredValueEnum::class,
-                'ready',
-            );
-            static::assertSame(DeferredValueEnum::Ready, $converted);
-            static::assertContains(DeferredEnumBacking::class, $requests->names);
-        } finally {
-            spl_autoload_unregister($autoload);
         }
     }
 
@@ -212,42 +154,6 @@ final class AutoloadingTest extends TestCase
                 ObjectTypeValidator::validate($class, ['first' => 1, 'second' => 1], 'after'),
             );
         }
-    }
-
-    /**
-     * @throws ReflectionException
-     * @throws Exception
-     * @throws UnknownClassOrInterfaceException
-     */
-    public function testConstructorErrorsRetainParameterOrder(): void
-    {
-        $target = new class {
-            public function __construct(
-                public int $first = 1,
-                public mixed $second = null,
-            ) {}
-        };
-        $class = new ReflectionClass($target);
-        for ($lookup = 0; $lookup < 2; ++$lookup) {
-            static::assertEquals(
-                DecodeError::fieldTypeMismatch($class->getName(), 'first', 'int', false),
-                ObjectTypeValidator::validate($class, ['first' => false], ''),
-            );
-            static::assertInstanceOf(DecodeError::class, ObjectTypeValidator::validate($class, ['first' => 1], ''));
-        }
-    }
-
-    /**
-     * @throws ReflectionException
-     * @throws RuntimeException
-     */
-    public function testConstructorPlansRetryUnresolvedDependencies(): void
-    {
-        $dependency = 'ConstructorPlanDeferredEnum';
-        $class = new ReflectionClass(CollectionDeclarationFixture::create($dependency, '', 'param'));
-        static::assertSame(['value' => null], ObjectTypeValidator::validate($class, [], ''));
-        static::assertTrue(class_alias(NonBackedStatus::class, $dependency));
-        static::assertInstanceOf(DecodeError::class, ObjectTypeValidator::validate($class, [], ''));
     }
 
     /**

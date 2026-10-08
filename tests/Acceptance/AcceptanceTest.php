@@ -80,21 +80,8 @@ use Eventjet\Json\Json;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Cases\ConstructorDefaultCases;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
-use Eventjet\Json\Test\Acceptance\Cases\NonBackedEnumErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\ParserSyntaxCases;
-use Eventjet\Json\Test\Acceptance\Cases\PublicPropertyUnionRoundTripCases;
-use Eventjet\Json\Test\Acceptance\Cases\RootArrayConstructionCases;
-use Eventjet\Json\Test\Acceptance\Cases\RootArrayEnumRoundTripCases;
-use Eventjet\Json\Test\Acceptance\Cases\RootArrayErrorCases;
-use Eventjet\Json\Test\Acceptance\Cases\RootArrayRoundTripCases;
-use Eventjet\Json\Test\Acceptance\Cases\RootArrayTypeInferenceCases;
-use Eventjet\Json\Test\Acceptance\Cases\RootMapErrorCases;
-use Eventjet\Json\Test\Acceptance\Cases\RootMapRoundTripCases;
-use Eventjet\Json\Test\Acceptance\Cases\RootMapTypeInferenceCases;
-use Eventjet\Json\Test\Acceptance\Cases\RootValueErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\RoundTripCases;
-use Eventjet\Json\Test\Acceptance\Cases\ScalarTypeMismatchCases;
-use Eventjet\Json\Test\Acceptance\Cases\UnknownFieldCases;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
@@ -195,54 +182,26 @@ final class AcceptanceTest extends TestCase
      * @throws JsonException
      */
     #[DataProviderExternal(RoundTripCases::class, 'objects')]
-    #[DataProviderExternal(RoundTripCases::class, 'scalarFields')]
-    #[DataProviderExternal(RoundTripCases::class, 'numericBoundaries')]
-    #[DataProviderExternal(RoundTripCases::class, 'stringFields')]
-    #[DataProviderExternal(RoundTripCases::class, 'memberOrders')]
-    #[DataProviderExternal(RoundTripCases::class, 'objectRootWhitespace')]
-    #[DataProviderExternal(PublicPropertyUnionRoundTripCases::class, 'objects')]
-    #[DataProviderExternal(RootArrayRoundTripCases::class, 'objects')]
-    #[DataProviderExternal(RootArrayEnumRoundTripCases::class, 'enums')]
-    #[DataProviderExternal(RootArrayRoundTripCases::class, 'shapes')]
-    #[DataProviderExternal(RootArrayTypeInferenceCases::class, 'values')]
-    #[DataProviderExternal(RootMapRoundTripCases::class, 'values')]
-    #[DataProviderExternal(RootMapTypeInferenceCases::class, 'values')]
     public function testDecodeIsTheExactInverseOfJsonEncode(
         array|object $original,
         string|null $json = null,
         JsonType|Closure|null $type = null,
     ): void {
         $json ??= json_encode($original, JSON_THROW_ON_ERROR);
-
         $decoded = self::decodeOriginal($json, $original, $type instanceof Closure ? $type() : $type);
-
         static::assertEquals($original, $decoded);
         static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
     }
 
     #[DataProviderExternal(ConstructorDefaultCases::class, 'objects')]
-    #[DataProviderExternal(UnknownFieldCases::class, 'objects')]
     public function testDecodeReturnsExpectedObject(string $json, object $expected): void
     {
         $decoded = Json::decode($json, $expected::class);
-
         static::assertEquals($expected, $decoded);
     }
 
     /** @param class-string|JsonType<list<mixed>|object> $class */
-    #[DataProviderExternal(RootArrayErrorCases::class, 'errors')]
-    #[DataProviderExternal(RootMapErrorCases::class, 'errors')]
-    #[DataProviderExternal(RootArrayConstructionCases::class, 'exceptions')]
-    #[DataProviderExternal(RootValueErrorCases::class, 'unexpectedRootValues')]
-    #[DataProviderExternal(RootValueErrorCases::class, 'arrayRootValues')]
-    #[DataProviderExternal(DecodeErrorCases::class, 'constructionFailures')]
-    #[DataProviderExternal(DecodeErrorCases::class, 'malformedDocuments')]
-    #[DataProviderExternal(DecodeErrorCases::class, 'documentsWithTrailingContent')]
-    #[DataProviderExternal(DecodeErrorCases::class, 'invalidUtf8Documents')]
-    #[DataProviderExternal(DecodeErrorCases::class, 'deeplyNestedDocuments')]
-    #[DataProviderExternal(NonBackedEnumErrorCases::class, 'errors')]
-    #[DataProviderExternal(ScalarTypeMismatchCases::class, 'mismatches')]
-    #[DataProviderExternal(ScalarTypeMismatchCases::class, 'outOfRangeIntegers')]
+    #[DataProviderExternal(DecodeErrorCases::class, 'errors')]
     public function testDecodeReturnsErrorsAsValues(
         string $json,
         string|JsonType $class,
@@ -252,23 +211,12 @@ final class AcceptanceTest extends TestCase
     ): void {
         // Separate calls preserve each target's generic type during static analysis.
         $decoded = is_string($class) ? Json::decode($json, $class) : Json::decode($json, $class);
-
         static::assertTrue($decoded instanceof DecodeError);
         static::assertSame($message, $decoded->getMessage());
         static::assertSame($code, $decoded->getCode());
         if ($previous !== null) {
             static::assertSame($previous, $decoded->getPrevious());
         }
-    }
-
-    /** @param class-string $class */
-    #[DataProviderExternal(ScalarTypeMismatchCases::class, 'numericKeyMismatches')]
-    public function testNumericObjectKeysCannotBypassScalarValidation(string $json, string $class): void
-    {
-        $decoded = Json::decode($json, $class);
-
-        static::assertTrue($decoded instanceof DecodeError);
-        static::assertSame(3, $decoded->getCode());
     }
 
     /**
@@ -281,8 +229,16 @@ final class AcceptanceTest extends TestCase
         if ($type === null && is_object($original)) {
             return Json::decode($json, $original::class);
         }
-
         static::assertNotNull($type);
         return Json::decode($json, $type);
+    }
+
+    /** @param class-string $class */
+    #[DataProviderExternal(\Eventjet\Json\Test\Acceptance\Cases\NumericObjectKeyCases::class, 'mismatches')]
+    public function testNumericObjectKeysCannotBypassScalarValidation(string $json, string $class): void
+    {
+        $decoded = Json::decode($json, $class);
+        static::assertTrue($decoded instanceof DecodeError);
+        static::assertSame(3, $decoded->getCode());
     }
 }

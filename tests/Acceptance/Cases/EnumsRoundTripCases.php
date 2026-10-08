@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedEnumUnionField;
+
 /** @internal */
-final class RoundTripCases
+final class EnumsRoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
@@ -15,12 +17,6 @@ final class RoundTripCases
      */
     public static function objects(): iterable
     {
-        yield from NestedValuesRoundTripCases::objects();
-        yield from NameResolutionRoundTripCases::objects();
-        yield from CollectionsRoundTripCases::objects();
-        yield from TargetsRoundTripCases::objects();
-        yield from UnionsRoundTripCases::objects();
-        yield from EnumsRoundTripCases::objects();
-        yield from MapsRoundTripCases::objects();
+        yield 'non-backed enum alongside string' => [new NonBackedEnumUnionField('supported scalar')];
     }
 }

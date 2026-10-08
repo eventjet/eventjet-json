@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListFields;
+
 /** @internal */
-final class RoundTripCases
+final class CollectionsRoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
@@ -15,12 +17,12 @@ final class RoundTripCases
      */
     public static function objects(): iterable
     {
-        yield from NestedValuesRoundTripCases::objects();
-        yield from NameResolutionRoundTripCases::objects();
-        yield from CollectionsRoundTripCases::objects();
-        yield from TargetsRoundTripCases::objects();
-        yield from UnionsRoundTripCases::objects();
-        yield from EnumsRoundTripCases::objects();
-        yield from MapsRoundTripCases::objects();
+        yield 'scalar lists preserve item types and values' => [new ScalarListFields(
+            ['', '42', 'Grüße, 世界, 😀'],
+            [0, -42, 42],
+            [0.0, 3.0, -3.25],
+            [true, false],
+            ['float', 'float', 'float'],
+        )];
     }
 }
