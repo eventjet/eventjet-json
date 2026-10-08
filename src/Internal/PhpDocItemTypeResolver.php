@@ -1,0 +1,61 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Eventjet\Json\Internal;
+
+use ReflectionException;
+use ReflectionParameter;
+use ReflectionProperty;
+
+use function count;
+use function preg_match;
+
+/** @internal */
+final class PhpDocItemTypeResolver
+{
+    /**
+     * @return 'bool'|'float'|'int'|'string'|class-string|CollectionUnionType|NestedCollectionType|null
+     * @throws ReflectionException
+     */
+    public static function resolve(
+        ReflectionParameter|ReflectionProperty $field,
+        PhpDocType $type,
+    ): string|CollectionUnionType|NestedCollectionType|null {
+        $nested = NestedCollectionTypeResolver::resolve($field, $type);
+        if ($nested !== null) {
+            return $nested;
+        }
+
+        if ($type->name === '|') {
+            return PhpDocUnionTypeResolver::resolve($field, $type->arguments);
+        }
+
+        return self::named($field, $type);
+    }
+
+    /** @return 'bool'|'float'|'int'|'string'|class-string|null */
+    public static function named(ReflectionParameter|ReflectionProperty $field, PhpDocType $type): string|null
+    {
+        $arguments = $type->arguments;
+
+        if ($arguments === []) {
+            return FieldTypeNameResolver::resolvePhpDoc($field, $type->name);
+        }
+
+        if ($type->name !== 'int' || count($arguments) !== 2) {
+            return null;
+        }
+
+        foreach ($arguments as $index => $bound) {
+            $endpoint = $index === 0 ? 'min' : 'max';
+            $valid = preg_match('/\A(?:' . $endpoint . '|-?[0-9]+)\z/', $bound->name) === 1;
+
+            if ($bound->arguments !== [] || !$valid) {
+                return null;
+            }
+        }
+
+        return 'int';
+    }
+}
