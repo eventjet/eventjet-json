@@ -50,9 +50,16 @@ foreach ($argv as $argument) {
 if ($dumpFile === null) {
     throw new RuntimeException('No dump file was requested');
 }
-$iterations = str_repeat('<iteration time-net="100" mem-peak="1024"/>', 5);
-file_put_contents($dumpFile, '<phpbench><suite><benchmark class="Decoder">'
-    . '<subject name="' . $path . '"><variant revs="10"><parameter-set name="case"/>'
+$time = 100;
+if (getenv('PERFORMANCE_TEST_REGRESSION') === '1' && str_contains($dumpFile, 'comparison-') && str_ends_with($dumpFile, '-b.xml')) {
+    $time = 200;
+}
+if (getenv('PERFORMANCE_TEST_NOISE') === '1' && str_contains($dumpFile, 'calibration-') && str_ends_with($dumpFile, '-b.xml')) {
+    $time = 200;
+}
+$iterations = str_repeat('<iteration time-net="' . $time . '" mem-peak="1024"/>', 5);
+file_put_contents($dumpFile, '<phpbench><suite><benchmark class="\Eventjet\Json\Benchmark\DecodeBench">'
+    . '<subject name="' . ($path === 'baseline' ? 'benchWarm' : $path) . '"><variant revs="10"><parameter-set name="scalar object"/>'
     . $iterations . '</variant></subject></benchmark></suite></phpbench>');
 PHP
 
@@ -65,7 +72,7 @@ php <<'PHP'
 declare(strict_types=1);
 $results = json_decode(file_get_contents('.perf/results/results.json'), true, flags: JSON_THROW_ON_ERROR);
 foreach (['calibration', 'comparison'] as $experiment) {
-    if (array_keys($results[$experiment]) !== ['Decoder / baseline / case']) {
+    if (array_keys($results[$experiment]) !== ['\Eventjet\Json\Benchmark\DecodeBench / benchWarm / scalar object']) {
         throw new RuntimeException('The comparison did not freeze baseline configuration');
     }
 }
@@ -76,8 +83,25 @@ if (!str_contains($xml, 'name="candidate"') || str_contains($xml, 'name="baselin
 echo "Baseline and candidate configuration isolation passed.\n";
 PHP
 
-# Failed subprocesses must retain stdout diagnostics as well as forwarded stderr.
 mv .perf successful-comparison
+for mode in REGRESSION NOISE; do
+    if env "PERFORMANCE_TEST_$mode=1" php "$runner" --base "$baseline" --candidate "$candidate" > "$mode.log" 2>&1; then
+        echo "Expected $mode to block the gate"
+        exit 1
+    fi
+    verdict=regression
+    if [ "$mode" = NOISE ]; then verdict=inconclusive; fi
+    if ! grep -Fq "| $verdict |" .perf/results/summary.md; then
+        cat "$mode.log"
+        echo "Missing $verdict verdict"
+        exit 1
+    fi
+    test -f .perf/results/results.json
+    mv .perf "$mode-comparison"
+done
+echo 'Regression and noise gate exit statuses passed.'
+
+# Failed subprocesses must retain stdout diagnostics as well as forwarded stderr.
 cat > vendor/bin/phpbench <<'PHP'
 <?php
 fwrite(STDOUT, "Benchmark failure detail on stdout\n");

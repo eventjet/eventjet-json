@@ -91,7 +91,8 @@ final class PerformanceResults
             foreach ($pairs as [$a, $b]) {
                 array_push($baseline, ...$a[$key]['time_us']);
                 array_push($candidate, ...$b[$key]['time_us']);
-                $changes[] = 100 * ((self::median($b[$key]['time_us']) / self::median($a[$key]['time_us'])) - 1);
+                $baseTime = self::median($a[$key]['time_us']);
+                $changes[] = 100 * ((self::median($b[$key]['time_us']) - $baseTime) / $baseTime);
                 $baseMemory[] = $a[$key]['peak_bytes'];
                 $candidateMemory[] = $b[$key]['peak_bytes'];
             }
@@ -140,14 +141,14 @@ final class PerformanceResults
             '',
             "Baseline: `{$metadata['baseline']}`. Candidate: `{$metadata['candidate']}`.",
             '',
-            'Reporting only: no regression threshold has been calibrated. Positive changes mean slower execution.',
+            'Positive changes mean slower execution. The regression gate below evaluates each workload separately.',
             '',
             'Both versions use the baseline workloads and the same installed dependencies on the same runner. '
                 . 'Three independent pairs alternate A/B and B/A order, with five iterations per invocation. '
                 . 'Cold/warm settings come from the frozen benchmark suite; PCOV, Xdebug coverage, OPcache, and JIT are disabled.',
             '',
             'The unchanged-code A/A comparison estimates noise for this run, not a statistical confidence interval. '
-                . 'Archive multiple runs before defining a required regression gate. Memory is whole benchmark-process peak, not decoder-only allocation.',
+                . 'Memory is advisory: whole benchmark-process peak, not decoder-only allocation.',
             '',
             '| Workload | Base µs/decode | Candidate µs/decode | Paired change | Pair range | A/A max absolute change | CV base / candidate | Peak MiB base / candidate |',
             '|---|---:|---:|---:|---:|---:|---:|---:|',

@@ -1,0 +1,22 @@
+{
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchCold / enum union": 17,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchCold / enum union collections": 18,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchCold / long scalar lists": 10,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchCold / named enums": 10,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchCold / object collections": 12,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchCold / public scalar properties": 13,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchCold / recursive collections": 16,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchCold / root array": 10,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchCold / scalar lists": 10,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchCold / scalar object": 15,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchWarm / enum union": 16,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchWarm / enum union collections": 15,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchWarm / long scalar lists": 5,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchWarm / named enums": 7,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchWarm / object collections": 8,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchWarm / public scalar properties": 5,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchWarm / recursive collections": 5,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchWarm / scalar lists": 5,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchWarm / scalar object": 13,
+    "\\Eventjet\\Json\\Benchmark\\DecodeBench / benchWarmRoot / root array": 6
+}

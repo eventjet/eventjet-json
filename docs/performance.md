@@ -63,9 +63,36 @@ iterations per invocation, and runs three additional unchanged-code pairs to
 estimate noise. Its summary separates cold and warm workloads and shows timing,
 variation, paired percentage changes, and process peak memory. Raw samples,
 environment details, commit IDs, and an installed-dependency fingerprint are archived for history.
-Performance changes are advisory until repeated unchanged-code runs establish a
-useful threshold; benchmark errors and the five-minute job limit still fail CI.
-Do not treat one noisy runner result as evidence of a regression.
+The gate compares percentage slowdowns against per-workload limits in
+[performance-thresholds.json](../.github/ci/performance-thresholds.json). It uses
+fresh target and candidate measurements, with no stored timing baseline or
+minimum increase in microseconds. All three pairs must exceed the limit to
+confirm a regression. Zero pairs above the limit passes; one or two is
+inconclusive. An unchanged-code pair exceeding half the workload's limit, an
+uncalibrated workload, or an incomplete comparison is also inconclusive.
+Regressions and inconclusive results both fail the check, with distinct verdicts
+in the summary and archived JSON. Rerun an inconclusive measurement; investigate
+persistent noise instead of raising thresholds to make a PR pass. Memory remains
+advisory. Benchmark errors and the five-minute job limit still fail CI.
+
+Initial percentage limits are twice the largest absolute unchanged-code paired
+percentage change for each workload, rounded up to a whole percentage point,
+with a minimum of 10% for cold workloads and 5% for warm workloads. Calibration
+used these three runs on October 8, 2026:
+
+- [37757475516](https://github.com/eventjet/eventjet-json/actions/runs/37757475516)
+- [37758616828](https://github.com/eventjet/eventjet-json/actions/runs/37758616828)
+- [37759949811](https://github.com/eventjet/eventjet-json/actions/runs/37759949811)
+
+The largest observed noise was 8.89% cold and 7.87% warm. These are initial
+operating limits, not statistical confidence intervals. New workloads require
+calibration before they enter the target branch's comparison suite. Threshold
+changes should include their supporting unchanged-code measurements.
+
+To prevent merging failed checks, require `Compare decoder performance` in the
+repository's branch rules for `tabula-rasa`, and later for `master`. The workflow
+already compares against each PR's target branch. An absent benchmark suite is
+reported without a verdict, allowing the initial rewrite to merge into `master`.
 
 The comparison runner is PHP (`.github/ci/performance.php`); its calculation and
 invalid-output tests run with PHPUnit, and a deterministic shell check verifies

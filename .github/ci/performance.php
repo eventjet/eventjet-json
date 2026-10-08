@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use Eventjet\Json\Ci\PerformanceGate;
 use Eventjet\Json\Ci\PerformanceResults;
 
 require __DIR__ . '/PerformanceResults.php';
+require __DIR__ . '/PerformanceGate.php';
 
 // This runner targets the same Linux environment as the Performance workflow.
 // GNU timeout bounds each subprocess; the workflow also bounds the entire job.
@@ -189,5 +191,21 @@ if ($metadata['workloads_changed']) {
     }
     $measure('candidate', 'candidate-workloads');
 }
-writeJson($results . '/results.json', ['metadata' => $metadata, ...$experiments]);
-publish($results, PerformanceResults::report($metadata, $experiments['comparison'], $experiments['calibration']));
+$thresholdJson = file_get_contents(__DIR__ . '/performance-thresholds.json');
+if ($thresholdJson === false) {
+    throw new RuntimeException('Cannot read performance thresholds');
+}
+$thresholds = PerformanceGate::thresholds($thresholdJson);
+$verdicts = PerformanceGate::evaluate($experiments['comparison'], $experiments['calibration'], $thresholds);
+writeJson($results . '/results.json', [
+    'metadata' => $metadata,
+    ...$experiments,
+    'thresholds' => $thresholds,
+    'verdicts' => $verdicts,
+]);
+publish(
+    $results,
+    PerformanceResults::report($metadata, $experiments['comparison'], $experiments['calibration'])
+        . PerformanceGate::report($verdicts, $thresholds),
+);
+exit(count(array_filter($verdicts, static fn(string $verdict): bool => $verdict !== 'pass')) > 0 ? 1 : 0);

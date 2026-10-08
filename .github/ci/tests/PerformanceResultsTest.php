@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Ci\Test;
 
+use Eventjet\Json\Ci\PerformanceGate;
 use Eventjet\Json\Ci\PerformanceResults;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -11,6 +12,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../PerformanceResults.php';
+require_once __DIR__ . '/../PerformanceGate.php';
 
 #[CoversNothing]
 final class PerformanceResultsTest extends TestCase
@@ -55,6 +57,79 @@ final class PerformanceResultsTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         PerformanceResults::summarize([[PerformanceResults::samples(self::XML), []]]);
+    }
+
+    /**
+     * @param list<float> $changes
+     * @param 'pass'|'regression'|'inconclusive' $expected
+     */
+    #[DataProvider('gateCases')]
+    public function testGateRequiresRepeatableMeaningfulChanges(
+        array $changes,
+        float $baselineTime,
+        float $noise,
+        bool $calibrated,
+        string $expected,
+    ): void {
+        $sample = static fn(float $time): array => ['case' => ['time_us' => [$time, $time], 'peak_bytes' => 1024]];
+        $baseline = $sample($baselineTime);
+        $pairs = [];
+        foreach ($changes as $change) {
+            $pairs[] = [$baseline, $sample($baselineTime + (($baselineTime * $change) / 100))];
+        }
+        $comparison = PerformanceResults::summarize($pairs);
+        $calibration = PerformanceResults::summarize(array_fill(0, 3, [
+            $baseline,
+            $sample($baselineTime + (($baselineTime * $noise) / 100)),
+        ]));
+        $thresholds = $calibrated ? ['case' => 10.0] : [];
+        self::assertSame(['case' => $expected], PerformanceGate::evaluate($comparison, $calibration, $thresholds));
+        self::assertStringContainsString('| ' . $expected . ' |', PerformanceGate::report([
+            'case' => $expected,
+        ], $thresholds));
+    }
+
+    /** @return iterable<string, array{list<float>, float, float, bool, string}> */
+    public static function gateCases(): iterable
+    {
+        yield 'exact threshold' => [[10.0, 10.0, 10.0], 100.0, 0.0, true, 'pass'];
+        yield 'exact noise limit' => [[0.0, 0.0, 0.0], 100.0, 5.0, true, 'pass'];
+        yield 'unchanged' => [[0.0, 0.0, 0.0], 100.0, 0.0, true, 'pass'];
+        yield 'improvement' => [[-20.0, -30.0, -25.0], 100.0, 0.0, true, 'pass'];
+        yield 'below relative limit' => [[5.0, 5.0, 5.0], 100.0, 0.0, true, 'pass'];
+        yield 'small absolute regression' => [[20.0, 30.0, 25.0], 1.0, 0.0, true, 'regression'];
+        yield 'repeatable regression' => [[20.0, 30.0, 25.0], 100.0, 0.0, true, 'regression'];
+        yield 'one slow pair' => [[20.0, 0.0, 0.0], 100.0, 0.0, true, 'inconclusive'];
+        yield 'two slow pairs' => [[20.0, 30.0, 0.0], 100.0, 0.0, true, 'inconclusive'];
+        yield 'noisy calibration' => [[20.0, 30.0, 25.0], 100.0, 6.0, true, 'inconclusive'];
+        yield 'negative calibration noise' => [[0.0, 0.0, 0.0], 100.0, -6.0, true, 'inconclusive'];
+        yield 'uncalibrated workload' => [[0.0, 0.0, 0.0], 100.0, 0.0, false, 'inconclusive'];
+        yield 'missing pair' => [[20.0, 30.0], 100.0, 0.0, true, 'inconclusive'];
+    }
+
+    public function testParsesThresholds(): void
+    {
+        self::assertSame(['case' => 10.0], PerformanceGate::thresholds('{"case":10}'));
+    }
+
+    #[DataProvider('invalidThresholds')]
+    public function testRejectsInvalidThresholds(string $json): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        PerformanceGate::thresholds($json);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function invalidThresholds(): iterable
+    {
+        yield 'empty' => ['{}'];
+        yield 'scalar' => ['true'];
+        yield 'invalid entry' => ['{"case":[]}'];
+        yield 'missing limit' => ['{"case":null}'];
+        yield 'string limit' => ['{"case":"10"}'];
+        yield 'zero limit' => ['{"case":0}'];
+        yield 'negative limit' => ['{"case":-1}'];
+        yield 'infinite limit' => ['{"case":1e999}'];
     }
 
     #[DataProvider('invalidOutput')]
