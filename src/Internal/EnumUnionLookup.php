@@ -56,11 +56,21 @@ final readonly class EnumUnionLookup
     /** @param class-string $class */
     private function convert(string $class, mixed $value, string $path): BackedEnum|DecodeError|null
     {
-        $enums = $this->enums[get_debug_type($value)] ?? null;
+        $valueType = get_debug_type($value);
+        $enums = $this->enums[$valueType] ?? null;
         if ($enums === null) {
             return null;
         }
-        return $this->find($value) ?? BackedEnumValueConverter::unknownUnionValue($class, $path, $enums, $value);
+        // Only int and string backing types have entries in the enum lookup.
+        /** @var int|string $value */
+        return (
+            $this->cases[$valueType][$value] ?? BackedEnumValueConverter::unknownUnionValue(
+                $class,
+                $path,
+                $enums,
+                $value,
+            )
+        );
     }
 
     public function find(mixed $value): BackedEnum|null
