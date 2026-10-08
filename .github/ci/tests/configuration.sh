@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Exercise the real runner with deterministic PHPBench output, without timing noise.
-runner="$(cd "$(dirname "$0")/.." && pwd)/performance.php"
+# Use PHPBench's deterministic executor to test the real assertion and exit status.
+project=$(cd "$(dirname "$0")/../../.." && pwd)
+runner="$project/.github/ci/performance.php"
+export PERFORMANCE_TEST_PHPBENCH="$project/vendor/bin/phpbench"
 fixture=$(mktemp -d)
 trap 'rm -rf -- "$fixture"' EXIT
 unset GIT_DIR GIT_WORK_TREE
@@ -11,95 +13,77 @@ git init --quiet
 git config user.name 'Performance configuration test'
 git config user.email 'performance-test@example.invalid'
 mkdir -p src benchmarks tests vendor/bin vendor/composer
-touch src/placeholder benchmarks/placeholder tests/placeholder
+printf '100\n' > src/time.txt
+touch tests/placeholder
 printf '%s\n' '{"name":"test/performance","autoload":{}}' > composer.json
 printf '%s\n' '{"packages":[]}' > vendor/composer/installed.json
-printf '%s\n' '{"runner.path":"baseline","runner.php_config":{"serialize_precision":"7","pcov.enabled":"1"}}' > phpbench.json
+printf '%s\n' '{"runner.path":"benchmarks","runner.php_config":{"serialize_precision":"7","pcov.enabled":"1"}}' > phpbench.json
+cat > benchmarks/ExampleBench.php <<'PHP'
+<?php
+final class ExampleBench
+{
+    public function benchExample(): void {}
+}
+PHP
 git add src benchmarks tests composer.json phpbench.json
 git commit --quiet -m baseline
 baseline=$(git rev-parse HEAD)
-printf '%s\n' '{"runner.path":"candidate","runner.php_config":{"serialize_precision":"9","pcov.enabled":"1"}}' > phpbench.json
+printf '%s\n' '{"runner.path":"benchmarks","runner.php_config":{"serialize_precision":"9","pcov.enabled":"1"}}' > phpbench.json
 git add phpbench.json
 git commit --quiet -m candidate
 candidate=$(git rev-parse HEAD)
-# Neither measured revision should use the current working tree's configuration.
 printf '%s\n' '{"runner.path":"uncommitted"}' > phpbench.json
 
 cat > vendor/bin/phpbench <<'PHP'
 <?php
 declare(strict_types=1);
 $config = json_decode(file_get_contents('phpbench.json'), true, flags: JSON_THROW_ON_ERROR);
-$path = $config['runner.path'];
-if (!in_array($path, ['baseline', 'candidate'], true)) {
-    throw new RuntimeException('Configuration did not come from a measured revision');
-}
-if ($config['runner.php_config']['serialize_precision'] !== ($path === 'baseline' ? '7' : '9')) {
-    throw new RuntimeException('Workload-specific PHP settings were lost');
+$candidateSuite = in_array('--dump-file=../results/candidate-workloads.xml', $argv, true);
+if ($config['runner.path'] !== 'benchmarks'
+    || $config['runner.php_config']['serialize_precision'] !== ($candidateSuite ? '9' : '7')) {
+    throw new RuntimeException('Workload configuration was not isolated');
 }
 foreach (['pcov.enabled', 'opcache.enable_cli', 'opcache.jit'] as $setting) {
     if ($config['runner.php_config'][$setting] !== '0') {
         throw new RuntimeException('Controlled PHP settings were lost');
     }
 }
-$dumpFile = null;
-foreach ($argv as $argument) {
-    if (str_starts_with($argument, '--dump-file=')) {
-        $dumpFile = substr($argument, strlen('--dump-file='));
-    }
-}
-if ($dumpFile === null) {
-    throw new RuntimeException('No dump file was requested');
-}
-$time = 100;
-if (getenv('PERFORMANCE_TEST_REGRESSION') === '1' && str_contains($dumpFile, 'comparison-') && str_ends_with($dumpFile, '-b.xml')) {
-    $time = 200;
-}
-if (getenv('PERFORMANCE_TEST_NOISE') === '1' && str_contains($dumpFile, 'calibration-') && str_ends_with($dumpFile, '-b.xml')) {
-    $time = 200;
-}
-$iterations = str_repeat('<iteration time-net="' . $time . '" mem-peak="1024"/>', 5);
-file_put_contents($dumpFile, '<phpbench><suite><benchmark class="\Eventjet\Json\Benchmark\DecodeBench">'
-    . '<subject name="' . ($path === 'baseline' ? 'benchWarm' : $path) . '"><variant revs="10"><parameter-set name="scalar object"/>'
-    . $iterations . '</variant></subject></benchmark></suite></phpbench>');
+$time = (int) trim(file_get_contents('src/time.txt'));
+$arguments = [PHP_BINARY, getenv('PERFORMANCE_TEST_PHPBENCH'), ...array_slice($argv, 1),
+    '--executor=' . json_encode(['executor' => 'debug', 'times' => [$time]])];
+passthru(implode(' ', array_map(escapeshellarg(...), $arguments)), $status);
+exit($status);
 PHP
 
-if ! php "$runner" --base "$baseline" --candidate "$candidate" > runner.log 2>&1; then
-    cat runner.log
+check_run() {
+    local expected=$1 name=$2 status=0
+    php "$runner" --base "$baseline" --candidate "$candidate" > "$name.log" 2>&1 || status=$?
+    if [ "$status" -ne "$expected" ]; then
+        cat "$name.log"
+        echo "Expected status $expected, got $status for $name"
+        exit 1
+    fi
+    test -s .perf/results/baseline.xml
+    test -s .perf/results/candidate.xml
+    test -s .perf/results/candidate.txt
+    test -s .perf/results/summary.md
+    test -s .perf/results/candidate-workloads.xml
+    mv .perf "$name-results"
+}
+check_run 0 unchanged
+for entry in '50 improvement 0' '104 below-limit 0' '105 at-limit 0' '106 regression 2'; do
+    read -r time name expected <<< "$entry"
+    printf '%s\n' "$time" > src/time.txt
+    git add src/time.txt
+    git commit --quiet -m "$name"
+    candidate=$(git rev-parse HEAD)
+    check_run "$expected" "$name"
+done
+if ! grep -Fq 'PHPBench assertions failed' regression-results/results/summary.md; then
+    cat regression.log
     exit 1
 fi
-php <<'PHP'
-<?php
-declare(strict_types=1);
-$results = json_decode(file_get_contents('.perf/results/results.json'), true, flags: JSON_THROW_ON_ERROR);
-foreach (['calibration', 'comparison'] as $experiment) {
-    if (array_keys($results[$experiment]) !== ['\Eventjet\Json\Benchmark\DecodeBench / benchWarm / scalar object']) {
-        throw new RuntimeException('The comparison did not freeze baseline configuration');
-    }
-}
-$xml = file_get_contents('.perf/results/candidate-workloads.xml');
-if (!str_contains($xml, 'name="candidate"') || str_contains($xml, 'name="baseline"')) {
-    throw new RuntimeException('The separate candidate run did not use candidate configuration');
-}
-echo "Baseline and candidate configuration isolation passed.\n";
-PHP
-
-mv .perf successful-comparison
-for mode in REGRESSION NOISE; do
-    if env "PERFORMANCE_TEST_$mode=1" php "$runner" --base "$baseline" --candidate "$candidate" > "$mode.log" 2>&1; then
-        echo "Expected $mode to block the gate"
-        exit 1
-    fi
-    verdict=regression
-    if [ "$mode" = NOISE ]; then verdict=inconclusive; fi
-    if ! grep -Fq "| $verdict |" .perf/results/summary.md; then
-        cat "$mode.log"
-        echo "Missing $verdict verdict"
-        exit 1
-    fi
-    test -f .perf/results/results.json
-    mv .perf "$mode-comparison"
-done
-echo 'Regression and noise gate exit statuses passed.'
+echo 'Native PHPBench assertions, boundaries, configuration isolation, and failure artifacts passed.'
 
 # Failed subprocesses must retain stdout diagnostics as well as forwarded stderr.
 cat > vendor/bin/phpbench <<'PHP'

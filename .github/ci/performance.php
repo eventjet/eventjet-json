@@ -2,16 +2,13 @@
 
 declare(strict_types=1);
 
-use Eventjet\Json\Ci\PerformanceGate;
-use Eventjet\Json\Ci\PerformanceResults;
-
-require __DIR__ . '/PerformanceResults.php';
-require __DIR__ . '/PerformanceGate.php';
-
 // This runner targets the same Linux environment as the Performance workflow.
 // GNU timeout bounds each subprocess; the workflow also bounds the entire job.
-/** @param non-empty-list<string> $arguments */
-function command(array $arguments, string|null $directory = null): string
+/**
+ * @param non-empty-list<string> $arguments
+ * @return array{output: string, status: int}
+ */
+function execute(array $arguments, string|null $directory = null): array
 {
     $process = proc_open(
         ['timeout', '90', ...$arguments],
@@ -26,12 +23,22 @@ function command(array $arguments, string|null $directory = null): string
     $output = stream_get_contents($pipes[1]);
     fclose($pipes[1]);
     $status = proc_close($process);
-    if ($status !== 0 || $output === false) {
+    if ($output === false) {
+        throw new RuntimeException('Cannot read command output');
+    }
+    return ['output' => $output, 'status' => $status];
+}
+
+/** @param non-empty-list<string> $arguments */
+function command(array $arguments, string|null $directory = null): string
+{
+    $result = execute($arguments, $directory);
+    if ($result['status'] !== 0) {
         throw new RuntimeException(
-            'Command failed (' . $status . '): ' . implode(' ', $arguments) . "\n" . ($output === false ? '' : $output),
+            'Command failed (' . $result['status'] . '): ' . implode(' ', $arguments) . "\n" . $result['output'],
         );
     }
-    return $output;
+    return $result['output'];
 }
 
 function git(string ...$arguments): string
@@ -152,37 +159,51 @@ configureWorkloads($base, $workspace);
 foreach (['benchmarks', 'tests'] as $name) {
     command(['cp', '-a', $output . '/baseline/' . $name, $workspace . '/' . $name]);
 }
-$measure = static function (string $version, string $name) use ($workspace, $output, $results): array {
+$measure = static function (string $version, string $name, bool $compare = false) use (
+    $workspace,
+    $output,
+    $results,
+): int {
     command(['rm', '-rf', '--', $workspace . '/src']);
     command(['cp', '-a', $output . '/' . $version . '/src', $workspace . '/src']);
     command(['composer', 'dump-autoload', '--optimize', '--no-interaction'], $workspace);
-    command([
+    $arguments = [
         PHP_BINARY,
         'vendor/bin/phpbench',
         'run',
-        '--iterations=5',
+        '--iterations=20',
         '--progress=none',
+        '--report=aggregate',
         '--dump-file=../results/' . $name . '.xml',
-    ], $workspace);
-    $xml = file_get_contents($results . '/' . $name . '.xml');
-    if ($xml === false) {
-        throw new RuntimeException('Cannot read benchmark output: ' . $name);
+    ];
+    if ($compare) {
+        $arguments[] = '--file=../results/baseline.xml';
+        $arguments[] = '--assert=mode(variant.time.avg) <= mode(baseline.time.avg) * 1.05';
     }
-    return PerformanceResults::samples($xml);
+    $result = execute($arguments, $workspace);
+    file_put_contents($results . '/' . $name . '.txt', $result['output']);
+    echo $result['output'];
+    if ($result['status'] !== 0 && (!$compare || $result['status'] !== 2)) {
+        throw new RuntimeException('Command failed (' . $result['status'] . "): PHPBench\n" . $result['output']);
+    }
+    return $result['status'];
 };
-$experiments = [];
-foreach (['calibration', 'comparison'] as $experiment) {
-    $pairs = [];
-    for ($index = 0; $index < 3; ++$index) {
-        $pair = [];
-        foreach (($index % 2) === 0 ? ['a', 'b'] : ['b', 'a'] as $side) {
-            $version = $experiment === 'comparison' && $side === 'b' ? 'candidate' : 'baseline';
-            $pair[$side] = $measure($version, "$experiment-$index-$side");
-        }
-        $pairs[] = [$pair['a'], $pair['b']];
-    }
-    $experiments[$experiment] = PerformanceResults::summarize($pairs);
+$measure('baseline', 'baseline');
+$status = $measure('candidate', 'candidate', true);
+$report = file_get_contents($results . '/candidate.txt');
+if ($report === false) {
+    throw new RuntimeException('Cannot read PHPBench report');
 }
+publish(
+    $results,
+    "## Performance comparison\n\nBaseline: `$base`. Candidate: `$candidate`.\n\n"
+    . ($status === 0 ? 'PHPBench assertions passed.' : 'PHPBench assertions failed: performance regression.')
+    . " PHPBench mode time per decode must be at most 105% of the target's mode for every workload.\n\n"
+    . "Both versions use the target's workloads, configuration, and the same installed dependencies on this runner. "
+    . "Cold and warm workloads retain their own warmup and revolution settings. Memory is advisory.\n\n```text\n"
+    . $report
+    . "\n```\n",
+);
 if ($metadata['workloads_changed']) {
     configureWorkloads($candidate, $workspace);
     foreach (['benchmarks', 'tests'] as $name) {
@@ -191,21 +212,4 @@ if ($metadata['workloads_changed']) {
     }
     $measure('candidate', 'candidate-workloads');
 }
-$thresholdJson = file_get_contents(__DIR__ . '/performance-thresholds.json');
-if ($thresholdJson === false) {
-    throw new RuntimeException('Cannot read performance thresholds');
-}
-$thresholds = PerformanceGate::thresholds($thresholdJson);
-$verdicts = PerformanceGate::evaluate($experiments['comparison'], $experiments['calibration'], $thresholds);
-writeJson($results . '/results.json', [
-    'metadata' => $metadata,
-    ...$experiments,
-    'thresholds' => $thresholds,
-    'verdicts' => $verdicts,
-]);
-publish(
-    $results,
-    PerformanceResults::report($metadata, $experiments['comparison'], $experiments['calibration'])
-        . PerformanceGate::report($verdicts, $thresholds),
-);
-exit(count(array_filter($verdicts, static fn(string $verdict): bool => $verdict !== 'pass')) > 0 ? 1 : 0);
+exit($status);

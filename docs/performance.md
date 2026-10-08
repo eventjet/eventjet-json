@@ -58,49 +58,46 @@ dependency upgrades. A changed candidate benchmark suite also runs separately
 with its own configuration. An absent baseline suite is reported explicitly,
 without a regression verdict.
 
-The workflow alternates baseline/candidate order across three pairs, takes five
-iterations per invocation, and runs three additional unchanged-code pairs to
-estimate noise. Its summary separates cold and warm workloads and shows timing,
-variation, paired percentage changes, and process peak memory. Raw samples,
-environment details, commit IDs, and an installed-dependency fingerprint are archived for history.
-The gate compares percentage slowdowns against per-workload limits in
-[performance-thresholds.json](../.github/ci/performance-thresholds.json). It uses
-fresh target and candidate measurements, with no stored timing baseline or
-minimum increase in microseconds. All three pairs must exceed the limit to
-confirm a regression. Zero pairs above the limit passes; one or two is
-inconclusive. An unchanged-code pair exceeding half the workload's limit, an
-uncalibrated workload, or an incomplete comparison is also inconclusive.
-Regressions and inconclusive results both fail the check, with distinct verdicts
-in the summary and archived JSON. Rerun an inconclusive measurement; investigate
-persistent noise instead of raising thresholds to make a PR pass. Memory remains
-advisory. Benchmark errors and the five-minute job limit still fail CI.
+The gate uses PHPBench's native baseline comparison and assertion:
 
-Initial percentage limits are twice the largest absolute unchanged-code paired
-percentage change for each workload, rounded up to a whole percentage point,
-with a minimum of 10% for cold workloads and 5% for warm workloads. Calibration
-used these three runs on October 8, 2026:
+```text
+--file=../results/baseline.xml
+--assert="mode(variant.time.avg) <= mode(baseline.time.avg) * 1.05"
+```
 
-- [37757475516](https://github.com/eventjet/eventjet-json/actions/runs/37757475516)
-- [37758616828](https://github.com/eventjet/eventjet-json/actions/runs/37758616828)
-- [37759949811](https://github.com/eventjet/eventjet-json/actions/runs/37759949811)
+Each version runs 20 iterations per workload, preserving cold/warm revolution
+and warmup settings. PHPBench estimates the mode of per-decode times and fails
+with exit code 2 when any workload is more than 5% slower than its freshly
+measured target baseline. There is no stored timing baseline, minimum increase
+in microseconds, custom verdict engine, or automatic retry-until-pass policy.
+Memory remains advisory. Raw XML, PHPBench's aggregate report, commit IDs,
+CPU information, and a dependency fingerprint are archived even on assertion
+failure. A changed candidate workload suite runs separately without a baseline
+assertion, since its workloads are not comparable.
 
-The largest observed noise was 8.89% cold and 7.87% warm. These are initial
-operating limits, not statistical confidence intervals. New workloads require
-calibration before they enter the target branch's comparison suite. Threshold
-changes should include their supporting unchanged-code measurements.
+The 5% limit is a sensitivity target, not a guarantee against false positives.
+Changes to sampling or thresholds should be checked with unchanged-code runs on
+the CI runner. A consistently noisy benchmark needs more stable measurement,
+not a larger limit chosen just to pass a particular PR. The workflow retains
+its five-minute job limit and a 90-second limit per subprocess.
+
+The comparison runner is PHP (`.github/ci/performance.php`). PHPStan checks the
+orchestration code. A shell integration test exercises the real PHPBench CLI
+with its deterministic debug executor to verify improvements, threshold
+boundaries, regressions, configuration isolation, and failure artifacts:
+
+```bash
+docker compose exec php bash .github/ci/tests/configuration.sh
+```
+
+To run a comparison locally, use `php .github/ci/performance.php --base REF
+--candidate HEAD` in the project container with read access to the repository's
+Git metadata. Move or remove `.perf/` before another comparison.
 
 To prevent merging failed checks, require `Compare decoder performance` in the
 repository's branch rules for `tabula-rasa`, and later for `master`. The workflow
 already compares against each PR's target branch. An absent benchmark suite is
 reported without a verdict, allowing the initial rewrite to merge into `master`.
-
-The comparison runner is PHP (`.github/ci/performance.php`); its calculation and
-invalid-output tests run with PHPUnit, and a deterministic shell check verifies
-configuration isolation. The calculation contracts are checked by PHPStan with
-shared array-shape aliases in `phpstan.neon`. To run a comparison locally, use
-`php .github/ci/performance.php --base REF --candidate HEAD` in a Linux environment
-with PHP, Composer, Git, and GNU coreutils available (such as the project container).
-Move or remove `.perf/` before another comparison.
 
 Compare the same workloads, PHP settings, and dependencies on the same host;
 review measurement variation along with percentage changes. PHPUnit retains
