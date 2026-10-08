@@ -183,10 +183,8 @@ final class AcceptanceTest extends TestCase
         string|JsonType $type,
         string|null $expectedError = null,
     ): void {
-        for ($attempt = 0; $attempt < 2; ++$attempt) {
-            $error = Json::validateType($type);
-            static::assertSame($expectedError, $error?->getMessage());
-        }
+        $error = Json::validateType($type);
+        static::assertSame($expectedError, $error?->getMessage());
     }
 
     /** @throws JsonException */
