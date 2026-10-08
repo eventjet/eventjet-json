@@ -108,6 +108,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(DecodeError::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
 #[CoversClass(EnumFieldTypes::class)]
+#[CoversClass(\Eventjet\Json\Internal\EnumUnionLookup::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(CollectionUnionValueConverter::class)]
 #[CoversClass(CollectionUnionShapeValidator::class)]
