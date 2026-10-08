@@ -54,6 +54,9 @@ final class ListValueConverter
         string|CollectionUnionType|NestedCollectionType $itemType,
         array $value,
     ): array|DecodeError {
+        if ($value === []) {
+            return [];
+        }
         if (is_string($itemType) && !enum_exists($itemType) && class_exists($itemType)) {
             return self::convertObjects($class, $path, $itemType, $value);
         }
