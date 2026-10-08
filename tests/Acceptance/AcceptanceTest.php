@@ -82,6 +82,7 @@ use Eventjet\Json\Test\Acceptance\Cases\ConstructorDefaultCases;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\ParserSyntaxCases;
 use Eventjet\Json\Test\Acceptance\Cases\RoundTripCases;
+use Eventjet\Json\Test\Acceptance\Cases\UnknownFieldCases;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
@@ -188,12 +189,33 @@ final class AcceptanceTest extends TestCase
         JsonType|Closure|null $type = null,
     ): void {
         $json ??= json_encode($original, JSON_THROW_ON_ERROR);
+
         $decoded = self::decodeOriginal($json, $original, $type instanceof Closure ? $type() : $type);
+
         static::assertEquals($original, $decoded);
         static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
     }
 
+    /**
+     * @param class-string $class
+     * @param callable(object): bool $isFullyHydrated
+     * @throws JsonException
+     */
+    #[DataProviderExternal(\Eventjet\Json\Test\Acceptance\Cases\SupportedDocumentRoundTripCases::class, 'objects')]
+    public function testSupportedDocumentIsFullyHydratedAndRoundTrips(
+        string $json,
+        string $class,
+        callable $isFullyHydrated,
+    ): void {
+        $decoded = Json::decode($json, $class);
+
+        static::assertFalse($decoded instanceof DecodeError);
+        static::assertTrue($isFullyHydrated($decoded));
+        static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
+    }
+
     #[DataProviderExternal(ConstructorDefaultCases::class, 'objects')]
+    #[DataProviderExternal(UnknownFieldCases::class, 'objects')]
     public function testDecodeReturnsExpectedObject(string $json, object $expected): void
     {
         $decoded = Json::decode($json, $expected::class);

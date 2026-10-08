@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 
 /** @internal */
@@ -18,6 +20,12 @@ final class EnumsErrorCases
      */
     public static function errors(): iterable
     {
+        yield 'integer enum wrong backing' => [
+            '[["1"]]',
+            JsonType::array(JsonType::array(IntBackedStatus::class)),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus from the JSON object: Field [0][0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus, which expects a int backing value; string given.',
+            3,
+        ];
         yield 'non-backed enum root target' => [
             '{}',
             NonBackedStatus::class,

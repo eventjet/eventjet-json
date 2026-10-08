@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Eventjet\Json\Ci\Test;
 
 use Eventjet\Json\Ci\PerformanceResults;
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../PerformanceResults.php';
@@ -35,5 +37,69 @@ final class PerformanceResultsTest extends TestCase
         self::assertEqualsWithDelta(9.9585919546, $result['baseline_cv_percent'], 0.000001);
         self::assertEqualsWithDelta($result['baseline_cv_percent'], $result['candidate_cv_percent'], 0.000001);
         self::assertSame(0.0, PerformanceResults::summarize([[$baseline, $baseline]])[$key]['change_percent']);
+    }
+
+    public function testUsesMedianOfPairedChanges(): void
+    {
+        $sample = static fn(float $time): array => ['case' => ['time_us' => [$time, $time], 'peak_bytes' => 1024]];
+        $result = PerformanceResults::summarize([
+            [$sample(10), $sample(20)],
+            [$sample(100), $sample(50)],
+            [$sample(1000), $sample(1250)],
+        ])['case'];
+        self::assertSame([100.0, -50.0, 25.0], $result['paired_changes_percent']);
+        self::assertSame(25.0, $result['change_percent']);
+    }
+
+    public function testRejectsMissingCases(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        PerformanceResults::summarize([[PerformanceResults::samples(self::XML), []]]);
+    }
+
+    #[DataProvider('invalidOutput')]
+    public function testRejectsInvalidOutput(string $xml): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        PerformanceResults::samples($xml);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function invalidOutput(): iterable
+    {
+        yield 'empty' => ['<phpbench/>'];
+        yield 'error' => ['<phpbench><error/></phpbench>'];
+        yield 'failure' => ['<phpbench><failure/></phpbench>'];
+        yield 'malformed' => ['<phpbench>'];
+        yield 'zero revolutions' => [str_replace('revs="10"', 'revs="0"', self::XML)];
+        yield 'zero time' => [str_replace('time-net="100"', 'time-net="0"', self::XML)];
+        yield 'non-finite time' => [str_replace('time-net="100"', 'time-net="1e999"', self::XML)];
+        yield 'missing memory' => [str_replace(' mem-peak="1024"', '', self::XML)];
+        yield 'no iterations' => [str_replace(
+            '<iteration time-net="100" mem-peak="1024"/><iteration time-net="120" mem-peak="2048"/>',
+            '',
+            self::XML,
+        )];
+        yield 'duplicate' => [str_replace(
+            '</suite>',
+            substr(self::XML, strlen('<phpbench><suite>'), -strlen('</suite></phpbench>')) . '</suite>',
+            self::XML,
+        )];
+    }
+
+    public function testReportIncludesNoiseMemoryAndChangedWorkloads(): void
+    {
+        $baseline = PerformanceResults::samples(self::XML);
+        $comparison = PerformanceResults::summarize([[$baseline, $baseline]]);
+        $text = PerformanceResults::report(
+            ['baseline' => 'aaa', 'candidate' => 'bbb', 'workloads_changed' => true],
+            $comparison,
+            $comparison,
+        );
+        self::assertStringContainsString('Baseline: `aaa`. Candidate: `bbb`.', $text);
+        self::assertStringContainsString('| Decoder / warm / objects | 11.00 | 11.00 | +0.0%', $text);
+        self::assertStringContainsString('A/A max absolute change', $text);
+        self::assertStringContainsString('Peak MiB base / candidate', $text);
+        self::assertStringContainsString('candidate-workloads.xml', $text);
     }
 }

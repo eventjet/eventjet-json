@@ -15,6 +15,12 @@ final class DecodeErrorCases
      */
     public static function errors(): iterable
     {
+        yield from QuotedKeyErrorCases::errors();
+        yield from RootShapeErrorCases::errors();
+        yield from TupleValidationErrorCases::errors();
+        yield from ScalarValidationErrorCases::errors();
+        yield from ConstructionErrorCases::errors();
+        yield from JsonInputErrorCases::errors();
         yield from TuplesErrorCases::errors();
         yield from NestedValuesErrorCases::errors();
         yield from UnionsErrorCases::errors();
