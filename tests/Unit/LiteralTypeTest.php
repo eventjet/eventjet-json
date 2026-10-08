@@ -28,6 +28,8 @@ use Eventjet\Json\Internal\PhpDocUnionTypeResolver;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionNamedType;
@@ -62,6 +64,19 @@ use const PHP_INT_MIN;
 #[UsesClass(MetadataCache::class)]
 final class LiteralTypeTest extends TestCase
 {
+    /** @throws \ReflectionException */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testPlainScalarPhpDocDoesNotLoadItemResolution(): void
+    {
+        $object = new class {
+            /** @var float */
+            public float $value = 1.0;
+        };
+        static::assertNull(PhpDocLiteralField::resolve(new ReflectionProperty($object, 'value')));
+        static::assertFalse(class_exists(PhpDocItemTypeResolver::class, autoload: false));
+    }
+
     /** @throws \ReflectionException */
     public function testOrdinaryPhpDocDoesNotConstrainScalarValues(): void
     {

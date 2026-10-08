@@ -10,6 +10,7 @@ use function ltrim;
 use function preg_match;
 use function preg_replace;
 use function str_contains;
+use function strcasecmp;
 use function strtolower;
 use function trim;
 
@@ -19,8 +20,11 @@ final class PhpDocImportStatement
     /** @return array<string, string> */
     public static function parse(string $statement, PhpDocImportKind $kind = PhpDocImportKind::ClassName): array
     {
-        $isNonClassImport = preg_match('/\A\s*(?:function|const)\s/i', $statement) === 1;
-        $isConstantImport = preg_match('/\A\s*const\s/i', $statement) === 1;
+        $importPrefix = [];
+        $isNonClassImport = preg_match('/\A\s*(function|const)\s/i', $statement, $importPrefix) === 1;
+        $importPrefix += [1 => ''];
+        /** @var array{0?: string, 1: string} $importPrefix */
+        $isConstantImport = strcasecmp($importPrefix[1], 'const') === 0;
         $selected = $kind === PhpDocImportKind::Constant ? $isConstantImport : !$isNonClassImport;
         if (!$selected && ($isNonClassImport || !str_contains($statement, '{'))) {
             return [];

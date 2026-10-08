@@ -96,7 +96,7 @@ use function spl_autoload_unregister;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocFieldType::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionTypeResolver::class)]
@@ -104,6 +104,7 @@ use function spl_autoload_unregister;
 #[UsesClass(\Eventjet\Json\Internal\NestedCollectionTypeResolver::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocItemTypeResolver::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocType::class)]
+#[UsesClass(\Eventjet\Json\Internal\ConcreteClassValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTypeParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTokens::class)]
 #[UsesClass(\Eventjet\Json\Internal\ScalarListValueConverter::class)]
@@ -172,6 +173,16 @@ final class AutoloadingTest extends TestCase
         static::assertEquals($collection, ObjectHydrator::hydrate($collection::class, $collectionInput));
         static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralField::class, autoload: false));
         static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteral::class, autoload: false));
+        $ordinary = new class(new EmptyObject()) {
+            /** @param \Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject $object */
+            public function __construct(
+                public EmptyObject $object,
+            ) {}
+        };
+        $ordinaryInput = new stdClass();
+        $ordinaryInput->object = new stdClass();
+        static::assertEquals($ordinary, ObjectHydrator::hydrate($ordinary::class, $ordinaryInput));
+        static::assertFalse(class_exists(PhpDocClassNameResolver::class, autoload: false));
     }
 
     /**
