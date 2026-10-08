@@ -10,7 +10,10 @@ use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
+use Eventjet\Json\Internal\ConstructorPlanBuilder;
 use Eventjet\Json\Internal\ConstructorValueValidator;
+use Eventjet\Json\Internal\FieldNameCollisions;
+use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
@@ -58,6 +61,9 @@ use function spl_autoload_unregister;
 #[UsesClass(MetadataCache::class)]
 #[UsesClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
+#[UsesClass(FieldNames::class)]
+#[UsesClass(ConstructorPlanBuilder::class)]
+#[UsesClass(FieldNameCollisions::class)]
 final class AutoloadingTest extends TestCase
 {
     /** @throws ReflectionException */

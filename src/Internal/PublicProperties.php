@@ -13,13 +13,13 @@ use ReflectionProperty;
 /** @internal */
 final class PublicProperties
 {
-    /** @var array<class-string, array<string, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>> */
+    /** @var array<class-string, array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>> */
     private static array $properties = [];
 
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array<string, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>|DecodeError
+     * @return array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>|DecodeError
      * @phpstan-impure
      * @throws ReflectionException
      */
@@ -31,6 +31,10 @@ final class PublicProperties
             return $cached;
         }
 
+        $names = FieldNames::resolve($class);
+        if ($names instanceof DecodeError) {
+            return $names;
+        }
         $constructorFields = [];
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $constructorFields[$parameter->getName()] = true;
@@ -52,7 +56,7 @@ final class PublicProperties
                 && $declaredType->getName() !== 'array'
                     ? $declaredType
                     : null;
-            $properties[$property->getName()] = [
+            $properties[$names[$property->getName()] ?? $property->getName()] = [
                 'property' => $property,
                 'converter' => $type,
                 'builtinType' => $builtinType,

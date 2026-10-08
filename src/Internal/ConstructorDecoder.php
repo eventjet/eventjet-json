@@ -9,19 +9,17 @@ use JsonException;
 use ReflectionClass;
 use ReflectionException;
 
-use function array_key_exists;
-
 /** @internal */
 final class ConstructorDecoder
 {
-    /** @var array<class-string, ConstructorPlan> */
+    /** @var array<class-string, ConstructorPlan|MappedConstructorPlan> */
     private static array $plans = [];
 
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values
-     * @return array<string, mixed>|DecodeError
+     * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
      * @phpstan-impure
      * @throws ReflectionException
      * @throws JsonException
@@ -35,38 +33,11 @@ final class ConstructorDecoder
             return $error ?? $plan->convert($values, $path);
         }
 
-        $fields = [];
-        $cacheable = true;
-        $converters = [];
-
-        foreach ($class->getConstructor()?->getParameters() ?? [] as $reflection) {
-            $parameter = new ConstructorParameter($reflection, $class);
-            $name = $parameter->name;
-            $resolved = $parameter->resolveType($className);
-            $cacheable = $cacheable && $resolved !== null;
-            $collection = $resolved === false ? null : $resolved;
-
-            if ($collection instanceof DecodeError) {
-                return $collection;
-            }
-
-            $converters[$name] = $parameter->builtin && $collection === null
-                ? null
-                : new FieldValueConverter($reflection, $collection);
-            $field = ConstructorValueValidator::forParameter($parameter, $values);
-            if ($field !== null) {
-                $fields[$name] = $field;
-                if (array_key_exists($name, $values)) {
-                    $error = $field->validate($className, $name, $values[$name], $path);
-                    if ($error !== null) {
-                        return $error;
-                    }
-                }
-            }
+        $plan = ConstructorPlanBuilder::build($class, $values, $path);
+        if ($plan instanceof DecodeError) {
+            return $plan;
         }
-
-        $plan = new ConstructorPlan($className, $fields, $converters);
-        if ($cacheable) {
+        if ($plan->cacheable) {
             self::$plans[$className] = $plan;
         }
         return $plan->convert($values, $path);

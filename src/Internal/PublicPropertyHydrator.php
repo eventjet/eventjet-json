@@ -16,7 +16,7 @@ final class PublicPropertyHydrator
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @param array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values
+     * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
      * @return list<array{property: ReflectionProperty, value: mixed}>|DecodeError
      * @throws JsonException
      * @throws ReflectionException
@@ -46,7 +46,11 @@ final class PublicPropertyHydrator
                     continue;
                 }
             }
-            $converted = $field['converter']->convert($class->getName(), $value, FieldPath::field($path, $inputField));
+            $converted = $field['converter']->convert(
+                $class->getName(),
+                $value,
+                FieldPath::field($path, (string) $inputField),
+            );
             if ($converted instanceof DecodeError) {
                 return $converted;
             }

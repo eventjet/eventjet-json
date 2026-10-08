@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use JsonSerializable;
 use ReflectionClass;
 use ReflectionEnum;
 
@@ -37,8 +36,9 @@ final class RootTypeValidator
             );
         }
 
-        if ($class->implementsInterface(JsonSerializable::class)) {
-            return DecodeError::jsonSerializableTarget($className);
+        $names = FieldNames::resolve($class);
+        if ($names instanceof DecodeError) {
+            return $names;
         }
 
         $constructor = $class->getConstructor();

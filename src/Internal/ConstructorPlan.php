@@ -15,13 +15,14 @@ final readonly class ConstructorPlan
 {
     /**
      * @param class-string $class
-     * @param array<string, ConstructorValueValidator> $fields
-     * @param array<string, FieldValueConverter|null> $converters
+     * @param array<array-key, ConstructorValueValidator> $fields
+     * @param array<array-key, FieldValueConverter|null> $converters
      */
     public function __construct(
         private string $class,
         private array $fields,
         private array $converters,
+        public bool $cacheable,
     ) {}
 
     /**
@@ -33,7 +34,7 @@ final readonly class ConstructorPlan
             if (!array_key_exists($name, $values)) {
                 continue;
             }
-            $error = $field->validate($this->class, $name, $values[$name], $path);
+            $error = $field->validate($this->class, (string) $name, $values[$name], $path);
             if ($error !== null) {
                 return $error;
             }
@@ -42,8 +43,8 @@ final readonly class ConstructorPlan
     }
 
     /**
-     * @param array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values
-     * @return array<string, mixed>|DecodeError
+     * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
+     * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
      * @throws JsonException
      * @throws ReflectionException
      */
@@ -56,7 +57,7 @@ final readonly class ConstructorPlan
             }
             $value = $values[$name];
             if ($converter !== null) {
-                $value = $converter->convert($this->class, $value, FieldPath::field($path, $name));
+                $value = $converter->convert($this->class, $value, FieldPath::field($path, (string) $name));
                 if ($value instanceof DecodeError) {
                     return $value;
                 }

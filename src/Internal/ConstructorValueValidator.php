@@ -19,15 +19,18 @@ final readonly class ConstructorValueValidator
     ) {}
 
     /** @param array<array-key, mixed> $values */
-    public static function forParameter(ConstructorParameter $parameter, array $values): self|null
-    {
+    public static function forParameter(
+        ConstructorParameter $parameter,
+        array $values,
+        string|null $inputName = null,
+    ): self|null {
         $type = $parameter->type;
         if (!$type instanceof ReflectionNamedType) {
             return null;
         }
         if (enum_exists(
             $parameter->typeName,
-            autoload: array_key_exists($parameter->name, $values) && !$parameter->builtin,
+            autoload: array_key_exists($inputName ?? $parameter->name, $values) && !$parameter->builtin,
         )) {
             return null;
         }

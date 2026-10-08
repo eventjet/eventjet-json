@@ -280,3 +280,85 @@ skips runtime checks. Reconsidering that tradeoff requires comparing checked
 and trusted-input decoding with the same metadata optimizations.
 
 The PR comment reports the primary OPcache-on comparison. Both modes retain their full reports in the run artifacts.
+
+## Field-name mapping
+
+`FieldMappingBench` compares equivalent three-field objects with ordinary names
+and explicit mappings. It checks the decoded object and emitted JSON outside the
+timer. It lives outside the default comparison suite because mapped workloads
+require an API that older revisions do not provide. Run it explicitly:
+
+```bash
+docker compose exec php vendor/bin/phpbench run tests/Performance/FieldMappingBench.php --iterations=15 --report=aggregate
+```
+
+Measurements on October 8, 2026 used PHP 8.4.26, an AMD Ryzen 7 7700, OPcache on,
+JIT off, and coverage off. Each warm iteration performs 20,000 operations after
+one warmup; each cold iteration performs one operation in a new CLI process.
+There are 15 iterations per case. These are local observations, not the CI
+performance gate or a prediction for every application. The
+[recorded samples](measurements/field-mapping.json) include variation and all cold
+and warm cases.
+
+The optimized implementation caches attribute discovery, including an empty
+result for ordinary classes. It checks collisions only for annotated classes.
+Public-property metadata already uses JSON names. Only renamed constructors use
+a wrapper to translate converted JSON names into PHP argument names; ordinary
+constructors retain their existing conversion loop. The serialization trait
+reuses its mapping without reflecting the class on each call.
+
+| Warm operation | Ordinary fields (µs) | Mapped fields (µs) |
+| --- | ---: | ---: |
+| Decode, constructor | 1.089 | 1.249 |
+| Decode, properties | 1.111 | 1.131 |
+| Encode, constructor | 0.078 | 0.308 |
+| Encode, properties | 0.077 | 0.311 |
+
+These PHPBench mode estimates show extra work for mapped constructors and a clear
+encoding cost for the trait. The public-property decode difference is smaller
+than the observed variation. Prefer matching names when you control the format;
+explicit mapping remains useful for external names such as `$ref`. This is not
+a blanket claim that every mapped decode is slower. Handwritten serializers were
+not benchmarked.
+
+Cold CLI timings also include loading and compiling the decoder or trait. They
+should not be read as the cost of one attribute lookup, or compared directly
+with warm loops or PHP-FPM requests. In particular, cold encoding starts without
+an earlier decode warming mapping metadata.
+
+### Effect on ordinary classes
+
+The baseline is `b5f96db992c9c6b7d5f93f01190b0be79d786cf1`, before field mapping.
+Both revisions used the same dependencies, configuration, and fixtures. The local
+baseline loader prepended an exported baseline `src` directory to Composer's
+namespace map; the candidate used its normal source directory. This introduces
+path differences, especially relevant to cold CLI measurements. The regular CI
+comparison uses prepared workspaces at the same runtime path.
+
+| Ordinary document | Base warm CLI (µs) | New warm CLI (µs) | Base fresh FPM request (µs) | New fresh FPM request (µs) |
+| --- | ---: | ---: | ---: | ---: |
+| JSON:API compound document | 28.75 | 29.13 | 422.3 | 474.0 |
+| AWS Lambda Amazon MSK event | 7.37 | 7.30 | 242.7 | 274.4 |
+| Stripe invoice | 100.20 | 99.42 | 1320.8 | 1411.0 |
+| GitHub pull request webhook | 69.33 | 71.99 | 602.5 | 650.4 |
+| Kubernetes deployment | 91.25 | 91.05 | 974.6 | 1028.3 |
+
+CLI columns are PHPBench modes from 15 iterations of 200 decodes; FPM columns
+are medians of 15 separate requests after warming bytecode. FPM verified zero
+OPcache misses during every measured decode, with fresh decoder metadata in each
+request. The sample file also includes the existing record-batch workloads.
+
+Warm document estimates stayed within about 4% of the base in this run, with
+substantial variation in some workloads. That does not prove zero overhead.
+Fresh-request document medians were about 5–13% higher: ordinary classes still
+pay for discovering whether attributes exist when metadata is first built.
+Cold CLI results likewise include additional source loading. No zero-cost claim
+is made for startup or per-request metadata construction. Earlier exploratory
+runs varied substantially; the saved results describe the final optimized
+implementation, not a pass obtained by retrying the CI regression gate.
+
+For a reproducible revision comparison, use the existing comparison runner with
+this change's commit as candidate and workload revision, and the baseline commit
+above. It measures the ordinary workloads on both revisions, including FPM when
+requested. Run the explicit mapping benchmark separately on the candidate; only
+its `--variant='plain.*'` cases can run against the baseline API.

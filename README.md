@@ -6,7 +6,8 @@ collections. Use native type declarations and PHPDoc to describe your data;
 
 The library pairs with PHP's `json_encode()`: supported PHP values can be
 encoded and decoded without losing their types or JSON object/array shapes.
-Your data classes need no package-specific attributes or interfaces.
+Ordinary data classes need no package-specific attributes or interfaces.
+Optional field-name mapping uses `#[Field]` with PHP's `JsonSerializable`.
 
 ## Installation
 
@@ -158,9 +159,8 @@ is rejected because PHP converts it to an integer key.
 
 ## Decoding rules
 
-- JSON member names must match constructor parameter or public property names.
-  Unknown members are ignored. Use classes that match the JSON format, then
-  explicitly map their data to your domain objects if needed.
+- JSON member names match constructor parameter or public property names by
+  default. Use `#[Field]` for explicit name mapping. Unknown members are ignored.
 - Missing required constructor arguments produce an error. Missing optional
   arguments use their defaults. A present `null` requires a nullable type.
   Omitted public properties retain their state after construction.
@@ -169,7 +169,8 @@ is rejected because PHP converts it to an integer key.
   restored as PHP floats.
 - Constructor parameters need same-named public instance properties.
   Nested classes and collection item classes must be final. Interfaces,
-  abstract classes, and classes implementing `JsonSerializable` are unsupported.
+  and abstract classes are unsupported. `JsonSerializable` classes require at
+  least one `#[Field]` annotation and a matching serializer.
 - Unions must identify a type unambiguously. For example, `Person|string|null`
   is supported; `Person|Team` is not, because either class represents a JSON
   object.
@@ -179,6 +180,49 @@ Unknown fields are discarded, and re-encoding may include default-valued
 properties omitted from the input. PHPDoc refinements such as `positive-int`
 and `non-empty-string` validate the underlying scalar type, not the narrower
 constraint.
+
+## Mapping JSON member names
+
+Use `#[Field]` when a JSON name differs from its PHP property name, including
+keywords such as `$ref`. Any annotated class must implement `JsonSerializable`.
+The optional `MappedJsonFields` trait uses the same mappings for native encoding:
+
+```php
+use Eventjet\Json\Field;
+use Eventjet\Json\MappedJsonFields;
+
+final readonly class Reference implements JsonSerializable
+{
+    use MappedJsonFields;
+
+    public function __construct(#[Field('$ref')] public string $ref) {}
+}
+
+$reference = Json::decode('{"$ref":"#/$defs/person"}', Reference::class);
+if ($reference instanceof DecodeError) {
+    throw $reference;
+}
+echo json_encode($reference, JSON_THROW_ON_ERROR);
+// {"$ref":"#/$defs/person"}
+```
+
+Put the attribute on a public instance property, including a promoted property.
+Constructor parameters and PHPDoc still use PHP names. A renamed property's PHP
+name is not an additional input alias. Duplicate JSON names are rejected.
+
+You may implement `jsonSerialize()` yourself instead of using the trait. Its
+output must be an object representation with the declared JSON names and values.
+The decoder checks declarations; it cannot prove that arbitrary serializer code
+honors them. `JsonSerializable` without any `#[Field]` remains unsupported.
+
+This is an opt-in exception to the library's dependency-free model declarations:
+PHP types cannot express these JSON names. Normal classes need neither the
+attribute nor the trait. Prefer matching PHP and JSON names when you control the
+format: the optimized trait still adds measurable encoding cost, and mapped
+constructors do extra work during decoding. Use mapping when the external format
+requires it. See [field mapping](docs/types.md#field-name-mapping)
+for the full contract and [measurements](docs/performance.md#field-name-mapping)
+for performance details.
 
 ## Documentation
 

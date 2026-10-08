@@ -73,7 +73,8 @@ final class ClassFieldTypeValidator
             );
         }
 
-        return null;
+        $names = FieldNames::resolve($typeReflection);
+        return $names instanceof DecodeError ? $names : null;
     }
 
     public static function isNonEncodable(string $type): bool

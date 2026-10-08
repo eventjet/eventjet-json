@@ -16,10 +16,13 @@ use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
+use Eventjet\Json\Internal\ConstructorPlanBuilder;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldCollectionUnionResolver;
+use Eventjet\Json\Internal\FieldNameCollisions;
+use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
@@ -101,6 +104,9 @@ use function class_alias;
 #[UsesClass(ClassUnionValidator::class)]
 #[UsesClass(EnumUnionValidator::class)]
 #[UsesClass(FieldCollectionUnionResolver::class)]
+#[UsesClass(FieldNames::class)]
+#[CoversClass(ConstructorPlanBuilder::class)]
+#[UsesClass(FieldNameCollisions::class)]
 final class MetadataCacheTest extends TestCase
 {
     /**
