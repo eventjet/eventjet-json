@@ -3,6 +3,17 @@ set -euo pipefail
 
 # Use PHPBench's deterministic executor to test the real assertion and exit status.
 project=$(cd "$(dirname "$0")/../../.." && pwd)
+php /dev/stdin "$project" <<'PHP'
+<?php
+require $argv[1] . '/vendor/autoload.php';
+$default = \PhpBench\PhpBench::loadContainer(new \Symfony\Component\Console\Input\ArgvInput(['phpbench']), $argv[1]);
+$off = \PhpBench\PhpBench::loadContainer(new \Symfony\Component\Console\Input\ArgvInput(['phpbench', '--profile=opcache-off']), $argv[1]);
+$expected = array_replace($default->getParameter('runner.php_config'), ['opcache.enable_cli' => '0']);
+if ($off->getParameter('runner.php_config') !== $expected) {
+    throw new RuntimeException('The OPcache-off profile must preserve all other runtime settings');
+}
+PHP
+echo 'PHPBench profile configuration passed.'
 runner="$project/.github/ci/performance.php"
 export PERFORMANCE_TEST_PHPBENCH="$project/vendor/bin/phpbench"
 fixture=$(mktemp -d)
@@ -20,15 +31,16 @@ printf '%s\n' '{"packages":[]}' > vendor/composer/installed.json
 printf '%s\n' '{"runner.path":"benchmarks","runner.php_config":{"serialize_precision":"7","pcov.enabled":"1"}}' > phpbench.json
 cat > benchmarks/ExampleBench.php <<'PHP'
 <?php
-final class ExampleBench
+final class ErrorBench
 {
+    #[\PhpBench\Attributes\Groups(['documents', 'warm'])]
     #[\PhpBench\Attributes\ParamProviders('cases')]
     public function benchExample(): void {}
     public function benchControl(): void {}
     public function cases(): iterable
     {
-        yield 'first[case]' => [];
-        yield 'second.case' => [];
+        yield 'record batch[case]' => [];
+        yield 'enum-heavy.collections' => [];
     }
 }
 PHP
@@ -45,15 +57,23 @@ cat > vendor/bin/phpbench <<'PHP'
 <?php
 declare(strict_types=1);
 $config = json_decode(file_get_contents('phpbench.json'), true, flags: JSON_THROW_ON_ERROR);
-$candidateSuite = in_array('--dump-file=../results/candidate-workloads.xml', $argv, true);
+$candidateSuite = in_array('--dump-file=../results/candidate-workloads.xml', $argv, true) || getenv('EXPLICIT_WORKLOADS') === '1';
 if ($config['runner.path'] !== 'benchmarks'
     || $config['runner.php_config']['serialize_precision'] !== ($candidateSuite ? '9' : '7')) {
     throw new RuntimeException('Workload configuration was not isolated');
 }
-foreach (['pcov.enabled', 'opcache.enable_cli', 'opcache.jit'] as $setting) {
+foreach (['pcov.enabled', 'opcache.jit', 'opcache.jit_buffer_size', 'opcache.file_update_protection'] as $setting) {
     if ($config['runner.php_config'][$setting] !== '0') {
         throw new RuntimeException('Controlled PHP settings were lost');
     }
+}
+$expectedOpcache = getenv('EXPECTED_OPCACHE') === '0' ? '0' : '1';
+if ($config['runner.php_config']['opcache.enable_cli'] !== $expectedOpcache
+    || $config['runner.php_config']['opcache.enable'] !== '1'
+    || $config['runner.php_config']['opcache.file_cache'] !== ''
+    || $config['runner.php_config']['opcache.save_comments'] !== '1'
+    || $config['runner.php_config']['xdebug.mode'] !== 'off') {
+    throw new RuntimeException('OPcache mode or isolation settings were lost');
 }
 $time = (int) trim(file_get_contents('src/time.txt'));
 foreach ($argv as $argument) {
@@ -69,7 +89,8 @@ PHP
 
 check_run() {
     local expected=$1 name=$2 verdict=$3 counts=$4 overall=$5 status=0
-    php "$runner" --base "$baseline" --candidate "$candidate" > "$name.log" 2>&1 || status=$?
+    shift 5
+    php "$runner" --base "$baseline" --candidate "$candidate" "$@" > "$name.log" 2>&1 || status=$?
     if [ "$status" -ne "$expected" ]; then
         cat "$name.log"
         echo "Expected status $expected, got $status for $name"
@@ -88,6 +109,12 @@ check_run() {
         fi
     done
     test -s .perf/results/candidate-workloads.xml
+    grep -Fq '### Realistic example documents' .perf/results/summary.md
+    grep -Fq '### Uncategorized workloads' .perf/results/summary.md
+    if grep -Eq '^### (Expected errors|Synthetic batches|Stress diagnostics|Focused diagnostics)' .perf/results/summary.md; then
+        echo 'Report categories must come from groups, not benchmark or variant names'
+        exit 1
+    fi
     php <<'PHP'
 <?php
 $files = glob('.perf/results/candidate-*.xml');
@@ -127,11 +154,63 @@ if ! grep -Fq 'PHPBench assertions failed' regression-results/results/summary.md
 fi
 echo 'Native PHPBench assertions, boundaries, configuration isolation, and failure artifacts passed.'
 
-git rm --quiet -r benchmarks
-git commit --quiet -m 'No baseline benchmarks'
-php "$runner" --base HEAD --candidate "$candidate" > no-baseline.log 2>&1
+EXPECTED_OPCACHE=0 check_run 2 opcache-off '🔴 Performance regression' '| 0 | 1 | 2 |' '+3.96%' --opcache off
+php <<'PHP'
+<?php
+$metadata = json_decode(file_get_contents('opcache-off-results/results/metadata.json'), true, flags: JSON_THROW_ON_ERROR);
+if ($metadata['opcache'] !== 'off'
+    || !str_contains(file_get_contents('opcache-off-results/results/summary.md'), 'OPcache: **off**')) {
+    throw new RuntimeException('Explicit OPcache-off mode was not reported');
+}
+PHP
+status=0
+EXPLICIT_WORKLOADS=1 php "$runner" --base "$baseline" --candidate "$candidate" --workloads "$candidate" > explicit.log 2>&1 || status=$?
+if [ "$status" -ne 2 ]; then cat explicit.log; exit 1; fi
+EXPECTED_WORKLOADS="$candidate" php <<'PHP'
+<?php
+$metadata = json_decode(file_get_contents('.perf/results/metadata.json'), true, flags: JSON_THROW_ON_ERROR);
+if ($metadata['workloads'] !== getenv('EXPECTED_WORKLOADS') || $metadata['workloads_changed']) {
+    throw new RuntimeException('Explicit workload revision was not frozen');
+}
+if (file_exists('.perf/results/candidate-workloads.xml')) {
+    throw new RuntimeException('Explicit workloads must not be replaced by candidate workloads');
+}
+PHP
+mv .perf explicit-workloads
+if php "$runner" --base "$baseline" --opcache invalid > invalid.log 2>&1; then
+    echo 'Expected an invalid OPcache mode to fail'
+    exit 1
+fi
+grep -Fq 'OPcache must be on or off' invalid.log
+echo 'OPcache modes and explicit frozen workloads passed.'
+
+git rm --quiet -rf benchmarks tests phpbench.json
+git commit --quiet -m 'Source without a benchmark suite'
+no_benchmarks=$(git rev-parse HEAD)
+EXPLICIT_WORKLOADS=1 php "$runner" --base "$no_benchmarks" --candidate "$no_benchmarks" --workloads "$candidate" > source-only.log 2>&1
+test -s .perf/results/baseline-0.xml
+test -s .perf/results/candidate-0.xml
+grep -Fq 'PHPBench assertions passed' .perf/results/summary.md
+mv .perf source-only-results
+echo 'Source-only revisions can use an independent frozen suite.'
+
+php "$runner" --base "$baseline" --candidate "$candidate" --workloads "$no_benchmarks" > no-workloads.log 2>&1
+grep -Fq 'No comparable baseline' .perf/results/summary.md
 grep -Fq 'No comparable baseline' .perf/results/comment.md
-mv .perf no-baseline-results
+mv .perf no-workload-results
+
+git rm --quiet -r src
+git commit --quiet -m 'No source directory'
+no_source=$(git rev-parse HEAD)
+for arguments in "--base $no_source --candidate $candidate" "--base $baseline --candidate $no_source"; do
+    if php "$runner" $arguments --workloads "$candidate" > no-source.log 2>&1; then
+        echo 'Compared revisions must contain source'
+        exit 1
+    fi
+    grep -Fq 'Compared revision has no source directory' no-source.log
+    rm -rf .perf
+done
+echo 'Missing workload suites and missing compared source are reported separately.'
 
 # Failed subprocesses must retain stdout diagnostics as well as forwarded stderr.
 cat > vendor/bin/phpbench <<'PHP'
