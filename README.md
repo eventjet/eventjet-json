@@ -174,9 +174,10 @@ Run the PHPBench suite with development dependencies installed:
 docker compose exec php composer benchmark
 ```
 
-The eight scenarios cover scalar objects, scalar lists, named enum fields,
-enum unions, collections of enum-union fields, object collections, recursive
-collections, and a root array of 100 collection-bearing objects.
+The ten scenarios cover scalar objects, public scalar properties, short scalar
+lists, lists with 1,000 items per scalar field, named enum fields, enum unions,
+collections of enum-union fields, object collections, recursive collections,
+and a root array of 100 collection-bearing objects.
 PHPBench runs each of five iterations in a separate process:
 
 - `cold`: one decode per iteration, with no warmup. Fixture construction and

@@ -10,6 +10,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListPublicProperty;
 use JsonException;
 use stdClass;
 
+use function array_fill;
 use function get_debug_type;
 use function json_encode;
 
@@ -41,6 +42,35 @@ final class ScalarListErrorCases
                     . ' from the JSON object: Field '
                     . $field
                     . '[0] must be of type '
+                    . $expectedType
+                    . ', '
+                    . get_debug_type($value)
+                    . ' given.',
+                3,
+            ];
+        }
+
+        foreach (self::invalidItems() as $name => [$field, $expectedType, $value]) {
+            $valid = match ($expectedType) {
+                'string' => 'valid',
+                'int' => 42,
+                'float' => 1.5,
+                'bool' => false,
+            };
+            yield $name . ' after 1000 valid items' => [
+                json_encode([
+                    'strings' => [],
+                    'stringsExtra' => [],
+                    'floats' => [],
+                    'booleans' => [],
+                    $field => [...array_fill(0, count: 1000, value: $valid), $value],
+                ], JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
+                ScalarListFields::class,
+                'Could not create '
+                    . ScalarListFields::class
+                    . ' from the JSON object: Field '
+                    . $field
+                    . '[1000] must be of type '
                     . $expectedType
                     . ', '
                     . get_debug_type($value)

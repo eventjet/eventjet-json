@@ -54,6 +54,7 @@ final class DecodeBench
             'scalar object',
             'public scalar properties',
             'scalar lists',
+            'long scalar lists',
             'named enums',
             'enum union',
             'enum union collections',

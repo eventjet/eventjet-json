@@ -41,6 +41,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Exception;
 use PHPUnit\Framework\TestCase;
@@ -258,28 +259,28 @@ final class MetadataCacheTest extends TestCase
      * @throws ReflectionException
      * @throws RuntimeException
      */
-    public function testUnresolvedFieldTypesAreRetriedAfterDependencyLoads(): void
+    #[TestWith(['Named', ''])]
+    #[TestWith(['Union', '|int'])]
+    public function testUnresolvedFieldTypesAreRetriedAfterDependencyLoads(string $name, string $suffix): void
     {
-        $dependency = 'MetadataCacheDeferredEnum';
-        $class = CollectionDeclarationFixture::create($dependency, '', 'var');
+        $dependency = 'PublicMetadataDeferredClass' . $name;
+        $enumDependency = 'MetadataCacheDeferredEnum' . $name;
+        $class = CollectionDeclarationFixture::create($enumDependency, '', 'var');
         $field = new ReflectionProperty($class, 'value');
 
         static::assertNull(FieldTypeResolver::resolve($class, $field));
-        static::assertTrue(class_alias(NonBackedStatus::class, $dependency));
+        static::assertTrue(class_alias(NonBackedStatus::class, $enumDependency));
         static::assertInstanceOf(DecodeError::class, FieldTypeResolver::resolve($class, $field));
 
-        foreach (['', '|int'] as $suffix) {
-            $dependency = 'PublicMetadataDeferredClass' . ($suffix === '' ? 'Named' : 'Union');
-            $name = CollectionDeclarationFixture::create($dependency . $suffix, '', 'var');
-            $class = new ReflectionClass($name);
+        $name = CollectionDeclarationFixture::create($dependency . $suffix, '', 'var');
+        $class = new ReflectionClass($name);
 
-            static::assertInstanceOf(DecodeError::class, PublicProperties::resolve($class));
-            static::assertTrue(class_alias(ScalarFields::class, $dependency));
-            $properties = PublicProperties::resolve($class);
-            static::assertIsArray($properties);
-            static::assertSame(['value'], array_keys($properties));
-            static::assertSame($properties, PublicProperties::resolve($class));
-        }
+        static::assertInstanceOf(DecodeError::class, PublicProperties::resolve($class));
+        static::assertTrue(class_alias(ScalarFields::class, $dependency));
+        $properties = PublicProperties::resolve($class);
+        static::assertIsArray($properties);
+        static::assertSame(['value'], array_keys($properties));
+        static::assertSame($properties, PublicProperties::resolve($class));
     }
 
     /**
