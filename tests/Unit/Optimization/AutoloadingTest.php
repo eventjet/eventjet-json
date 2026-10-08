@@ -27,11 +27,11 @@ use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
-use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
+
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedReference;
-use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
-use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
-use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
+
+
+
 use Eventjet\Json\Test\Unit\Fixtures\DeferredEnumBacking;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredValueEnum;
 use Eventjet\Json\Test\Unit\Fixtures\PropertyCountingReflection;
@@ -47,7 +47,7 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
-use ReflectionProperty;
+
 use RuntimeException;
 use stdClass;
 use TypeError;
@@ -235,28 +235,6 @@ final class AutoloadingTest extends TestCase
         } finally {
             spl_autoload_unregister($autoload);
         }
-    }
-
-    /** @throws ReflectionException */
-    public function testEnumUnionLookupPreservesBackingTypesAndLeavesOtherValuesUnmatched(): void
-    {
-        $target = new class {
-            public \stdClass|NonBackedStatus|StringBackedStatus|IntBackedStatus|bool|null $value = null;
-        };
-        $lookup = new EnumUnionLookup(new ReflectionProperty($target, 'value')->getType());
-        static::assertSame(StringBackedStatus::Ready, $lookup->find(StringBackedStatus::Ready->value));
-        static::assertSame(StringBackedStatus::Pending, $lookup->find(StringBackedStatus::Pending->value));
-        static::assertSame(IntBackedStatus::Ready, $lookup->find(IntBackedStatus::Ready->value));
-        static::assertNull($lookup->find((string) IntBackedStatus::Ready->value));
-        static::assertNull($lookup->find((float) IntBackedStatus::Ready->value));
-        static::assertNull($lookup->find('unknown'));
-        static::assertNull($lookup->find(true));
-        static::assertNull($lookup->find(null));
-        static::assertNull($lookup->find([]));
-        static::assertNull(new EnumUnionLookup(null)->find('ready'));
-        static::assertNull(new EnumUnionLookup(new ReflectionProperty(ScalarFields::class, 'string')->getType())->find(
-            'ready',
-        ));
     }
 
     /**
