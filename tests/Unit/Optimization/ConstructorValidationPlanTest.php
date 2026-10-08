@@ -535,7 +535,10 @@ final class ConstructorValidationPlanTest extends TestCase
             '{}',
             \Eventjet\Json\Test\Unit\Fixtures\AbstractDirectRecord::class,
         ));
-        static::assertArrayNotHasKey(\Eventjet\Json\Test\Unit\Fixtures\AbstractDirectRecord::class, self::readDirectPlans());
+        static::assertArrayNotHasKey(
+            \Eventjet\Json\Test\Unit\Fixtures\AbstractDirectRecord::class,
+            self::readDirectPlans(),
+        );
         foreach ([
             \Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget::class,
             \Eventjet\Json\Test\Unit\Fixtures\AbstractDirectRecord::class,
