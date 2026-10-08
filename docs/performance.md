@@ -11,14 +11,7 @@ schemas and inputs use native decoding and existing hydration plans.
 No FFI, generated PHP, or additional runtime dependency is required. The first
 successful decode uses native hydration and registers eligibility; a later call
 compiles an eligible direct plan. This is a string-in, object-out API.
-See the [integration measurements](../experiments/direct-json/RESULTS-PRODUCTION.md)
-and reproduce the current comparison with:
 
-```bash
-php experiments/direct-json/verify.php production
-php experiments/direct-json/bench.php 5 native,production
-php experiments/direct-json/paired.php 15 native,production
-```
 The decoder reuses validated field declarations, public-property metadata, resolved
 collection declarations, and PHPDoc imports within the current PHP process. Every
 incoming value is still checked, including collection shapes, item types, enum values, and nested error paths. Decoded

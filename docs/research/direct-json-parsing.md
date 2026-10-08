@@ -1,21 +1,15 @@
 # Direct JSON parsing investigation
 
-`Json::decode()` now uses the selected direct parsing paths, retaining native
-`json_decode()` followed by typed hydration as a compatibility fallback. See the
-[integration report](../../experiments/direct-json/RESULTS-PRODUCTION.md).
-The following investigation records the tradeoffs behind that implementation.
-The [direct parsing prototype](../../experiments/direct-json/README.md) now measures
-the tradeoff: removing the intermediate tree reduces allocation for object graphs
-and ignored subtrees. The second pass compiles whole type graphs, improving runtime
-on record collections and several real documents, beyond the narrower gains in
-the first pass. Some documents and large retained strings still favor native
-decoding, and schema compilation adds cold cost. See the
-[second-pass results and optimization ledger](../../experiments/direct-json/RESULTS-SECOND-PASS.md)
-for the measured limits. The prototype requires no FFI. Replacing the JSON parser also makes this package
-responsible for maintaining JSON syntax and numeric behavior.
+The public decoder uses direct plans for scalar roots with at least eight
+constructor fields and objects containing a single list of scalar records.
+Complete schema validation precedes target construction. Scalar roots still use
+`json_decode()` to obtain a flat argument array; supported lists read records
+directly without an intermediate generic object tree. The first decode and
+unsupported schemas or inputs use native decoding followed by typed hydration.
+See [performance](../performance.md) for the current implementation.
 This decision is separate from the internal parser for PHPDoc types.
 
-The original decode entry point validated the complete document
+The native fallback in the [decode entry point](../../src/Json.php) validates the complete document
 before [hydration](../../src/Internal/ObjectHydrator.php) invokes any target constructor.
 Malformed content in an ignored member or after the root therefore returns an
 invalid-JSON error before construction or field validation. A container probe
@@ -64,21 +58,11 @@ current validation order rather than report whichever type error appears first
 in the JSON text. It would not make the existing string-in, object-out API a
 bounded-memory streaming API.
 
-The prototype also found that native validation is not equivalent to native
-decoding in every detail: `json_validate()` accepts property names beginning with
-`\u0000`, while `json_decode()` rejects them. The replacement must check names
-inside ignored members too, before construction. On malformed input, the native
-error path preserves invalid-property-name versus later syntax-error precedence.
-
-The original replacement criteria required a dependency-free prototype passing the
+Broader replacement requires a dependency-free prototype that passes the
 existing acceptance and error-contract cases and generated differential checks
 against native decoding. Include malformed ignored subtrees, trailing content,
 constructor side effects, nesting boundaries, Unicode, numeric limits, and
 object/array shape distinctions. Compare end-to-end time and peak memory on the
 same PHP build with small documents, large lists and maps, deeply nested
 objects, and large ignored fields, including validation and metadata costs.
-The prototype performs these differential checks and records first-call and warmed
-measurements. Its results establish a workload-specific benefit, not a universal
-replacement or a claim that PHP parsing outperforms the native JSON engine.
-Deployment runtimes and the cost of maintaining the additional parser remain
-important tradeoffs of the promoted implementation.
+Benefits outside the supported direct shapes remain unproven.
