@@ -37,7 +37,6 @@ final class ObjectValueConverter
 
         foreach (ConstructorParameters::resolve($class) as $parameter) {
             $field = $parameter->name;
-            $fieldPath = FieldPath::field($path, $field);
 
             if (!array_key_exists($field, $values)) {
                 continue;
@@ -45,6 +44,11 @@ final class ObjectValueConverter
 
             /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
             $value = $values[$field];
+            if ($parameter->builtin && ($collections[$field] ?? null) === null) {
+                $convertedValues[$field] = $value;
+                continue;
+            }
+            $fieldPath = FieldPath::field($path, $field);
             self::$fields[$className][$field] ??= new FieldValueConverter(
                 $parameter->reflection,
                 $collections[$field] ?? null,

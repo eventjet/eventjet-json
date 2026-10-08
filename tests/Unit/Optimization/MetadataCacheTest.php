@@ -159,9 +159,21 @@ final class MetadataCacheTest extends TestCase
 
         $converterCache = new ReflectionProperty(ObjectValueConverter::class, 'fields');
         static::assertSame(['value' => 1], ObjectValueConverter::convert($firstClass, ['value' => 1], [], ''));
+        /** @var array<class-string, array<string, FieldValueConverter>> $scalarConverters */
+        $scalarConverters = $converterCache->getValue();
+        static::assertArrayNotHasKey($firstClass->getName(), $scalarConverters);
+
+        $unionClass = new ReflectionClass(DistinctEnumScalarUnionField::class);
+        static::assertSame(
+            ['value' => IntBackedStatus::Ready],
+            ObjectValueConverter::convert($unionClass, ['value' => 1], [], ''),
+        );
         /** @var array<class-string, array<string, FieldValueConverter>> $cachedConverters */
         $cachedConverters = $converterCache->getValue();
-        static::assertSame(['value' => 2], ObjectValueConverter::convert($firstClass, ['value' => 2], [], ''));
+        static::assertSame(
+            ['value' => IntBackedStatus::Pending],
+            ObjectValueConverter::convert($unionClass, ['value' => 0], [], ''),
+        );
         static::assertSame($cachedConverters, $converterCache->getValue());
 
         $descriptor = new ClassJsonType($firstClass->getName());
@@ -171,7 +183,7 @@ final class MetadataCacheTest extends TestCase
         static::assertInstanceOf(DecodeError::class, $descriptor->decodeValue(false));
         static::assertSame(IntBackedStatus::Ready, new ClassJsonType(IntBackedStatus::class)->decodeValue(1));
 
-        $union = ConstructorParameters::resolve(new ReflectionClass(DistinctEnumScalarUnionField::class));
+        $union = ConstructorParameters::resolve($unionClass);
         $unionParameter = $union[0] ?? null;
         static::assertNotNull($unionParameter);
         static::assertSame(IntBackedStatus::class . '|string', $unionParameter->typeName);
