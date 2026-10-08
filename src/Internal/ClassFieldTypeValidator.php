@@ -22,7 +22,7 @@ use function interface_exists;
 /** @internal */
 final class ClassFieldTypeValidator
 {
-    /** @var array<class-string, true> */
+    /** @var array<class-string, null> */
     private static array $validated = [];
 
     /**
@@ -79,7 +79,7 @@ final class ClassFieldTypeValidator
             if ($names instanceof DecodeError) {
                 return $names;
             }
-            self::$validated[$type] = true;
+            self::$validated[$type] = null;
         }
         return null;
     }
