@@ -155,6 +155,13 @@ The gate uses PHPBench's native baseline comparison and assertion:
 --assert="mode(variant.time.avg) <= mode(baseline.time.avg) * 1.05"
 ```
 
+The runner prepares separate baseline and candidate environments once, each with
+its own source tree and optimized Composer autoloader. Each prepared tree is moved
+to the same runtime path for measurement and restored afterward, avoiding
+path-dependent autoloader or filesystem differences. Both use identical frozen
+workloads and installed dependencies. CLI and FPM reuse these environments; changed
+candidate workloads receive a separate environment for verification.
+
 The runner discovers workloads with a single-iteration discovery run, then
 measures each target workload immediately before its candidate counterpart to
 reduce the time between comparable measurements. Each version runs 20 iterations

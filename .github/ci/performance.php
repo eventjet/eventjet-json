@@ -112,6 +112,46 @@ function workloadFilters(string $path): array
     return $filters;
 }
 
+/** @return array<string, string> */
+function prepareWorkspace(
+    string $workspace,
+    string $source,
+    string $workloadFiles,
+    string $workloads,
+    bool $opcache,
+): array {
+    mkdir($workspace);
+    BenchmarkCommand::run(['cp', '-a', 'vendor', $workspace . '/vendor']);
+    copy('composer.json', $workspace . '/composer.json');
+    $settings = configureWorkloads($workloads, $workspace, $opcache);
+    BenchmarkCommand::run(['cp', '-a', $source . '/src', $workspace . '/src']);
+    foreach (['benchmarks', 'tests'] as $name) {
+        BenchmarkCommand::run(['cp', '-a', $workloadFiles . '/' . $name, $workspace . '/' . $name]);
+    }
+    BenchmarkCommand::run(['composer', 'dump-autoload', '--optimize', '--no-interaction'], $workspace);
+    return $settings;
+}
+
+/**
+ * @template T
+ * @param callable(string): T $run
+ * @return T
+ */
+function withWorkspace(string $prepared, callable $run): mixed
+{
+    // Identical runtime paths keep filesystem and autoloader layout out of the comparison.
+    $workspace = dirname($prepared) . '/workspace';
+    if (file_exists($workspace)) {
+        throw new RuntimeException('A benchmark workspace is already active');
+    }
+    rename($prepared, $workspace);
+    try {
+        return $run($workspace);
+    } finally {
+        rename($workspace, $prepared);
+    }
+}
+
 set_error_handler(static function (int $severity, string $message, string $file, int $line): never {
     throw new ErrorException($message, 0, $severity, $file, $line);
 });
@@ -191,23 +231,22 @@ foreach ([$base, $candidate] as $revision) {
 exportRevision($base, $output . '/baseline');
 exportRevision($candidate, $output . '/candidate');
 exportRevision($workloads, $output . '/workloads');
-$workspace = $output . '/workspace';
-mkdir($workspace);
-BenchmarkCommand::run(['cp', '-a', 'vendor', $workspace . '/vendor']);
-copy('composer.json', $workspace . '/composer.json');
-$runtimeSettings = configureWorkloads($workloads, $workspace, $opcache);
-foreach (['benchmarks', 'tests'] as $name) {
-    BenchmarkCommand::run(['cp', '-a', $output . '/workloads/' . $name, $workspace . '/' . $name]);
+$workspaces = [];
+$runtimeSettings = [];
+foreach (['baseline', 'candidate'] as $version) {
+    $workspaces[$version] = $output . '/workspace-' . $version;
+    $runtimeSettings[$version] = prepareWorkspace(
+        $workspaces[$version],
+        $output . '/' . $version,
+        $output . '/workloads',
+        $workloads,
+        $opcache,
+    );
 }
-$measure = static function (string $version, string $name, string|null $baseline = null, string ...$options) use (
-    $workspace,
-    $output,
+$measure = static function (string $workspace, string $name, string|null $baseline = null, string ...$options) use (
     $results,
     $opcache,
 ): int {
-    BenchmarkCommand::run(['rm', '-rf', '--', $workspace . '/src']);
-    BenchmarkCommand::run(['cp', '-a', $output . '/' . $version . '/src', $workspace . '/src']);
-    BenchmarkCommand::run(['composer', 'dump-autoload', '--optimize', '--no-interaction'], $workspace);
     $arguments = [
         PHP_BINARY,
         'vendor/bin/phpbench',
@@ -222,7 +261,10 @@ $measure = static function (string $version, string $name, string|null $baseline
         $arguments[] = '--file=../results/' . $baseline . '.xml';
         $arguments[] = '--assert=mode(variant.time.avg) <= mode(baseline.time.avg) * 1.05';
     }
-    $result = BenchmarkCommand::execute($arguments, $workspace);
+    $result = withWorkspace($workspace, static fn(string $active): array => BenchmarkCommand::execute(
+        $arguments,
+        $active,
+    ));
     file_put_contents($results . '/' . $name . '.txt', $result['output']);
     echo $result['output'];
     if ($result['status'] !== 0 && ($baseline === null || $result['status'] !== 2)) {
@@ -238,7 +280,7 @@ $measure = static function (string $version, string $name, string|null $baseline
     }
     return $result['status'];
 };
-$measure('baseline', 'discovery', null, '--revs=1');
+$measure($workspaces['baseline'], 'discovery', null, '--revs=1');
 $status = 0;
 $reports = [];
 $comparisonPaths = [];
@@ -246,8 +288,8 @@ foreach (workloadFilters($results . '/discovery.xml') as $index => [$subjectFilt
     $filters = [$subjectFilter, $variantFilter];
     $baselineName = 'baseline-' . $index;
     $candidateName = 'candidate-' . $index;
-    $measure('baseline', $baselineName, null, ...$filters);
-    $status = max($status, $measure('candidate', $candidateName, $baselineName, ...$filters));
+    $measure($workspaces['baseline'], $baselineName, null, ...$filters);
+    $status = max($status, $measure($workspaces['candidate'], $candidateName, $baselineName, ...$filters));
     $comparisonPaths[] = $results . '/' . $candidateName . '.xml';
     $workloadReport = file_get_contents($results . '/' . $candidateName . '.txt');
     if ($workloadReport === false) {
@@ -277,20 +319,19 @@ if ($fpm) {
     require 'vendor/autoload.php';
     $samples = [];
     foreach (['baseline', 'candidate'] as $version) {
-        BenchmarkCommand::run(['rm', '-rf', '--', $workspace . '/src']);
-        BenchmarkCommand::run(['cp', '-a', $output . '/' . $version . '/src', $workspace . '/src']);
-        BenchmarkCommand::run(['composer', 'dump-autoload', '--optimize', '--no-interaction'], $workspace);
-        $samples[$version] = FpmMeasurements::run($workspace, $results . '/' . $version . '-fpm', $opcache, $runtimeSettings);
+        $samples[$version] = withWorkspace($workspaces[$version], static fn(string $active): array => FpmMeasurements::run(
+            $active,
+            $results . '/' . $version . '-fpm',
+            $opcache,
+            $runtimeSettings[$version],
+        ));
     }
     writeJson($results . '/fpm.json', $samples);
     publish($results, FpmMeasurements::report($samples['baseline'], $samples['candidate'], $opcache));
 }
 if ($metadata['workloads_changed']) {
-    configureWorkloads($candidate, $workspace, $opcache);
-    foreach (['benchmarks', 'tests'] as $name) {
-        BenchmarkCommand::run(['rm', '-rf', '--', $workspace . '/' . $name]);
-        BenchmarkCommand::run(['cp', '-a', $output . '/candidate/' . $name, $workspace . '/' . $name]);
-    }
-    $measure('candidate', 'candidate-workloads');
+    $candidateWorkspace = $output . '/workspace-candidate-workloads';
+    prepareWorkspace($candidateWorkspace, $output . '/candidate', $output . '/candidate', $candidate, $opcache);
+    $measure($candidateWorkspace, 'candidate-workloads');
 }
 exit($status);
