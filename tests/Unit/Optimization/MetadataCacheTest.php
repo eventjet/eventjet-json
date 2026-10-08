@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassJsonType;
@@ -83,7 +82,6 @@ use function class_alias;
 #[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(PublicProperties::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
-#[CoversClass(BackedEnumCaseFinder::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
 #[CoversClass(EnumFieldTypes::class)]
 #[UsesClass(DecodeError::class)]
@@ -180,22 +178,37 @@ final class MetadataCacheTest extends TestCase
         static::assertSame($scalarType, EnumFieldTypes::resolve($scalarProperty));
     }
 
-    /** @throws ReflectionException */
-    public function testEnumFindersAreReusedAndEnumsRemainIndependent(): void
+    /**
+     * @throws Exception
+     * @throws ReflectionException
+     */
+    public function testEnumConversionsRemainIndependent(): void
     {
-        $integer = BackedEnumCaseFinder::forEnum(IntBackedStatus::class);
-        $string = BackedEnumCaseFinder::forEnum(StringBackedStatus::class);
-        $unbacked = BackedEnumCaseFinder::forEnum(NonBackedStatus::class);
-
-        static::assertNotSame($integer, $string);
-        static::assertNotSame($integer, $unbacked);
-        static::assertSame($integer, BackedEnumCaseFinder::forEnum(IntBackedStatus::class));
-        static::assertSame($string, BackedEnumCaseFinder::forEnum(StringBackedStatus::class));
-        static::assertSame($unbacked, BackedEnumCaseFinder::forEnum(NonBackedStatus::class));
+        static::assertSame(IntBackedStatus::Ready, BackedEnumValueConverter::convertValue(
+            ScalarFields::class,
+            'value',
+            IntBackedStatus::class,
+            1,
+        ));
+        static::assertSame(StringBackedStatus::Ready, BackedEnumValueConverter::convertValue(
+            ScalarFields::class,
+            'value',
+            StringBackedStatus::class,
+            StringBackedStatus::Ready->value,
+        ));
+        static::assertInstanceOf(DecodeError::class, BackedEnumValueConverter::convertValue(
+            ScalarFields::class,
+            'value',
+            NonBackedStatus::class,
+            1,
+        ));
     }
 
-    /** @throws ReflectionException */
-    public function testCachedEnumCasesPreserveBackingTypesAndRejectUnknownValues(): void
+    /**
+     * @throws Exception
+     * @throws ReflectionException
+     */
+    public function testEnumConversionsPreserveBackingTypesAndRejectUnknownValues(): void
     {
         for ($lookup = 0; $lookup < 2; ++$lookup) {
             foreach ([
@@ -210,7 +223,12 @@ final class MetadataCacheTest extends TestCase
                 [StringBackedStatus::class, 'unknown', null],
                 [NonBackedStatus::class, 1, null],
             ] as [$enum, $value, $expected]) {
-                static::assertSame($expected, BackedEnumCaseFinder::forEnum($enum)->find($value));
+                $converted = BackedEnumValueConverter::convertValue(ScalarFields::class, 'value', $enum, $value);
+                if ($expected === null) {
+                    static::assertInstanceOf(DecodeError::class, $converted);
+                    continue;
+                }
+                static::assertSame($expected, $converted);
             }
         }
     }

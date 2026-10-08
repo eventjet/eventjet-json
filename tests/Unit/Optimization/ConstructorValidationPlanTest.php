@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ConstructorDecoder;
@@ -43,7 +42,6 @@ use function class_alias;
 #[UsesClass(FieldPath::class)]
 #[UsesClass(EnumFieldTypes::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
-#[UsesClass(BackedEnumCaseFinder::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ConstructorParameter::class)]

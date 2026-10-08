@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use BackedEnum;
+use Closure;
 use Eventjet\Json\DecodeError;
 use ReflectionEnum;
 use ReflectionException;
@@ -24,8 +26,8 @@ use function var_export;
 /** @internal */
 final class BackedEnumValueConverter
 {
-    /** @var array<enum-string, string> */
-    private static array $backingTypes = [];
+    /** @var array<enum-string, array{type: 'int'|'string'|'', find: (Closure(int|string): (BackedEnum|null))|null}> */
+    private static array $plans = [];
 
     /**
      * @param class-string $class
@@ -64,12 +66,17 @@ final class BackedEnumValueConverter
             if (!enum_exists($enumName)) {
                 continue;
             }
-            $backingType = self::backingType($enumName);
-            $valueMatchesBackingType = get_debug_type($value) === $backingType;
+            $plan = self::plan($enumName);
+            $find = $plan['find'];
+            if ($find === null) {
+                continue;
+            }
+            $valueMatchesBackingType = get_debug_type($value) === $plan['type'];
 
             if ($valueMatchesBackingType) {
                 $matchingBackingEnums[] = $enumName;
-                $case = BackedEnumCaseFinder::forEnum($enumName)->find($value);
+                /** @var int|string $value */
+                $case = $find($value);
 
                 if ($case !== null) {
                     return $case;
@@ -107,10 +114,12 @@ final class BackedEnumValueConverter
         mixed $value,
         ReflectionNamedType|null $declaredType = null,
     ): UnitEnum|DecodeError {
-        $backingType = self::backingType($enumName);
-        if ($backingType === '') {
+        $plan = self::plan($enumName);
+        $find = $plan['find'];
+        if ($find === null) {
             return DecodeError::fieldTypeMismatch($class, $field, (string) ($declaredType ?? $enumName), $value);
         }
+        $backingType = $plan['type'];
         $valueMatchesBackingType = get_debug_type($value) === $backingType;
 
         if (!$valueMatchesBackingType) {
@@ -123,7 +132,8 @@ final class BackedEnumValueConverter
             );
         }
 
-        $case = BackedEnumCaseFinder::forEnum($enumName)->find($value);
+        /** @var int|string $value */
+        $case = $find($value);
 
         if ($case !== null) {
             return $case;
@@ -134,11 +144,35 @@ final class BackedEnumValueConverter
 
     /**
      * @param enum-string $enumName
+     * @return array{type: 'int'|'string'|'', find: (Closure(int|string): (BackedEnum|null))|null}
      * @throws ReflectionException
      */
-    private static function backingType(string $enumName): string
+    private static function plan(string $enumName): array
     {
-        return self::$backingTypes[$enumName] ??= (string) new ReflectionEnum($enumName)->getBackingType();
+        return self::$plans[$enumName] ??= self::createPlan($enumName);
+    }
+
+    /**
+     * @param enum-string $enumName
+     * @return array{type: 'int'|'string'|'', find: (Closure(int|string): (BackedEnum|null))|null}
+     * @throws ReflectionException
+     */
+    private static function createPlan(string $enumName): array
+    {
+        $backingType = (string) new ReflectionEnum($enumName)->getBackingType();
+        $type = match ($backingType) {
+            'int' => 'int',
+            'string' => 'string',
+            default => '',
+        };
+        if ($type === '') {
+            return ['type' => '', 'find' => null];
+        }
+        /** @var callable(int|string): (BackedEnum|null) $callback */
+        $callback = [$enumName, 'tryFrom'];
+        /** @mago-var Closure(int|string): (BackedEnum|null) $find */
+        $find = Closure::fromCallable($callback);
+        return ['type' => $type, 'find' => $find];
     }
 
     /**
