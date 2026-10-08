@@ -97,7 +97,7 @@ PHP
     mv .perf "$name-results"
 }
 check_run 0 unchanged
-for entry in '50 improvement 0' '104 below-limit 0' '105 at-limit 0' '106 regression 2'; do
+for entry in '50 improvement 0' '103 below-limit 0' '104 at-limit 0' '105 regression 2'; do
     read -r time name expected <<< "$entry"
     printf '%s\n' "$time" > src/time.txt
     git add src/time.txt
