@@ -7,9 +7,13 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use JsonException;
 use ReflectionException;
+use stdClass;
 
 use function array_key_exists;
+use function class_exists;
+use function enum_exists;
 use function in_array;
+use function is_string;
 use function sprintf;
 
 /** @internal */
@@ -50,6 +54,12 @@ final class ListValueConverter
         string|CollectionUnionType|NestedCollectionType $itemType,
         array $value,
     ): array|DecodeError {
+        if ($value === []) {
+            return [];
+        }
+        if (is_string($itemType) && !enum_exists($itemType) && class_exists($itemType)) {
+            return self::convertObjects($class, $path, $itemType, $value);
+        }
         $converted = [];
         $index = 0;
 
@@ -69,6 +79,34 @@ final class ListValueConverter
             ++$index;
         }
 
+        return $converted;
+    }
+
+    /**
+     * @param class-string $class
+     * @param class-string $itemType
+     * @param list<mixed> $values
+     * @return list<object>|DecodeError
+     */
+    private static function convertObjects(
+        string $class,
+        string $path,
+        string $itemType,
+        array $values,
+    ): array|DecodeError {
+        $converted = [];
+        /** @var mixed $value */
+        foreach ($values as $index => $value) {
+            $itemPath = sprintf('%s[%d]', $path, $index);
+            if (!$value instanceof stdClass) {
+                return DecodeError::fieldTypeMismatch($class, $itemPath, $itemType, $value);
+            }
+            $object = ObjectHydrator::hydrate($itemType, $value, $itemPath);
+            if ($object instanceof DecodeError) {
+                return $object;
+            }
+            $converted[] = $object;
+        }
         return $converted;
     }
 }
