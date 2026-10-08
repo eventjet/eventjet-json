@@ -87,6 +87,7 @@ use Eventjet\Json\Test\Acceptance\Cases\RootCollectionRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\UnknownFieldCases;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
 use Throwable;
@@ -206,9 +207,19 @@ final class AcceptanceTest extends TestCase
         static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
     }
 
+    /**
+     * @return iterable<string, array{object, string}>
+     * @throws \ReflectionException
+     * @throws \RuntimeException
+     */
+    public static function jsonDocuments(): iterable
+    {
+        yield from JsonFormattingRoundTripCases::objects();
+        yield from EmptyShapeRoundTripCases::objects();
+    }
+
     /** @throws JsonException */
-    #[DataProviderExternal(JsonFormattingRoundTripCases::class, 'objects')]
-    #[DataProviderExternal(EmptyShapeRoundTripCases::class, 'objects')]
+    #[DataProvider('jsonDocuments')]
     public function testJsonDocumentDecodesWithoutChangingItsMeaning(object $expected, string $json): void
     {
         $decoded = Json::decode($json, $expected::class);
