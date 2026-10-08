@@ -115,7 +115,7 @@ final class AutoloadingTest extends TestCase
                         $class->getName(),
                         $property,
                         $type,
-                        ['collection' => null, 'path' => $name],
+                        ['collection' => null, 'path' => $name, 'typeName' => $type->getName()],
                         $value,
                     ),
                 );

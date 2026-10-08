@@ -7,6 +7,7 @@ namespace Eventjet\Json\Benchmark;
 use ArrayObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\CombinedCollectionFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\DisjointStringBackedEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
@@ -31,6 +32,7 @@ final class DecodeWorkloads
     {
         return match ($scenario) {
             'scalar object' => new ScalarFields('hello', 42, 1.5, true),
+            'public scalar properties' => self::publicScalars(),
             'named enums' => new BackedEnumFields(
                 StringBackedStatus::Ready,
                 StringBackedStatus::Pending,
@@ -44,6 +46,17 @@ final class DecodeWorkloads
             'root array' => array_fill(0, count: 100, value: self::collections()),
             default => throw new InvalidArgumentException('Unknown benchmark scenario: ' . $scenario),
         };
+    }
+
+    private static function publicScalars(): ConstructorlessPublicProperties
+    {
+        $original = new ConstructorlessPublicProperties();
+        $original->string = 'hello';
+        $original->integer = 42;
+        $original->float = 1.5;
+        $original->boolean = true;
+        $original->nullable = 'present';
+        return $original;
     }
 
     private static function enumUnions(): MultipleEnumUnionCollectionFields
