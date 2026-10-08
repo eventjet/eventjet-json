@@ -20,9 +20,8 @@ final readonly class DirectListPlan
         private DirectScalarPlan $item,
         bool $nonEmpty,
     ) {
-        // Captures belong only to individual reads, keeping peak allocation bounded.
-        $record = preg_replace('~\((?!\?)~', replacement: '(?:', subject: $item->fragment);
-        assert($record !== null, description: 'The fixed capture-removal expression is valid.');
+        // Repeated groups retain only their final captures, independent of list size.
+        $record = $item->fragment;
         $records = $record . '(?:' . DirectJsonParser::WS . ',' . DirectJsonParser::WS . $record . ')*+';
         $ws = DirectJsonParser::WS;
         $key = preg_quote(json_encode($field, JSON_THROW_ON_ERROR), delimiter: '~');

@@ -483,7 +483,7 @@ $compilerCache = new ReflectionProperty(DirectParser::class, 'compiled');
 $graphCache = new ReflectionProperty(\Eventjet\Json\Benchmark\Prototype\GraphParser::class, 'cache');
 $savedCompiler = $compilerCache->getValue();
 $savedGraph = $graphCache->getValue();
-$productionCompiler = new ReflectionProperty(\Eventjet\Json\Json::class, 'directPlans');
+$productionCompiler = new ReflectionProperty(\Eventjet\Json\Internal\ObjectHydrator::class, 'directPlans');
 $savedProductionCompiler = $productionCompiler->getValue();
 foreach ([
     ['pcre.backtrack_limit', '1'],
@@ -492,7 +492,7 @@ foreach ([
     $old = ini_set($setting, $limit);
     $compilerCache->setValue(null, []);
     $graphCache->setValue(null, []);
-    $productionCompiler->setValue(null, []);
+    $productionCompiler->setValue(null, array_map(static fn(object|bool $plan): bool => $plan !== false, $savedProductionCompiler));
     try {
         foreach ($resourceFixtures as $scenario => [$json, $type, $expected]) {
             foreach (array_intersect($modes, ['production', 'extreme', 'graph-flex-inline-direct-bulk', 'columns-8192']) as $mode) {

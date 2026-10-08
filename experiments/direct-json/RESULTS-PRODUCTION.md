@@ -13,9 +13,10 @@ JSON whitespace is accepted around every structural token.
 Other schemas and inputs use the existing native decoder and hydration plans.
 This includes mapped fields, enums, public properties, nested collections,
 defaults, reordered or unknown fields, escaped strings, and non-ASCII strings.
-The first successful call uses native decoding and reuses its hydration plan to
-reject ineligible schemas. Only potential scalar or single-list schemas compile
-on the next call. Invalid JSON retains syntax-before-declaration error ordering.
+Native hydration registers eligibility in its existing constructor-plan cache.
+Only potential scalar or single-list schemas compile on a subsequent direct call.
+The public decoder keeps native fallback inline and avoids a second cache lookup
+for ineligible targets. Invalid JSON retains syntax-before-declaration error ordering.
 Constructors observe the native JSON error state, and exceptions are returned
 without constructing the object again.
 

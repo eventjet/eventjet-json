@@ -531,6 +531,11 @@ final class ConstructorValidationPlanTest extends TestCase
     /** @throws \ReflectionException|\JsonException|Exception|UnknownClassOrInterfaceException */
     public function testDirectCompilationLeavesUnsupportedSchemasToCompatibilityHydration(): void
     {
+        static::assertFalse(\Eventjet\Json\Internal\DirectJsonParser::decode(
+            '{}',
+            \Eventjet\Json\Test\Unit\Fixtures\AbstractDirectRecord::class,
+        ));
+        static::assertArrayNotHasKey(\Eventjet\Json\Test\Unit\Fixtures\AbstractDirectRecord::class, self::readDirectPlans());
         foreach ([
             \Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget::class,
             \Eventjet\Json\Test\Unit\Fixtures\AbstractDirectRecord::class,
@@ -650,7 +655,7 @@ final class ConstructorValidationPlanTest extends TestCase
             public int $value = 1;
         };
         static::assertEquals($properties, \Eventjet\Json\Json::decode('{"value":1}', $properties::class));
-        static::assertFalse(self::readDirectPlan($properties::class));
+        static::assertArrayNotHasKey($properties::class, self::readDirectPlans());
         $nestedList = new class([]) {
             /** @param list<list<ScalarFields>> $values */
             public function __construct(
@@ -688,7 +693,7 @@ final class ConstructorValidationPlanTest extends TestCase
          * @var array<class-string, \Eventjet\Json\Internal\DirectScalarPlan|\Eventjet\Json\Internal\DirectListPlan|bool> $cache
          * @mago-expect lint:inline-variable-return The annotation types the reflected cache for analyzers.
          */
-        $cache = new ReflectionProperty(\Eventjet\Json\Json::class, 'directPlans')->getValue();
+        $cache = new ReflectionProperty(ObjectHydrator::class, 'directPlans')->getValue();
         return $cache;
     }
 

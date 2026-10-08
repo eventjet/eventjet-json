@@ -6,10 +6,7 @@ namespace Eventjet\Json;
 
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
-use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\DirectJsonParser;
-use Eventjet\Json\Internal\DirectListPlan;
-use Eventjet\Json\Internal\DirectScalarPlan;
 use Eventjet\Json\Internal\MapType;
 use Eventjet\Json\Internal\NestedCollectionType;
 use Eventjet\Json\Internal\ObjectHydrator;
@@ -29,9 +26,6 @@ use const JSON_ERROR_NONE;
 /** @mago-expect lint:cyclomatic-complexity The public API validates root shapes and dispatches cached direct plans. */
 final class Json
 {
-    /** @var array<class-string, DirectScalarPlan|DirectListPlan|bool> */
-    private static array $directPlans = [];
-
     /**
      * Check declarations, including nested classes, without constructing objects.
      *
@@ -58,39 +52,24 @@ final class Json
      * @phpstan-param (T is object ? class-string<T> : never)|JsonType<T> $class
      * @psalm-param class-string<T&object>|JsonType<T> $class
      * @return T|DecodeError
-     * @mago-expect lint:halstead Inline compatibility decoding avoids a forwarding call on small workloads.
      */
     public static function decode(string $json, string|JsonType $class): mixed
     {
-        $plan = is_string($class) ? self::$directPlans[$class] ?? null : null;
-        if ($plan !== false && $plan !== null) {
-            /**
-             * @var class-string $target Cached plans and pending markers belong only to class targets.
-             * @phpstan-var class-string<T&object> $target
-             * @psalm-var class-string<T&object> $target
-             */
-            $target = $class;
-            try {
-                // Syntax errors must precede declaration resolution and autoloading.
-                if ($plan === true && json_validate($json)) {
-                    /** @mago-expect analysis:less-specific-nested-argument-type The pending cache key is a class target. */
-                    $plan = DirectJsonParser::compile($target);
-                    self::$directPlans[$target] = $plan;
-                }
-                if ($plan !== true && $plan !== false) {
-                    $direct = $plan->decode($json);
-                    if ($direct !== false) {
-                        /**
-                         * @var T&object $value The cached plan's class key is the requested target.
-                         * @mago-expect lint:inline-variable-return The annotation preserves the public generic contract.
-                         */
-                        $value = $direct;
-                        return $value;
-                    }
-                }
-            } catch (Throwable $error) {
-                /** @mago-expect analysis:less-specific-nested-argument-type The active cache key is a class target. */
-                return DecodeError::cannotInstantiate($target, $error);
+        /**
+         * @mago-expect lint:no-empty False cache entries deliberately skip all direct-parser work.
+         * @phpstan-ignore empty.notAllowed (Only plans and boolean eligibility markers occur in this hot cache.)
+         */
+        if (is_string($class) && !empty(ObjectHydrator::$directPlans[$class])) {
+            /** @mago-expect analysis:less-specific-nested-argument-type The cache key selects a class target. */
+            $direct = DirectJsonParser::decode($json, $class);
+            if ($direct !== false) {
+                /**
+                 * @var (T&object)|DecodeError $value The cached parser targets the requested class.
+                 * @mago-expect analysis:redundant-docblock-type PHPStan and Psalm need the cache key's generic relationship.
+                 * @mago-expect lint:inline-variable-return The annotation preserves the public generic contract.
+                 */
+                $value = $direct;
+                return $value;
             }
         }
         /** @var mixed $values */
@@ -104,17 +83,7 @@ final class Json
         if (!$values instanceof stdClass) {
             return DecodeError::unexpectedRootValue($values);
         }
-        if ($plan !== null) {
-            return ObjectHydrator::hydrate($class, $values);
-        }
-        $value = ObjectHydrator::hydrate($class, $values);
-        if (!$value instanceof DecodeError) {
-            // Compile only after a successful first decode; cold requests need no second schema.
-            /** @mago-expect analysis:less-specific-nested-argument-type Native hydration has validated the class target. */
-            $validated = ObjectHydrator::validatedPlan($class);
-            self::$directPlans[$class] = $validated instanceof ConstructorPlan && $validated->directCandidate;
-        }
-        return $value;
+        return ObjectHydrator::hydrate($class, $values);
     }
 
     /**

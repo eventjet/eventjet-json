@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use Eventjet\Json\DecodeError;
 use JsonSerializable;
 use ReflectionClass;
 use ReflectionNamedType;
+use Throwable;
 
 /**
  * @internal Compile the small schemas that benefit from direct construction.
@@ -15,6 +17,25 @@ use ReflectionNamedType;
 final class DirectJsonParser
 {
     public const string WS = '[\\x20\\x09\\x0a\\x0d]*+';
+
+    /** @param class-string $class */
+    public static function decode(string $json, string $class): object|false
+    {
+        try {
+            $plan = ObjectHydrator::$directPlans[$class] ?? false;
+            if ($plan === true) {
+                // Syntax errors must precede declaration resolution and autoloading.
+                if (!json_validate($json)) {
+                    return false;
+                }
+                $plan = self::compile($class);
+                ObjectHydrator::$directPlans[$class] = $plan;
+            }
+            return $plan === false ? false : $plan->decode($json);
+        } catch (Throwable $error) {
+            return DecodeError::cannotInstantiate($class, $error);
+        }
+    }
 
     /**
      * @param class-string $class
