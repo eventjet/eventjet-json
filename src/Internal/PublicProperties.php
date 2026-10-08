@@ -46,8 +46,11 @@ final class PublicProperties
         }
 
         $properties = [];
-        foreach ($class->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
-            if ($property->isStatic() || ($constructorFields[$property->getName()] ?? false)) {
+        foreach (RootTypeValidator::declarations($class) as $property) {
+            $publicInstance =
+                ($property->getModifiers() & (ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_STATIC))
+                === ReflectionProperty::IS_PUBLIC;
+            if (!$publicInstance || ($constructorFields[$property->getName()] ?? false)) {
                 continue;
             }
             $type = PublicPropertyTypeValidator::validate($name, $property);
@@ -78,7 +81,7 @@ final class PublicProperties
      */
     public static function mappedFields(ReflectionClass $class): array
     {
-        $properties = $class->getProperties();
+        $properties = RootTypeValidator::declarations($class);
         // Reflection omits private ancestor properties from the effective child declarations.
         $parent = $class->getParentClass();
         while ($parent !== false) {

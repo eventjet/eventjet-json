@@ -42,7 +42,7 @@ final readonly class ConstructorParameter
             : (string) $this->type;
         $this->builtin = $this->type instanceof ReflectionNamedType && $this->type->isBuiltin();
         $this->variadic = $reflection->isVariadic();
-        $property = $class->hasProperty($this->name) ? $class->getProperty($this->name) : null;
+        $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
         $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
     }
 

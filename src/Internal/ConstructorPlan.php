@@ -47,16 +47,6 @@ final readonly class ConstructorPlan
      */
     public function decode(array $values, string $path): array|DecodeError
     {
-        $error = $this->validate($values, $path);
-        if ($error !== null) {
-            return $error;
-        }
-        return $this->scalarOnly ? array_intersect_key($values, $this->fields) : $this->convert($values, $path);
-    }
-
-    /** @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values */
-    public function validate(array $values, string $path): DecodeError|null
-    {
         foreach ($this->fields as $name => $field) {
             if (!array_key_exists($name, $values)) {
                 continue;
@@ -84,7 +74,7 @@ final readonly class ConstructorPlan
                 );
             }
         }
-        return null;
+        return $this->scalarOnly ? array_intersect_key($values, $this->fields) : $this->convert($values, $path);
     }
 
     /**

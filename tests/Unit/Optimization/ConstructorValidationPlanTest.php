@@ -212,6 +212,37 @@ final class ConstructorValidationPlanTest extends TestCase
 
     /**
      * @throws ReflectionException
+     * @throws JsonException
+     * @throws Exception
+     */
+    public function testMappedConversionErrorsSurviveColdAndCachedPlans(): void
+    {
+        $target = new class implements \JsonSerializable {
+            public function __construct(
+                #[Field('state')]
+                public StringBackedStatus $value = StringBackedStatus::Ready,
+            ) {}
+
+            #[\Override]
+            public function jsonSerialize(): object
+            {
+                return (object) ['state' => $this->value];
+            }
+        };
+        $class = new ReflectionClass($target);
+        for ($lookup = 0; $lookup < 2; ++$lookup) {
+            $error = ConstructorDecoder::convert($class, ['state' => 'unknown'], 'nested');
+            static::assertInstanceOf(DecodeError::class, $error);
+            static::assertStringContainsString('nested.state', $error->getMessage());
+            static::assertSame(
+                ['value' => StringBackedStatus::Ready],
+                ConstructorDecoder::convert($class, ['state' => StringBackedStatus::Ready->value], ''),
+            );
+        }
+    }
+
+    /**
+     * @throws ReflectionException
      * @throws DecodeError
      * @throws RuntimeException
      */

@@ -66,7 +66,7 @@ final readonly class ConstructorValueValidator
     }
 
     /** @param class-string $class */
-    public function validate(string $class, string $name, mixed $value, string $path): DecodeError|null
+    private function validate(string $class, string $name, mixed $value, string $path): DecodeError|null
     {
         $matches = ValueTypeMatcher::matches($value, $this->type);
         if ($matches) {
