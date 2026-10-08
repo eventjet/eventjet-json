@@ -12,25 +12,10 @@ use ReflectionProperty;
 use ReflectionUnionType;
 
 use function array_values;
-use function in_array;
-use function strtolower;
 
 /** @internal */
 final class FieldCollectionUnionResolver
 {
-    public static function hasCollection(ReflectionUnionType $type): bool
-    {
-        foreach ($type->getTypes() as $member) {
-            if (
-                $member instanceof ReflectionNamedType
-                && in_array(strtolower($member->getName()), ['array', 'arrayobject'], strict: true)
-            ) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
      * @param class-string $class
      * @throws ReflectionException

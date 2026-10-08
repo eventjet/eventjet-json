@@ -9,7 +9,7 @@
         "ext-tokenizer": "*"
     },
     "require-dev": {
-        "carthage-software/mago": "^1.50",
+        "carthage-software/mago": "^1.50 !=1.54.0",
         "infection/infection": "^0.35.5",
         "maglnet/composer-require-checker": "^4.20",
         "phpbench/phpbench": "^1.7",

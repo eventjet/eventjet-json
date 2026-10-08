@@ -10,16 +10,21 @@ use ReflectionClass;
 use ReflectionEnum;
 use ReflectionException;
 use ReflectionNamedType;
+use ReflectionParameter;
+use ReflectionProperty;
+use ReflectionType;
 
+use function array_key_exists;
 use function class_exists;
 use function enum_exists;
-use function in_array;
 use function interface_exists;
-use function is_a;
 
 /** @internal */
 final class ClassFieldTypeValidator
 {
+    /** @var array<class-string, null> */
+    private static array $validated = [];
+
     /**
      * @param class-string $class
      * @throws ReflectionException
@@ -30,13 +35,9 @@ final class ClassFieldTypeValidator
         string $type,
         ReflectionNamedType $declaration,
     ): DecodeError|false|null {
-        if ($declaration->isBuiltin()) {
-            return false;
-        }
         if (enum_exists($type)) {
             $enum = new ReflectionEnum($type);
-            $hasSupportedValue =
-                $enum->isBacked() || $declaration->allowsNull() && !$enum->implementsInterface(JsonSerializable::class);
+            $hasSupportedValue = $declaration->allowsNull() && !$enum->implementsInterface(JsonSerializable::class);
             return $hasSupportedValue ? false : DecodeError::nonBackedEnum($class, $type, $field);
         }
 
@@ -49,43 +50,54 @@ final class ClassFieldTypeValidator
      */
     public static function validate(string $class, string $field, string $type): DecodeError|null
     {
-        if (interface_exists($type)) {
-            return DecodeError::nonInstantiableField($class, $field, 'interface', $type);
+        if (!array_key_exists($type, self::$validated)) {
+            if (interface_exists($type)) {
+                return DecodeError::nonInstantiableField($class, $field, 'interface', $type);
+            }
+
+            if (!class_exists($type)) {
+                return null;
+            }
+
+            $typeReflection = new ReflectionClass($type);
+
+            if ($typeReflection->isAbstract()) {
+                return DecodeError::nonInstantiableField($class, $field, 'abstract class', $type);
+            }
+
+            if (!$typeReflection->isFinal()) {
+                return DecodeError::nonInstantiableField(
+                    $class,
+                    $field,
+                    'non-final class',
+                    $type,
+                    '. Values may be subclasses, whose runtime class JSON does not identify.',
+                );
+            }
+
+            $names = RootTypeValidator::fieldNames($typeReflection);
+            if ($names instanceof DecodeError) {
+                return $names;
+            }
+            self::$validated[$type] = null;
         }
-
-        if (!class_exists($type)) {
-            return null;
-        }
-
-        $typeReflection = new ReflectionClass($type);
-
-        if ($typeReflection->isAbstract()) {
-            return DecodeError::nonInstantiableField($class, $field, 'abstract class', $type);
-        }
-
-        if (!$typeReflection->isFinal()) {
-            return DecodeError::nonInstantiableField(
-                $class,
-                $field,
-                'non-final class',
-                $type,
-                '. Values may be subclasses, whose runtime class JSON does not identify.',
-            );
-        }
-
         return null;
     }
 
-    public static function isNonEncodable(string $type): bool
-    {
-        if (in_array($type, ['resource', 'open-resource', 'closed-resource'], strict: true)) {
-            return true;
+    public static function classUnionMember(
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionType $type,
+    ): string|null {
+        if (!$type instanceof ReflectionNamedType || $type->isBuiltin()) {
+            return null;
         }
 
-        return (
-            enum_exists($type)
-            && !new ReflectionEnum($type)->isBacked()
-            && !is_a($type, JsonSerializable::class, allow_string: true)
-        );
+        $name = FieldTypeNameResolver::resolve($field, $type);
+
+        if (enum_exists($name) || interface_exists($name)) {
+            return null;
+        }
+
+        return $name;
     }
 }

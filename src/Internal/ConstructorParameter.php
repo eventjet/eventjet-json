@@ -16,6 +16,8 @@ use function sprintf;
 /** @internal */
 final readonly class ConstructorParameter
 {
+    /** @var class-string */
+    public string $class;
     public string $name;
     public ReflectionType|null $type;
     public string $typeName;
@@ -32,6 +34,7 @@ final readonly class ConstructorParameter
         public ReflectionParameter $reflection,
         ReflectionClass $class,
     ) {
+        $this->class = $class->getName();
         $this->name = $reflection->getName();
         $this->type = $reflection->getType();
         $this->typeName = $this->type instanceof ReflectionNamedType
@@ -39,8 +42,15 @@ final readonly class ConstructorParameter
             : (string) $this->type;
         $this->builtin = $this->type instanceof ReflectionNamedType && $this->type->isBuiltin();
         $this->variadic = $reflection->isVariadic();
-        $property = $class->hasProperty($this->name) ? $class->getProperty($this->name) : null;
+        $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
         $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
+    }
+
+    /** @throws ReflectionException */
+    public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
+    {
+        $collection = $resolved === false ? null : $resolved;
+        return $this->builtin && $collection === null ? null : new FieldValueConverter($this->reflection, $collection);
     }
 
     /**
@@ -64,7 +74,9 @@ final readonly class ConstructorParameter
                 '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
             );
         }
-        $resolved = FieldTypeValidator::validate($class, $this->reflection);
+        $resolved = $this->type instanceof ReflectionNamedType
+            ? FieldTypeValidator::validateNamedType($class, $this->reflection, $this->type)
+            : FieldTypeValidator::validate($class, $this->reflection);
         if ($resolved instanceof DecodeError) {
             return $resolved;
         }

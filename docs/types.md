@@ -11,7 +11,7 @@ must not be relied on, even if a particular value happens to decode.
 
 | Target or value | Status | Limits |
 | --- | --- | --- |
-| Concrete classes | Supported at the root | The JSON root must be an object. Recognized member names are passed as named constructor arguments, so they must match the constructor parameter names. Each parameter must have a same-named public instance property so `json_encode()` can expose its value. Additional members are ignored. |
+| Concrete classes | Supported at the root | The JSON root must be an object. Recognized member names are passed as named constructor arguments, so they must match the constructor parameter names or their public properties' `#[Field]` names. Each parameter must have a same-named public instance property so `json_encode()` can expose its value. Additional members are ignored. |
 | Readonly classes | Supported at the root | The same constructor rules as other concrete classes apply. |
 | `string`, `int`, `float`, and `bool` constructor fields | Supported | Values must have the declared type. An integer JSON value is also valid for a `float` field because the declaration restores it as a PHP float. Other implicit scalar coercions are rejected. |
 | `null`, nullable scalar fields, and literal `true` and `false` fields | Supported | A non-null value must still match the non-null member of a nullable type. Literal Boolean fields accept only their declared value. |
@@ -25,7 +25,7 @@ must not be relied on, even if a particular value happens to decode.
 | `mixed`, untyped fields, `object`, and `stdClass` | Rejected | These declarations cannot preserve every value's original PHP type and JSON object/array shape, so they return a dedicated `DecodeError` whether or not the member is present. Use `ArrayObject<string, T>` rather than `stdClass` for a typed JSON object map. |
 | Root arrays and maps | Limited | `JsonType::array()` returns lists and `JsonType::map()` returns `ArrayObject<string, T>` maps, preserving empty JSON arrays and objects. Values may be final classes, backed enums, or recursively nested array and map descriptors. Map keys must remain PHP strings. |
 | Root scalars, enums, and `null` | Unsupported | There are no descriptors for standalone values of these types. Use a transport class with a typed field. |
-| Classes implementing `JsonSerializable` | Rejected | A custom JSON representation may not correspond to constructor parameters, so these targets return a dedicated `DecodeError`. |
+| Classes implementing `JsonSerializable` | Opt-in through `#[Field]` | At least one annotated public instance property is required. Use `MappedJsonFields` or supply a serializer that emits the declared field names and values. Unannotated serializers remain rejected. |
 
 The round-trip contract also has these representation limits:
 
@@ -52,6 +52,51 @@ The round-trip contract also has these representation limits:
   uninitialized state. Re-encoding may include a default-valued public property
   whose member was absent from the input. Exact preservation of omissions is
   outside the object-to-JSON-to-object round-trip contract.
+
+## Field-name mapping
+
+`#[Field('json-name')]` selects the JSON name of a declared public instance
+property. It works with promoted or ordinary constructor-bound properties,
+properties assigned after construction, inherited properties, and nested objects
+or collections. Empty strings and integer-looking names such as `"0"` are allowed
+for explicit field mappings; the restrictions on generic map keys are unchanged.
+Names starting with a null byte are rejected because PHP would omit them when
+encoding an object.
+
+Constructor arguments and PHPDoc `@param` tags keep their PHP names. A mapped
+field accepts only its JSON name. The ordinary PHP name is ignored unless it is
+the JSON name of a different field. Swapped names are supported. Input conversion
+errors use the JSON name in their paths, such as `links[0].$ref`; declaration
+errors identify PHP declarations. Missing arguments keep the existing constructor
+error behavior. Missing properties, defaults, and explicit nulls keep their usual
+semantics.
+
+Any `#[Field]` requires `JsonSerializable`, including a same-name annotation.
+Applying the attribute to a private, protected, or static property, repeating it,
+or assigning the same JSON name to two public properties returns a `DecodeError`.
+A mapped property also cannot collide with an unannotated public property's name.
+Mappings are checked when a class is resolved, including a directly declared
+nested type whose field is omitted or whose collection is empty.
+
+`MappedJsonFields` implements `jsonSerialize()` using the shared field metadata.
+It returns an object containing initialized public instance properties, retaining
+nulls and the same default-valued properties that native object encoding exposes.
+Uninitialized properties are omitted. Private, protected, and static state is not
+exposed. An empty result stays `{}` and numeric member names remain object keys.
+Nested mapped objects are handled by PHP's normal `JsonSerializable` support.
+
+The trait is optional. A handwritten serializer must emit an object with the
+resolved names and unchanged property values. It must not drop required values,
+rename them differently, or replace the object with a scalar or list. That is the
+class author's round-trip responsibility; the decoder does not execute a
+serializer to infer or verify its behavior. An interface or marker cannot prove
+an arbitrary method's behavior. `JsonSerializable` classes without `#[Field]`
+and custom-serialized enums remain outside this opt-in contract.
+
+This feature does not restore `Json::encode()`, add docblock mapping syntax, or
+make full JSON Schema models supported. Arbitrary JSON values, Boolean schema
+roots, unknown keyword retention, and exact preservation of omitted keywords
+remain separate concerns.
 
 ## Numeric round trips
 
@@ -397,12 +442,12 @@ These exclusions keep decoding unambiguous and preserve PHP types and JSON shape
 | Non-final class type hints in object fields | A field may contain a subclass of its declared type, but JSON does not identify that runtime class. Reconstructing the declared class could silently change the value. Root targets are unaffected because the caller supplies their exact class. |
 | Intersection type hints | JSON does not identify the concrete class that satisfies every member of an intersection. Resolving one would require additional selection rules or metadata. |
 | Non-backed enum values | Without custom serialization, they have no JSON representation. Their type may appear in a union with a supported member, including `null`; only supported members can be decoded. Enums implementing `JsonSerializable` remain unsupported because their custom representation cannot be recovered generically. |
-| Object targets implementing `JsonSerializable` | Their custom JSON representation may not match their constructor parameters, so generic decoding cannot guarantee the round-trip contract. |
+| Unannotated object targets implementing `JsonSerializable` | Arbitrary custom representations cannot be inferred. Annotated targets opt into the field-mapping contract described above. |
 | Variadic constructors | JSON members bind to individual named constructor arguments. Reconstructing a variadic argument list would require separate unpacking and key-binding rules. |
 | Constructor parameters without same-named declared public instance properties | The class shape does not provide a stable JSON member from which decoding can recover those argument values. |
 | Non-JSON-encodable values, including resources, `INF`, `NAN`, invalid UTF-8, and circular references | JSON cannot represent these values without losing information or changing their meaning. They fall outside the round-trip contract. |
 | JSON objects with duplicate member names | They cannot be produced by `json_encode()` from supported PHP values. PHP's decoder does not report them separately, and detecting them would require reparsing every document. Callers must not rely on which duplicate value is retained. |
 | Implicit coercion of mismatched scalar types | Converting values such as `"42"` to `42` hides a type mismatch and changes the value's type. Decoding must validate the declared type. |
-| Member-name mapping, aliases, and naming strategies | Target classes are expected to match the JSON wire format exactly. Transforming decoded transport data into an application's domain model is the consumer's responsibility. |
+| Automatic naming strategies and multiple aliases for one property | Only explicit `#[Field]` mappings are supported. Each property has one accepted JSON name. |
 | `mixed`, untyped, `object`, and `stdClass` constructor fields | These declarations do not provide enough type information to restore every value's original PHP type and JSON shape. In particular, `object` omits the concrete class, while `mixed`, untyped fields, and `stdClass` members can contain PHP arrays that encode as JSON objects. |
 | Generic `array<TKey, TValue>` map declarations | An empty PHP array encodes as `[]`, so it cannot represent an empty JSON object. Depending on its runtime keys, a nonempty PHP array can also encode as either an array or an object. Use `non-empty-array<string, TValue>` for a map that cannot be empty or `ArrayObject<string, TValue>` for a map that may be empty. |
