@@ -296,9 +296,7 @@ Measurements on October 8, 2026 used PHP 8.4.26, an AMD Ryzen 7 7700, OPcache on
 JIT off, and coverage off. Each warm iteration performs 20,000 operations after
 one warmup; each cold iteration performs one operation in a new CLI process.
 There are 15 iterations per case. These are local observations, not the CI
-performance gate or a prediction for every application. The
-[recorded samples](measurements/field-mapping.json) include variation and all cold
-and warm cases.
+performance gate or a prediction for every application.
 
 The optimized implementation caches attribute discovery, including an empty
 result for ordinary classes. It checks collisions only for annotated classes.
@@ -346,7 +344,7 @@ comparison uses prepared workspaces at the same runtime path.
 CLI columns are PHPBench modes from 15 iterations of 200 decodes; FPM columns
 are medians of 15 separate requests after warming bytecode. FPM verified zero
 OPcache misses during every measured decode, with fresh decoder metadata in each
-request. The sample file also includes the existing record-batch workloads.
+request.
 
 Warm document estimates stayed within about 4% of the base in this run, with
 substantial variation in some workloads. That does not prove zero overhead.
@@ -354,7 +352,7 @@ Fresh-request document medians were about 5–13% higher: ordinary classes still
 pay for discovering whether attributes exist when metadata is first built.
 Cold CLI results likewise include additional source loading. No zero-cost claim
 is made for startup or per-request metadata construction. Earlier exploratory
-runs varied substantially; the saved results describe the final optimized
+runs varied substantially; the tables describe the final optimized
 implementation, not a pass obtained by retrying the CI regression gate.
 
 For a reproducible revision comparison, use the existing comparison runner with
