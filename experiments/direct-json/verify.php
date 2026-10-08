@@ -483,10 +483,8 @@ $compilerCache = new ReflectionProperty(DirectParser::class, 'compiled');
 $graphCache = new ReflectionProperty(\Eventjet\Json\Benchmark\Prototype\GraphParser::class, 'cache');
 $savedCompiler = $compilerCache->getValue();
 $savedGraph = $graphCache->getValue();
-$productionCompiler = new ReflectionProperty(\Eventjet\Json\Internal\DirectJsonParser::class, 'compiled');
-$productionGraph = new ReflectionProperty(\Eventjet\Json\Internal\DirectGraphCompiler::class, 'cache');
+$productionCompiler = new ReflectionProperty(\Eventjet\Json\Json::class, 'directPlans');
 $savedProductionCompiler = $productionCompiler->getValue();
-$savedProductionGraph = $productionGraph->getValue();
 foreach ([
     ['pcre.backtrack_limit', '1'],
     ['pcre.recursion_limit', '1'],
@@ -495,7 +493,6 @@ foreach ([
     $compilerCache->setValue(null, []);
     $graphCache->setValue(null, []);
     $productionCompiler->setValue(null, []);
-    $productionGraph->setValue(null, []);
     try {
         foreach ($resourceFixtures as $scenario => [$json, $type, $expected]) {
             foreach (['production', 'extreme', 'graph-flex-inline-direct-bulk', 'columns-8192'] as $mode) {
@@ -515,7 +512,6 @@ foreach ([
         $compilerCache->setValue(null, $savedCompiler);
         $graphCache->setValue(null, $savedGraph);
         $productionCompiler->setValue(null, $savedProductionCompiler);
-        $productionGraph->setValue(null, $savedProductionGraph);
     }
 }
 
