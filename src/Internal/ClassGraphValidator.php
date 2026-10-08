@@ -11,8 +11,6 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function class_exists;
-use function enum_exists;
-use function in_array;
 
 /** @internal */
 final class ClassGraphValidator
@@ -51,7 +49,7 @@ final class ClassGraphValidator
         }
         foreach ($properties as $property) {
             $field = $property['property'];
-            $resolved = FieldTypeValidator::validate($class, $field);
+            $resolved = FieldTypeResolver::resolve($class, $field);
             $error = $this->field($class, $field, $resolved);
             if ($error !== null) {
                 return $error;
@@ -87,12 +85,6 @@ final class ClassGraphValidator
      */
     private function named(string $class, string $field, string $type): DecodeError|null
     {
-        if (
-            enum_exists($type)
-            || in_array($type, ['bool', 'float', 'int', 'string', 'true', 'false', 'null'], strict: true)
-        ) {
-            return null;
-        }
         if (!class_exists($type)) {
             return DecodeError::nonInstantiableField($class, $field, 'unknown class', $type);
         }
