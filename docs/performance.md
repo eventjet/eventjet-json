@@ -57,7 +57,9 @@ file-update protection to zero so newly exported source files can be cached.
 The runner checks the actual runtime OPcache state. OPcache-off remains available
 for consumers whose runtime does not enable it.
 
-Reports keep these groups separate, with no overall score or workload weighting.
+PHPBench category groups also determine CI report sections. Reports keep these
+groups separate, with no overall score or workload weighting. Older suites without
+category groups appear under "Uncategorized workloads."
 A large focused gain is not evidence of the same gain for consumers. Compare
 realistic document results before prioritizing an optimization. Peak memory is
 whole-process memory, not incremental decoder allocation.
@@ -66,6 +68,8 @@ Run one group, or store a baseline and compare after a code change:
 
 ```bash
 docker compose exec php composer benchmark -- --group=documents
+docker compose exec php composer benchmark -- --group=batches
+docker compose exec php composer benchmark -- --group=stress
 docker compose exec php composer benchmark -- --group=diagnostic
 docker compose exec php composer benchmark -- --group=errors
 # Optional comparison for consumers running without CLI OPcache:
@@ -85,8 +89,9 @@ runner. Branch pushes and manual runs compare with the first parent. Both versio
 use one frozen workload revision (the workflow revision by default) and its PHPBench configuration and the same
 installed dependencies; this isolates source changes rather than measuring
 dependency upgrades. The command-line runner defaults to baseline workloads when `--workloads` is omitted;
-in that mode, changed candidate workloads also receive a separate verification run. An absent baseline suite is reported explicitly,
-without a regression verdict.
+in that mode, changed candidate workloads also receive a separate verification run. An absent suite at the selected workload revision is reported explicitly,
+without a regression verdict. Baseline and candidate revisions only need compatible
+source code; they do not need their own benchmark suites.
 
 The comparison runner defaults to `--opcache on`; add
 `--opcache off` for the secondary mode. Reports and metadata record the selected

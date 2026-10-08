@@ -34,44 +34,10 @@ final class DocumentBench
     }
 
     /**
-     * @return iterable<string, array{scenario: string}>
-     * @throws JsonException
-     * @throws RuntimeException
-     */
-    public function scenarios(): iterable
-    {
-        foreach (DocumentWorkloads::names() as $name) {
-            if ($name === 'record batch 0' || $name === 'record batch 1') {
-                continue;
-            }
-            yield $name => ['scenario' => $name];
-        }
-    }
-
-    /** @return iterable<string, array{scenario: string}> */
-    public function smallBatches(): iterable
-    {
-        foreach (['record batch 0', 'record batch 1'] as $name) {
-            yield $name => ['scenario' => $name];
-        }
-    }
-
-    /**
-     * @return iterable<string, array{scenario: string}>
-     * @throws JsonException
-     * @throws RuntimeException
-     */
-    public function allScenarios(): iterable
-    {
-        yield from $this->scenarios();
-        yield from $this->smallBatches();
-    }
-
-    /**
      * @throws DecodeError
      * @throws RuntimeException
      */
-    #[Bench\ParamProviders('allScenarios')]
+    #[Bench\ParamProviders(DocumentWorkloads::class . '::scenarios')]
     #[Bench\Groups(['documents', 'cold'])]
     #[Bench\Revs(1)]
     #[Bench\Warmup(0)]
@@ -84,7 +50,7 @@ final class DocumentBench
      * @throws DecodeError
      * @throws RuntimeException
      */
-    #[Bench\ParamProviders('scenarios')]
+    #[Bench\ParamProviders(DocumentWorkloads::class . '::scenarios')]
     #[Bench\Groups(['documents', 'warm'])]
     #[Bench\Revs(200)]
     #[Bench\Warmup(1)]
@@ -97,11 +63,37 @@ final class DocumentBench
      * @throws DecodeError
      * @throws RuntimeException
      */
-    #[Bench\ParamProviders('smallBatches')]
+    #[Bench\ParamProviders(DocumentWorkloads::class . '::smallBatches')]
     #[Bench\Groups(['batches', 'warm'])]
     #[Bench\Revs(10_000)]
     #[Bench\Warmup(1)]
     public function benchWarmSmallBatch(): void
+    {
+        $this->decode();
+    }
+
+    /**
+     * @throws DecodeError
+     * @throws RuntimeException
+     */
+    #[Bench\ParamProviders(DocumentWorkloads::class . '::allBatches')]
+    #[Bench\Groups(['batches', 'cold'])]
+    #[Bench\Revs(1)]
+    #[Bench\Warmup(0)]
+    public function benchColdBatch(): void
+    {
+        $this->decode();
+    }
+
+    /**
+     * @throws DecodeError
+     * @throws RuntimeException
+     */
+    #[Bench\ParamProviders(DocumentWorkloads::class . '::largeBatches')]
+    #[Bench\Groups(['batches', 'warm'])]
+    #[Bench\Revs(200)]
+    #[Bench\Warmup(1)]
+    public function benchWarmLargeBatch(): void
     {
         $this->decode();
     }

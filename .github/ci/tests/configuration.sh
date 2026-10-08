@@ -31,15 +31,16 @@ printf '%s\n' '{"packages":[]}' > vendor/composer/installed.json
 printf '%s\n' '{"runner.path":"benchmarks","runner.php_config":{"serialize_precision":"7","pcov.enabled":"1"}}' > phpbench.json
 cat > benchmarks/ExampleBench.php <<'PHP'
 <?php
-final class ExampleBench
+final class ErrorBench
 {
+    #[\PhpBench\Attributes\Groups(['documents', 'warm'])]
     #[\PhpBench\Attributes\ParamProviders('cases')]
     public function benchExample(): void {}
     public function benchControl(): void {}
     public function cases(): iterable
     {
-        yield 'first[case]' => [];
-        yield 'second.case' => [];
+        yield 'record batch[case]' => [];
+        yield 'enum-heavy.collections' => [];
     }
 }
 PHP
@@ -100,6 +101,12 @@ check_run() {
     test -s .perf/results/candidate-0.txt
     test -s .perf/results/summary.md
     test -s .perf/results/candidate-workloads.xml
+    grep -Fq '### Realistic example documents' .perf/results/summary.md
+    grep -Fq '### Uncategorized workloads' .perf/results/summary.md
+    if grep -Eq '^### (Expected errors|Synthetic batches|Stress diagnostics|Focused diagnostics)' .perf/results/summary.md; then
+        echo 'Report categories must come from groups, not benchmark or variant names'
+        exit 1
+    fi
     php <<'PHP'
 <?php
 $files = glob('.perf/results/candidate-*.xml');
@@ -161,12 +168,32 @@ fi
 grep -Fq 'OPcache must be on or off' invalid.log
 echo 'OPcache modes and explicit frozen workloads passed.'
 
-empty_tree=$(git mktree </dev/null)
-no_benchmarks=$(git commit-tree "$empty_tree" -m 'No benchmark suite')
-php "$runner" --base "$no_benchmarks" --candidate "$candidate" --workloads "$candidate" > no-baseline.log 2>&1
+git rm --quiet -rf benchmarks tests phpbench.json
+git commit --quiet -m 'Source without a benchmark suite'
+no_benchmarks=$(git rev-parse HEAD)
+EXPLICIT_WORKLOADS=1 php "$runner" --base "$no_benchmarks" --candidate "$no_benchmarks" --workloads "$candidate" > source-only.log 2>&1
+test -s .perf/results/baseline-0.xml
+test -s .perf/results/candidate-0.xml
+grep -Fq 'PHPBench assertions passed' .perf/results/summary.md
+mv .perf source-only-results
+echo 'Source-only revisions can use an independent frozen suite.'
+
+php "$runner" --base "$baseline" --candidate "$candidate" --workloads "$no_benchmarks" > no-workloads.log 2>&1
 grep -Fq 'No comparable baseline' .perf/results/summary.md
-mv .perf no-baseline-results
-echo 'Missing baseline with explicit workloads passed.'
+mv .perf no-workload-results
+
+git rm --quiet -r src
+git commit --quiet -m 'No source directory'
+no_source=$(git rev-parse HEAD)
+for arguments in "--base $no_source --candidate $candidate" "--base $baseline --candidate $no_source"; do
+    if php "$runner" $arguments --workloads "$candidate" > no-source.log 2>&1; then
+        echo 'Compared revisions must contain source'
+        exit 1
+    fi
+    grep -Fq 'Compared revision has no source directory' no-source.log
+    rm -rf .perf
+done
+echo 'Missing workload suites and missing compared source are reported separately.'
 
 # Failed subprocesses must retain stdout diagnostics as well as forwarded stderr.
 cat > vendor/bin/phpbench <<'PHP'

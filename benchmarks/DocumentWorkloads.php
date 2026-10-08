@@ -21,26 +21,84 @@ use const JSON_THROW_ON_ERROR;
 /** @internal */
 final class DocumentWorkloads
 {
-    /** @return list<string> */
-    public static function names(): array
+    private const array SMALL_BATCH_SIZES = [0, 1];
+    private const array LARGE_BATCH_SIZES = [100, 1000];
+
+    /**
+     * @api Used by PHPBench parameter providers.
+     * @return iterable<string, array{scenario: string}>
+     */
+    public static function scenarios(): iterable
     {
-        return array_keys(self::factories());
+        foreach (self::names('documents') as $name) {
+            yield $name => ['scenario' => $name];
+        }
     }
 
-    /** @return array<string, Closure(): DocumentWorkload> */
-    private static function factories(): array
+    /**
+     * @api Used by PHPBench parameter providers.
+     * @return iterable<string, array{scenario: string}>
+     */
+    public static function smallBatches(): iterable
+    {
+        foreach (self::SMALL_BATCH_SIZES as $size) {
+            $name = 'record batch ' . $size;
+            yield $name => ['scenario' => $name];
+        }
+    }
+
+    /**
+     * @api Used by PHPBench parameter providers.
+     * @return iterable<string, array{scenario: string}>
+     */
+    public static function largeBatches(): iterable
+    {
+        foreach (self::LARGE_BATCH_SIZES as $size) {
+            $name = 'record batch ' . $size;
+            yield $name => ['scenario' => $name];
+        }
+    }
+
+    /**
+     * @api Used by PHPBench parameter providers.
+     * @return iterable<string, array{scenario: string}>
+     */
+    public static function allBatches(): iterable
+    {
+        yield from self::smallBatches();
+        yield from self::largeBatches();
+    }
+
+    /**
+     * @param 'documents'|'batches'|null $category
+     * @return list<string>
+     */
+    public static function names(string|null $category = null): array
+    {
+        return array_keys(self::factories($category));
+    }
+
+    /**
+     * @param 'documents'|'batches'|null $category
+     * @return array<string, Closure(): DocumentWorkload>
+     */
+    private static function factories(string|null $category = null): array
     {
         $factories = [];
-        foreach (SupportedDocumentRoundTripCases::factories() as $name => $factory) {
-            $factories[$name] = static function () use ($factory): DocumentWorkload {
-                [$json, $class, $check] = $factory();
-                return new DocumentWorkload($json, $class, $check(...));
-            };
+        if ($category !== 'batches') {
+            foreach (SupportedDocumentRoundTripCases::factories() as $name => $factory) {
+                $factories[$name] = static function () use ($factory): DocumentWorkload {
+                    [$json, $class, $check] = $factory();
+                    return new DocumentWorkload($json, $class, $check(...));
+                };
+            }
         }
-        foreach ([0, 1, 100, 1000] as $size) {
-            $factories['record batch ' . $size] =
-                /** @throws JsonException */
-                static fn(): DocumentWorkload => self::batch($size);
+        if ($category !== 'documents') {
+            foreach ([...self::SMALL_BATCH_SIZES, ...self::LARGE_BATCH_SIZES] as $size) {
+                $factories['record batch ' . $size] =
+                    /** @throws JsonException */
+                    static fn(): DocumentWorkload => self::batch($size);
+            }
         }
         return $factories;
     }
