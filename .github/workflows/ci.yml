@@ -87,6 +87,7 @@ jobs:
       - uses: ./.github/actions/setup-php
         with:
           coverage: pcov
+          ini-values: pcov.enabled=0
       - name: Restore PHPStan analysis
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -98,7 +99,7 @@ jobs:
         timeout-minutes: 6
         run: |
           mkdir -p build
-          composer infection -- --threads=4 --no-progress --logger-summary-json=build/mutation-summary.json 2>&1 | tee "$RUNNER_TEMP/mutation-output.txt"
+          composer infection -- --threads=4 --no-progress --initial-tests-php-options="-d pcov.enabled=1" --logger-summary-json=build/mutation-summary.json 2>&1 | tee "$RUNNER_TEMP/mutation-output.txt"
       - name: Save mutation report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

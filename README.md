@@ -184,15 +184,15 @@ assertion failures. The lower PHPUnit test count reflects grouping by generator,
 not fewer inputs or assertions.
 
 Both existing 100% mutation thresholds remain in force, including uncovered code;
-no diff-only selection is used. Coverage instrumentation is disabled for the
-other jobs. The per-mutant timeout remains 60 seconds. Mutation output and a JSON
+no diff-only selection is used. PCOV is enabled only for the initial coverage
+pass; mutant workers run without coverage instrumentation. The other jobs also
+run without coverage instrumentation. The per-mutant timeout remains 60 seconds. Mutation output and a JSON
 summary are retained for seven days on successful and failed runs, so durations
 and mutation outcomes can be compared.
 
 Speed is a CI requirement: quality and test jobs have a five-minute total limit,
 PHPUnit has a two-minute step limit, and mutation testing has a six-minute test
-limit within an eight-minute total limit. This leaves headroom above the measured
-4m 53s hosted mutation run. Exceeding a limit fails the check.
+limit within an eight-minute total limit. Exceeding a limit fails the check.
 Review the step durations in GitHub Actions when a check approaches its limit;
 profile case generation, coverage collection, and mutant execution before raising a limit.
 These limits bound execution, not GitHub runner queue delays. Caches are optional:
