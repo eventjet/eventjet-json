@@ -56,7 +56,7 @@ cat > vendor/bin/phpbench <<'PHP'
 <?php
 declare(strict_types=1);
 $config = json_decode(file_get_contents('phpbench.json'), true, flags: JSON_THROW_ON_ERROR);
-$candidateSuite = in_array('--dump-file=../results/candidate-workloads.xml', $argv, true);
+$candidateSuite = in_array('--dump-file=../results/candidate-workloads.xml', $argv, true) || getenv('EXPLICIT_WORKLOADS') === '1';
 if ($config['runner.path'] !== 'benchmarks'
     || $config['runner.php_config']['serialize_precision'] !== ($candidateSuite ? '9' : '7')) {
     throw new RuntimeException('Workload configuration was not isolated');
@@ -140,12 +140,33 @@ if ($metadata['opcache'] !== 'off'
     throw new RuntimeException('Explicit OPcache-off mode was not reported');
 }
 PHP
+status=0
+EXPLICIT_WORKLOADS=1 php "$runner" --base "$baseline" --candidate "$candidate" --workloads "$candidate" > explicit.log 2>&1 || status=$?
+if [ "$status" -ne 2 ]; then cat explicit.log; exit 1; fi
+EXPECTED_WORKLOADS="$candidate" php <<'PHP'
+<?php
+$metadata = json_decode(file_get_contents('.perf/results/metadata.json'), true, flags: JSON_THROW_ON_ERROR);
+if ($metadata['workloads'] !== getenv('EXPECTED_WORKLOADS') || $metadata['workloads_changed']) {
+    throw new RuntimeException('Explicit workload revision was not frozen');
+}
+if (file_exists('.perf/results/candidate-workloads.xml')) {
+    throw new RuntimeException('Explicit workloads must not be replaced by candidate workloads');
+}
+PHP
+mv .perf explicit-workloads
 if php "$runner" --base "$baseline" --opcache invalid > invalid.log 2>&1; then
     echo 'Expected an invalid OPcache mode to fail'
     exit 1
 fi
 grep -Fq 'OPcache must be on or off' invalid.log
-echo 'OPcache modes passed.'
+echo 'OPcache modes and explicit frozen workloads passed.'
+
+empty_tree=$(git mktree </dev/null)
+no_benchmarks=$(git commit-tree "$empty_tree" -m 'No benchmark suite')
+php "$runner" --base "$no_benchmarks" --candidate "$candidate" --workloads "$candidate" > no-baseline.log 2>&1
+grep -Fq 'No comparable baseline' .perf/results/summary.md
+mv .perf no-baseline-results
+echo 'Missing baseline with explicit workloads passed.'
 
 # Failed subprocesses must retain stdout diagnostics as well as forwarded stderr.
 cat > vendor/bin/phpbench <<'PHP'

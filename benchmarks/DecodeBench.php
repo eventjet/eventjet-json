@@ -47,40 +47,9 @@ final class DecodeBench
         $this->target = is_array($original) ? JsonType::array(CombinedCollectionFields::class) : $original::class;
     }
 
-    /** @return iterable<string, array{scenario: string}> */
-    public function smallScenarios(): iterable
-    {
-        foreach ([
-            'scalar object',
-            'public scalar properties',
-            'scalar lists',
-            'long scalar lists',
-            'named enums',
-            'enum union',
-            'enum union collections',
-            'object collections',
-            'recursive collections',
-        ] as $scenario) {
-            yield $scenario => ['scenario' => $scenario];
-        }
-    }
-
-    /** @return iterable<string, array{scenario: string}> */
-    public function rootScenario(): iterable
-    {
-        yield 'root array' => ['scenario' => 'root array'];
-    }
-
-    /** @return iterable<string, array{scenario: string}> */
-    public function allScenarios(): iterable
-    {
-        yield from $this->smallScenarios();
-        yield from $this->rootScenario();
-    }
-
     /** @throws DecodeError */
-    #[Bench\ParamProviders('allScenarios')]
-    #[Bench\Groups(['cold'])]
+    #[Bench\ParamProviders(DecodeWorkloads::class . '::allScenarios')]
+    #[Bench\Groups(['cold', 'diagnostic'])]
     #[Bench\Revs(1)]
     #[Bench\Warmup(0)]
     public function benchCold(): void
@@ -89,8 +58,8 @@ final class DecodeBench
     }
 
     /** @throws DecodeError */
-    #[Bench\ParamProviders('smallScenarios')]
-    #[Bench\Groups(['warm'])]
+    #[Bench\ParamProviders(DecodeWorkloads::class . '::smallScenarios')]
+    #[Bench\Groups(['warm', 'diagnostic'])]
     #[Bench\Revs(2000)]
     #[Bench\Warmup(1)]
     public function benchWarm(): void
@@ -99,11 +68,21 @@ final class DecodeBench
     }
 
     /** @throws DecodeError */
-    #[Bench\ParamProviders('rootScenario')]
-    #[Bench\Groups(['warm'])]
-    #[Bench\Revs(5)]
+    #[Bench\ParamProviders(DecodeWorkloads::class . '::listScenario')]
+    #[Bench\Groups(['warm', 'diagnostic'])]
+    #[Bench\Revs(100)]
     #[Bench\Warmup(1)]
-    public function benchWarmRoot(): void
+    public function benchWarmLists(): void
+    {
+        $this->decode();
+    }
+
+    /** @throws DecodeError */
+    #[Bench\ParamProviders(DecodeWorkloads::class . '::stressScenarios')]
+    #[Bench\Groups(['warm', 'stress'])]
+    #[Bench\Revs(20)]
+    #[Bench\Warmup(1)]
+    public function benchWarmStress(): void
     {
         $this->decode();
     }

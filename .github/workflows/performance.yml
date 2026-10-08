@@ -1,5 +1,5 @@
 name: Performance
-run-name: "Performance (${{ inputs.opcache || 'both' }}): ${{ github.head_ref || github.ref_name }}"
+run-name: "Performance (${{ inputs.opcache || 'both' }}): ${{ inputs.candidate || github.head_ref || github.ref_name }}"
 
 on:
   pull_request:
@@ -7,6 +7,18 @@ on:
     branches: [master, tabula-rasa]
   workflow_dispatch:
     inputs:
+      base:
+        description: Baseline commit or branch (empty uses HEAD^1)
+        type: string
+        default: ''
+      candidate:
+        description: Candidate commit or branch (empty uses HEAD)
+        type: string
+        default: ''
+      workloads:
+        description: Frozen benchmark suite revision (empty uses workflow revision)
+        type: string
+        default: ''
       opcache:
         description: OPcache modes (on is primary; off is secondary)
         type: choice
@@ -21,7 +33,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: performance-${{ github.event.pull_request.number || github.ref }}-${{ inputs.opcache || 'both' }}
+  group: performance-${{ github.event.pull_request.number || github.ref }}-${{ inputs.candidate || 'HEAD' }}-${{ inputs.opcache || 'both' }}
   cancel-in-progress: true
 
 env:
@@ -36,26 +48,29 @@ jobs:
         sample: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.calibrate && '[1,2,3,4,5]' || '[1]') }}
         opcache: ${{ fromJSON((inputs.opcache == 'on' && '["on"]') || (inputs.opcache == 'off' && '["off"]') || '["on", "off"]') }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 2
+          fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup-php
       - name: Validate performance tooling
         run: |
           vendor/bin/phpstan analyze .github/ci --no-progress
           bash .github/ci/tests/configuration.sh
-      - name: Compare target with proposed merge
+          bash .github/ci/tests/workloads.sh
+      - name: Compare revisions
         shell: bash
         env:
+          BASE_REF: ${{ inputs.base || 'HEAD^1' }}
+          CANDIDATE_REF: ${{ inputs.candidate || 'HEAD' }}
+          WORKLOADS_REF: ${{ inputs.workloads || github.sha }}
           CALIBRATE: ${{ github.event_name == 'workflow_dispatch' && inputs.calibrate }}
           OPCACHE_MODE: ${{ matrix.opcache }}
         run: |
-          base=HEAD^1
-          if [ "$CALIBRATE" = true ]; then base=HEAD; fi
-          php .github/ci/performance.php --base "$base" --candidate HEAD --opcache "$OPCACHE_MODE"
+          if [ "$CALIBRATE" = true ]; then BASE_REF="$CANDIDATE_REF"; fi
+          php .github/ci/performance.php --base "$BASE_REF" --candidate "$CANDIDATE_REF" --opcache "$OPCACHE_MODE" --workloads "$WORKLOADS_REF"
       - name: Save measurements and environment
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

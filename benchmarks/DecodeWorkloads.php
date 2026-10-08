@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Benchmark;
 
 use ArrayObject;
+use Eventjet\Json\Benchmark\Fixtures\ScalarLists;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\CombinedCollectionFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties;
@@ -15,7 +16,6 @@ use Eventjet\Json\Test\Acceptance\Fixtures\MultipleEnumUnionCollectionFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\MultipleEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedSelfCollections;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
-use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use InvalidArgumentException;
 
@@ -40,18 +40,28 @@ final class DecodeWorkloads
             ),
             'enum union' => new DistinctEnumScalarUnionField(IntBackedStatus::Ready),
             'enum union collections' => self::enumUnions(),
-            'scalar lists' => new ScalarListFields(['a', 'b'], [1, 2], [1.5, 2.5], [true, false]),
-            'long scalar lists' => new ScalarListFields(
-                array_fill(0, count: 1000, value: 'value'),
-                array_fill(0, count: 1000, value: 42),
-                array_fill(0, count: 1000, value: 1.5),
-                array_fill(0, count: 1000, value: true),
-            ),
-            'object collections' => self::collections(),
+            'scalar lists' => self::scalarLists(2),
+            'long scalar lists' => self::scalarLists(1000),
+            'enum-heavy object collections' => self::collections(),
             'recursive collections' => self::recursive(),
-            'root array' => array_fill(0, count: 100, value: self::collections()),
+            'enum-heavy root array' => array_fill(0, count: 100, value: self::collections()),
             default => throw new InvalidArgumentException('Unknown benchmark scenario: ' . $scenario),
         };
+    }
+
+    public static function scalarLists(int $size): ScalarLists
+    {
+        $strings = [];
+        $integers = [];
+        $floats = [];
+        $booleans = [];
+        for ($index = 0; $index < $size; ++$index) {
+            $strings[] = 'value-' . $index;
+            $integers[] = $index - 500;
+            $floats[] = (float) ($index / 4) + 0.5;
+            $booleans[] = ($index % 2) === 0;
+        }
+        return new ScalarLists($strings, $integers, $floats, $booleans);
     }
 
     private static function publicScalars(): ConstructorlessPublicProperties
@@ -92,5 +102,58 @@ final class DecodeWorkloads
             $original = $parent;
         }
         return $original;
+    }
+
+    /**
+     * @api Used by PHPBench parameter providers.
+     * @return iterable<string, array{scenario: string}>
+     */
+    public static function smallScenarios(): iterable
+    {
+        foreach ([
+            'scalar object',
+            'public scalar properties',
+            'scalar lists',
+            'named enums',
+            'enum union',
+        ] as $scenario) {
+            yield $scenario => ['scenario' => $scenario];
+        }
+    }
+
+    /**
+     * @api Used by PHPBench parameter providers.
+     * @return iterable<string, array{scenario: string}>
+     */
+    public static function listScenario(): iterable
+    {
+        yield 'long scalar lists' => ['scenario' => 'long scalar lists'];
+    }
+
+    /**
+     * @api Used by PHPBench parameter providers.
+     * @return iterable<string, array{scenario: string}>
+     */
+    public static function allScenarios(): iterable
+    {
+        yield from self::smallScenarios();
+        yield from self::listScenario();
+        yield from self::stressScenarios();
+    }
+
+    /**
+     * @api Used by PHPBench parameter providers.
+     * @return iterable<string, array{scenario: string}>
+     */
+    public static function stressScenarios(): iterable
+    {
+        foreach ([
+            'enum union collections',
+            'enum-heavy object collections',
+            'recursive collections',
+            'enum-heavy root array',
+        ] as $scenario) {
+            yield $scenario => ['scenario' => $scenario];
+        }
     }
 }
