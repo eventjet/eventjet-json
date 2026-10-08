@@ -215,6 +215,10 @@ the CI runner. A consistently noisy benchmark needs more stable measurement,
 not a larger limit chosen just to pass a particular PR. The expanded workflow retains
 its 15-minute job limit and a 90-second limit per subprocess.
 
+Performance tooling validation runs once in a separate job alongside the measurements.
+The existing comparison checks require both the measurements and tooling validation
+to succeed, so moving validation does not weaken the merge gate.
+
 The comparison runner is PHP (`.github/ci/performance.php`). PHPStan checks the
 orchestration code. A shell integration test exercises the real PHPBench CLI
 with its deterministic debug executor to verify improvements, threshold

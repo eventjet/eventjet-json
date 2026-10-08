@@ -40,8 +40,32 @@ env:
   COMPOSER_ROOT_VERSION: dev-tabula-rasa
 
 jobs:
-  compare:
-    name: ${{ inputs.calibrate && format('Calibrate decoder performance (OPcache {0}, sample {1})', matrix.opcache, matrix.sample) || format('Compare decoder performance (OPcache {0})', matrix.opcache) }}
+  tooling:
+    name: Validate performance tooling
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-php
+        with:
+          extensions: none, bcmath, ctype, curl, dom, fileinfo, filter, iconv, intl, mbstring, opcache, pcntl, phar, posix, simplexml, tokenizer, xml, xmlreader, xmlwriter, zip
+      - name: Prepare request benchmark runtime
+        run: |
+          command -v php-fpm8.4
+          sudo apt-get update -qq
+          sudo apt-get install -y libfcgi-bin
+      - name: Validate performance tooling
+        run: |
+          vendor/bin/phpstan analyze .github/ci --no-progress
+          bash .github/ci/tests/configuration.sh
+          bash .github/ci/tests/fpm.sh
+          bash .github/ci/tests/workloads.sh
+          node --test .github/ci/tests/comment.cjs
+
+  measure:
+    name: ${{ inputs.calibrate && format('Calibrate decoder performance (OPcache {0}, sample {1})', matrix.opcache, matrix.sample) || format('Measure decoder performance (OPcache {0})', matrix.opcache) }}
     strategy:
       fail-fast: false
       matrix:
@@ -62,13 +86,6 @@ jobs:
           command -v php-fpm8.4
           sudo apt-get update -qq
           sudo apt-get install -y libfcgi-bin
-      - name: Validate performance tooling
-        run: |
-          vendor/bin/phpstan analyze .github/ci --no-progress
-          bash .github/ci/tests/configuration.sh
-          bash .github/ci/tests/fpm.sh
-          bash .github/ci/tests/workloads.sh
-          node --test .github/ci/tests/comment.cjs
       - name: Compare revisions
         shell: bash
         env:
@@ -94,6 +111,23 @@ jobs:
           name: performance-comment-${{ github.run_attempt }}
           path: .perf/results/comment.md
           retention-days: 7
+
+  compare:
+    name: Compare decoder performance (OPcache ${{ matrix.opcache }})
+    needs: [measure, tooling]
+    if: always()
+    strategy:
+      fail-fast: false
+      matrix:
+        opcache: ${{ fromJSON((inputs.opcache == 'on' && '["on"]') || (inputs.opcache == 'off' && '["off"]') || '["on", "off"]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require measurements and tooling validation
+        env:
+          MEASUREMENTS: ${{ needs.measure.result }}
+          TOOLING: ${{ needs.tooling.result }}
+        run: test "$MEASUREMENTS" = success && test "$TOOLING" = success
 
   comment:
     name: Update performance comment
