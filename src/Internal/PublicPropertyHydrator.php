@@ -27,16 +27,9 @@ final class PublicPropertyHydrator
         array $values,
         string $path,
     ): DecodeError|null {
-        $publicProperties = [];
-
-        foreach (PublicProperties::resolve($class) as $property) {
-            $type = PublicPropertyTypeValidator::validate($class->getName(), $property);
-
-            if ($type instanceof DecodeError) {
-                return $type;
-            }
-
-            $publicProperties[$property->getName()] = ['property' => $property, ...$type];
+        $publicProperties = PublicProperties::resolve($class);
+        if ($publicProperties instanceof DecodeError) {
+            return $publicProperties;
         }
 
         /** @var list<array{property: ReflectionProperty, value: mixed}> $assignments */
@@ -54,6 +47,7 @@ final class PublicPropertyHydrator
                 $field['property'],
                 [
                     'type' => $field['type'],
+                    'typeName' => $field['typeName'],
                     'collection' => $field['collection'],
                     'path' => FieldPath::field($path, $inputField),
                 ],

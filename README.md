@@ -158,9 +158,9 @@ docker compose down
 
 ## Performance
 
-The decoder reuses validated field declarations, resolved collection declarations,
-and PHPDoc imports within the current PHP process. Every incoming value is still checked, including
-collection shapes, item types, enum values, and nested error paths. Decoded
+The decoder reuses validated field declarations, public-property metadata, resolved
+collection declarations, and PHPDoc imports within the current PHP process. Every
+incoming value is still checked, including collection shapes, item types, enum values, and nested error paths. Decoded
 objects and errors are not cached.
 
 Cache storage grows with the classes and collection fields used by the process,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\JsonType;
+use Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use ReflectionClass;
@@ -52,6 +53,21 @@ final class RootArrayRoundTripCases
      */
     public static function shapes(): iterable
     {
+        $first = new ConstructorlessPublicProperties();
+        $first->string = 'first';
+        $first->integer = 42;
+        $first->boolean = true;
+        $first->nullable = 'present';
+        $second = new ConstructorlessPublicProperties();
+        $second->string = 'second';
+        $second->float = 1.5;
+
+        yield 'cached public fields keep values and defaults independent' => [
+            [$first, $second, new ConstructorlessPublicProperties()],
+            null,
+            JsonType::array(ConstructorlessPublicProperties::class),
+        ];
+
         yield from RootArrayInputs::nested(
             Person::class,
             [new Person('Ada', 'Lovelace'), new Person('Grace', 'Hopper')],

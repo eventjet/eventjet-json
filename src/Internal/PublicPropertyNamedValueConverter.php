@@ -19,7 +19,7 @@ final class PublicPropertyNamedValueConverter
     /**
      * @param class-string $class
      * @param array<array-key, mixed>|bool|float|int|object|string|null $value
-     * @param array{collection: ListType|MapType|TupleType|null, path: string} $field
+     * @param array{collection: ListType|MapType|TupleType|null, path: string, typeName: string} $field
      * @return array{property: ReflectionProperty, value: mixed}|DecodeError
      * @throws JsonException
      * @throws ReflectionException
@@ -33,7 +33,7 @@ final class PublicPropertyNamedValueConverter
     ): array|DecodeError {
         $collection = $field['collection'];
         $path = $field['path'];
-        $typeName = FieldTypeNameResolver::resolve($property, $type);
+        $typeName = $field['typeName'];
         $error = self::validateBuiltin($class, $type, $value, $path);
         if ($error !== null) {
             return $error;

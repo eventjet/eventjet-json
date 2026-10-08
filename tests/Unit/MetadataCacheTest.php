@@ -28,6 +28,7 @@ use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PublicProperties;
+use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
@@ -50,13 +51,14 @@ use ReflectionProperty;
 use RuntimeException;
 use stdClass;
 
-use function array_map;
+use function array_keys;
 use function class_alias;
 
 #[CoversClass(MetadataCache::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[CoversClass(ConstructorParameters::class)]
 #[CoversClass(PublicProperties::class)]
+#[UsesClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(BackedEnumCaseFinder::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
 #[CoversClass(EnumFieldTypes::class)]
@@ -94,10 +96,8 @@ final class MetadataCacheTest extends TestCase
         ] as [$name, $expected]) {
             $class = new ReflectionClass($name);
             $properties = PublicProperties::resolve($class);
-            static::assertSame($expected, array_map(
-                static fn(ReflectionProperty $property): string => $property->getName(),
-                $properties,
-            ));
+            static::assertIsArray($properties);
+            static::assertSame($expected, array_keys($properties));
             static::assertSame($properties, PublicProperties::resolve($class));
         }
 
@@ -267,6 +267,19 @@ final class MetadataCacheTest extends TestCase
         static::assertNull(FieldTypeResolver::resolve($class, $field));
         static::assertTrue(class_alias(NonBackedStatus::class, $dependency));
         static::assertInstanceOf(DecodeError::class, FieldTypeResolver::resolve($class, $field));
+
+        foreach (['', '|int'] as $suffix) {
+            $dependency = 'PublicMetadataDeferredClass' . ($suffix === '' ? 'Named' : 'Union');
+            $name = CollectionDeclarationFixture::create($dependency . $suffix, '', 'var');
+            $class = new ReflectionClass($name);
+
+            static::assertInstanceOf(DecodeError::class, PublicProperties::resolve($class));
+            static::assertTrue(class_alias(ScalarFields::class, $dependency));
+            $properties = PublicProperties::resolve($class);
+            static::assertIsArray($properties);
+            static::assertSame(['value'], array_keys($properties));
+            static::assertSame($properties, PublicProperties::resolve($class));
+        }
     }
 
     /**

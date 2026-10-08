@@ -28,6 +28,8 @@ final class RootArrayErrorCases
      */
     public static function errors(): iterable
     {
+        yield from CachedPublicPropertyErrorCases::errors();
+
         foreach ([
             'null' => 'null',
             'true' => 'bool',
