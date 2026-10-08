@@ -13,13 +13,13 @@ use ReflectionProperty;
 /** @internal */
 final class PublicProperties
 {
-    /** @var array<class-string, array<string, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>> */
+    /** @var array<class-string, array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>> */
     private static array $properties = [];
 
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array<string, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>|DecodeError
+     * @return array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>|DecodeError
      * @phpstan-impure
      * @throws ReflectionException
      */
@@ -31,14 +31,21 @@ final class PublicProperties
             return $cached;
         }
 
+        $names = RootTypeValidator::fieldNames($class);
+        if ($names instanceof DecodeError) {
+            return $names;
+        }
         $constructorFields = [];
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $constructorFields[$parameter->getName()] = true;
         }
 
         $properties = [];
-        foreach ($class->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
-            if ($property->isStatic() || ($constructorFields[$property->getName()] ?? false)) {
+        foreach (RootTypeValidator::declarations($class) as $property) {
+            $publicInstance =
+                ($property->getModifiers() & (ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_STATIC))
+                === ReflectionProperty::IS_PUBLIC;
+            if (!$publicInstance || ($constructorFields[$property->getName()] ?? false)) {
                 continue;
             }
             $type = PublicPropertyTypeValidator::validate($name, $property);
@@ -52,7 +59,7 @@ final class PublicProperties
                 && $declaredType->getName() !== 'array'
                     ? $declaredType
                     : null;
-            $properties[$property->getName()] = [
+            $properties[$names[$property->getName()] ?? $property->getName()] = [
                 'property' => $property,
                 'converter' => $type,
                 'builtinType' => $builtinType,

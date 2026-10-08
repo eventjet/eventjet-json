@@ -22,10 +22,9 @@ final class FieldTypeNameResolver
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
     {
         $name = $type->getName();
-        /** @var ReflectionClass<object> $declaringClass */
-        $declaringClass = $field->getDeclaringClass();
-
         if ($name === 'self') {
+            /** @var ReflectionClass<object> $declaringClass */
+            $declaringClass = $field->getDeclaringClass();
             return $declaringClass->getName();
         }
 
@@ -33,6 +32,8 @@ final class FieldTypeNameResolver
             return strcasecmp($name, ArrayObject::class) === 0 ? ArrayObject::class : $name;
         }
 
+        /** @var ReflectionClass<object> $declaringClass */
+        $declaringClass = $field->getDeclaringClass();
         $parent = $declaringClass->getParentClass();
 
         return $parent === false ? $name : $parent->getName();

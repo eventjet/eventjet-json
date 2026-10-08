@@ -25,24 +25,48 @@ final readonly class ConstructorValueValidator
     }
 
     /** @param array<array-key, mixed> $values */
-    public static function forParameter(ConstructorParameter $parameter, array $values): self|null
-    {
+    public static function forParameter(
+        ConstructorParameter $parameter,
+        array $values,
+        string|null $inputName = null,
+    ): self|null {
         $type = $parameter->type;
         if (!$type instanceof ReflectionNamedType) {
             return null;
         }
-        if (enum_exists(
-            $parameter->typeName,
-            autoload: array_key_exists($parameter->name, $values) && !$parameter->builtin,
-        )) {
+        if (
+            !$parameter->builtin
+            && enum_exists($parameter->typeName, autoload: array_key_exists($inputName ?? $parameter->name, $values))
+        ) {
             return null;
         }
         $expected = FieldTypeNameResolver::expected($type, $parameter->typeName);
         return new self($type, $expected);
     }
 
+    /**
+     * @param array<array-key, self> $fields
+     * @param array<array-key, mixed> $values
+     */
+    public static function addParameter(
+        array &$fields,
+        ConstructorParameter $parameter,
+        array $values,
+        string $name,
+        string $path,
+    ): DecodeError|null {
+        $field = self::forParameter($parameter, $values, $name);
+        if ($field === null) {
+            return null;
+        }
+        $fields[$name] = $field;
+        return array_key_exists($name, $values)
+            ? $field->validate($parameter->class, $name, $values[$name], $path)
+            : null;
+    }
+
     /** @param class-string $class */
-    public function validate(string $class, string $name, mixed $value, string $path): DecodeError|null
+    private function validate(string $class, string $name, mixed $value, string $path): DecodeError|null
     {
         $matches = ValueTypeMatcher::matches($value, $this->type);
         if ($matches) {

@@ -21,7 +21,7 @@ final class ClassTypeDependencies
         ListType|MapType|TupleType|CollectionUnionType|false|null $resolved,
     ): iterable {
         foreach (self::names($field, $resolved) as $name) {
-            $isNonEncodable = ClassFieldTypeValidator::isNonEncodable($name);
+            $isNonEncodable = FieldTypeValidator::isNonEncodable($name);
             if (
                 in_array($name, ['bool', 'float', 'int', 'string', 'true', 'false', 'null'], strict: true)
                 || $isNonEncodable

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ArrayJsonType;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
@@ -31,6 +32,8 @@ use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldCollectionUnionMemberResolver;
 use Eventjet\Json\Internal\FieldCollectionUnionResolver;
 use Eventjet\Json\Internal\FieldCollectionUnionValidator;
+use Eventjet\Json\Internal\FieldNameCollisions;
+use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
@@ -44,6 +47,8 @@ use Eventjet\Json\Internal\ListValueConverter;
 use Eventjet\Json\Internal\MapDecodeError;
 use Eventjet\Json\Internal\MapInputNormalizer;
 use Eventjet\Json\Internal\MapJsonType;
+use Eventjet\Json\Internal\MappedConstructorPlan;
+use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\MapType;
 use Eventjet\Json\Internal\MapTypeResolver;
 use Eventjet\Json\Internal\MapValueConverter;
@@ -64,6 +69,7 @@ use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionTypeResolver;
+use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\RootTypeValidator;
@@ -75,10 +81,12 @@ use Eventjet\Json\Internal\TupleValueConverter;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
 use Eventjet\Json\JsonType;
+use Eventjet\Json\MappedJsonFields;
 use Eventjet\Json\Test\Acceptance\Cases\ConstructorDefaultCases;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\EmptyShapeRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\JsonFormattingRoundTripCases;
+use Eventjet\Json\Test\Acceptance\Cases\NumericObjectKeyCases;
 use Eventjet\Json\Test\Acceptance\Cases\ObjectRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\ParserSyntaxCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootCollectionRoundTripCases;
@@ -87,6 +95,7 @@ use Eventjet\Json\Test\Acceptance\Cases\TypeValidationCases;
 use Eventjet\Json\Test\Acceptance\Cases\UnknownFieldCases;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
@@ -166,10 +175,16 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ConstructorValueValidator::class)]
 #[CoversClass(ObjectHydrator::class)]
 #[CoversClass(PublicPropertyHydrator::class)]
-#[CoversClass(\Eventjet\Json\Internal\PublicProperties::class)]
+#[CoversClass(PublicProperties::class)]
 #[CoversClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]
+#[CoversClass(Field::class)]
+#[CoversMethod(MappedJsonFields::class, 'jsonSerialize')]
+#[CoversClass(MappedObjectSerializer::class)]
+#[CoversClass(MappedConstructorPlan::class)]
+#[CoversClass(FieldNameCollisions::class)]
+#[CoversClass(FieldNames::class)]
 final class AcceptanceTest extends TestCase
 {
     #[DataProviderExternal(ParserSyntaxCases::class, 'types')]
@@ -283,7 +298,7 @@ final class AcceptanceTest extends TestCase
     }
 
     /** @param class-string $class */
-    #[DataProviderExternal(\Eventjet\Json\Test\Acceptance\Cases\NumericObjectKeyCases::class, 'mismatches')]
+    #[DataProviderExternal(NumericObjectKeyCases::class, 'mismatches')]
     public function testNumericObjectKeysCannotBypassScalarValidation(string $json, string $class): void
     {
         $decoded = Json::decode($json, $class);

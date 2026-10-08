@@ -61,6 +61,17 @@ final class UnsupportedTargetErrorCases
      */
     private static function nestedTypes(): iterable
     {
+        foreach (['param', 'var'] as $tag) {
+            $class = CollectionDeclarationFixture::create('\\BackedEnum', '', $tag);
+            yield 'BackedEnum interface is not a concrete enum ' . $tag => [
+                '{}',
+                $class,
+                'Could not create '
+                    . $class
+                    . ' from the JSON object: Field value uses interface BackedEnum, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+                3,
+            ];
+        }
         yield 'list item type cannot implement JsonSerializable' => [
             '[]',
             JsonType::array(JsonSerializableTarget::class),
