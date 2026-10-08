@@ -65,6 +65,7 @@
         "mago-lint": "mago lint",
         "phpstan": "phpstan analyze",
         "phpunit": "phpunit",
-        "psalm": "psalm"
+        "psalm": "psalm",
+        "prototype-field-mapping": "php prototypes/field-mapping/run.php"
     }
 }
