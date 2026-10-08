@@ -18,22 +18,34 @@ final class RootShapeErrorCases
      */
     public static function errors(): iterable
     {
-        yield 'map root []' => [
+        yield 'map root rejects an array' => [
             '[]',
             JsonType::map(EmptyObject::class),
             'Expected the JSON root to be an object, got array.',
             2,
         ];
-        yield 'JSON array with 0 constructor arguments' => [
+        yield 'object root rejects an array' => [
             '[]',
             Person::class,
             'Expected the JSON root to be an object, got array.',
             2,
         ];
-        yield 'root {"0":{}}' => [
+        yield 'array root rejects an object with numeric member names' => [
             '{"0":{}}',
             JsonType::array(Person::class),
             'Expected the JSON root to be an array, got stdClass.',
+            2,
+        ];
+        yield 'array root rejects null' => [
+            'null',
+            JsonType::array(Person::class),
+            'Expected the JSON root to be an array, got null.',
+            2,
+        ];
+        yield 'object root rejects an integer' => [
+            '0',
+            Person::class,
+            'Expected the JSON root to be an object, got int.',
             2,
         ];
     }

@@ -81,9 +81,9 @@ use Eventjet\Json\Test\Acceptance\Cases\ConstructorDefaultCases;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\EmptyShapeRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\JsonFormattingRoundTripCases;
+use Eventjet\Json\Test\Acceptance\Cases\ObjectRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\ParserSyntaxCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootCollectionRoundTripCases;
-use Eventjet\Json\Test\Acceptance\Cases\RoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\UnknownFieldCases;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -179,7 +179,7 @@ final class AcceptanceTest extends TestCase
     }
 
     /** @throws JsonException */
-    #[DataProviderExternal(RoundTripCases::class, 'objects')]
+    #[DataProviderExternal(ObjectRoundTripCases::class, 'objects')]
     public function testDecodeIsTheExactInverseOfJsonEncode(object $original): void
     {
         $json = json_encode($original, JSON_THROW_ON_ERROR);

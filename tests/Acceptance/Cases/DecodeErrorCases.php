@@ -15,19 +15,21 @@ final class DecodeErrorCases
      */
     public static function errors(): iterable
     {
-        yield from QuotedKeyErrorCases::errors();
-        yield from RootShapeErrorCases::errors();
-        yield from TupleValidationErrorCases::errors();
-        yield from ScalarValidationErrorCases::errors();
-        yield from ConstructionErrorCases::errors();
         yield from JsonInputErrorCases::errors();
-        yield from TuplesErrorCases::errors();
-        yield from NestedValuesErrorCases::errors();
-        yield from UnionsErrorCases::errors();
-        yield from FieldsErrorCases::errors();
-        yield from TargetsErrorCases::errors();
+        yield from RootShapeErrorCases::errors();
+        yield from UnsupportedTargetErrorCases::errors();
+        yield from ConstructionErrorCases::errors();
+        yield from FieldDeclarationErrorCases::errors();
+        yield from ScalarValidationErrorCases::errors();
         yield from EnumsErrorCases::errors();
-        yield from MapsErrorCases::errors();
+        yield from TupleDeclarationErrorCases::errors();
+        yield from TupleValueErrorCases::errors();
         yield from CollectionsErrorCases::errors();
+        yield from MapsErrorCases::errors();
+        yield from AmbiguousUnionErrorCases::errors();
+        yield from UnsupportedUnionErrorCases::errors();
+        yield from UnionValueErrorCases::errors();
+        yield from NestedValuesErrorCases::errors();
+        yield from ErrorPathCases::errors();
     }
 }

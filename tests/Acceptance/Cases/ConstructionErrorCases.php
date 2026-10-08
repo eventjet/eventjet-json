@@ -6,7 +6,10 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
+use Eventjet\Json\Test\Acceptance\Fixtures\PrivateConstructorTarget;
+use Eventjet\Json\Test\Acceptance\Fixtures\StaticConstructorParameterProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\ThrowingConstructor;
+use Eventjet\Json\Test\Acceptance\Fixtures\VariadicConstructorTarget;
 
 /** @internal */
 final class ConstructionErrorCases
@@ -29,6 +32,24 @@ final class ConstructionErrorCases
             '{}',
             Person::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Too few arguments to function Eventjet\Json\Test\Acceptance\Fixtures\Person::__construct(), 0 passed and at least 2 expected',
+            3,
+        ];
+        yield 'private constructor cannot be called' => [
+            '{}',
+            PrivateConstructorTarget::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\PrivateConstructorTarget from the JSON object: Target class has a private constructor, which cannot be called to create the object.',
+            3,
+        ];
+        yield 'variadic constructor cannot bind JSON members' => [
+            '{}',
+            VariadicConstructorTarget::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\VariadicConstructorTarget from the JSON object: Constructor parameter values is variadic. JSON members bind to individual named arguments, not variadic argument lists.',
+            3,
+        ];
+        yield 'constructor parameter cannot bind a static property' => [
+            '{}',
+            StaticConstructorParameterProperty::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StaticConstructorParameterProperty from the JSON object: Constructor parameter value has no same-named declared public instance property. The target class does not expose a stable JSON member from which the argument can be recovered.',
             3,
         ];
         yield from self::unknownItemClass(Person::class);

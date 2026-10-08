@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 /** @internal */
-final class RoundTripCases
+final class ObjectRoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
@@ -20,9 +20,9 @@ final class RoundTripCases
         yield from NumericBoundaryRoundTripCases::objects();
         yield from ScalarFieldRoundTripCases::objects();
         yield from NestedValuesRoundTripCases::objects();
+        yield from CollectionDeclarationRoundTripCases::objects();
         yield from NameResolutionRoundTripCases::objects();
         yield from CollectionsRoundTripCases::objects();
-        yield from TargetsRoundTripCases::objects();
         yield from UnionsRoundTripCases::objects();
         yield from EnumsRoundTripCases::objects();
     }

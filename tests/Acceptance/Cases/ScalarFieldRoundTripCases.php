@@ -19,8 +19,8 @@ final class ScalarFieldRoundTripCases
      */
     public static function objects(): iterable
     {
-        yield from self::group1();
-        yield from self::group2();
+        yield from self::constructorFields();
+        yield from self::publicProperties();
     }
 
     /**
@@ -28,7 +28,7 @@ final class ScalarFieldRoundTripCases
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
-    private static function group1(): iterable
+    private static function constructorFields(): iterable
     {
         yield 'scalar fields with positive values' => [new ScalarFields('value', 42, 3.25, true)];
         yield 'scalar fields with a whole-valued float' => [new ScalarFields('value', 42, 3.0, true)];
@@ -43,7 +43,7 @@ final class ScalarFieldRoundTripCases
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
-    private static function group2(): iterable
+    private static function publicProperties(): iterable
     {
         yield 'constructorless public scalar properties' => [(static function (): object {
             $object = new ConstructorlessPublicProperties();

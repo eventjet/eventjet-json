@@ -16,6 +16,7 @@ final class JsonInputErrorCases
      */
     public static function errors(): iterable
     {
+        yield 'empty input is invalid JSON' => ['', Person::class, 'Invalid JSON: Syntax error', 1];
         yield 'unescaped control character' => [
             '{"firstName":"Ada
 "}',

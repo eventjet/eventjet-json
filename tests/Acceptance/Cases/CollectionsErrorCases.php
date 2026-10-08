@@ -11,47 +11,24 @@ use Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields;
 final class CollectionsErrorCases
 {
     /**
-     * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
     public static function errors(): iterable
     {
-        yield from self::group1();
-        yield from self::group2();
+        yield from self::declarations();
+        yield from self::cachedShapes();
     }
 
     /**
-     * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
-    private static function group1(): iterable
+    private static function declarations(): iterable
     {
-        yield 'warm collection Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields publicObjectMap rejects shape null after 3 objects' =>
-            [
-                '[{},{},{},{"publicObjectMap":null}]',
-                JsonType::array(StringCollectionValidationFields::class),
-                'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].publicObjectMap must be of type JSON object, null given.',
-                3,
-            ];
-        yield 'warm collection Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields list rejects shape true after 3 objects' =>
-            [
-                '[{},{},{},{"list":true}]',
-                JsonType::array(StringCollectionValidationFields::class),
-                'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].list must be of type array, bool given.',
-                3,
-            ];
-        yield 'warm collection Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields nonEmptyList rejects shape null after 3 objects' =>
-            [
-                '[{},{},{},{"nonEmptyList":null}]',
-                JsonType::array(StringCollectionValidationFields::class),
-                'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].nonEmptyList must be of type array, null given.',
-                3,
-            ];
-        yield 'list<int>|string var {}' => [
+        yield 'collection declaration must match the native array type' => [
             '{}',
             CollectionDeclarationFixture::create('array', 'list<int>|string', 'var'),
             'Could not create '
@@ -59,7 +36,7 @@ final class CollectionsErrorCases
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             3,
         ];
-        yield 'list<non-empty-array<int, int>> param {}' => [
+        yield 'nested map declaration requires string keys' => [
             '{}',
             CollectionDeclarationFixture::create('array', 'list<non-empty-array<int, int>>', 'param'),
             'Could not create '
@@ -67,7 +44,7 @@ final class CollectionsErrorCases
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             3,
         ];
-        yield 'list<> var {}' => [
+        yield 'list declaration requires an item type' => [
             '{}',
             CollectionDeclarationFixture::create('array', 'list<>', 'var'),
             'Could not create '
@@ -75,22 +52,39 @@ final class CollectionsErrorCases
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             3,
         ];
-    }
-
-    /**
-     * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
-     * @throws \ReflectionException
-     * @throws \RuntimeException
-     */
-    private static function group2(): iterable
-    {
-        yield 'missing nullable collection declaration var {}' => [
+        yield 'nullable array declaration must include null' => [
             '{}',
             CollectionDeclarationFixture::create('?array', 'list<int>', 'var'),
             'Could not create '
                 . CollectionDeclarationFixture::create('?array', 'list<int>', 'var')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            3,
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @throws \ReflectionException
+     * @throws \RuntimeException
+     */
+    private static function cachedShapes(): iterable
+    {
+        yield 'cached object-map field rejects null after valid objects' => [
+            '[{},{},{},{"publicObjectMap":null}]',
+            JsonType::array(StringCollectionValidationFields::class),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].publicObjectMap must be of type JSON object, null given.',
+            3,
+        ];
+        yield 'cached list field rejects a boolean after valid objects' => [
+            '[{},{},{},{"list":true}]',
+            JsonType::array(StringCollectionValidationFields::class),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].list must be of type array, bool given.',
+            3,
+        ];
+        yield 'cached non-empty-list field rejects null after valid objects' => [
+            '[{},{},{},{"nonEmptyList":null}]',
+            JsonType::array(StringCollectionValidationFields::class),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].nonEmptyList must be of type array, null given.',
             3,
         ];
     }
