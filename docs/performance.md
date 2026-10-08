@@ -176,6 +176,10 @@ the FPM measurements. Local comparisons remain unsharded unless `--shard 1`,
 The final comparison checks validate all four artifacts before publishing one
 combined result. They reject missing or duplicate shards, inconsistent revisions,
 dependencies or configuration, missing workloads, and incomplete sampling.
+Partial reruns reuse measurements from shards that did not rerun. Aggregation
+selects the artifact belonging to each shard's latest execution in the same
+workflow run, mode, and calibration sample. A newer failed or canceled execution
+cannot fall back to an older passing result, even when it leaves no artifact.
 A completed regression remains a regression; interrupted measurements cannot
 produce a passing comparison. The existing required check names remain unchanged.
 

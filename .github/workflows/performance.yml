@@ -56,7 +56,7 @@ jobs:
           bash .github/ci/tests/fpm.sh
           bash .github/ci/tests/workloads.sh
           bash .github/ci/tests/shards.sh
-          node --test .github/ci/tests/comment.cjs
+          node --test .github/ci/tests/*.cjs
 
   measure:
     name: Measure decoder performance (OPcache ${{ matrix.opcache }}, sample ${{ matrix.sample }}, shard ${{ matrix.shard }})
@@ -101,6 +101,9 @@ jobs:
   compare:
     name: ${{ inputs.calibrate && format('Calibrate decoder performance (OPcache {0}, sample {1})', matrix.opcache, matrix.sample) || format('Compare decoder performance (OPcache {0})', matrix.opcache) }}
     needs: [measure, tooling]
+    permissions:
+      contents: read
+      actions: read
     if: always()
     strategy:
       fail-fast: false
@@ -119,10 +122,21 @@ jobs:
           extensions: none, ctype, simplexml
           coverage: none
           tools: none
+      - name: Select latest shard executions
+        id: shards
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          OPCACHE_MODE: ${{ matrix.opcache }}
+          SAMPLE: ${{ matrix.sample }}
+        with:
+          script: |
+            const select = require('./.github/ci/shard-artifacts.cjs');
+            const ids = await select({github, context, mode: process.env.OPCACHE_MODE, sample: process.env.SAMPLE});
+            core.setOutput('ids', ids.join(','));
       - name: Download shard measurements
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          pattern: performance-${{ matrix.opcache }}-${{ github.sha }}-${{ github.run_attempt }}-${{ matrix.sample }}-*
+          artifact-ids: ${{ steps.shards.outputs.ids }}
           path: shard-results
       - name: Verify and combine all workloads
         id: aggregate
