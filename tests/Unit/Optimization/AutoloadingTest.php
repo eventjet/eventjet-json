@@ -46,6 +46,7 @@ use function spl_autoload_unregister;
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
+#[UsesClass(\Eventjet\Json\Internal\ScalarHydratorCompiler::class)]
 #[CoversClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
 #[CoversClass(BackedEnumValueConverter::class)]

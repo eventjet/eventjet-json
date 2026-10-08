@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use Closure;
 use Eventjet\Json\DecodeError;
 use JsonException;
 use ReflectionException;
@@ -23,10 +24,14 @@ final readonly class ConstructorPlan
 {
     public bool $scalarOnly;
 
+    /** @var (Closure(stdClass): (object|null))|null */
+    public Closure|null $hydrate;
+
     /**
      * @param class-string $class
      * @param array<string, ConstructorValueValidator> $fields
      * @param array<string, FieldValueConverter|null> $converters
+     * @throws ReflectionException
      */
     public function __construct(
         private string $class,
@@ -37,6 +42,7 @@ final readonly class ConstructorPlan
             $converters,
             static fn(FieldValueConverter|null $converter): bool => $converter === null,
         );
+        $this->hydrate = $this->scalarOnly ? ScalarHydratorCompiler::compile($class) : null;
     }
 
     /**

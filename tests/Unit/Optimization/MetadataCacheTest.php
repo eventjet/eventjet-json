@@ -69,6 +69,7 @@ use function class_alias;
 #[CoversClass(MetadataCache::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(ConstructorPlan::class)]
+#[UsesClass(\Eventjet\Json\Internal\ScalarHydratorCompiler::class)]
 #[UsesClass(ConstructorValueValidator::class)]
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
