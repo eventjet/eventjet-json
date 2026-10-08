@@ -16,27 +16,91 @@ use Eventjet\Json\Test\Acceptance\Fixtures\UnionPublicProperty;
 final class UnionsRoundTripCases
 {
     /**
-     * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{0: list<mixed>|object, 1?: string|null, 2?: \Eventjet\Json\JsonType<list<mixed>|object>|(\Closure(): \Eventjet\Json\JsonType<list<mixed>|object>)}>
+     * @return iterable<string, array{object}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
     public static function objects(): iterable
     {
-        yield from self::unions1();
-        yield from self::unions2();
-        yield from self::unions3();
+        yield from self::scalarAndEnumMembers();
+        yield from self::encodableMembers();
+        yield from self::listAndScalarMembers();
+        yield from self::objectAndMapMembers();
     }
 
     /**
-     * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{0: list<mixed>|object, 1?: string|null, 2?: \Eventjet\Json\JsonType<list<mixed>|object>|(\Closure(): \Eventjet\Json\JsonType<list<mixed>|object>)}>
+     * @return iterable<string, array{object}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
-    private static function unions1(): iterable
+    private static function scalarAndEnumMembers(): iterable
     {
-        yield 'collection field union 1param' => [CollectionDeclarationFixture::object(
+        yield 'scalar union property preserves an integer' => [(static function (): object {
+            $object = new UnionPublicProperty();
+            $object->value = 42;
+            return $object;
+        })()];
+        yield 'float union preserves actual item types' => [new FloatUnionList([0.0, 3.0, -1.25, null])];
+        yield 'integer-or-string list preserves a non-empty string' => [CollectionDeclarationFixture::object(
+            'array',
+            'list<int<0, max>|non-empty-string>',
+            'param',
+            ['answer'],
+        )];
+        yield 'enum union property distinguishes integer and string backing types' => [(static function (): object {
+            $object = new MultipleEnumUnionPublicProperty();
+            $object->value = IntBackedStatus::Ready;
+            return $object;
+        })()];
+        yield 'enum union treats differently cased class names as one type' => [CollectionDeclarationFixture::object(
+            'array',
+            'list<\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|\eventjet\json\test\acceptance\fixtures\stringbackedstatus|int>',
+            'param',
+            [StringBackedStatus::Ready],
+        )];
+    }
+
+    /**
+     * @return iterable<string, array{object}>
+     * @throws \ReflectionException
+     * @throws \RuntimeException
+     */
+    private static function encodableMembers(): iterable
+    {
+        yield 'non-backed-enum-or-true list preserves true' => [CollectionDeclarationFixture::object(
+            'array',
+            'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|true>',
+            'param',
+            [true],
+        )];
+        yield 'mixed encodable union restores a backed enum' => [CollectionDeclarationFixture::object(
+            'array',
+            'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome|\Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus|bool|null>',
+            'param',
+            [StringBackedStatus::Ready],
+        )];
+        yield 'non-backed-enum-or-false list preserves false' => [CollectionDeclarationFixture::object(
+            'array',
+            'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|false>',
+            'param',
+            [false],
+        )];
+        yield 'mixed encodable union restores a final class' => [CollectionDeclarationFixture::object(
+            'array',
+            'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome|\Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus|bool|null>',
+            'param',
+            [new Coordinates(1.0, 2.0)],
+        )];
+    }
+
+    /**
+     * @return iterable<string, array{object}>
+     * @throws \ReflectionException
+     * @throws \RuntimeException
+     */
+    private static function listAndScalarMembers(): iterable
+    {
+        yield 'list-or-integer fields preserve empty lists and integer values' => [CollectionDeclarationFixture::object(
             'array',
             'list<\\'
             . CollectionDeclarationFixture::create('array|int', 'list<int>|int<5, max>|non-zero-int', 'param')
@@ -48,43 +112,7 @@ final class UnionsRoundTripCases
                 CollectionDeclarationFixture::object('array|int', 'list<int>|int<5, max>|non-zero-int', 'param', 42),
             ],
         )];
-        yield 'scalar union public property with int' => [(static function (): object {
-            $object = new UnionPublicProperty();
-            $object->value = 42;
-            return $object;
-        })()];
-        yield 'collection non-encodable union list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|true>param0' =>
-            [CollectionDeclarationFixture::object(
-                'array',
-                'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|true>',
-                'param',
-                [true],
-            )];
-        yield 'float union preserves actual item types' => [new FloatUnionList([0.0, 3.0, -1.25, null])];
-        yield 'collection union int<0, max>|non-empty-string1listparam0' => [CollectionDeclarationFixture::object(
-            'array',
-            'list<int<0, max>|non-empty-string>',
-            'param',
-            ['answer'],
-        )];
-        yield 'collection non-encodable union list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome|\Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus|bool|null>param1' =>
-            [CollectionDeclarationFixture::object(
-                'array',
-                'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome|\Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus|bool|null>',
-                'param',
-                [StringBackedStatus::Ready],
-            )];
-    }
-
-    /**
-     * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{0: list<mixed>|object, 1?: string|null, 2?: \Eventjet\Json\JsonType<list<mixed>|object>|(\Closure(): \Eventjet\Json\JsonType<list<mixed>|object>)}>
-     * @throws \ReflectionException
-     * @throws \RuntimeException
-     */
-    private static function unions2(): iterable
-    {
-        yield 'collection field union 24param' => [CollectionDeclarationFixture::object(
+        yield 'list, map, and string fields retain their distinct shapes' => [CollectionDeclarationFixture::object(
             'array',
             'list<\\'
             . CollectionDeclarationFixture::create(
@@ -121,34 +149,7 @@ final class UnionsRoundTripCases
                 ),
             ],
         )];
-        yield 'collection non-encodable union list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|false>param0' =>
-            [CollectionDeclarationFixture::object(
-                'array',
-                'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|false>',
-                'param',
-                [false],
-            )];
-        yield 'different-backed-type enum union public property with Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus::Ready' =>
-            [(static function (): object {
-                $object = new MultipleEnumUnionPublicProperty();
-                $object->value = IntBackedStatus::Ready;
-                return $object;
-            })()];
-        yield 'collection union \Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|\eventjet\json\test\acceptance\fixtures\stringbackedstatus|int0listparam0' =>
-            [CollectionDeclarationFixture::object(
-                'array',
-                'list<\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|\eventjet\json\test\acceptance\fixtures\stringbackedstatus|int>',
-                'param',
-                [StringBackedStatus::Ready],
-            )];
-        yield 'collection non-encodable union list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome|\Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus|bool|null>param0' =>
-            [CollectionDeclarationFixture::object(
-                'array',
-                'list<\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome|\Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus|bool|null>',
-                'param',
-                [new Coordinates(1.0, 2.0)],
-            )];
-        yield 'collection field union 12param' => [CollectionDeclarationFixture::object(
+        yield 'duplicate list alternatives preserve lists and strings' => [CollectionDeclarationFixture::object(
             'array',
             'list<\\'
             . CollectionDeclarationFixture::create('array|string', 'list<int>|list<int>|string', 'param')
@@ -163,39 +164,39 @@ final class UnionsRoundTripCases
     }
 
     /**
-     * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{0: list<mixed>|object, 1?: string|null, 2?: \Eventjet\Json\JsonType<list<mixed>|object>|(\Closure(): \Eventjet\Json\JsonType<list<mixed>|object>)}>
+     * @return iterable<string, array{object}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
-    private static function unions3(): iterable
+    private static function objectAndMapMembers(): iterable
     {
-        yield 'collection field union 3param' => [CollectionDeclarationFixture::object(
-            'array',
-            'list<\\'
-            . CollectionDeclarationFixture::create(
-                'array|\eventjet\json\test\acceptance\fixtures\coordinates',
-                'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates',
+        yield 'list-or-object field matches class names without regard to case' =>
+            [CollectionDeclarationFixture::object(
+                'array',
+                'list<\\'
+                . CollectionDeclarationFixture::create(
+                    'array|\eventjet\json\test\acceptance\fixtures\coordinates',
+                    'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates',
+                    'param',
+                )
+                . '>',
                 'param',
-            )
-            . '>',
-            'param',
-            [
-                CollectionDeclarationFixture::object(
-                    'array|\eventjet\json\test\acceptance\fixtures\coordinates',
-                    'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates',
-                    'param',
-                    [],
-                ),
-                CollectionDeclarationFixture::object(
-                    'array|\eventjet\json\test\acceptance\fixtures\coordinates',
-                    'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates',
-                    'param',
-                    new Coordinates(3.0, 4.5),
-                ),
-            ],
-        )];
-        yield 'collection field union 22param' => [CollectionDeclarationFixture::object(
+                [
+                    CollectionDeclarationFixture::object(
+                        'array|\eventjet\json\test\acceptance\fixtures\coordinates',
+                        'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates',
+                        'param',
+                        [],
+                    ),
+                    CollectionDeclarationFixture::object(
+                        'array|\eventjet\json\test\acceptance\fixtures\coordinates',
+                        'list<int>|\Eventjet\Json\Test\Acceptance\Fixtures\Coordinates',
+                        'param',
+                        new Coordinates(3.0, 4.5),
+                    ),
+                ],
+            )];
+        yield 'map-or-integer-or-null fields preserve each alternative' => [CollectionDeclarationFixture::object(
             'array',
             'list<\\'
             . CollectionDeclarationFixture::create(

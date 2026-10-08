@@ -18,12 +18,15 @@ final class ParserSyntaxCases
      */
     public static function types(): iterable
     {
-        yield 'list int 20' => [' list < int > ', new PhpDocType('list', [new PhpDocType('int')])];
-        yield 'compound 696e7426737472696e67' => [
+        yield 'list declaration permits surrounding whitespace' => [
+            ' list < int > ',
+            new PhpDocType('list', [new PhpDocType('int')]),
+        ];
+        yield 'intersection declaration preserves both members' => [
             'int&string',
             new PhpDocType('&', [new PhpDocType('int'), new PhpDocType('string')]),
         ];
-        yield 'multi-item trailing comma' => [
+        yield 'tuple declaration permits a trailing comma' => [
             'array{int, string,}',
             new PhpDocType(
                 'array{}',
@@ -32,6 +35,6 @@ final class ParserSyntaxCases
             ),
         ];
         yield from ParserDepthCases::types();
-        yield 'invalid array{int>' => ['array{int>', null];
+        yield 'tuple declaration rejects a mismatched closing delimiter' => ['array{int>', null];
     }
 }
