@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Ci;
 
 use RuntimeException;
-use SimpleXMLElement;
+
+require_once __DIR__ . '/BenchmarkReport.php';
 
 final class PerformanceShards
 {
@@ -17,42 +18,16 @@ final class PerformanceShards
         return (int) $value;
     }
 
-    /** @return non-empty-list<string> */
-    public static function identities(string $path): array
+    /** @return list<int> */
+    public static function assignedIndices(int $count, int|null $shard): array
     {
-        $xml = self::xml($path);
-        $identities = [];
-        foreach ($xml->suite as $suite) {
-            foreach ($suite->benchmark as $benchmark) {
-                foreach ($benchmark->subject as $subject) {
-                    foreach ($subject->variant as $variant) {
-                        $identities[] =
-                            (string) $benchmark['class']
-                            . '::'
-                            . (string) $subject['name']
-                            . '['
-                            . (string) $variant->{'parameter-set'}['name']
-                            . ']';
-                    }
-                }
+        $indices = [];
+        for ($index = 0; $index < $count; $index++) {
+            if ($shard === null || ($index % 4) === ($shard - 1)) {
+                $indices[] = $index;
             }
         }
-        if ($identities === [] || count(array_unique($identities)) !== count($identities)) {
-            throw new RuntimeException('Workloads must be nonempty and unique');
-        }
-        return $identities;
-    }
-
-    public static function xml(string $path): SimpleXMLElement
-    {
-        if (!is_file($path)) {
-            throw new RuntimeException('Missing measurement: ' . $path);
-        }
-        $xml = simplexml_load_file($path);
-        if ($xml === false) {
-            throw new RuntimeException('Cannot read measurement: ' . $path);
-        }
-        return $xml;
+        return $indices;
     }
 
     /** @return array<string, mixed> */
@@ -76,7 +51,7 @@ final class PerformanceShards
         return $validated;
     }
 
-    /** @return array{paths: non-empty-list<string>, status: int, fpm: string} */
+    /** @return array{comparisons: non-empty-list<BenchmarkComparison>, status: int, fpm: string} */
     public static function collect(string $directory, string $mode): array
     {
         $directories = glob($directory . '/*', GLOB_ONLYDIR);
@@ -86,7 +61,7 @@ final class PerformanceShards
         $reference = null;
         $expected = null;
         $seen = [];
-        $paths = [];
+        $comparisons = [];
         $status = 0;
         $fpm = '';
         foreach ($directories as $shardDirectory) {
@@ -109,7 +84,7 @@ final class PerformanceShards
                 $shared[$key] = $value;
             }
             $reference ??= $shared;
-            $identities = self::identities($shardDirectory . '/discovery.xml');
+            $identities = BenchmarkReport::read($shardDirectory . '/discovery.xml')->identities();
             $expected ??= $identities;
             if ($reference !== $shared || $expected !== $identities) {
                 throw new RuntimeException(
@@ -121,47 +96,11 @@ final class PerformanceShards
                 throw new RuntimeException('Shard has no completed comparison verdict');
             }
             $status = max($status, $shardStatus);
-            $assigned = [];
-            foreach ($identities as $index => $identity) {
-                if (($index % 4) !== ($shard - 1)) {
-                    continue;
-                }
-                $assigned[] = $index;
-                $baseline = $shardDirectory . '/baseline-' . $index . '.xml';
-                $candidate = $shardDirectory . '/candidate-' . $index . '.xml';
-                foreach ([$baseline, $candidate] as $path) {
-                    if (self::identities($path) !== [$identity]) {
-                        throw new RuntimeException('Measured workload differs from the assigned workload');
-                    }
-                    $xml = self::xml($path);
-                    $iterations = $xml->xpath('//variant/iteration');
-                    $opcache = $xml->xpath('//env/opcache/value[@name="enabled"]');
-                    if (
-                        $iterations === null
-                        || count($iterations) !== 20
-                        || $opcache === null
-                        || count($opcache) !== 1
-                        || !in_array((string) $opcache[0], $mode === 'on' ? ['1'] : ['', '0'], true)
-                    ) {
-                        throw new RuntimeException('Measurement sampling or OPcache state differs');
-                    }
-                }
-                $baseVariant = self::xml($baseline)->xpath('//variant');
-                $candidateVariant = self::xml($candidate)->xpath('//variant');
-                if (
-                    $baseVariant === null
-                    || $candidateVariant === null
-                    || count($baseVariant) !== 1
-                    || count($candidateVariant) !== 1
-                    || count($candidateVariant[0]->{'baseline-stats'}) !== 1
-                    || (string) $baseVariant[0]->stats['mode']
-                        !== (string) $candidateVariant[0]->{'baseline-stats'}['mode']
-                    || (string) $baseVariant[0]['revs'] !== (string) $candidateVariant[0]['revs']
-                    || (string) $baseVariant[0]['warmup'] !== (string) $candidateVariant[0]['warmup']
-                ) {
-                    throw new RuntimeException('Candidate comparison does not match its baseline measurement');
-                }
-                $paths[] = $candidate;
+            $assigned = self::assignedIndices(count($identities), $shard);
+            foreach ($assigned as $index) {
+                $baseline = BenchmarkReport::read($shardDirectory . '/baseline-' . $index . '.xml');
+                $candidate = BenchmarkReport::read($shardDirectory . '/candidate-' . $index . '.xml');
+                $comparisons[] = $candidate->compareAgainst($baseline, $identities[$index], $mode);
             }
             if (($completion['indices'] ?? null) !== $assigned) {
                 throw new RuntimeException('Shard did not complete exactly its assigned workloads');
@@ -185,9 +124,9 @@ final class PerformanceShards
                 $fpm = $report;
             }
         }
-        if ($paths === [] || count($paths) !== count($expected)) {
+        if ($comparisons === [] || count($comparisons) !== count($expected)) {
             throw new RuntimeException('Incomplete workload coverage');
         }
-        return ['paths' => $paths, 'status' => $status, 'fpm' => $fpm];
+        return ['comparisons' => $comparisons, 'status' => $status, 'fpm' => $fpm];
     }
 }

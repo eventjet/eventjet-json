@@ -3,20 +3,13 @@
 declare(strict_types=1);
 
 use Eventjet\Json\Ci\BenchmarkCommand;
+use Eventjet\Json\Ci\BenchmarkReport;
 use Eventjet\Json\Ci\BenchmarkRuntime;
+use Eventjet\Json\Ci\BenchmarkWorkload;
 use Eventjet\Json\Ci\FpmMeasurements;
 use Eventjet\Json\Ci\PerformanceShards;
 
 require_once __DIR__ . '/performance-summary.php';
-const REPORT_GROUPS = [
-    'documents' => 'Realistic example documents',
-    'batches' => 'Synthetic batches',
-    'diagnostic' => 'Focused diagnostics',
-    'stress' => 'Stress diagnostics',
-    'errors' => 'Expected errors',
-    'uncategorized' => 'Uncategorized workloads',
-];
-
 require __DIR__ . '/FpmMeasurements.php';
 require __DIR__ . '/BenchmarkCommand.php';
 require __DIR__ . '/BenchmarkRuntime.php';
@@ -74,44 +67,6 @@ function configureWorkloads(string $revision, string $workspace, bool $opcache):
     $config['runner.php_config'] = $settings;
     writeJson($workspace . '/phpbench.json', $config);
     return $settings;
-}
-
-/** @return non-empty-list<array{string, string, string}> */
-function workloadFilters(string $path): array
-{
-    $xml = simplexml_load_file($path);
-    if ($xml === false) {
-        throw new RuntimeException('Cannot read workload discovery results');
-    }
-    $filters = [];
-    foreach ($xml->suite as $suite) {
-        foreach ($suite->benchmark as $benchmark) {
-            foreach ($benchmark->subject as $subject) {
-                $categories = [];
-                foreach ($subject->group as $group) {
-                    $name = (string) $group['name'];
-                    if (isset(REPORT_GROUPS[$name])) {
-                        $categories[$name] = true;
-                    }
-                }
-                if (count($categories) > 1) {
-                    throw new RuntimeException('A benchmark subject must belong to only one report category');
-                }
-                $category = array_key_first($categories) ?? 'uncategorized';
-                foreach ($subject->variant as $variant) {
-                    $filters[] = [
-                        '--filter=^' . preg_quote($benchmark['class'] . '::' . $subject['name'], '{') . '$',
-                        '--variant=^' . preg_quote((string) $variant->{'parameter-set'}['name'], '{') . '$',
-                        $category,
-                    ];
-                }
-            }
-        }
-    }
-    if ($filters === []) {
-        throw new RuntimeException('No benchmark workloads discovered');
-    }
-    return $filters;
 }
 
 /** @return array<string, string> */
@@ -252,10 +207,11 @@ foreach (['baseline', 'candidate'] as $version) {
 }
 $metadata['configuration_sha256'] = hash_file('sha256', $workspaces['baseline'] . '/phpbench.json');
 writeJson($results . '/metadata.json', $metadata);
+/** @return array{status: int, report: BenchmarkReport} */
 $measure = static function (string $workspace, string $name, string|null $baseline = null, string ...$options) use (
     $results,
-    $opcache,
-): int {
+    $opcacheOption,
+): array {
     $arguments = [
         PHP_BINARY,
         'vendor/bin/phpbench',
@@ -279,32 +235,25 @@ $measure = static function (string $workspace, string $name, string|null $baseli
     if ($result['status'] !== 0 && ($baseline === null || $result['status'] !== 2)) {
         throw new RuntimeException('Command failed (' . $result['status'] . "): PHPBench\n" . $result['output']);
     }
-    $xml = simplexml_load_file($results . '/' . $name . '.xml');
-    if ($xml === false) {
-        throw new RuntimeException('Cannot read benchmark output: ' . $name);
-    }
-    $reported = $xml->xpath('//env/opcache/value[@name="enabled"]');
-    if ($reported === null || count($reported) !== 1 || ((string) $reported[0] === '1') !== $opcache) {
-        throw new RuntimeException('Benchmark OPcache state does not match the requested mode');
-    }
-    return $result['status'];
+    $report = BenchmarkReport::read($results . '/' . $name . '.xml');
+    $report->requireMode($opcacheOption);
+    return ['status' => $result['status'], 'report' => $report];
 };
-$measure($workspaces['baseline'], 'discovery', null, '--revs=1');
+$discovery = $measure($workspaces['baseline'], 'discovery', null, '--revs=1')['report'];
 $status = 0;
 $reports = [];
-$comparisonPaths = [];
-$indices = [];
-foreach (workloadFilters($results . '/discovery.xml') as $index => [$subjectFilter, $variantFilter, $group]) {
-    if ($shard !== null && ($index % 4) !== ($shard - 1)) {
-        continue;
-    }
-    $indices[] = $index;
-    $filters = [$subjectFilter, $variantFilter];
+$comparisons = [];
+$indices = PerformanceShards::assignedIndices(count($discovery->workloads), $shard);
+foreach ($indices as $index) {
+    $workload = $discovery->workloads[$index];
+    $group = $workload->category;
+    $filters = $workload->filters();
     $baselineName = 'baseline-' . $index;
     $candidateName = 'candidate-' . $index;
-    $measure($workspaces['baseline'], $baselineName, null, ...$filters);
-    $status = max($status, $measure($workspaces['candidate'], $candidateName, $baselineName, ...$filters));
-    $comparisonPaths[] = $results . '/' . $candidateName . '.xml';
+    $baseline = $measure($workspaces['baseline'], $baselineName, null, ...$filters);
+    $comparison = $measure($workspaces['candidate'], $candidateName, $baselineName, ...$filters);
+    $status = max($status, $comparison['status']);
+    $comparisons[] = $comparison['report']->compareAgainst($baseline['report'], $workload->identity(), $opcacheOption);
     $workloadReport = file_get_contents($results . '/' . $candidateName . '.txt');
     if ($workloadReport === false) {
         throw new RuntimeException('Cannot read PHPBench report');
@@ -312,14 +261,12 @@ foreach (workloadFilters($results . '/discovery.xml') as $index => [$subjectFilt
     $reports[$group] = ($reports[$group] ?? '') . $workloadReport . "\n";
 }
 $report = '';
-foreach (REPORT_GROUPS as $group => $title) {
+foreach (BenchmarkWorkload::REPORT_GROUPS as $group => $title) {
     if (isset($reports[$group])) {
         $report .= "\n### $title\n\n```text\n" . $reports[$group] . "\n```\n";
     }
 }
-$comment = $comparisonPaths === []
-    ? "No workloads assigned to this shard.\n"
-    : performanceSummary($comparisonPaths, $status);
+$comment = $comparisons === [] ? "No workloads assigned to this shard.\n" : performanceSummary($comparisons, $status);
 file_put_contents($results . '/comment.md', $comment);
 publish(
     $results,

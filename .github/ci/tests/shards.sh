@@ -39,8 +39,25 @@ for ($shard = 1; $shard <= 4; $shard++) {
 jsonFile($directory . '/1/fpm.json', ['baseline' => [], 'candidate' => []]);
 file_put_contents($directory . '/1/fpm.md', 'FPM report');
 $result = PerformanceShards::collect($directory, 'on');
-if ($result['status'] !== 0 || count($result['paths']) !== 9 || !str_contains(performanceSummary($result['paths'], 0), '**9 workloads**')) {
+if ($result['status'] !== 0 || count($result['comparisons']) !== 9 || !str_contains(performanceSummary($result['comparisons'], 0), '**9 workloads**')) {
     throw new RuntimeException('Complete shards must produce one full comparison');
+}
+$measurementPath = $directory . '/1/candidate-0.xml';
+rename($measurementPath, $measurementPath . '.saved');
+if (!str_contains(performanceSummary($result['comparisons'], 0), '**9 workloads**')) {
+    throw new RuntimeException('Summary must use validated comparisons without reopening measurement files');
+}
+rename($measurementPath . '.saved', $measurementPath);
+for ($count = 0; $count <= 25; $count++) {
+    $all = PerformanceShards::assignedIndices($count, null);
+    $partitioned = [];
+    for ($shard = 1; $shard <= 4; $shard++) {
+        $partitioned = [...$partitioned, ...PerformanceShards::assignedIndices($count, $shard)];
+    }
+    sort($partitioned);
+    if ($partitioned !== $all || count($all) !== $count) {
+        throw new RuntimeException('Shard assignments must partition every workload exactly once');
+    }
 }
 function rejects(string $directory, string $file, string $replacement): void {
     $path = $directory . '/' . $file;
@@ -66,6 +83,11 @@ rejects($directory, '2/candidate-1.xml', str_replace('<iteration time-net="100"/
 rejects($directory, '2/candidate-1.xml', str_replace('>1</value>', '>0</value>', measurement([1], true)));
 rejects($directory, '2/candidate-1.xml', str_replace('<baseline-stats mode="100"/>', '', measurement([1], true)));
 rejects($directory, '2/candidate-1.xml', str_replace('<baseline-stats mode="100"/>', '<baseline-stats mode="99"/>', measurement([1], true)));
+rejects($directory, '2/candidate-1.xml', str_replace('revs="1"', 'revs="2"', measurement([1], true)));
+rejects($directory, '2/candidate-1.xml', str_replace('warmup="0"', 'warmup="1"', measurement([1], true)));
+rejects($directory, '2/candidate-1.xml', str_replace('<stats mode="100"/>', '<stats mode="0"/>', measurement([1], true)));
+rejects($directory, '2/discovery.xml', measurement([0, 0]));
+rejects($directory, '2/discovery.xml', str_replace('<subject name="bench0">', '<subject name="bench0"><group name="documents"/><group name="errors"/>', measurement(range(0, 8))));
 jsonFile($directory . '/2/complete.json', ['status' => 2, 'indices' => [1, 5]]);
 if (PerformanceShards::collect($directory, 'on')['status'] !== 2) { throw new RuntimeException('Regression verdict was lost'); }
 foreach (glob($directory . '/*/metadata.json') as $path) {
