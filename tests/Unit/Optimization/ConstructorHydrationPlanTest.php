@@ -166,16 +166,18 @@ final class ConstructorHydrationPlanTest extends TestCase
     public function testMappedScalarHydrationKeepsJsonNamesAfterWarming(): void
     {
         $class = MappedDefaults::class;
+        $input = new stdClass();
+        $input->{'$ref'} = 'next';
+        $input->count = 9;
+        $invalid = new stdClass();
+        $invalid->{'$ref'} = 42;
         for ($attempt = 0; $attempt < 3; ++$attempt) {
-            static::assertEquals(
-                new MappedDefaults(ref: 'next', count: 9),
-                ObjectHydrator::hydrate($class, (object) ['$ref' => 'next', 'count' => 9]),
-            );
+            static::assertEquals(new MappedDefaults(ref: 'next', count: 9), ObjectHydrator::hydrate($class, $input));
             static::assertNull(ConstructorDecoder::scalarPlan($class));
             static::assertEquals(new MappedDefaults(), ObjectHydrator::hydrate($class, new stdClass()));
             static::assertEquals(
                 DecodeError::fieldTypeMismatch($class, 'nested.$ref', 'string|null', 42),
-                ObjectHydrator::hydrate($class, (object) ['$ref' => 42], 'nested'),
+                ObjectHydrator::hydrate($class, $invalid, 'nested'),
             );
         }
     }

@@ -27,11 +27,7 @@ use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
-
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedReference;
-
-
-
 use Eventjet\Json\Test\Unit\Fixtures\DeferredEnumBacking;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredValueEnum;
 use Eventjet\Json\Test\Unit\Fixtures\PropertyCountingReflection;
@@ -47,7 +43,6 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
-
 use RuntimeException;
 use stdClass;
 use TypeError;

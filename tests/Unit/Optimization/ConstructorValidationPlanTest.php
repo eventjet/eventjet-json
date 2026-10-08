@@ -204,10 +204,6 @@ final class ConstructorValidationPlanTest extends TestCase
             static::assertSame([], ConstructorDecoder::convert($class, ['ref' => 'ignored'], ''));
             static::assertNull(ConstructorDecoder::scalarPlan($class->getName()));
             static::assertEquals(
-                new MappedDefaults(ref: 'next', count: 9),
-                ObjectHydrator::hydrate(MappedDefaults::class, (object) ['$ref' => 'next', 'count' => 9]),
-            );
-            static::assertEquals(
                 DecodeError::fieldTypeMismatch($class->getName(), 'nested.$ref', 'string|null', 42),
                 ConstructorDecoder::convert($class, ['$ref' => 42], 'nested'),
             );
