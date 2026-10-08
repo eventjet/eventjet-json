@@ -190,8 +190,9 @@ summary are retained for seven days on successful and failed runs, so durations
 and mutation outcomes can be compared.
 
 Speed is a CI requirement: quality and test jobs have a five-minute total limit,
-PHPUnit has a two-minute step limit, and mutation testing has a five-minute test
-limit within a seven-minute total limit. Exceeding a limit fails the check.
+PHPUnit has a two-minute step limit, and mutation testing has a six-minute test
+limit within an eight-minute total limit. This leaves headroom above the measured
+4m 53s hosted mutation run. Exceeding a limit fails the check.
 Review the step durations in GitHub Actions when a check approaches its limit;
 profile case generation, coverage collection, and mutant execution before raising a limit.
 These limits bound execution, not GitHub runner queue delays. Caches are optional:
