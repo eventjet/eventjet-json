@@ -50,10 +50,18 @@ if ($config['runner.path'] !== 'benchmarks'
     || $config['runner.php_config']['serialize_precision'] !== ($candidateSuite ? '9' : '7')) {
     throw new RuntimeException('Workload configuration was not isolated');
 }
-foreach (['pcov.enabled', 'opcache.enable_cli', 'opcache.jit'] as $setting) {
+foreach (['pcov.enabled', 'opcache.jit', 'opcache.jit_buffer_size', 'opcache.file_update_protection'] as $setting) {
     if ($config['runner.php_config'][$setting] !== '0') {
         throw new RuntimeException('Controlled PHP settings were lost');
     }
+}
+$expectedOpcache = getenv('EXPECTED_OPCACHE') === '0' ? '0' : '1';
+if ($config['runner.php_config']['opcache.enable_cli'] !== $expectedOpcache
+    || $config['runner.php_config']['opcache.enable'] !== '1'
+    || $config['runner.php_config']['opcache.file_cache'] !== ''
+    || $config['runner.php_config']['opcache.save_comments'] !== '1'
+    || $config['runner.php_config']['xdebug.mode'] !== 'off') {
+    throw new RuntimeException('OPcache mode or isolation settings were lost');
 }
 $time = (int) trim(file_get_contents('src/time.txt'));
 foreach ($argv as $argument) {
@@ -69,7 +77,8 @@ PHP
 
 check_run() {
     local expected=$1 name=$2 status=0
-    php "$runner" --base "$baseline" --candidate "$candidate" > "$name.log" 2>&1 || status=$?
+    shift 2
+    php "$runner" --base "$baseline" --candidate "$candidate" "$@" > "$name.log" 2>&1 || status=$?
     if [ "$status" -ne "$expected" ]; then
         cat "$name.log"
         echo "Expected status $expected, got $status for $name"
@@ -110,6 +119,22 @@ if ! grep -Fq 'PHPBench assertions failed' regression-results/results/summary.md
     exit 1
 fi
 echo 'Native PHPBench assertions, boundaries, configuration isolation, and failure artifacts passed.'
+
+EXPECTED_OPCACHE=0 check_run 2 opcache-off --opcache off
+php <<'PHP'
+<?php
+$metadata = json_decode(file_get_contents('opcache-off-results/results/metadata.json'), true, flags: JSON_THROW_ON_ERROR);
+if ($metadata['opcache'] !== 'off'
+    || !str_contains(file_get_contents('opcache-off-results/results/summary.md'), 'OPcache: **off**')) {
+    throw new RuntimeException('Explicit OPcache-off mode was not reported');
+}
+PHP
+if php "$runner" --base "$baseline" --opcache invalid > invalid.log 2>&1; then
+    echo 'Expected an invalid OPcache mode to fail'
+    exit 1
+fi
+grep -Fq 'OPcache must be on or off' invalid.log
+echo 'OPcache modes passed.'
 
 # Failed subprocesses must retain stdout diagnostics as well as forwarded stderr.
 cat > vendor/bin/phpbench <<'PHP'

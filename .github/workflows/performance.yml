@@ -1,4 +1,5 @@
 name: Performance
+run-name: "Performance (${{ inputs.opcache || 'both' }}): ${{ github.head_ref || github.ref_name }}"
 
 on:
   pull_request:
@@ -6,6 +7,11 @@ on:
     branches: [master, tabula-rasa]
   workflow_dispatch:
     inputs:
+      opcache:
+        description: OPcache modes (on is primary; off is secondary)
+        type: choice
+        options: ['both', 'on', 'off']
+        default: 'both'
       calibrate:
         description: Compare unchanged code on five independent runners
         type: boolean
@@ -15,7 +21,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: performance-${{ github.event.pull_request.number || github.ref }}
+  group: performance-${{ github.event.pull_request.number || github.ref }}-${{ inputs.opcache || 'both' }}
   cancel-in-progress: true
 
 env:
@@ -23,13 +29,14 @@ env:
 
 jobs:
   compare:
-    name: ${{ github.event_name == 'workflow_dispatch' && inputs.calibrate && format('Calibrate decoder performance ({0})', matrix.sample) || 'Compare decoder performance' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    name: ${{ inputs.calibrate && format('Calibrate decoder performance (OPcache {0}, sample {1})', matrix.opcache, matrix.sample) || format('Compare decoder performance (OPcache {0})', matrix.opcache) }}
     strategy:
       fail-fast: false
       matrix:
         sample: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.calibrate && '[1,2,3,4,5]' || '[1]') }}
+        opcache: ${{ fromJSON((inputs.opcache == 'on' && '["on"]') || (inputs.opcache == 'off' && '["off"]') || '["on", "off"]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -44,14 +51,15 @@ jobs:
         shell: bash
         env:
           CALIBRATE: ${{ github.event_name == 'workflow_dispatch' && inputs.calibrate }}
+          OPCACHE_MODE: ${{ matrix.opcache }}
         run: |
           base=HEAD^1
           if [ "$CALIBRATE" = true ]; then base=HEAD; fi
-          php .github/ci/performance.php --base "$base" --candidate HEAD
+          php .github/ci/performance.php --base "$base" --candidate HEAD --opcache "$OPCACHE_MODE"
       - name: Save measurements and environment
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: performance-${{ github.sha }}-${{ github.run_attempt }}-${{ matrix.sample }}
+          name: performance-${{ matrix.opcache }}-${{ github.sha }}-${{ github.run_attempt }}-${{ matrix.sample }}
           path: .perf/results
           retention-days: 90
