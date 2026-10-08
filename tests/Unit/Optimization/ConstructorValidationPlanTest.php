@@ -104,6 +104,8 @@ final class ConstructorValidationPlanTest extends TestCase
                 $invalid = \get_object_vars($original);
                 $invalid[$field] = [];
                 static::assertNull($hydrate(self::input($invalid)));
+                $invalid[$field] = [true];
+                static::assertNull($hydrate(self::input($invalid)));
             }
         }
         $hydrate = ScalarHydratorCompiler::compile(ScalarFields::class);
