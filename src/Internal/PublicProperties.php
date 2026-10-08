@@ -7,18 +7,19 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionNamedType;
 use ReflectionProperty;
 
 /** @internal */
 final class PublicProperties
 {
-    /** @var array<class-string, array<string, array{property: ReflectionProperty, converter: FieldValueConverter}>> */
+    /** @var array<class-string, array<string, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>> */
     private static array $properties = [];
 
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array<string, array{property: ReflectionProperty, converter: FieldValueConverter}>|DecodeError
+     * @return array<string, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>|DecodeError
      * @phpstan-impure
      * @throws ReflectionException
      */
@@ -44,7 +45,18 @@ final class PublicProperties
             if ($type instanceof DecodeError) {
                 return $type;
             }
-            $properties[$property->getName()] = ['property' => $property, 'converter' => $type];
+            $declaredType = $property->getType();
+            $builtinType =
+                $declaredType instanceof ReflectionNamedType
+                && $declaredType->isBuiltin()
+                && $declaredType->getName() !== 'array'
+                    ? $declaredType
+                    : null;
+            $properties[$property->getName()] = [
+                'property' => $property,
+                'converter' => $type,
+                'builtinType' => $builtinType,
+            ];
         }
 
         return self::$properties[$name] = $properties;

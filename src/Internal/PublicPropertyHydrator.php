@@ -38,6 +38,14 @@ final class PublicPropertyHydrator
                 continue;
             }
 
+            $builtinType = $field['builtinType'];
+            if ($builtinType !== null) {
+                $matches = ValueTypeMatcher::matches($value, $builtinType);
+                if ($matches) {
+                    $assignments[] = ['property' => $field['property'], 'value' => $value];
+                    continue;
+                }
+            }
             $converted = $field['converter']->convert($class->getName(), $value, FieldPath::field($path, $inputField));
             if ($converted instanceof DecodeError) {
                 return $converted;
