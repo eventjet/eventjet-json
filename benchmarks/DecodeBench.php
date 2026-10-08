@@ -78,11 +78,11 @@ final class DecodeBench
     }
 
     /** @throws DecodeError */
-    #[Bench\ParamProviders(DecodeWorkloads::class . '::listScenario')]
+    #[Bench\ParamProviders(DecodeWorkloads::class . '::largeCollectionScenarios')]
     #[Bench\Groups(['warm', 'diagnostic'])]
     #[Bench\Revs(100)]
     #[Bench\Warmup(1)]
-    public function benchWarmLists(): void
+    public function benchWarmCollections(): void
     {
         $this->decode();
     }

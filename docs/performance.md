@@ -32,8 +32,8 @@ The suite separates workloads by purpose:
   repeated-class metadata reuse; the document fixtures provide the contrasting
   many-class workloads.
 - **Focused diagnostics:** constructor scalars, public properties, enums, enum
-  unions, and short/long scalar lists. List DTOs contain only the fields being
-  measured, with no acceptance-test bookkeeping in their constructors.
+  unions, short/long scalar lists, and a 1,000-entry string map. Collection DTOs
+  contain only the fields being measured, with no acceptance-test bookkeeping in their constructors.
 - **Stress diagnostics:** enum-heavy object and root collections, enum-union
   collections, and recursive collections. Keep these for targeted regressions;
   do not count them as several independent examples of typical consumer traffic.
@@ -44,7 +44,7 @@ The suite separates workloads by purpose:
 Local PHPBench takes five iterations; CI takes 20, in separate CLI processes. `cold` measures one
 first decode, including decoder class loading and compilation. `warm` performs
 one untimed decode first, then batches repeated decodes: 2,000 for small focused
-cases; 10,000 for unknown enum errors and 0/1-record batches; 100 for long scalar lists
+cases; 10,000 for unknown enum errors and 0/1-record batches; 100 for long scalar lists, the string map,
 and list errors; 20 for stress cases; and 200 for documents and larger batches. Counts are fixed for both revisions. Check the raw
 batch duration and variation when adding workloads; do not tune counts separately
 for a candidate or retry until a desired result appears. Setup and verification

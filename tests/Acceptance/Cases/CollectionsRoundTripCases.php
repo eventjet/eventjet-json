@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use ArrayObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\ScalarMapFields;
 
 /** @internal */
 final class CollectionsRoundTripCases
@@ -24,5 +26,43 @@ final class CollectionsRoundTripCases
             [true, false],
             ['float', 'float', 'float'],
         )];
+        yield 'scalar maps distinguish integers from whole-valued floats' => [new ScalarMapFields(
+            ['value' => 'text'],
+            ['zero' => 0, 'negative' => -42],
+            ['whole' => 3.0, 'fraction' => 3.25, 'negative' => -3.0],
+            ['yes' => true, 'no' => false],
+        )];
+        yield 'tuple retains a fractional float through general item conversion' =>
+            [CollectionDeclarationFixture::object('array', 'array{float}', 'param', [3.25])];
+        foreach (['param', 'var'] as $tag) {
+            foreach ([
+                'string' => ['empty' => '', 'unicode' => 'Grüße, 世界, 😀'],
+                'int' => ['zero' => 0, 'negative' => -42, 'positive' => 42],
+                'bool' => ['yes' => true, 'no' => false],
+                'float' => ['whole' => 3.0, 'fraction' => 3.25, 'negative' => -3.0],
+            ] as $type => $values) {
+                yield $tag . ' scalar ' . $type . ' map preserves values and types' =>
+                    [CollectionDeclarationFixture::object(
+                        'array',
+                        'non-empty-array<string, ' . $type . '>',
+                        $tag,
+                        $values,
+                    )];
+                yield $tag . ' scalar ' . $type . ' ArrayObject preserves values and types' =>
+                    [CollectionDeclarationFixture::object(
+                        '\\ArrayObject',
+                        'ArrayObject<string, ' . $type . '>',
+                        $tag,
+                        new ArrayObject($values),
+                    )];
+                yield $tag . ' empty scalar ' . $type . ' ArrayObject preserves its shape' =>
+                    [CollectionDeclarationFixture::object(
+                        '\\ArrayObject',
+                        'ArrayObject<string, ' . $type . '>',
+                        $tag,
+                        new ArrayObject(),
+                    )];
+            }
+        }
     }
 }

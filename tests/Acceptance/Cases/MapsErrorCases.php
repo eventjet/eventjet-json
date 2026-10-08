@@ -12,6 +12,11 @@ use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarMapFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedArrayObjectMapField;
 use Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedNonEmptyMapKeyField;
+use JsonException;
+
+use function json_encode;
+
+use const JSON_THROW_ON_ERROR;
 
 /** @internal */
 final class MapsErrorCases
@@ -20,12 +25,14 @@ final class MapsErrorCases
      * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
+     * @throws JsonException
      */
     public static function errors(): iterable
     {
         yield from self::declarations();
         yield from self::valuesAndShapes();
         yield from self::cachedValues();
+        yield from self::scalarValues();
     }
 
     /**
@@ -111,5 +118,57 @@ final class MapsErrorCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\BoolCollectionValidationFields from the JSON object: Field [entry][3].list[0] must be of type bool, int given.',
             3,
         ];
+    }
+
+    /**
+     * @return iterable<string, array{string, class-string, string, int}>
+     * @throws JsonException
+     * @throws \RuntimeException
+     */
+    private static function scalarValues(): iterable
+    {
+        foreach (['param', 'var'] as $tag) {
+            foreach (['string' => 'valid', 'int' => 42, 'bool' => false, 'float' => 3.25] as $type => $valid) {
+                $class = CollectionDeclarationFixture::create('array', 'non-empty-array<string, ' . $type . '>', $tag);
+                yield $tag . ' scalar map rejects a null after a valid ' . $type => [
+                    json_encode(['value' => ['first' => $valid, 'bad key' => null]], JSON_THROW_ON_ERROR),
+                    $class,
+                    'Could not create '
+                        . $class
+                        . ' from the JSON object: Field value["bad key"] must be of type '
+                        . $type
+                        . ', null given.',
+                    3,
+                ];
+            }
+        }
+        foreach ([
+            ['int',    '42',   'string'],
+            ['float',  '3.25', 'string'],
+            ['string', 42,     'int'],
+            ['bool',   0,      'int'],
+        ] as [
+            $type,
+            $invalid,
+            $actual,
+        ]) {
+            $class = CollectionDeclarationFixture::create(
+                '\\ArrayObject',
+                'ArrayObject<string, ' . $type . '>',
+                'param',
+            );
+            yield 'scalar map does not coerce ' . $actual . ' to ' . $type => [
+                json_encode(['value' => ['invalid' => $invalid]], JSON_THROW_ON_ERROR),
+                $class,
+                'Could not create '
+                    . $class
+                    . ' from the JSON object: Field value[invalid] must be of type '
+                    . $type
+                    . ', '
+                    . $actual
+                    . ' given.',
+                3,
+            ];
+        }
     }
 }
