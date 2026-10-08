@@ -83,7 +83,7 @@ final class ObjectValueConverter
         $type = $parameter->type;
 
         if ($type instanceof ReflectionNamedType) {
-            return NamedFieldValueConverter::convert($class, $parameter->reflection, $type, $value, $path);
+            return NamedFieldValueConverter::convert($class, $parameter, $value, $path);
         }
 
         if ($type instanceof ReflectionUnionType) {

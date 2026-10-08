@@ -94,8 +94,7 @@ final class AutoloadingTest extends TestCase
                 static::assertInstanceOf(ReflectionNamedType::class, $type);
                 static::assertSame($value, NamedFieldValueConverter::convert(
                     $class->getName(),
-                    $parameter,
-                    $type,
+                    new ConstructorParameter($parameter, $class),
                     $value,
                     $name,
                 ));

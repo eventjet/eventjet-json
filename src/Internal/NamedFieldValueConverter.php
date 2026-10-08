@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use ReflectionException;
-use ReflectionNamedType;
-use ReflectionParameter;
 
 use function class_exists;
 use function enum_exists;
@@ -22,23 +20,22 @@ final class NamedFieldValueConverter
      */
     public static function convert(
         string $class,
-        ReflectionParameter $parameter,
-        ReflectionNamedType $type,
+        ConstructorParameter $parameter,
         mixed $value,
         string $path,
     ): array|bool|float|int|object|string|null {
-        if ($type->isBuiltin()) {
+        if ($parameter->builtin) {
             return $value;
         }
 
-        $typeName = FieldTypeNameResolver::resolve($parameter, $type);
+        $typeName = $parameter->typeName;
 
         if (enum_exists($typeName)) {
-            return BackedEnumValueConverter::convert($class, $parameter, $value, $path) ?? $value;
+            return BackedEnumValueConverter::convert($class, $parameter->reflection, $value, $path) ?? $value;
         }
 
         if (class_exists($typeName)) {
-            return ConcreteClassValueConverter::convert($class, $parameter, $typeName, $value, $path);
+            return ConcreteClassValueConverter::convert($class, $parameter->reflection, $typeName, $value, $path);
         }
 
         return $value;

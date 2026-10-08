@@ -68,9 +68,9 @@ final class ObjectTypeValidator
             }
 
             if ($type instanceof ReflectionNamedType) {
-                $typeName = FieldTypeNameResolver::resolve($parameter->reflection, $type);
+                $typeName = $parameter->typeName;
 
-                if (array_key_exists($name, $values) && !enum_exists($typeName, autoload: !$type->isBuiltin())) {
+                if (array_key_exists($name, $values) && !enum_exists($typeName, autoload: !$parameter->builtin)) {
                     /** @var mixed $value */
                     $value = $values[$name];
                     $valueMatchesType = ValueTypeMatcher::matches($value, $type);
