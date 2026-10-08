@@ -56,7 +56,7 @@ final class FieldCollectionUnionValidator
         $names = [];
         foreach ($type->members as $member) {
             if (!$member instanceof NestedCollectionType) {
-                $names[] = $member;
+                $names[] = PhpDocLiteralNativeType::name($member, $expected);
                 continue;
             }
             $names[] = $member->collection instanceof MapType && $member->collection->arrayObject

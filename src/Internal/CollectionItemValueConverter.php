@@ -40,6 +40,11 @@ final class CollectionItemValueConverter
             return CollectionUnionValueConverter::convert($class, $path, $type, $value);
         }
 
+        $literal = PhpDocLiteral::value($type);
+        if ($literal !== null || $type === 'null') {
+            return PhpDocLiteralValueConverter::convert($class, $path, $type, $value);
+        }
+
         $converted = match ($type) {
             'bool' => is_bool($value) ? $value : null,
             'float' => self::convertFloat($value),

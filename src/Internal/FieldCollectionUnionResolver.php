@@ -35,19 +35,19 @@ final class FieldCollectionUnionResolver
             if ($resolved instanceof DecodeError) {
                 return $resolved;
             }
-            $members[(string) $resolved] = $resolved;
+            foreach ($resolved instanceof CollectionUnionType ? $resolved->members : [$resolved] as $value) {
+                $members[(string) $value] = $value;
+            }
         }
         $union = new CollectionUnionType(array_values($members));
         $shapeError = CollectionUnionShapeValidator::validate($class, $field->getName(), $union);
         if ($shapeError !== null) {
             return $shapeError;
         }
-        $error = FieldCollectionUnionValidator::validate(
-            $class,
-            $field,
-            $native,
-            $union,
-        ) ?? EnumUnionValidator::validateNames($class, $field->getName(), $union->names());
+        $error =
+            FieldCollectionUnionValidator::validate($class, $field, $native, $union)
+            ?? PhpDocLiteralUnionValidator::validate($class, $field->getName(), $union->names())
+            ?? EnumUnionValidator::validateNames($class, $field->getName(), $union->names());
         return $error ?? $union;
     }
 }

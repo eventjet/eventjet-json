@@ -19,15 +19,15 @@ final class PhpDocImports
      * @param ReflectionClass<object> $class
      * @return array<string, string>
      */
-    public static function forClass(ReflectionClass $class): array
+    public static function forClass(ReflectionClass $class, PhpDocImportKind $kind = PhpDocImportKind::ClassName): array
     {
         /** @var MetadataCache<array<string, string>> $cache */
         $cache = self::$imports ?? new MetadataCache();
         self::$imports = $cache;
 
         return $cache->resolve(
-            $class->getName(),
-            /** @return array<string, string> */ static fn(): array => self::load($class),
+            $class->getName() . ($kind === PhpDocImportKind::Constant ? ':constants' : ''),
+            /** @return array<string, string> */ static fn(): array => self::load($class, $kind),
         );
     }
 
@@ -35,7 +35,7 @@ final class PhpDocImports
      * @param ReflectionClass<object> $class
      * @return array<string, string>
      */
-    private static function load(ReflectionClass $class): array
+    private static function load(ReflectionClass $class, PhpDocImportKind $kind): array
     {
         $file = (string) $class->getFileName();
         $exists = is_file($file);
@@ -50,6 +50,7 @@ final class PhpDocImports
             (int) $class->getStartLine(),
             $class->getShortName(),
             $class->getNamespaceName(),
+            $kind,
         );
     }
 }

@@ -116,7 +116,10 @@ final class ClassUnionValidator
         if ($memberResults === []) {
             return $nonEncodableError;
         }
-        return in_array(null, $memberResults, strict: true) ? null : false;
+        return (
+            PhpDocLiteralFieldValidator::validate($class, $field)
+            ?? (in_array(null, $memberResults, strict: true) ? null : false)
+        );
     }
 
     private static function hasCollection(ReflectionUnionType $type): bool

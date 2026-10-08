@@ -27,6 +27,17 @@ final class PhpDocUnionTypeResolver
     ): CollectionUnionType|null {
         $members = [];
         foreach ($types as $type) {
+            $literal = PhpDocLiteral::value($type->name);
+            $constants =
+                $type->arguments === [] && $literal === null
+                    ? PhpDocConstantResolver::resolve($field, $type->name)
+                    : null;
+            if ($constants !== null) {
+                foreach ($constants as $constant) {
+                    $members[$constant] = $constant;
+                }
+                continue;
+            }
             $resolved = self::member($field, $type);
             if ($resolved === null) {
                 return null;

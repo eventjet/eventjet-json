@@ -15,13 +15,20 @@ use function preg_match;
 final class PhpDocItemTypeResolver
 {
     /**
-     * @return 'bool'|'float'|'int'|'string'|class-string|CollectionUnionType|NestedCollectionType|null
+     * @return string|CollectionUnionType|NestedCollectionType|null
      * @throws ReflectionException
      */
     public static function resolve(
         ReflectionParameter|ReflectionProperty $field,
         PhpDocType $type,
     ): string|CollectionUnionType|NestedCollectionType|null {
+        $literal = PhpDocLiteral::value($type->name);
+        if ($type->arguments === [] && $literal === null) {
+            $constants = PhpDocConstantResolver::resolve($field, $type->name);
+            if ($constants !== null) {
+                return new CollectionUnionType($constants);
+            }
+        }
         $nested = NestedCollectionTypeResolver::resolve($field, $type);
         if ($nested !== null) {
             return $nested;
@@ -34,12 +41,16 @@ final class PhpDocItemTypeResolver
         return self::named($field, $type);
     }
 
-    /** @return 'bool'|'float'|'int'|'string'|class-string|null */
+    /** @return string|null */
     public static function named(ReflectionParameter|ReflectionProperty $field, PhpDocType $type): string|null
     {
         $arguments = $type->arguments;
 
         if ($arguments === []) {
+            $literal = PhpDocLiteral::value($type->name);
+            if ($literal !== null || $type->name === 'null') {
+                return $type->name;
+            }
             return FieldTypeNameResolver::resolvePhpDoc($field, $type->name);
         }
 

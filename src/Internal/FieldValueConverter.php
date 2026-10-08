@@ -20,9 +20,12 @@ use function enum_exists;
 /** @internal */
 final readonly class FieldValueConverter
 {
+    public bool $literalConstrained;
     private ReflectionType|null $type;
     private string $typeName;
     private EnumUnionLookup|null $enumLookup;
+    /** @var list<string>|null */
+    private array|null $literals;
 
     /** @throws ReflectionException */
     public function __construct(
@@ -30,6 +33,8 @@ final readonly class FieldValueConverter
         private ListType|MapType|TupleType|CollectionUnionType|null $collection,
     ) {
         $this->type = $field->getType();
+        $this->literals = PhpDocLiteralField::resolve($field);
+        $this->literalConstrained = $this->literals !== null;
         $this->enumLookup = $this->type instanceof ReflectionUnionType ? new EnumUnionLookup($this->type) : null;
         $this->typeName = $this->type instanceof ReflectionNamedType
             ? FieldTypeNameResolver::resolve($field, $this->type)
@@ -44,6 +49,22 @@ final readonly class FieldValueConverter
      * @throws ReflectionException
      */
     public function convert(string $class, mixed $value, string $path): array|bool|float|int|object|string|null
+    {
+        $value = PhpDocLiteralScalarConverter::convert($class, $path, $this->literals, $value);
+        if ($value instanceof DecodeError) {
+            return $value;
+        }
+        return $this->convertValue($class, $value, $path);
+    }
+
+    /**
+     * @param class-string $class
+     * @param array<array-key, mixed>|bool|float|int|object|string|null $value
+     * @return array<array-key, mixed>|bool|float|int|object|string|null
+     * @throws JsonException
+     * @throws ReflectionException
+     */
+    private function convertValue(string $class, mixed $value, string $path): array|bool|float|int|object|string|null
     {
         if ($this->collection instanceof CollectionUnionType) {
             return CollectionUnionValueConverter::convert($class, $path, $this->collection, $value);

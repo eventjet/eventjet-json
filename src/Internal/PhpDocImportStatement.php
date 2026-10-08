@@ -8,6 +8,7 @@ use function array_pop;
 use function explode;
 use function ltrim;
 use function preg_match;
+use function preg_replace;
 use function strtolower;
 use function trim;
 
@@ -15,12 +16,17 @@ use function trim;
 final class PhpDocImportStatement
 {
     /** @return array<string, string> */
-    public static function parse(string $statement): array
+    public static function parse(string $statement, PhpDocImportKind $kind = PhpDocImportKind::ClassName): array
     {
         $isNonClassImport = preg_match('/\A\s*(?:function|const)\s/i', $statement) === 1;
-        if ($isNonClassImport) {
+        $isConstantImport = preg_match('/\A\s*const\s/i', $statement) === 1;
+        $selected = $kind === PhpDocImportKind::Constant ? $isConstantImport : !$isNonClassImport;
+        if (!$selected) {
             return [];
         }
+        $statement = $kind === PhpDocImportKind::Constant
+            ? preg_replace('/\A\s*const\s+/i', replacement: '', subject: $statement) ?? ''
+            : $statement;
 
         $group = explode('{', $statement);
         $prefix = '';
@@ -48,7 +54,7 @@ final class PhpDocImportStatement
             $name = ltrim($prefix . $matches[1], characters: '\\');
             $parts = explode('\\', $name);
             $alias = $matches[2] ?? array_pop($parts);
-            $imports[strtolower($alias)] = $name;
+            $imports[$kind === PhpDocImportKind::Constant ? $alias : strtolower($alias)] = $name;
         }
 
         return $imports;

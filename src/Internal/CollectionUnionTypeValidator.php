@@ -58,7 +58,8 @@ final class CollectionUnionTypeValidator
             return $nonEncodableError;
         }
         return (
-            (count($classes) < 2 ? null : ClassUnionValidator::validateNames($class, $path, $classes))
+            PhpDocLiteralUnionValidator::validate($class, $path, $names)
+            ?? (count($classes) < 2 ? null : ClassUnionValidator::validateNames($class, $path, $classes))
             ?? ($hasEnum ? EnumUnionValidator::validateNames($class, $path, $names) : null)
             ?? CollectionUnionShapeValidator::validate($class, $path, $type)
         );

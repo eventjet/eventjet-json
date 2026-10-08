@@ -22,8 +22,10 @@ final class ClassTypeDependencies
     ): iterable {
         foreach (self::names($field, $resolved) as $name) {
             $isNonEncodable = FieldTypeValidator::isNonEncodable($name);
+            $literal = PhpDocLiteral::value($name);
             if (
                 in_array($name, ['bool', 'float', 'int', 'string', 'true', 'false', 'null'], strict: true)
+                || $literal !== null
                 || $isNonEncodable
                 || enum_exists($name)
             ) {

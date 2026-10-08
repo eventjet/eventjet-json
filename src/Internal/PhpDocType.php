@@ -20,6 +20,12 @@ final readonly class PhpDocType
         public array $entries = [],
     ) {}
 
+    /** @param non-empty-list<self> $types */
+    public static function compound(string $operator, array $types): self
+    {
+        return count($types) === 1 ? $types[0] : new self($operator, $types);
+    }
+
     /** @return array{self, self}|null */
     public function argumentPair(): array|null
     {

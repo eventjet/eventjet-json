@@ -20,15 +20,18 @@ final class FieldCollectionUnionMemberResolver
 {
     /**
      * @param class-string $class
-     * @return string|NestedCollectionType|DecodeError
+     * @return string|NestedCollectionType|CollectionUnionType|DecodeError
      * @throws ReflectionException
      */
     public static function resolve(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         PhpDocType $type,
-    ): string|NestedCollectionType|DecodeError {
+    ): string|NestedCollectionType|CollectionUnionType|DecodeError {
         $resolved = PhpDocItemTypeResolver::resolve($field, $type);
+        if ($resolved instanceof CollectionUnionType) {
+            return CollectionUnionTypeValidator::validate($class, $field->getName(), $resolved) ?? $resolved;
+        }
         if ($resolved instanceof NestedCollectionType) {
             $collection = $resolved->collection;
             $error = CollectionTypeValidator::validate($class, $field->getName(), $collection);
