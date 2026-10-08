@@ -25,7 +25,7 @@ final class MappedObjectSerializer
         $class = $object::class;
         $names = self::$names[$class] ?? null;
         if ($names === null) {
-            $names = FieldNames::resolve(new ReflectionClass($object));
+            $names = RootTypeValidator::fieldNames(new ReflectionClass($object));
             if ($names instanceof DecodeError) {
                 throw $names;
             }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use JsonSerializable;
 use ReflectionClass;
 use ReflectionEnum;
 
@@ -14,6 +15,32 @@ use function sprintf;
 /** @internal */
 final class RootTypeValidator
 {
+    /** @var array<class-string, array<string, string>> */
+    private static array $names = [];
+
+    /**
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @return array<string, string>|DecodeError
+     * @phpstan-impure
+     */
+    public static function fieldNames(ReflectionClass $class): array|DecodeError
+    {
+        $className = $class->getName();
+        $cached = self::$names[$className] ?? null;
+        if ($cached !== null) {
+            return $cached;
+        }
+        $properties = PublicProperties::mappedFields($class);
+        if ($properties === []) {
+            return $class->implementsInterface(JsonSerializable::class)
+                ? DecodeError::jsonSerializableTarget($className)
+                : (self::$names[$className] = []);
+        }
+        $names = FieldNames::resolve($class, $properties);
+        return $names instanceof DecodeError ? $names : (self::$names[$className] = $names);
+    }
+
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
@@ -36,7 +63,7 @@ final class RootTypeValidator
             );
         }
 
-        $names = FieldNames::resolve($class);
+        $names = self::fieldNames($class);
         if ($names instanceof DecodeError) {
             return $names;
         }

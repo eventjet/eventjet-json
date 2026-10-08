@@ -16,6 +16,8 @@ use function sprintf;
 /** @internal */
 final readonly class ConstructorParameter
 {
+    /** @var class-string */
+    public string $class;
     public string $name;
     public ReflectionType|null $type;
     public string $typeName;
@@ -32,6 +34,7 @@ final readonly class ConstructorParameter
         public ReflectionParameter $reflection,
         ReflectionClass $class,
     ) {
+        $this->class = $class->getName();
         $this->name = $reflection->getName();
         $this->type = $reflection->getType();
         $this->typeName = $this->type instanceof ReflectionNamedType
@@ -41,6 +44,13 @@ final readonly class ConstructorParameter
         $this->variadic = $reflection->isVariadic();
         $property = $class->hasProperty($this->name) ? $class->getProperty($this->name) : null;
         $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
+    }
+
+    /** @throws ReflectionException */
+    public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
+    {
+        $collection = $resolved === false ? null : $resolved;
+        return $this->builtin && $collection === null ? null : new FieldValueConverter($this->reflection, $collection);
     }
 
     /**

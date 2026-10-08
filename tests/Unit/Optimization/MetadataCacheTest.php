@@ -16,7 +16,6 @@ use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\ConstructorPlanBuilder;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\EnumUnionValidator;
@@ -87,6 +86,7 @@ use function class_alias;
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
 #[CoversClass(EnumFieldTypes::class)]
+#[UsesClass(\Eventjet\Json\Internal\EnumUnionLookup::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(CollectionTypeResolver::class)]
 #[UsesClass(CollectionTypeValidator::class)]
@@ -104,9 +104,8 @@ use function class_alias;
 #[UsesClass(ClassUnionValidator::class)]
 #[UsesClass(EnumUnionValidator::class)]
 #[UsesClass(FieldCollectionUnionResolver::class)]
-#[UsesClass(FieldNames::class)]
-#[CoversClass(ConstructorPlanBuilder::class)]
 #[UsesClass(FieldNameCollisions::class)]
+#[UsesClass(FieldNames::class)]
 final class MetadataCacheTest extends TestCase
 {
     /**

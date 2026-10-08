@@ -17,34 +17,23 @@ use function sprintf;
 /** @internal */
 final class FieldNames
 {
-    /** @var array<class-string, array<string, string>> */
-    private static array $names = [];
-
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
+     * @param list<ReflectionProperty> $properties
      * @return array<string, string>|DecodeError
      * @phpstan-impure
      */
-    public static function resolve(ReflectionClass $class): array|DecodeError
+    public static function resolve(ReflectionClass $class, array $properties): array|DecodeError
     {
         $className = $class->getName();
-        $cached = self::$names[$className] ?? null;
-        if ($cached !== null) {
-            return $cached;
-        }
         try {
-            $names = self::discover($class);
+            $names = self::discover($class, $properties);
         } catch (Throwable $error) {
             return DecodeError::cannotInstantiate($className, $error);
         }
         if ($names instanceof DecodeError) {
             return $names;
-        }
-        if ($names === []) {
-            return $class->implementsInterface(JsonSerializable::class)
-                ? DecodeError::jsonSerializableTarget($className)
-                : (self::$names[$className] = []);
         }
         if (!$class->implementsInterface(JsonSerializable::class)) {
             return DecodeError::nonInstantiableTarget(
@@ -53,22 +42,20 @@ final class FieldNames
             );
         }
         $collision = FieldNameCollisions::validate($class, $names);
-        return $collision ?? (self::$names[$className] = $names);
+        return $collision ?? $names;
     }
 
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
+     * @param list<ReflectionProperty> $properties
      * @return array<string, string>|DecodeError
      */
-    private static function discover(ReflectionClass $class): array|DecodeError
+    private static function discover(ReflectionClass $class, array $properties): array|DecodeError
     {
         $names = [];
-        foreach (self::properties($class) as $property) {
+        foreach ($properties as $property) {
             $attributes = $property->getAttributes(Field::class);
-            if ($attributes === []) {
-                continue;
-            }
             $name = $property->getName();
             if (($property->getModifiers() & ReflectionProperty::IS_PUBLIC) === 0 || $property->isStatic()) {
                 return DecodeError::nonInstantiableTarget($class->getName(), sprintf(
@@ -85,21 +72,5 @@ final class FieldNames
             $names[$name] = $attributes[0]->newInstance()->name;
         }
         return $names;
-    }
-
-    /**
-     * @template T of object
-     * @param ReflectionClass<T> $class
-     * @return iterable<ReflectionProperty>
-     */
-    private static function properties(ReflectionClass $class): iterable
-    {
-        yield from $class->getProperties();
-        // Reflection omits private ancestor properties from the effective child declarations.
-        $parent = $class->getParentClass();
-        while ($parent !== false) {
-            yield from $parent->getProperties(ReflectionProperty::IS_PRIVATE);
-            $parent = $parent->getParentClass();
-        }
     }
 }

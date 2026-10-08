@@ -44,6 +44,27 @@ final readonly class ConstructorValueValidator
         return new self($type, $expected);
     }
 
+    /**
+     * @param array<array-key, self> $fields
+     * @param array<array-key, mixed> $values
+     */
+    public static function addParameter(
+        array &$fields,
+        ConstructorParameter $parameter,
+        array $values,
+        string $name,
+        string $path,
+    ): DecodeError|null {
+        $field = self::forParameter($parameter, $values, $name);
+        if ($field === null) {
+            return null;
+        }
+        $fields[$name] = $field;
+        return array_key_exists($name, $values)
+            ? $field->validate($parameter->class, $name, $values[$name], $path)
+            : null;
+    }
+
     /** @param class-string $class */
     public function validate(string $class, string $name, mixed $value, string $path): DecodeError|null
     {

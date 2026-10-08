@@ -72,6 +72,30 @@ mismatches, unsupported declarations, and construction failures. Conversion
 errors include paths such as `people[1].name`; `getPrevious()` retains an
 underlying constructor exception when one exists.
 
+## Validate your classes in unit tests
+
+Call `Json::validateType()` to check a class and the classes nested within it
+without JSON input or object construction:
+
+```php
+public function testJsonDeclarations(): void
+{
+    $error = Json::validateType(Person::class);
+    self::assertNull($error, $error?->getMessage() ?? '');
+}
+```
+
+The result is `null` for supported declarations or the first `DecodeError`.
+Validation follows constructor parameters, public properties, unions, and
+PHPDoc collection items, including nested lists, maps, and tuples. It checks
+optional and nullable fields even when no values are supplied and safely
+handles recursive class declarations. You can also pass a root collection
+descriptor, such as `JsonType::array(Person::class)`.
+
+This checks the decoder's declaration rules. It does not run constructors,
+validate particular values, or prove that custom constructor behavior preserves
+values. Keep round-trip tests for those behaviors.
+
 ## Nested objects and collections
 
 Declare nested objects with their final class type and collection items with

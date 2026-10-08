@@ -11,9 +11,9 @@ use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\ConstructorPlanBuilder;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
+use Eventjet\Json\Internal\EnumUnionLookup;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
@@ -24,28 +24,26 @@ use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\MappedConstructorPlan;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\MetadataCache;
+use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionNameSource;
-use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
-use Eventjet\Json\Test\Acceptance\Fixtures\MappedReference;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
-use Eventjet\Json\Test\Unit\Fixtures\PropertyCountingReflection;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Exception;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\UnknownClassOrInterfaceException;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionProperty;
 use RuntimeException;
+use stdClass;
 
 use function class_alias;
 
@@ -55,6 +53,7 @@ use function class_alias;
 #[CoversClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(EnumFieldTypes::class)]
+#[CoversClass(EnumUnionLookup::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
@@ -65,15 +64,86 @@ use function class_alias;
 #[UsesClass(MetadataCache::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
-#[CoversClass(FieldNames::class)]
 #[CoversClass(MappedObjectSerializer::class)]
-#[CoversClass(ConstructorPlanBuilder::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(PublicProperties::class)]
 #[CoversClass(MappedConstructorPlan::class)]
 #[CoversClass(FieldNameCollisions::class)]
+#[CoversClass(ObjectHydrator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PublicPropertyHydrator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PublicPropertyTypeValidator::class)]
+#[CoversClass(FieldNames::class)]
 final class ConstructorValidationPlanTest extends TestCase
 {
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     * @throws UnknownClassOrInterfaceException
+     */
+    public function testScalarHydrationReusesPlansButRechecksValuesAndDefaults(): void
+    {
+        $target = new class {
+            public function __construct(
+                public int $value = 1,
+            ) {}
+        };
+        $class = $target::class;
+        static::assertNull(ConstructorDecoder::scalarPlan($class));
+        $input = new stdClass();
+        $input->value = 2;
+        $target->value = 2;
+        $first = ObjectHydrator::hydrate($class, $input);
+        static::assertEquals($target, $first);
+        $plan = ConstructorDecoder::scalarPlan($class);
+        static::assertInstanceOf(ConstructorPlan::class, $plan);
+        static::assertTrue($plan->scalarOnly);
+        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
+        static::assertIsArray($cache->getValue());
+        static::assertSame($plan, $cache->getValue()[$class] ?? null);
+        $input->value = 3;
+        $target->value = 3;
+        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
+        $target->value = 1;
+        static::assertEquals($target, ObjectHydrator::hydrate($class, new stdClass()));
+        $input->value = null;
+        static::assertEquals(
+            DecodeError::fieldTypeMismatch($class, 'nested.value', 'int', null),
+            ObjectHydrator::hydrate($class, $input, 'nested'),
+        );
+        static::assertSame($plan, ConstructorDecoder::scalarPlan($class));
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     */
+    public function testPublicPropertiesKeepTheirValidationAfterWarming(): void
+    {
+        $target = new class {
+            public string $label = '';
+
+            public function __construct(
+                public int $value = 1,
+            ) {}
+        };
+        $class = $target::class;
+        $input = new stdClass();
+        $input->label = 'first';
+        $target->label = 'first';
+        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
+        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
+        static::assertIsArray($cache->getValue());
+        static::assertInstanceOf(ReflectionClass::class, $cache->getValue()[$class] ?? null);
+        $target->label = 'second';
+        $input->label = 'second';
+        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
+        $input->label = false;
+        static::assertEquals(
+            DecodeError::fieldTypeMismatch($class, 'nested.label', 'string', false),
+            ObjectHydrator::hydrate($class, $input, 'nested'),
+        );
+    }
+
     /**
      * @throws ReflectionException
      * @throws JsonException
@@ -203,28 +273,15 @@ final class ConstructorValidationPlanTest extends TestCase
             );
             static::assertSame(['ref' => null], ConstructorDecoder::convert($class, ['$ref' => null], ''));
             static::assertSame([], ConstructorDecoder::convert($class, ['ref' => 'ignored'], ''));
+            static::assertNull(ConstructorDecoder::scalarPlan($class->getName()));
+            static::assertEquals(
+                new MappedDefaults(ref: 'next', count: 9),
+                ObjectHydrator::hydrate(MappedDefaults::class, (object) ['$ref' => 'next', 'count' => 9]),
+            );
             static::assertEquals(
                 DecodeError::fieldTypeMismatch($class->getName(), 'nested.$ref', 'string|null', 42),
                 ConstructorDecoder::convert($class, ['$ref' => 42], 'nested'),
             );
-        }
-    }
-
-    /**
-     * @throws ReflectionException
-     */
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function testFieldNameLookupsReuseMetadataIncludingUnannotatedClasses(): void
-    {
-        foreach ([
-            [MappedReference::class, ['ref' => '$ref']],
-            [EmptyObject::class, []],
-        ] as [$name, $expected]) {
-            $class = new PropertyCountingReflection($name);
-            static::assertSame($expected, FieldNames::resolve($class));
-            static::assertSame($expected, FieldNames::resolve($class));
-            static::assertSame(1, $class->propertyLookups);
         }
     }
 
@@ -336,7 +393,7 @@ final class ConstructorValidationPlanTest extends TestCase
         );
         $reflection = new ReflectionClass($class);
         for ($attempt = 0; $attempt < 2; ++$attempt) {
-            static::assertSame(['value' => 'wire', 'other' => 'inherited'], FieldNames::resolve($reflection));
+            static::assertSame(['value' => 'wire', 'other' => 'inherited'], RootTypeValidator::fieldNames($reflection));
             static::assertEquals(
                 (object) ['wire' => 'child', 'inherited' => 'kept', 'old' => 'ordinary'],
                 MappedObjectSerializer::serialize($reflection->newInstance()),

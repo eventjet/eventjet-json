@@ -355,6 +355,13 @@ is made for startup or per-request metadata construction. Earlier exploratory
 runs varied substantially; the tables describe the final optimized
 implementation, not a pass obtained by retrying the CI regression gate.
 
+The subsequent CI fix keeps constructor-plan construction in the decoder and
+scans for mapped properties through the existing property metadata class.
+Detailed mapping validation is loaded only when an annotated property is found.
+This avoids two additional class loads for ordinary cold decodes while retaining
+validation of invalid and inherited attributes. The tables above predate that
+change; use the CI comparison for its effect across the full workload suite.
+
 For a reproducible revision comparison, use the existing comparison runner with
 this change's commit as candidate and workload revision, and the baseline commit
 above. It measures the ordinary workloads on both revisions, including FPM when

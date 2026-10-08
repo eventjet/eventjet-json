@@ -89,7 +89,7 @@ jobs:
           if [ "$CALIBRATE" = true ]; then BASE_REF="$CANDIDATE_REF"; fi
           FPM=off
           if [ "$SHARD" = 1 ]; then FPM=on; fi
-          php .github/ci/performance.php --base "$BASE_REF" --candidate "$CANDIDATE_REF" --opcache "$OPCACHE_MODE" --workloads "$WORKLOADS_REF" --fpm "$FPM" --shard "$SHARD"
+          taskset --cpu-list 0 php .github/ci/performance.php --base "$BASE_REF" --candidate "$CANDIDATE_REF" --opcache "$OPCACHE_MODE" --workloads "$WORKLOADS_REF" --fpm "$FPM" --shard "$SHARD"
       - name: Save measurements and environment
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
