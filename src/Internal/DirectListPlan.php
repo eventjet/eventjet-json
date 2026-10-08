@@ -24,28 +24,10 @@ final readonly class DirectListPlan
         $record = preg_replace('~\((?!\?)~', replacement: '(?:', subject: $item->fragment);
         assert($record !== null, description: 'The fixed capture-removal expression is valid.');
         $records = $record . '(?:' . DirectJsonParser::WS . ',' . DirectJsonParser::WS . $record . ')*+';
-        $this->pattern =
-            '~\\A'
-            . DirectJsonParser::WS
-            . '\\{'
-            . DirectJsonParser::WS
-            . preg_quote(json_encode($field, JSON_THROW_ON_ERROR), delimiter: '~')
-            . DirectJsonParser::WS
-            . ':'
-            . DirectJsonParser::WS
-            . '\\['
-            . DirectJsonParser::WS
-            . '(?<records>(?:'
-            . $records
-            . ')'
-            . ($nonEmpty ? '' : '?')
-            . ')'
-            . DirectJsonParser::WS
-            . '\\]'
-            . DirectJsonParser::WS
-            . '\\}'
-            . DirectJsonParser::WS
-            . '\\z~';
+        $ws = DirectJsonParser::WS;
+        $key = preg_quote(json_encode($field, JSON_THROW_ON_ERROR), delimiter: '~');
+        $optional = $nonEmpty ? '' : '?';
+        $this->pattern = "~\\A{$ws}\\{{$ws}{$key}{$ws}:{$ws}\\[{$ws}(?<records>(?:{$records}){$optional}){$ws}\\]{$ws}\\}{$ws}\\z~";
     }
 
     public function decode(string $json): object|false

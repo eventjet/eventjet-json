@@ -1,10 +1,11 @@
 # Direct JSON decoding prototype
 
 These experiments investigated whether removing the intermediate `stdClass` tree
-improves end-to-end runtime or peak allocation. The selected second-pass paths now
-back `Json::decode()`; the public API is unchanged. The historical variants remain
-here for comparison. `production` calls the public decoder directly, and `native`
-calls the previous implementation retained internally as a compatibility fallback.
+improves end-to-end runtime or peak allocation. The public decoder uses direct
+parsing for scalar records and single-field lists of scalar records. The broader
+experimental variants remain here for comparison. `production` calls the public
+decoder directly, and `native`
+calls the independent native reference retained in this experiment directory.
 See the [integration results](RESULTS-PRODUCTION.md) for the current comparison.
 It uses PHP and the bundled JSON/PCRE facilities; no FFI or native add-on is required.
 
@@ -12,16 +13,19 @@ Install the project's Composer dependencies, then run:
 
 ```sh
 php experiments/direct-json/verify.php
+php experiments/direct-json/verify.php production
 php experiments/direct-json/bench.php 5 native,production
 php experiments/direct-json/paired.php 15 native,production
 php experiments/direct-json/bench.php 5 native,window-8192,extreme
 php experiments/direct-json/paired.php 15 native,window-8192,extreme
 ```
 
-The first command checks the existing acceptance providers, real documents,
+The verification commands check the existing acceptance providers, real documents,
 seeded generated inputs, syntax mutations, numeric and Unicode boundaries,
 constructor side effects, invalid property names, and nesting boundaries.
 It exits nonzero on a difference. It does not modify PHPUnit's acceptance API.
+The `production` argument checks only the current public implementation; the
+historical prototypes do not implement later API additions such as field mapping.
 
 The second command emits JSON to stdout and a progress summary to stderr.
 Every sample uses a fresh subprocess; modes are shuffled deterministically
@@ -48,7 +52,7 @@ No PHP, Composer or tool configuration is added to the repository by this experi
 
 | Mode | Experiment |
 | --- | --- |
-| `native` | Unmodified `Json::decode()`. |
+| `native` | Independent native decoder using the current hydration implementation. |
 | `pure` | Custom scalar, string/Unicode and collection parsing after native syntax validation. |
 | `hybrid` | Decode escaped string tokens and scalar collection subtrees natively; construct class graphs directly. |
 | `native-strings` | Also decode unescaped string tokens natively. |

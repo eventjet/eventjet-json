@@ -2,7 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Eventjet\Json\Internal;
+namespace Eventjet\Json\Benchmark\Prototype;
+use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\ObjectHydrator;
+use Eventjet\Json\Internal\NestedCollectionType;
+use Eventjet\Json\Internal\MapType;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\JsonType;

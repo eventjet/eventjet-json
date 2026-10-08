@@ -5,7 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/bootstrap.php';
 
 use Eventjet\Json\Benchmark\Prototype\DirectParser;
-use Eventjet\Json\Internal\NativeJsonDecoder as Json;
+use Eventjet\Json\Benchmark\Prototype\NativeJsonDecoder as Json;
 
 use function Eventjet\Json\Benchmark\Prototype\workload;
 

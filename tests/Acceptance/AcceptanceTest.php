@@ -113,7 +113,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(\Eventjet\Json\Internal\DirectJsonParser::class)]
 #[CoversClass(\Eventjet\Json\Internal\DirectListPlan::class)]
 #[CoversClass(\Eventjet\Json\Internal\DirectScalarPlan::class)]
-#[CoversClass(\Eventjet\Json\Internal\NativeJsonDecoder::class)]
 #[CoversClass(JsonType::class)]
 #[CoversClass(ArrayJsonType::class)]
 #[CoversClass(ClassJsonType::class)]

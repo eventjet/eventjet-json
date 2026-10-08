@@ -17,7 +17,7 @@ use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\MapType;
-use Eventjet\Json\Internal\NativeJsonDecoder as Json;
+use Eventjet\Json\Benchmark\Prototype\NativeJsonDecoder as Json;
 use Eventjet\Json\Internal\NestedCollectionType;
 use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\PublicProperties;

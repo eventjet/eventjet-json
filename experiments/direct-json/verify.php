@@ -8,13 +8,13 @@ use Eventjet\Json\Benchmark\Fixtures\Record;
 use Eventjet\Json\Benchmark\Fixtures\RecordBatch;
 use Eventjet\Json\Benchmark\Prototype\DirectParser;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\NativeJsonDecoder as Json;
+use Eventjet\Json\Benchmark\Prototype\NativeJsonDecoder as Json;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Cases;
 
 $count = 0;
 $failures = [];
-$modes = [
+$modes = isset($argv[1]) ? explode(',', $argv[1]) : [
     'production',
     'graph',
     'graph-compact',
@@ -495,7 +495,7 @@ foreach ([
     $productionCompiler->setValue(null, []);
     try {
         foreach ($resourceFixtures as $scenario => [$json, $type, $expected]) {
-            foreach (['production', 'extreme', 'graph-flex-inline-direct-bulk', 'columns-8192'] as $mode) {
+            foreach (array_intersect($modes, ['production', 'extreme', 'graph-flex-inline-direct-bulk', 'columns-8192']) as $mode) {
                 $actual = DirectParser::decode($json, $type, $mode);
                 ++$count;
                 if (

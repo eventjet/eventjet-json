@@ -9,11 +9,23 @@ use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\DirectJsonParser;
 use Eventjet\Json\Internal\DirectListPlan;
 use Eventjet\Json\Internal\DirectScalarPlan;
-use Eventjet\Json\Internal\NativeJsonDecoder;
+use Eventjet\Json\Internal\MapType;
+use Eventjet\Json\Internal\NestedCollectionType;
+use Eventjet\Json\Internal\ObjectHydrator;
+use Eventjet\Json\Internal\RootTypeValidator;
+use ReflectionClass;
+use stdClass;
 use Throwable;
 
+use function is_array;
 use function is_string;
+use function json_decode;
+use function json_last_error;
+use function json_last_error_msg;
 
+use const JSON_ERROR_NONE;
+
+/** @mago-expect lint:cyclomatic-complexity The public API validates root shapes and dispatches cached direct plans. */
 final class Json
 {
     /** @var array<class-string, DirectScalarPlan|DirectListPlan|false|null> */
@@ -45,28 +57,20 @@ final class Json
      * @phpstan-param (T is object ? class-string<T> : never)|JsonType<T> $class
      * @psalm-param class-string<T&object>|JsonType<T> $class
      * @return T|DecodeError
-     * @mago-expect lint:halstead Cache transitions preserve cold-request cost and syntax-before-autoload ordering.
      */
     public static function decode(string $json, string|JsonType $class): mixed
     {
-        try {
-            if (is_string($class) && array_key_exists($class, self::$directPlans)) {
-                /**
-                 * @psalm-suppress UnnecessaryVarAnnotation Mago needs the conditional generic's object constraint.
-                 * @var class-string<T&object> $target The string branch selects a class target.
-                 */
-                $target = $class;
-                $plan = self::$directPlans[$class];
-                if ($plan === null) {
-                    // Syntax errors must precede declaration resolution and autoloading.
-                    if (!json_validate($json)) {
-                        return NativeJsonDecoder::decode($json, $target);
-                    }
-                    /** @mago-expect analysis:less-specific-nested-argument-type The public string branch supplies an object class. */
+        $warm = is_string($class) && array_key_exists($class, self::$directPlans);
+        if ($warm) {
+            $target = $class;
+            try {
+                $plan = self::$directPlans[$target] ?? null;
+                // Syntax errors must precede declaration resolution and autoloading.
+                if ($plan === null && json_validate($json)) {
                     $plan = DirectJsonParser::compile($target);
-                    self::$directPlans[$class] = $plan;
+                    self::$directPlans[$target] = $plan;
                 }
-                if ($plan !== false) {
+                if ($plan !== null && $plan !== false) {
                     $direct = $plan->decode($json);
                     if ($direct !== false) {
                         /**
@@ -77,17 +81,67 @@ final class Json
                         return $value;
                     }
                 }
-                return NativeJsonDecoder::decode($json, $target);
+            } catch (Throwable $error) {
+                return DecodeError::cannotInstantiate($target, $error);
             }
-            $value = NativeJsonDecoder::decode($json, $class);
-            if (is_string($class) && !$value instanceof DecodeError) {
-                // Compile only after a successful first decode; cold requests need no second schema.
-                self::$directPlans[$class] = null;
-            }
-            return $value;
-        } catch (Throwable $error) {
-            /** @mago-expect analysis:less-specific-nested-argument-type Both branches supply the declared class-string target. */
-            return DecodeError::cannotInstantiate(is_string($class) ? $class : $class->itemClass(), $error);
         }
+        /** @var mixed $values */
+        $values = json_decode($json);
+        if ($values === null && json_last_error() !== JSON_ERROR_NONE) {
+            return DecodeError::invalidJson(json_last_error_msg());
+        }
+        if (!is_string($class)) {
+            return self::decodeCollection($class, $values);
+        }
+        if (!$values instanceof stdClass) {
+            return DecodeError::unexpectedRootValue($values);
+        }
+        $value = ObjectHydrator::hydrate($class, $values);
+        if (!$warm && !$value instanceof DecodeError) {
+            // Compile only after a successful first decode; cold requests need no second schema.
+            self::$directPlans[$class] = null;
+        }
+        return $value;
+    }
+
+    /**
+     * @template T
+     * @param JsonType<T> $type
+     * @return T|DecodeError
+     */
+    private static function decodeCollection(JsonType $type, mixed $values): mixed
+    {
+        $rootType = self::rootType($type);
+        $matchesRoot = match ($rootType) {
+            'object' => $values instanceof stdClass,
+            'array' => is_array($values),
+        };
+        if (!$matchesRoot) {
+            return DecodeError::unexpectedRootValue($values, $rootType);
+        }
+        $class = $type->itemClass();
+        try {
+            $error = ClassFieldTypeValidator::validate($class, '[]', $class) ?? RootTypeValidator::validate(
+                new ReflectionClass($class),
+            );
+            if ($error !== null) {
+                return $error;
+            }
+            return $type->decodeValue($values);
+        } catch (Throwable $error) {
+            return DecodeError::cannotInstantiate($class, $error);
+        }
+    }
+
+    /**
+     * @param JsonType<mixed> $type
+     * @return 'object'|'array'
+     */
+    private static function rootType(JsonType $type): string
+    {
+        $collection = $type->collectionItem();
+        return $collection instanceof NestedCollectionType && $collection->collection instanceof MapType
+            ? 'object'
+            : 'array';
     }
 }

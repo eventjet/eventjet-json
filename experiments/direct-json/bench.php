@@ -11,7 +11,7 @@ use Eventjet\Json\Benchmark\Fixtures\RecordBatch;
 use Eventjet\Json\Benchmark\Prototype\DeepNode;
 use Eventjet\Json\Benchmark\Prototype\DirectParser;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\NativeJsonDecoder as Json;
+use Eventjet\Json\Benchmark\Prototype\NativeJsonDecoder as Json;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 

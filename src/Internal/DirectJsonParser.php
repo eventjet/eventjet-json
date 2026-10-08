@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use JsonSerializable;
 use ReflectionClass;
 use ReflectionNamedType;
 
@@ -28,7 +29,11 @@ final class DirectJsonParser
         if ($first !== null && count($parameters) === 1 && (string) $first->getType() === 'array') {
             $rootError = RootTypeValidator::validate($reflection);
             $properties = PublicProperties::resolve($reflection);
-            if ($rootError !== null || $properties !== []) {
+            if (
+                $rootError !== null
+                || $reflection->implementsInterface(JsonSerializable::class)
+                || $properties !== []
+            ) {
                 return false;
             }
             $parameter = new ConstructorParameter($first, $reflection);
@@ -55,7 +60,7 @@ final class DirectJsonParser
         $reflection = new ReflectionClass($class);
         $rootError = RootTypeValidator::validate($reflection);
         $properties = PublicProperties::resolve($reflection);
-        if ($rootError !== null || $properties !== []) {
+        if ($rootError !== null || $reflection->implementsInterface(JsonSerializable::class) || $properties !== []) {
             return false;
         }
         $parameters = $reflection->getConstructor()?->getParameters() ?? [];
