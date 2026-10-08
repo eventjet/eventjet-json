@@ -16,6 +16,16 @@ final class ConstructorDecoder
     private static array $plans = [];
 
     /**
+     * @param class-string $class
+     * @phpstan-impure
+     */
+    public static function scalarPlan(string $class): ConstructorPlan|null
+    {
+        $plan = self::$plans[$class] ?? null;
+        return $plan instanceof ConstructorPlan && $plan->scalarOnly ? $plan : null;
+    }
+
+    /**
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values
@@ -29,8 +39,7 @@ final class ConstructorDecoder
         $className = $class->getName();
         $plan = self::$plans[$className] ?? null;
         if ($plan !== null) {
-            $error = $plan->validate($values, $path);
-            return $error ?? $plan->convert($values, $path);
+            return $plan->decode($values, $path);
         }
 
         $plan = ConstructorPlanBuilder::build($class, $values, $path);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json;
 
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\MapType;
 use Eventjet\Json\Internal\NestedCollectionType;
 use Eventjet\Json\Internal\ObjectHydrator;
@@ -23,6 +24,26 @@ use const JSON_ERROR_NONE;
 
 final class Json
 {
+    /**
+     * Check declarations, including nested classes, without constructing objects.
+     *
+     * @param class-string|JsonType<mixed> $type
+     */
+    public static function validateType(string|JsonType $type): DecodeError|null
+    {
+        $class = is_string($type) ? $type : $type->itemClass();
+        try {
+            if (is_string($type)) {
+                return new ClassGraphValidator()->validateRoot($class);
+            }
+            return (
+                ClassFieldTypeValidator::validate($class, '[]', $class) ?? new ClassGraphValidator()->validate($class)
+            );
+        } catch (Throwable $error) {
+            return DecodeError::cannotInstantiate($class, $error);
+        }
+    }
+
     /**
      * @template T
      * @param string $json

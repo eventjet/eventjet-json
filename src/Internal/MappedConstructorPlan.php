@@ -21,6 +21,18 @@ final readonly class MappedConstructorPlan
         $this->cacheable = $plan->cacheable;
     }
 
+    /**
+     * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
+     * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
+     * @throws JsonException
+     * @throws ReflectionException
+     */
+    public function decode(array $values, string $path): array|DecodeError
+    {
+        $error = $this->validate($values, $path);
+        return $error ?? $this->convert($values, $path);
+    }
+
     /** @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values */
     public function validate(array $values, string $path): DecodeError|null
     {

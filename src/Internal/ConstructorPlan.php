@@ -9,6 +9,8 @@ use JsonException;
 use ReflectionException;
 use stdClass;
 
+use function array_all;
+use function array_intersect_key;
 use function array_key_exists;
 use function is_array;
 use function is_bool;
@@ -19,6 +21,8 @@ use function is_string;
 /** @internal */
 final readonly class ConstructorPlan
 {
+    public bool $scalarOnly;
+
     /**
      * @param class-string $class
      * @param array<array-key, ConstructorValueValidator> $fields
@@ -29,11 +33,29 @@ final readonly class ConstructorPlan
         private array $fields,
         private array $converters,
         public bool $cacheable,
-    ) {}
+    ) {
+        $this->scalarOnly = array_all(
+            $converters,
+            static fn(FieldValueConverter|null $converter): bool => $converter === null,
+        );
+    }
 
     /**
      * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
+     * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
+     * @throws JsonException
+     * @throws ReflectionException
      */
+    public function decode(array $values, string $path): array|DecodeError
+    {
+        $error = $this->validate($values, $path);
+        if ($error !== null) {
+            return $error;
+        }
+        return $this->scalarOnly ? array_intersect_key($values, $this->fields) : $this->convert($values, $path);
+    }
+
+    /** @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values */
     public function validate(array $values, string $path): DecodeError|null
     {
         foreach ($this->fields as $name => $field) {

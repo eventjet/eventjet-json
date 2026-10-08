@@ -85,21 +85,34 @@ final class BackedEnumValueConverter
         }
 
         if ($matchingBackingEnums !== []) {
-            sort($matchingBackingEnums);
-
-            if (count($matchingBackingEnums) === 1) {
-                return self::unknownValue($class, $field, $matchingBackingEnums[0], $value);
-            }
-
-            return DecodeError::nonInstantiableField(
-                $class,
-                $field,
-                'backed enum union',
-                implode('|', $matchingBackingEnums),
-                sprintf(', which has no case with backing value %s.', var_export($value, return: true)),
-            );
+            return self::unknownUnionValue($class, $field, $matchingBackingEnums, $value);
         }
         return null;
+    }
+
+    /**
+     * @param class-string $class
+     * @param non-empty-list<enum-string> $matchingBackingEnums
+     */
+    public static function unknownUnionValue(
+        string $class,
+        string $field,
+        array $matchingBackingEnums,
+        mixed $value,
+    ): DecodeError {
+        sort($matchingBackingEnums);
+
+        if (count($matchingBackingEnums) === 1) {
+            return self::unknownValue($class, $field, $matchingBackingEnums[0], $value);
+        }
+
+        return DecodeError::nonInstantiableField(
+            $class,
+            $field,
+            'backed enum union',
+            implode('|', $matchingBackingEnums),
+            sprintf(', which has no case with backing value %s.', var_export($value, return: true)),
+        );
     }
 
     /**

@@ -14,7 +14,7 @@ use function get_object_vars;
 /** @internal */
 final class ObjectHydrator
 {
-    /** @var array<class-string, ReflectionClass<object>> */
+    /** @var array<class-string, ReflectionClass<object>|ConstructorPlan> */
     private static array $validatedClasses = [];
 
     /**
@@ -25,8 +25,11 @@ final class ObjectHydrator
     public static function hydrate(string $class, stdClass $object, string $path = ''): object
     {
         try {
-            /** @var ReflectionClass<T>|null $reflection */
+            /** @var ReflectionClass<T>|ConstructorPlan|null $reflection */
             $reflection = self::$validatedClasses[$class] ?? null;
+            /** @var array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values */
+            $values = get_object_vars($object);
+            $uncached = $reflection === null;
             if ($reflection === null) {
                 $reflection = new ReflectionClass($class);
                 $targetError = RootTypeValidator::validate($reflection);
@@ -35,19 +38,26 @@ final class ObjectHydrator
                 }
                 self::$validatedClasses[$class] = $reflection;
             }
-            /** @var array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values */
-            $values = get_object_vars($object);
-            $convertedValues = ConstructorDecoder::convert($reflection, $values, $path);
-
+            $convertedValues = $reflection instanceof ConstructorPlan
+                ? $reflection->decode($values, $path)
+                : ConstructorDecoder::convert($reflection, $values, $path);
             if ($convertedValues instanceof DecodeError) {
                 return $convertedValues;
             }
-
-            $assignments = PublicPropertyHydrator::prepare($reflection, $values, $path);
-            if ($assignments instanceof DecodeError) {
-                return $assignments;
+            $assignments = [];
+            if ($reflection instanceof ReflectionClass) {
+                $assignments = PublicPropertyHydrator::prepare($reflection, $values, $path);
+                if ($assignments instanceof DecodeError) {
+                    return $assignments;
+                }
+                if ($uncached) {
+                    $properties = PublicProperties::resolve($reflection);
+                    $plan = ConstructorDecoder::scalarPlan($class);
+                    if ($properties === [] && $plan !== null) {
+                        self::$validatedClasses[$class] = $plan;
+                    }
+                }
             }
-
             /**
              * @mago-expect analysis:unknown-class-instantiation The constructor target is intentionally dynamic.
              * @psalm-suppress MixedMethodCall PHP validates the intentionally dynamic constructor at runtime.

@@ -87,6 +87,7 @@ use function class_alias;
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
 #[CoversClass(EnumFieldTypes::class)]
+#[UsesClass(\Eventjet\Json\Internal\EnumUnionLookup::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(CollectionTypeResolver::class)]
 #[UsesClass(CollectionTypeValidator::class)]

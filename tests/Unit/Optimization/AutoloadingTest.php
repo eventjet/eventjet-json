@@ -64,6 +64,7 @@ use function spl_autoload_unregister;
 #[UsesClass(FieldNames::class)]
 #[UsesClass(ConstructorPlanBuilder::class)]
 #[UsesClass(FieldNameCollisions::class)]
+#[\PHPUnit\Framework\Attributes\UsesClass(\Eventjet\Json\Internal\EnumUnionLookup::class)]
 final class AutoloadingTest extends TestCase
 {
     /** @throws ReflectionException */

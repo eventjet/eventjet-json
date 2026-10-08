@@ -51,6 +51,15 @@ final class ConstructionErrorCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Too few arguments to function Eventjet\Json\Test\Acceptance\Fixtures\Person::__construct(), 0 passed and at least 2 expected',
             3,
         ];
+        yield from self::declarations();
+    }
+
+    /**
+     * @return iterable<string, array{0: string, 1: class-string|JsonType<list<mixed>|object>, 2: string, 3: int}>
+     * @throws \ReflectionException
+     */
+    public static function declarations(): iterable
+    {
         yield 'private constructor cannot be called' => [
             '{}',
             PrivateConstructorTarget::create()::class,

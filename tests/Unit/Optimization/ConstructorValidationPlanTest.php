@@ -14,6 +14,7 @@ use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorPlanBuilder;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
+use Eventjet\Json\Internal\EnumUnionLookup;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
@@ -24,6 +25,7 @@ use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\MappedConstructorPlan;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\MetadataCache;
+use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
@@ -55,6 +57,7 @@ use function class_alias;
 #[CoversClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(EnumFieldTypes::class)]
+#[CoversClass(EnumUnionLookup::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
@@ -72,6 +75,9 @@ use function class_alias;
 #[CoversClass(PublicProperties::class)]
 #[CoversClass(MappedConstructorPlan::class)]
 #[CoversClass(FieldNameCollisions::class)]
+#[CoversClass(ObjectHydrator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PublicPropertyHydrator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PublicPropertyTypeValidator::class)]
 final class ConstructorValidationPlanTest extends TestCase
 {
     /**
