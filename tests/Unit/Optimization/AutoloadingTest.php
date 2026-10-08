@@ -75,7 +75,7 @@ use function spl_autoload_unregister;
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
 #[UsesClass(ConstructorParameter::class)]
-#[UsesClass(FieldTypeNameResolver::class)]
+#[CoversClass(FieldTypeNameResolver::class)]
 #[UsesClass(FieldTypeResolver::class)]
 #[UsesClass(FieldTypeValidator::class)]
 #[UsesClass(MetadataCache::class)]
@@ -102,12 +102,12 @@ use function spl_autoload_unregister;
 #[UsesClass(\Eventjet\Json\Internal\CollectionTypeResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\NestedCollectionTypeResolver::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocItemTypeResolver::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocItemTypeResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocType::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTypeParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTokens::class)]
 #[UsesClass(\Eventjet\Json\Internal\ScalarListValueConverter::class)]
-#[UsesClass(\Eventjet\Json\Internal\ClassTypeDependencies::class)]
+#[CoversClass(\Eventjet\Json\Internal\ClassTypeDependencies::class)]
 final class AutoloadingTest extends TestCase
 {
     /** @throws ReflectionException */
@@ -154,7 +154,7 @@ final class AutoloadingTest extends TestCase
             ));
         }
         $collection = new class([42]) {
-            /** @param list<int> $values */
+            /** @param list<int> $values The name has a native scalar type. */
             public function __construct(
                 public array $values,
                 public string $name = '',

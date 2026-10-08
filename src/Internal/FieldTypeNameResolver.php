@@ -23,11 +23,14 @@ final class FieldTypeNameResolver
         ReflectionParameter|ReflectionProperty $field,
         ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
     ): bool {
+        if ($collection !== null) {
+            return false;
+        }
         $doc = $field instanceof ReflectionParameter
             ? $field->getDeclaringFunction()->getDocComment()
             : $field->getDocComment();
-        $name = $field instanceof ReflectionParameter ? '$' . $field->getName() : '';
-        return $collection === null && $doc !== false && str_contains($doc, $name);
+        $needle = $field instanceof ReflectionParameter ? '$' . $field->getName() : '/**';
+        return str_contains((string) $doc, $needle);
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string

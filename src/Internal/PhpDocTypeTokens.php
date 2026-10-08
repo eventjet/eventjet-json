@@ -51,7 +51,7 @@ final class PhpDocTypeTokens
         $this->whitespace();
         $matches = [];
         $matched = preg_match(
-            pattern: '/\G(?:\x27(?:[^\x27\\\\]|\\\\[\s\S])*\x27|"(?:[^"\\\\]|\\\\[\s\S])*"|[+-]?(?:0[xX][0-9a-fA-F]+(?:_[0-9a-fA-F]+)*|0[bB][01]+(?:_[01]+)*|0[oO][0-7]+(?:_[0-7]+)*|(?:[0-9]+(?:_[0-9]+)*(?:\.[0-9]*(?:_[0-9]+)*)?|\.[0-9]+(?:_[0-9]+)*)(?:[eE][+-]?[0-9]+(?:_[0-9]+)*)?)|\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff-]*(?:\\\\[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)*(?:::[A-Za-z_*\x80-\xff][A-Za-z0-9_*\x80-\xff]*)?)/',
+            pattern: $this->pattern(),
             subject: $this->source,
             matches: $matches,
             flags: 0,
@@ -90,5 +90,19 @@ final class PhpDocTypeTokens
     private function whitespace(): void
     {
         $this->offset += strspn($this->source, characters: " \t\r\n\v\f", offset: $this->offset);
+    }
+
+    /** @return non-empty-string */
+    private function pattern(): string
+    {
+        $first = substr($this->source, offset: $this->offset, length: 1);
+        $number = strspn($this->source, characters: '0123456789.+-', offset: $this->offset, length: 1) === 1;
+        return match (true) {
+            $first === "'" => '/\G\x27(?:[^\x27\\\\]|\\\\[\s\S])*\x27/',
+            $first === '"' => '/\G"(?:[^"\\\\]|\\\\[\s\S])*"/',
+            $number
+                => '/\G[+-]?(?:0[xX][0-9a-fA-F]+(?:_[0-9a-fA-F]+)*|0[bB][01]+(?:_[01]+)*|0[oO][0-7]+(?:_[0-7]+)*|(?:[0-9]+(?:_[0-9]+)*(?:\.[0-9]*(?:_[0-9]+)*)?|\.[0-9]+(?:_[0-9]+)*)(?:[eE][+-]?[0-9]+(?:_[0-9]+)*)?)/',
+            default => '/\G\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff-]*(?:\\\\[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)*(?:::[A-Za-z_*\x80-\xff][A-Za-z0-9_*\x80-\xff]*)?/',
+        };
     }
 }
