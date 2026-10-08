@@ -82,7 +82,10 @@ final readonly class FieldValueConverter
             return $value;
         }
         if (enum_exists($this->typeName)) {
-            return BackedEnumValueConverter::convert($class, $this->field, $value, $path) ?? $value;
+            if ($value === null && $type->allowsNull()) {
+                return null;
+            }
+            return BackedEnumValueConverter::convertValue($class, $path, $this->typeName, $value, $type);
         }
         if (class_exists($this->typeName)) {
             return ConcreteClassValueConverter::convert($class, $this->field, $this->typeName, $value, $path);
