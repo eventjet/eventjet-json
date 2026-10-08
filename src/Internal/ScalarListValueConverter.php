@@ -6,7 +6,6 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 
-use function array_key_exists;
 use function is_bool;
 use function is_int;
 use function is_string;
@@ -38,17 +37,11 @@ final class ScalarListValueConverter
      */
     private static function strings(string $class, string $path, array $value): array|DecodeError
     {
-        $index = 0;
-        while (array_key_exists($index, $value)) {
-            if (!is_string($value[$index])) {
-                return DecodeError::fieldTypeMismatch(
-                    $class,
-                    sprintf('%s[%d]', $path, $index),
-                    'string',
-                    $value[$index],
-                );
+        /** @var mixed $item */
+        foreach ($value as $index => $item) {
+            if (!is_string($item)) {
+                return DecodeError::fieldTypeMismatch($class, sprintf('%s[%d]', $path, $index), 'string', $item);
             }
-            ++$index;
         }
         return $value;
     }
@@ -60,12 +53,11 @@ final class ScalarListValueConverter
      */
     private static function integers(string $class, string $path, array $value): array|DecodeError
     {
-        $index = 0;
-        while (array_key_exists($index, $value)) {
-            if (!is_int($value[$index])) {
-                return DecodeError::fieldTypeMismatch($class, sprintf('%s[%d]', $path, $index), 'int', $value[$index]);
+        /** @var mixed $item */
+        foreach ($value as $index => $item) {
+            if (!is_int($item)) {
+                return DecodeError::fieldTypeMismatch($class, sprintf('%s[%d]', $path, $index), 'int', $item);
             }
-            ++$index;
         }
         return $value;
     }
@@ -77,12 +69,11 @@ final class ScalarListValueConverter
      */
     private static function booleans(string $class, string $path, array $value): array|DecodeError
     {
-        $index = 0;
-        while (array_key_exists($index, $value)) {
-            if (!is_bool($value[$index])) {
-                return DecodeError::fieldTypeMismatch($class, sprintf('%s[%d]', $path, $index), 'bool', $value[$index]);
+        /** @var mixed $item */
+        foreach ($value as $index => $item) {
+            if (!is_bool($item)) {
+                return DecodeError::fieldTypeMismatch($class, sprintf('%s[%d]', $path, $index), 'bool', $item);
             }
-            ++$index;
         }
         return $value;
     }

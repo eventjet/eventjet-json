@@ -6,7 +6,6 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 
-use function array_key_exists;
 use function is_float;
 use function is_int;
 use function sprintf;
@@ -21,20 +20,16 @@ final class FloatListValueConverter
      */
     public static function convert(string $class, string $path, array $value): array|DecodeError
     {
-        $index = 0;
-        while (array_key_exists($index, $value)) {
-            if (!is_float($value[$index]) && !is_int($value[$index])) {
-                return DecodeError::fieldTypeMismatch(
-                    $class,
-                    sprintf('%s[%d]', $path, $index),
-                    'float',
-                    $value[$index],
-                );
+        /** @var mixed $item */
+        foreach ($value as $index => $item) {
+            if (is_float($item)) {
+                continue;
             }
-            if (is_int($value[$index])) {
-                $value[$index] = (float) $value[$index];
+            if (is_int($item)) {
+                $value[$index] = (float) $item;
+                continue;
             }
-            ++$index;
+            return DecodeError::fieldTypeMismatch($class, sprintf('%s[%d]', $path, $index), 'float', $item);
         }
         return $value;
     }
