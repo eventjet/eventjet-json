@@ -158,12 +158,12 @@ docker compose down
 
 ## Performance
 
-The decoder reuses validated field declarations, resolved collection declarations,
-public-property metadata, and PHPDoc imports within the current PHP process. Every
-incoming value is still checked, including collection shapes, item types, enum
-values, and nested error paths. Decoded objects and errors are not cached.
+The decoder reuses validated field declarations, public-property metadata, resolved
+collection declarations, and PHPDoc imports within the current PHP process. Every
+incoming value is still checked, including collection shapes, item types, enum values, and nested error paths. Decoded
+objects and errors are not cached.
 
-Cache storage grows with the classes and fields used by the process,
+Cache storage grows with the classes and collection fields used by the process,
 not with the number of documents decoded. Imports are retained per declaring
 class, including its namespace scope. Restart long-running workers after changing
 class source files so loaded declarations and cached imports remain consistent.
@@ -204,7 +204,32 @@ Stored results live in the ignored `.phpbench/` directory. In a Git worktree,
 the container also needs read access to the Git metadata directory referenced
 by `.git` for PHPBench's repository metadata collection.
 
-Benchmarks run separately from `composer check`, with no CI timing thresholds.
+Benchmarks run separately from `composer check`. The Performance workflow compares
+pull requests' proposed merge commit with its exact target parent on the same
+runner. Branch pushes and manual runs compare with the first parent. Both versions
+use the target's benchmark fixtures and PHPBench configuration and the same
+installed dependencies; this isolates source changes rather than measuring
+dependency upgrades. A changed candidate benchmark suite also runs separately
+with its own configuration. An absent baseline suite is reported explicitly,
+without a regression verdict.
+
+The workflow alternates baseline/candidate order across three pairs, takes five
+iterations per invocation, and runs three additional unchanged-code pairs to
+estimate noise. Its summary separates cold and warm workloads and shows timing,
+variation, paired percentage changes, and process peak memory. Raw samples,
+environment details, commit IDs, and an installed-dependency fingerprint are archived for history.
+Performance changes are advisory until repeated unchanged-code runs establish a
+useful threshold; benchmark errors and the five-minute job limit still fail CI.
+Do not treat one noisy runner result as evidence of a regression.
+
+The comparison runner is PHP (`.github/ci/performance.php`); its calculation and
+invalid-output tests run with PHPUnit, and a deterministic shell check verifies
+configuration isolation. The calculation contracts are checked by PHPStan with
+shared array-shape aliases in `phpstan.neon`. To run a comparison locally, use
+`php .github/ci/performance.php --base REF --candidate HEAD` in a Linux environment
+with PHP, Composer, Git, and GNU coreutils available (such as the project container).
+Move or remove `.perf/` before another comparison.
+
 Compare the same workloads, PHP settings, and dependencies on the same host;
 review measurement variation along with percentage changes. PHPUnit retains
 deterministic cache-contract tests, including checks that repeated lookups load

@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use ReflectionClass;
 use ReflectionException;
+use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
 
@@ -14,6 +15,8 @@ final readonly class ConstructorParameter
 {
     public string $name;
     public ReflectionType|null $type;
+    public string $typeName;
+    public bool $builtin;
     public bool $variadic;
     public bool $recoverable;
 
@@ -28,6 +31,10 @@ final readonly class ConstructorParameter
     ) {
         $this->name = $reflection->getName();
         $this->type = $reflection->getType();
+        $this->typeName = $this->type instanceof ReflectionNamedType
+            ? FieldTypeNameResolver::resolve($reflection, $this->type)
+            : (string) $this->type;
+        $this->builtin = $this->type instanceof ReflectionNamedType && $this->type->isBuiltin();
         $this->variadic = $reflection->isVariadic();
         $property = $class->hasProperty($this->name) ? $class->getProperty($this->name) : null;
         $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
