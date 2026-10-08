@@ -8,9 +8,9 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\BackedEnumCaseFinder;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
-use Eventjet\Json\Internal\ConstructorParameters;
-use Eventjet\Json\Internal\ConstructorValidationPlan;
+use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
@@ -18,7 +18,6 @@ use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\MetadataCache;
-use Eventjet\Json\Internal\ObjectTypeValidator;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
@@ -39,8 +38,6 @@ use RuntimeException;
 use stdClass;
 use TypeError;
 
-use function array_fill_keys;
-use function array_keys;
 use function class_exists;
 use function enum_exists;
 use function spl_autoload_register;
@@ -48,8 +45,8 @@ use function spl_autoload_unregister;
 
 #[CoversClass(PhpDocClassNameResolver::class)]
 #[CoversClass(FieldValueConverter::class)]
-#[CoversClass(ObjectTypeValidator::class)]
-#[CoversClass(ConstructorValidationPlan::class)]
+#[CoversClass(ConstructorDecoder::class)]
+#[CoversClass(ConstructorPlan::class)]
 #[CoversClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
@@ -57,7 +54,6 @@ use function spl_autoload_unregister;
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
 #[UsesClass(ConstructorParameter::class)]
-#[UsesClass(ConstructorParameters::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(FieldTypeResolver::class)]
 #[UsesClass(FieldTypeValidator::class)]
@@ -112,10 +108,7 @@ final class AutoloadingTest extends TestCase
         spl_autoload_register($autoload);
 
         try {
-            static::assertSame(
-                array_fill_keys(array_keys($values), value: null),
-                ObjectTypeValidator::validate($class, $values, ''),
-            );
+            static::assertSame($values, ConstructorDecoder::convert($class, $values, ''));
             foreach ($values as $name => $value) {
                 $parameter = new ReflectionParameter([$class->getName(), '__construct'], $name);
                 $type = $parameter->getType();

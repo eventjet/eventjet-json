@@ -21,9 +21,9 @@ use Eventjet\Json\Internal\CollectionUnionValueConverter;
 use Eventjet\Json\Internal\CollectionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassUnionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
+use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
-use Eventjet\Json\Internal\ConstructorParameters;
-use Eventjet\Json\Internal\ConstructorValidationPlan;
+use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\EnumUnionValidator;
@@ -50,8 +50,6 @@ use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NestedCollectionType;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
 use Eventjet\Json\Internal\ObjectHydrator;
-use Eventjet\Json\Internal\ObjectTypeValidator;
-use Eventjet\Json\Internal\ObjectValueConverter;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
@@ -96,7 +94,6 @@ use function json_encode;
 use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(ConstructorParameter::class)]
-#[CoversClass(ConstructorParameters::class)]
 #[CoversClass(Json::class)]
 #[CoversClass(JsonType::class)]
 #[CoversClass(ArrayJsonType::class)]
@@ -156,10 +153,9 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(NestedCollectionType::class)]
 #[CoversClass(NestedCollectionTypeResolver::class)]
 #[CoversClass(FieldValueConverter::class)]
-#[CoversClass(ObjectTypeValidator::class)]
-#[CoversClass(ConstructorValidationPlan::class)]
+#[CoversClass(ConstructorDecoder::class)]
+#[CoversClass(ConstructorPlan::class)]
 #[CoversClass(ConstructorValueValidator::class)]
-#[CoversClass(ObjectValueConverter::class)]
 #[CoversClass(ObjectHydrator::class)]
 #[CoversClass(PublicPropertyHydrator::class)]
 #[CoversClass(\Eventjet\Json\Internal\PublicProperties::class)]
