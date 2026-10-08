@@ -6,8 +6,3 @@ parameters:
         - tests
         - benchmarks
         - .github/ci
-    typeAliases:
-        PerformanceSamples: 'array<string, array{time_us: non-empty-list<float>, peak_bytes: int}>'
-        PerformancePair: 'array{PerformanceSamples, PerformanceSamples}'
-        PerformanceSummary: 'array<string, array{baseline_us: float, candidate_us: float, change_percent: float, paired_changes_percent: non-empty-list<float>, baseline_cv_percent: float, candidate_cv_percent: float, baseline_peak_bytes: int, candidate_peak_bytes: int}>'
-        PerformanceMetadata: 'array{baseline: string, candidate: string, workloads_changed: bool, dependencies_sha256?: string, cpu?: string}'
