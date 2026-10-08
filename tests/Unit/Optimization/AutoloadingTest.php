@@ -81,7 +81,7 @@ final class AutoloadingTest extends TestCase
                 ++$requests->count;
             }
         };
-        spl_autoload_register($autoload);
+        spl_autoload_register($autoload, prepend: true);
         try {
             static::assertSame(
                 [],
@@ -93,6 +93,7 @@ final class AutoloadingTest extends TestCase
                 ),
             );
             static::assertSame(0, $requests->count);
+            static::assertFalse(class_exists(DeferredListItem::class, autoload: false));
         } finally {
             spl_autoload_unregister($autoload);
         }
