@@ -75,6 +75,11 @@ CPU information, and a dependency fingerprint are archived even on assertion
 failure. A changed candidate workload suite runs separately without a baseline
 assertion, since its workloads are not comparable.
 
+Use the Performance workflow's manual `calibrate` input to compare the same
+commit against itself on five independent GitHub runners. Normal PR runs still
+compare the target with the proposed merge. Each calibration job archives its
+own samples and report.
+
 The 5% limit is a sensitivity target, not a guarantee against false positives.
 Changes to sampling or thresholds should be checked with unchanged-code runs on
 the CI runner. A consistently noisy benchmark needs more stable measurement,
