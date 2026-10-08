@@ -8,6 +8,7 @@ use Eventjet\Json\DecodeError;
 use JsonException;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionNamedType;
 use ReflectionProperty;
 
 /** @internal */
@@ -42,6 +43,17 @@ final class PublicPropertyHydrator
                 continue;
             }
 
+            if (
+                $field['collection'] === null
+                && $field['type'] instanceof ReflectionNamedType
+                && $field['type']->isBuiltin()
+            ) {
+                $matches = ValueTypeMatcher::matches($value, $field['type']);
+                if ($matches) {
+                    $assignments[] = ['property' => $field['property'], 'value' => $value];
+                    continue;
+                }
+            }
             $assignment = PublicPropertyValueConverter::convert(
                 $class->getName(),
                 $field['property'],
