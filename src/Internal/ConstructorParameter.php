@@ -47,7 +47,7 @@ final readonly class ConstructorParameter
      * @param class-string $class
      * @throws ReflectionException
      */
-    public function resolveType(string $class): ListType|MapType|TupleType|FieldCollectionUnionType|DecodeError|false|null
+    public function resolveType(string $class): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null
     {
         if ($this->variadic) {
             return DecodeError::nonInstantiableTarget($class, sprintf(

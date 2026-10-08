@@ -27,7 +27,7 @@ final class FieldTypeValidator
     public static function validate(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
-    ): ListType|MapType|TupleType|FieldCollectionUnionType|DecodeError|false|null {
+    ): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null {
         $fieldName = $field->getName();
         $type = $field->getType();
 
@@ -54,7 +54,7 @@ final class FieldTypeValidator
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionNamedType $type,
-    ): ListType|MapType|TupleType|FieldCollectionUnionType|DecodeError|false|null {
+    ): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null {
         $fieldName = $field->getName();
         $typeName = FieldTypeNameResolver::resolve($field, $type);
         if ($typeName === 'array' || $typeName === ArrayObject::class) {
@@ -82,7 +82,7 @@ final class FieldTypeValidator
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionUnionType $type,
-    ): FieldCollectionUnionType|DecodeError|false|null {
+    ): CollectionUnionType|DecodeError|false|null {
         $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
         if ($hasCollection) {
             return FieldCollectionUnionResolver::resolve($class, $field, $type);

@@ -41,6 +41,7 @@ use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
+use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase;
@@ -148,6 +149,22 @@ final class MetadataCacheTest extends TestCase
         static::assertNotNull($secondPlan);
         static::assertNotSame($firstPlan, $secondPlan);
         static::assertSame(['value' => 2], ConstructorDecoder::convert($firstClass, ['value' => 2], ''));
+        static::assertSame($cachedPlans, $planCache->getValue());
+
+        $converters = new ReflectionProperty(ConstructorPlan::class, 'converters');
+        static::assertSame(['value' => null], $converters->getValue($firstPlan));
+
+        $unionClass = new ReflectionClass(DistinctEnumScalarUnionField::class);
+        static::assertSame(
+            ['value' => IntBackedStatus::Ready],
+            ConstructorDecoder::convert($unionClass, ['value' => 1], ''),
+        );
+        /** @var array<class-string, ConstructorPlan> $cachedPlans */
+        $cachedPlans = $planCache->getValue();
+        static::assertSame(
+            ['value' => IntBackedStatus::Pending],
+            ConstructorDecoder::convert($unionClass, ['value' => 0], ''),
+        );
         static::assertSame($cachedPlans, $planCache->getValue());
 
         $descriptor = new ClassJsonType($firstClass->getName());

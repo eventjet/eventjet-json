@@ -25,7 +25,7 @@ final readonly class FieldValueConverter
 
     public function __construct(
         private ReflectionParameter|ReflectionProperty $field,
-        private ListType|MapType|TupleType|FieldCollectionUnionType|null $collection,
+        private ListType|MapType|TupleType|CollectionUnionType|null $collection,
     ) {
         $this->type = $field->getType();
         $this->typeName = $this->type instanceof ReflectionNamedType
@@ -42,8 +42,8 @@ final readonly class FieldValueConverter
      */
     public function convert(string $class, mixed $value, string $path): array|bool|float|int|object|string|null
     {
-        if ($this->collection instanceof FieldCollectionUnionType) {
-            return FieldCollectionUnionValueConverter::convert($class, $path, $this->collection, $value);
+        if ($this->collection instanceof CollectionUnionType) {
+            return CollectionUnionValueConverter::convert($class, $path, $this->collection, $value);
         }
         if ($this->collection !== null) {
             return CollectionValueConverter::convert($class, $path, $this->collection, $value);
@@ -82,7 +82,10 @@ final readonly class FieldValueConverter
             return $value;
         }
         if (enum_exists($this->typeName)) {
-            return BackedEnumValueConverter::convert($class, $this->field, $value, $path) ?? $value;
+            if ($value === null && $type->allowsNull()) {
+                return null;
+            }
+            return BackedEnumValueConverter::convertValue($class, $path, $this->typeName, $value, $type);
         }
         if (class_exists($this->typeName)) {
             return ConcreteClassValueConverter::convert($class, $this->field, $this->typeName, $value, $path);

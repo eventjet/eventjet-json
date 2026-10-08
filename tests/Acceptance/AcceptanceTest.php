@@ -29,14 +29,13 @@ use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldCollectionUnionMemberResolver;
 use Eventjet\Json\Internal\FieldCollectionUnionResolver;
-use Eventjet\Json\Internal\FieldCollectionUnionType;
 use Eventjet\Json\Internal\FieldCollectionUnionValidator;
-use Eventjet\Json\Internal\FieldCollectionUnionValueConverter;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\FieldValueConverter;
+use Eventjet\Json\Internal\FloatListValueConverter;
 use Eventjet\Json\Internal\ListInputNormalizer;
 use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\ListValueConverter;
@@ -66,6 +65,7 @@ use Eventjet\Json\Internal\PhpDocUnionTypeResolver;
 use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\ScalarListValueConverter;
 use Eventjet\Json\Internal\TupleType;
 use Eventjet\Json\Internal\TupleTypeResolver;
 use Eventjet\Json\Internal\TupleValueConverter;
@@ -127,9 +127,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(FieldTypeValidator::class)]
 #[CoversClass(FieldCollectionUnionMemberResolver::class)]
 #[CoversClass(FieldCollectionUnionValidator::class)]
-#[CoversClass(FieldCollectionUnionType::class)]
 #[CoversClass(FieldCollectionUnionResolver::class)]
-#[CoversClass(FieldCollectionUnionValueConverter::class)]
 #[CoversClass(FieldPath::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
 #[CoversClass(FieldTypeResolver::class)]
@@ -146,6 +144,8 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(PhpDocNamespaceDeclaration::class)]
 #[CoversClass(ListInputNormalizer::class)]
 #[CoversClass(ListValueConverter::class)]
+#[CoversClass(ScalarListValueConverter::class)]
+#[CoversClass(FloatListValueConverter::class)]
 #[CoversClass(MapDecodeError::class)]
 #[CoversClass(MapInputNormalizer::class)]
 #[CoversClass(MapValueConverter::class)]
