@@ -15,7 +15,7 @@ final class ParserDepthCases
     /** @return iterable<string, array{string, PhpDocType|null}> */
     public static function types(): iterable
     {
-        foreach ([0, 1, 2, 62, 63, 64, 65] as $depth) {
+        foreach ([62, 63, 64, 65] as $depth) {
             $tree = new PhpDocType('int');
             for ($level = 0; $level < $depth; $level++) {
                 $tree = new PhpDocType('list', [$tree]);

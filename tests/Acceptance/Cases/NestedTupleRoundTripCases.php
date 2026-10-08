@@ -8,6 +8,8 @@ use ReflectionClass;
 use ReflectionException;
 use RuntimeException;
 
+use function array_unique;
+
 /** @internal */
 final class NestedTupleRoundTripCases
 {
@@ -20,10 +22,10 @@ final class NestedTupleRoundTripCases
     {
         foreach (NestedCollectionInputs::domains() as $leaf => $values) {
             foreach (NestedShapeInputs::shapes() as $shape) {
-                foreach ([
+                foreach (array_unique([
                     NestedShapeInputs::declaration($shape, 'array{0: ' . $leaf . '}'),
                     'array{0: ' . NestedShapeInputs::declaration($shape, $leaf) . '}',
-                ] as $index => $type) {
+                ]) as $index => $type) {
                     foreach (['param', 'var'] as $tag) {
                         $class = CollectionDeclarationFixture::create(
                             $index === 0 && $shape === 'ArrayObject' ? '\\ArrayObject' : 'array',

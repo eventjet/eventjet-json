@@ -12,7 +12,7 @@ use ReflectionProperty;
 /** @internal */
 final class FieldTypeResolver
 {
-    /** @var array<class-string, array<class-string<ReflectionParameter|ReflectionProperty>, MetadataCache<ListType|MapType|TupleType|FieldCollectionUnionType|DecodeError|false|null>>> */
+    /** @var array<class-string, array<class-string<ReflectionParameter|ReflectionProperty>, array<string, ListType|MapType|TupleType|FieldCollectionUnionType|false>>> */
     private static array $collections = [];
 
     /**
@@ -27,17 +27,15 @@ final class FieldTypeResolver
     ): ListType|MapType|TupleType|FieldCollectionUnionType|DecodeError|null {
         $kind = $field::class;
         $name = $field->getName();
-        /** @var MetadataCache<ListType|MapType|TupleType|FieldCollectionUnionType|DecodeError|false|null> $cache */
-        $cache = self::$collections[$class][$kind] ?? new MetadataCache();
-        self::$collections[$class][$kind] = $cache;
+        $resolved = self::$collections[$class][$kind][$name] ?? null;
+        if ($resolved !== null) {
+            return $resolved === false ? null : $resolved;
+        }
 
-        $resolved = $cache->resolve(
-            $name,
-            /** @throws ReflectionException */ static fn(): ListType|MapType|TupleType|FieldCollectionUnionType|DecodeError|false|null => FieldTypeValidator::validate(
-                $class,
-                $field,
-            ),
-        );
+        $resolved = FieldTypeValidator::validate($class, $field);
+        if ($resolved !== null && !$resolved instanceof DecodeError) {
+            self::$collections[$class][$kind][$name] = $resolved;
+        }
 
         return $resolved === false ? null : $resolved;
     }

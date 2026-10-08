@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Unit;
 
+use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\BackedEnumCaseFinder;
+use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorParameters;
@@ -16,6 +19,8 @@ use Eventjet\Json\Internal\ObjectTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyNamedValueConverter;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
+use Eventjet\Json\Test\Unit\Fixtures\DeferredEnumBacking;
+use Eventjet\Json\Test\Unit\Fixtures\DeferredValueEnum;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -30,12 +35,17 @@ use TypeError;
 
 use function array_fill_keys;
 use function array_keys;
+use function class_exists;
+use function enum_exists;
 use function spl_autoload_register;
 use function spl_autoload_unregister;
 
 #[CoversClass(NamedFieldValueConverter::class)]
 #[CoversClass(ObjectTypeValidator::class)]
 #[CoversClass(PublicPropertyNamedValueConverter::class)]
+#[CoversClass(BackedEnumValueConverter::class)]
+#[UsesClass(BackedEnumCaseFinder::class)]
+#[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
 #[UsesClass(ConstructorParameter::class)]
 #[UsesClass(ConstructorParameters::class)]
@@ -94,8 +104,7 @@ final class AutoloadingTest extends TestCase
                 static::assertInstanceOf(ReflectionNamedType::class, $type);
                 static::assertSame($value, NamedFieldValueConverter::convert(
                     $class->getName(),
-                    $parameter,
-                    $type,
+                    new ConstructorParameter($parameter, $class),
                     $value,
                     $name,
                 ));
@@ -117,6 +126,50 @@ final class AutoloadingTest extends TestCase
 
         foreach (['int', 'float', 'string', 'bool'] as $builtin) {
             static::assertNotContains($builtin, $requests->names);
+        }
+    }
+
+    /**
+     * @throws Exception
+     * @throws ReflectionException
+     * @throws TypeError
+     */
+    public function testEnumBackingConstantsLoadOnlyForMatchingInputTypes(): void
+    {
+        static::assertTrue(enum_exists(DeferredValueEnum::class));
+        static::assertFalse(class_exists(DeferredEnumBacking::class, autoload: false));
+        $requests = new class {
+            /** @var list<string> */
+            public array $names = [];
+        };
+        $autoload = static function (string $name) use ($requests): void {
+            $requests->names[] = $name;
+        };
+        spl_autoload_register($autoload, prepend: true);
+        try {
+            static::assertInstanceOf(DecodeError::class, BackedEnumValueConverter::convertValue(
+                DeferredValueEnum::class,
+                'value',
+                DeferredValueEnum::class,
+                1,
+            ));
+            static::assertNull(BackedEnumValueConverter::convertUnion(
+                DeferredValueEnum::class,
+                'value',
+                [DeferredValueEnum::class, 'int'],
+                1,
+            ));
+            static::assertNotContains(DeferredEnumBacking::class, $requests->names);
+            $converted = BackedEnumValueConverter::convertValue(
+                DeferredValueEnum::class,
+                'value',
+                DeferredValueEnum::class,
+                'ready',
+            );
+            static::assertSame(DeferredValueEnum::Ready, $converted);
+            static::assertContains(DeferredEnumBacking::class, $requests->names);
+        } finally {
+            spl_autoload_unregister($autoload);
         }
     }
 }

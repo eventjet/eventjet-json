@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use ArrayObject;
 
+use function count;
 use function in_array;
 
 /** @internal */
@@ -20,7 +21,10 @@ final class CollectionUnionInputs
         foreach ($values as $value) {
             yield self::collection($shape, [$value]);
         }
-        if (in_array($shape, ['list', 'non-empty-list', 'map', 'non-empty-map', 'ArrayObject'], strict: true)) {
+        if (
+            count($values) > 1
+            && in_array($shape, ['list', 'non-empty-list', 'map', 'non-empty-map', 'ArrayObject'], strict: true)
+        ) {
             yield self::collection($shape, $values);
         }
         if (in_array($shape, ['list', 'optional tuple', 'ArrayObject'], strict: true)) {
