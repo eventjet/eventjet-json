@@ -112,7 +112,7 @@ final class ErrorPathCases
         ];
         yield 'error path includes an invalid property inside a class-or-scalar union' => [
             '{"value":{"firstName":42,"lastName":"Lovelace"}}',
-            ClassScalarUnionField::class,
+            new ClassScalarUnionField(null)::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Field value.firstName must be of type string, int given.',
             3,
         ];

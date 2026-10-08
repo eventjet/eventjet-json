@@ -9,6 +9,8 @@ use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassField;
+use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase;
+use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface;
 
 /** @internal */
@@ -83,7 +85,7 @@ final class Target_d2d5fe3230fd08878644563a847934cf61283e8a {/** @param list<Ite
         ];
         yield 'non-final nested class is rejected' => [
             '{"person":{"firstName":"Ada","lastName":"Lovelace"},"value":{},"label":"value"}',
-            ParentClassField::class,
+            new ParentClassField(new Person('Ada', 'Lovelace'), new ParentClassFieldBase(), 'value')::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ParentClassField from the JSON object: Field value uses non-final class Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase. Values may be subclasses, whose runtime class JSON does not identify.',
             3,
         ];

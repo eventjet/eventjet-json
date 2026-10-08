@@ -23,7 +23,7 @@ final class ConstructionErrorCases
     {
         yield 'constructor throws an exception' => [
             '{"value":"rejected"}',
-            ThrowingConstructor::class,
+            new ThrowingConstructor('accepted')::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ThrowingConstructor from the JSON object: The constructor rejected the decoded value.',
             3,
             ThrowingConstructor::exception(),
@@ -42,13 +42,13 @@ final class ConstructionErrorCases
         ];
         yield 'variadic constructor cannot bind JSON members' => [
             '{}',
-            VariadicConstructorTarget::class,
+            new VariadicConstructorTarget('value')::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\VariadicConstructorTarget from the JSON object: Constructor parameter values is variadic. JSON members bind to individual named arguments, not variadic argument lists.',
             3,
         ];
         yield 'constructor parameter cannot bind a static property' => [
             '{}',
-            StaticConstructorParameterProperty::class,
+            new StaticConstructorParameterProperty('value')::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StaticConstructorParameterProperty from the JSON object: Constructor parameter value has no same-named declared public instance property. The target class does not expose a stable JSON member from which the argument can be recovered.',
             3,
         ];

@@ -71,7 +71,7 @@ final class CollectionsErrorCases
     {
         yield 'cached object-map field rejects null after valid objects' => [
             '[{},{},{},{"publicObjectMap":null}]',
-            JsonType::array(StringCollectionValidationFields::class),
+            JsonType::array(new StringCollectionValidationFields()::class),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].publicObjectMap must be of type JSON object, null given.',
             3,
         ];

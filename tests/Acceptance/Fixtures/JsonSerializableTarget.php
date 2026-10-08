@@ -7,11 +7,9 @@ namespace Eventjet\Json\Test\Acceptance\Fixtures;
 use JsonSerializable;
 use Override;
 
-final readonly class JsonSerializableTarget implements JsonSerializable
+final class JsonSerializableTarget implements JsonSerializable
 {
-    public function __construct(
-        public string $constructorName,
-    ) {}
+    public string $constructorName = '';
 
     /** @return array{serializedName: string} */
     #[Override]

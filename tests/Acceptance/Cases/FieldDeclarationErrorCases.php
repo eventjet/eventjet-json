@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use ArrayIterator;
 use DatePeriod;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionTypeField;
@@ -27,19 +28,19 @@ final class FieldDeclarationErrorCases
         ];
         yield 'intersection constructor field is rejected even when absent' => [
             '{}',
-            IntersectionTypeField::class,
+            new IntersectionTypeField(new ArrayIterator())::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntersectionTypeField from the JSON object: Field value uses unsupported intersection type Countable&Iterator. JSON does not identify a concrete class to instantiate.',
             3,
         ];
         yield 'mixed constructor field is rejected even when absent' => [
             '{}',
-            MixedField::class,
+            new MixedField(null)::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\MixedField from the JSON object: Field value uses unsupported type mixed. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
             3,
         ];
         yield 'intersection public property is unsupported' => [
             '{"value":{}}',
-            IntersectionPublicProperty::class,
+            new IntersectionPublicProperty()::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntersectionPublicProperty from the JSON object: Field value uses unsupported public property type Countable&Iterator. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
             3,
         ];

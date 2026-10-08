@@ -84,6 +84,7 @@ use Eventjet\Json\Test\Acceptance\Cases\JsonFormattingRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\ObjectRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\ParserSyntaxCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootCollectionRoundTripCases;
+use Eventjet\Json\Test\Acceptance\Cases\SupportedDocumentRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\UnknownFieldCases;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -229,11 +230,20 @@ final class AcceptanceTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, class-string, callable(object): bool}>
+     * @throws \RuntimeException
+     */
+    public static function supportedDocuments(): iterable
+    {
+        yield from SupportedDocumentRoundTripCases::objects();
+    }
+
+    /**
      * @param class-string $class
      * @param callable(object): bool $isFullyHydrated
      * @throws JsonException
      */
-    #[DataProviderExternal(\Eventjet\Json\Test\Acceptance\Cases\SupportedDocumentRoundTripCases::class, 'objects')]
+    #[DataProvider('supportedDocuments')]
     public function testSupportedDocumentIsFullyHydratedAndRoundTrips(
         string $json,
         string $class,

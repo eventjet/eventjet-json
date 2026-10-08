@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
+use Eventjet\Json\Test\Acceptance\Fixtures\Person;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\TupleFields;
 
 /** @internal */
@@ -29,7 +32,15 @@ final class TupleValueErrorCases
     {
         yield 'empty tuple rejects an item' => [
             '{"value":[1,"text",3,true,"ready",1,{"firstName":"Ada","lastName":"Lovelace","middleName":null,"age":null}],"empty":[0]}',
-            TupleFields::class,
+            new TupleFields([
+                1,
+                'text',
+                3.0,
+                true,
+                StringBackedStatus::Ready,
+                IntBackedStatus::Ready,
+                new Person('Ada', 'Lovelace'),
+            ])::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\TupleFields from the JSON object: Field empty must be of type array{} with exactly 0 items, 1 given.',
             3,
         ];

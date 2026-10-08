@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\ArrayScalarUnionPublicProperty;
+use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedOutcome;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionTypeField;
 
@@ -42,13 +43,13 @@ final class UnsupportedUnionErrorCases
         yield 'native union of non-backed enums has no JSON representation' => [
             '{}',
             CollectionDeclarationFixture::create(
-                '\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedOutcome',
+                '\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|' . NonBackedOutcome::class,
                 '',
                 'var',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
-                    '\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedOutcome',
+                    '\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|' . NonBackedOutcome::class,
                     '',
                     'var',
                 )
@@ -59,13 +60,17 @@ final class UnsupportedUnionErrorCases
             '{}',
             CollectionDeclarationFixture::create(
                 'array',
-                'non-empty-array<string, \Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedOutcome>',
+                'non-empty-array<string, \Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|'
+                . NonBackedOutcome::class
+                . '>',
                 'param',
             ),
             'Could not create '
                 . CollectionDeclarationFixture::create(
                     'array',
-                    'non-empty-array<string, \Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedOutcome>',
+                    'non-empty-array<string, \Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|'
+                    . NonBackedOutcome::class
+                    . '>',
                     'param',
                 )
                 . ' from the JSON object: Field value uses non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
@@ -139,7 +144,7 @@ final class UnsupportedUnionErrorCases
     {
         yield 'nullable intersection member is unsupported even when absent' => [
             '{}',
-            NullableIntersectionTypeField::class,
+            new NullableIntersectionTypeField(null)::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionTypeField from the JSON object: Field value uses unsupported intersection type Countable&Iterator. JSON does not identify a concrete class to instantiate.',
             3,
         ];

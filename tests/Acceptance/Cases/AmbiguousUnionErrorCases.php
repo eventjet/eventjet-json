@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\OverlappingEnumUnionField;
+use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 
 /** @internal */
 final class AmbiguousUnionErrorCases
@@ -31,7 +33,7 @@ final class AmbiguousUnionErrorCases
     {
         yield 'overlapping enum backing values are rejected even when absent' => [
             '{}',
-            OverlappingEnumUnionField::class,
+            new OverlappingEnumUnionField(StringBackedStatus::Ready)::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\OverlappingEnumUnionField from the JSON object: Field value uses multiple backed enums Eventjet\Json\Test\Acceptance\Fixtures\OverlappingStringBackedStatus and Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus with overlapping backing value \'ready\'. JSON cannot identify which enum case to instantiate.',
             3,
         ];
@@ -62,7 +64,7 @@ final class AmbiguousUnionErrorCases
     {
         yield 'self and another class cannot be distinguished' => [
             '{"value":{}}',
-            SelfClassUnionField::class,
+            new SelfClassUnionField(new Person('Ada', 'Lovelace'))::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField from the JSON object: Field value uses multiple class types: Eventjet\Json\Test\Acceptance\Fixtures\Person, Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField. JSON does not identify which class to instantiate.',
             3,
         ];

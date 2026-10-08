@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use ArrayObject;
 use Eventjet\Json\Internal\ArrayJsonType;
 use Eventjet\Json\Internal\ClassJsonType;
 use Eventjet\Json\Internal\MapJsonType;
@@ -38,19 +39,19 @@ final class MapsErrorCases
     {
         yield 'ArrayObject declaration rejects integer keys even when absent' => [
             '{}',
-            UnsupportedArrayObjectMapField::class,
+            new UnsupportedArrayObjectMapField(new ArrayObject([0 => 'value']))::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedArrayObjectMapField from the JSON object: Field values uses unsupported map declaration ArrayObject. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
             3,
         ];
         yield 'non-empty map declaration rejects integer keys even when absent' => [
             '{}',
-            UnsupportedNonEmptyMapKeyField::class,
+            new UnsupportedNonEmptyMapKeyField([0 => 'value'])::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedNonEmptyMapKeyField from the JSON object: Field values uses unsupported map declaration non-empty-array. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
             3,
         ];
         yield 'plain array map cannot represent an empty JSON object' => [
             '{}',
-            AmbiguousMapField::class,
+            new AmbiguousMapField([])::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\AmbiguousMapField from the JSON object: Field values uses array<TKey, TValue>, whose empty value encodes as a JSON array and cannot represent an empty JSON object. Use non-empty-array<string, TValue> for a non-empty map or ArrayObject<string, TValue> for a map that may be empty.',
             3,
         ];
@@ -81,7 +82,7 @@ final class MapsErrorCases
     {
         yield 'boolean map rejects an integer value' => [
             '{"map":{"invalid":1}}',
-            BoolCollectionValidationFields::class,
+            new BoolCollectionValidationFields()::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\BoolCollectionValidationFields from the JSON object: Field map[invalid] must be of type bool, int given.',
             3,
         ];
@@ -93,7 +94,7 @@ final class MapsErrorCases
         ];
         yield 'map property rejects a numeric member name' => [
             '{"strings":{"valid":"value"},"integers":{"valid":42},"floats":{"valid":3.25},"booleans":{"valid":true},"publicStrings":{"0":"ready"}}',
-            ScalarMapFields::class,
+            new ScalarMapFields(['valid' => 'value'], ['valid' => 42], ['valid' => 3.25], ['valid' => true])::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarMapFields from the JSON object: Field publicStrings has numeric-looking member name 0, which PHP converts to an integer array key. Supported maps require member names that remain strings.',
             3,
         ];
