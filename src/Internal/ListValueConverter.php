@@ -10,10 +10,6 @@ use ReflectionException;
 
 use function array_key_exists;
 use function in_array;
-use function is_bool;
-use function is_float;
-use function is_int;
-use function is_string;
 use function sprintf;
 
 /** @internal */
@@ -36,10 +32,24 @@ final class ListValueConverter
             return $value;
         }
 
-        if (in_array($itemType, ['string', 'int', 'bool', 'float'], strict: true)) {
-            return self::convertScalars($class, $path, $itemType, $value);
-        }
+        return in_array($itemType, ['string', 'int', 'bool', 'float'], strict: true)
+            ? ScalarListValueConverter::convert($class, $path, $itemType, $value)
+            : self::convertItems($class, $path, $itemType, $value);
+    }
 
+    /**
+     * @param class-string $class
+     * @param list<mixed> $value
+     * @return list<mixed>|DecodeError
+     * @throws JsonException
+     * @throws ReflectionException
+     */
+    private static function convertItems(
+        string $class,
+        string $path,
+        string|CollectionUnionType|NestedCollectionType $itemType,
+        array $value,
+    ): array|DecodeError {
         $converted = [];
         $index = 0;
 
@@ -60,41 +70,5 @@ final class ListValueConverter
         }
 
         return $converted;
-    }
-
-    /**
-     * @param class-string $class
-     * @param 'string'|'int'|'bool'|'float' $itemType
-     * @param list<mixed> $value
-     * @return list<mixed>|DecodeError
-     */
-    private static function convertScalars(
-        string $class,
-        string $path,
-        string $itemType,
-        array $value,
-    ): array|DecodeError {
-        $index = 0;
-        while (array_key_exists($index, $value)) {
-            $valid = match ($itemType) {
-                'string' => is_string($value[$index]),
-                'int' => is_int($value[$index]),
-                'bool' => is_bool($value[$index]),
-                'float' => is_float($value[$index]) || is_int($value[$index]),
-            };
-            if (!$valid) {
-                return DecodeError::fieldTypeMismatch(
-                    $class,
-                    sprintf('%s[%d]', $path, $index),
-                    $itemType,
-                    $value[$index],
-                );
-            }
-            if ($itemType === 'float' && is_int($value[$index])) {
-                $value[$index] = (float) $value[$index];
-            }
-            ++$index;
-        }
-        return $value;
     }
 }

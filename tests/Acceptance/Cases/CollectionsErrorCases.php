@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\JsonType;
+use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields;
 
 /** @internal */
@@ -19,6 +20,31 @@ final class CollectionsErrorCases
     {
         yield from self::declarations();
         yield from self::cachedShapes();
+        yield from self::scalarItems();
+    }
+
+    /** @return iterable<string, array{string, class-string, string, int}> */
+    private static function scalarItems(): iterable
+    {
+        foreach ([
+            ['strings',      'string', '"valid"'],
+            ['stringsExtra', 'int',    '1'],
+            ['booleans',     'bool',   'true'],
+            ['floats',       'float',  '1.5'],
+        ] as [$field, $type, $valid]) {
+            yield $type . ' list validates items after the first' => [
+                '{"' . $field . '":[' . $valid . ',null]}',
+                ScalarListFields::class,
+                'Could not create '
+                    . ScalarListFields::class
+                    . ' from the JSON object: Field '
+                    . $field
+                    . '[1] must be of type '
+                    . $type
+                    . ', null given.',
+                3,
+            ];
+        }
     }
 
     /**
