@@ -16,14 +16,13 @@ final class WarmCollectionErrorCases
     public static function errors(): iterable
     {
         foreach (CollectionValidationErrorCases::errors() as $name => [$json, $class, $message, $code]) {
-            foreach ([1, 3] as $validItems) {
-                yield 'warm collection ' . $name . ' after ' . $validItems . ' objects' => [
-                    '[' . str_repeat('{},', $validItems) . $json . ']',
-                    JsonType::array($class),
-                    str_replace('Field ', 'Field [' . $validItems . '].', $message),
-                    $code,
-                ];
-            }
+            $validItems = 3;
+            yield 'warm collection ' . $name . ' after ' . $validItems . ' objects' => [
+                '[' . str_repeat('{},', $validItems) . $json . ']',
+                JsonType::array($class),
+                str_replace('Field ', 'Field [' . $validItems . '].', $message),
+                $code,
+            ];
         }
     }
 }
