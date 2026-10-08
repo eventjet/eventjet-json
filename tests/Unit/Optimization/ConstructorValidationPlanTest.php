@@ -618,10 +618,39 @@ final class ConstructorValidationPlanTest extends TestCase
                 public array $values,
             ) {}
         };
-        for ($index = 0; $index < 3; ++$index) {
+        static::assertEquals($scalarList, \Eventjet\Json\Json::decode('{"values":[]}', $scalarList::class));
+        static::assertTrue(self::readDirectPlan($scalarList::class));
+        for ($index = 0; $index < 2; ++$index) {
             static::assertEquals($scalarList, \Eventjet\Json\Json::decode('{"values":[]}', $scalarList::class));
         }
         static::assertFalse(self::readDirectPlan($scalarList::class));
+        $enum = new class(StringBackedStatus::Ready) {
+            public function __construct(
+                public StringBackedStatus $value,
+            ) {}
+        };
+        static::assertEquals($enum, \Eventjet\Json\Json::decode('{"value":"ready"}', $enum::class));
+        static::assertFalse(self::readDirectPlan($enum::class));
+        $collections = new class([], []) {
+            /**
+             * @param list<ScalarFields> $first
+             * @param list<ScalarFields> $second
+             */
+            public function __construct(
+                public array $first,
+                public array $second,
+            ) {}
+        };
+        static::assertEquals($collections, \Eventjet\Json\Json::decode(
+            '{"first":[],"second":[]}',
+            $collections::class,
+        ));
+        static::assertFalse(self::readDirectPlan($collections::class));
+        $properties = new class {
+            public int $value = 1;
+        };
+        static::assertEquals($properties, \Eventjet\Json\Json::decode('{"value":1}', $properties::class));
+        static::assertFalse(self::readDirectPlan($properties::class));
         $nestedList = new class([]) {
             /** @param list<list<ScalarFields>> $values */
             public function __construct(

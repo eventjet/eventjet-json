@@ -10,6 +10,7 @@ use ReflectionException;
 use stdClass;
 
 use function array_all;
+use function array_column;
 use function array_intersect_key;
 use function array_key_exists;
 use function is_array;
@@ -22,6 +23,7 @@ use function is_string;
 final readonly class ConstructorPlan
 {
     public bool $scalarOnly;
+    public bool $directCandidate;
 
     /**
      * @param class-string $class
@@ -37,6 +39,7 @@ final readonly class ConstructorPlan
             $converters,
             static fn(FieldValueConverter|null $converter): bool => $converter === null,
         );
+        $this->directCandidate = $this->scalarOnly || array_column($fields, 'typeName') === ['array'];
     }
 
     /**

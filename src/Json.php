@@ -6,6 +6,7 @@ namespace Eventjet\Json;
 
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
+use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\DirectJsonParser;
 use Eventjet\Json\Internal\DirectListPlan;
 use Eventjet\Json\Internal\DirectScalarPlan;
@@ -109,7 +110,9 @@ final class Json
         $value = ObjectHydrator::hydrate($class, $values);
         if (!$value instanceof DecodeError) {
             // Compile only after a successful first decode; cold requests need no second schema.
-            self::$directPlans[$class] = true;
+            /** @mago-expect analysis:less-specific-nested-argument-type Native hydration has validated the class target. */
+            $validated = ObjectHydrator::validatedPlan($class);
+            self::$directPlans[$class] = $validated instanceof ConstructorPlan && $validated->directCandidate;
         }
         return $value;
     }

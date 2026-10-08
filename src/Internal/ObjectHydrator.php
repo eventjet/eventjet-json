@@ -18,6 +18,19 @@ final class ObjectHydrator
     private static array $validatedClasses = [];
 
     /**
+     * @param class-string $class Successfully hydrated target.
+     * @return ReflectionClass<object>|ConstructorPlan
+     */
+    public static function validatedPlan(string $class): ReflectionClass|ConstructorPlan
+    {
+        assert(
+            array_key_exists($class, self::$validatedClasses),
+            description: 'Successful hydration populates this cache entry.',
+        );
+        return self::$validatedClasses[$class];
+    }
+
+    /**
      * @template T of object
      * @param class-string<T> $class
      * @return T|DecodeError
