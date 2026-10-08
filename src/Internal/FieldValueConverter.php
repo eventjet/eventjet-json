@@ -22,12 +22,15 @@ final readonly class FieldValueConverter
 {
     private ReflectionType|null $type;
     private string $typeName;
+    private EnumUnionLookup $enumLookup;
 
+    /** @throws ReflectionException */
     public function __construct(
         private ReflectionParameter|ReflectionProperty $field,
         private ListType|MapType|TupleType|CollectionUnionType|null $collection,
     ) {
         $this->type = $field->getType();
+        $this->enumLookup = new EnumUnionLookup($this->type);
         $this->typeName = $this->type instanceof ReflectionNamedType
             ? FieldTypeNameResolver::resolve($field, $this->type)
             : (string) $this->type;
@@ -105,7 +108,7 @@ final readonly class FieldValueConverter
         mixed $value,
         string $path,
     ): array|bool|float|int|object|string|null {
-        $converted = BackedEnumValueConverter::convert($class, $this->field, $value, $path);
+        $converted = $this->enumLookup->convert($class, $value, $path);
         if ($converted !== null) {
             return $converted;
         }

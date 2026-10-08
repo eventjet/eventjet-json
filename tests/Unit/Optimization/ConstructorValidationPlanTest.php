@@ -12,6 +12,7 @@ use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
+use Eventjet\Json\Internal\EnumUnionLookup;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
@@ -21,7 +22,9 @@ use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
+use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
+use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -31,6 +34,7 @@ use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\UnknownClassOrInterfaceException;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionProperty;
 use RuntimeException;
 
 use function class_alias;
@@ -41,6 +45,7 @@ use function class_alias;
 #[CoversClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(EnumFieldTypes::class)]
+#[CoversClass(EnumUnionLookup::class)]
 #[CoversClass(BackedEnumValueConverter::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
@@ -53,6 +58,28 @@ use function class_alias;
 #[UsesClass(ValueTypeMatcher::class)]
 final class ConstructorValidationPlanTest extends TestCase
 {
+    /** @throws ReflectionException */
+    public function testEnumUnionLookupPreservesBackingTypesAndLeavesOtherValuesUnmatched(): void
+    {
+        $target = new class {
+            public \stdClass|NonBackedStatus|StringBackedStatus|IntBackedStatus|bool|null $value = null;
+        };
+        $lookup = new EnumUnionLookup(new ReflectionProperty($target, 'value')->getType());
+        static::assertSame(StringBackedStatus::Ready, $lookup->find(StringBackedStatus::Ready->value));
+        static::assertSame(StringBackedStatus::Pending, $lookup->find(StringBackedStatus::Pending->value));
+        static::assertSame(IntBackedStatus::Ready, $lookup->find(IntBackedStatus::Ready->value));
+        static::assertNull($lookup->find((string) IntBackedStatus::Ready->value));
+        static::assertNull($lookup->find((float) IntBackedStatus::Ready->value));
+        static::assertNull($lookup->find('unknown'));
+        static::assertNull($lookup->find(true));
+        static::assertNull($lookup->find(null));
+        static::assertNull($lookup->find([]));
+        static::assertNull(new EnumUnionLookup(null)->find('ready'));
+        static::assertNull(new EnumUnionLookup(new ReflectionProperty(ScalarFields::class, 'string')->getType())->find(
+            'ready',
+        ));
+    }
+
     /**
      * @throws ReflectionException
      * @throws JsonException
