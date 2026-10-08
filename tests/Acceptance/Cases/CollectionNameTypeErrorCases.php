@@ -21,6 +21,7 @@ final class CollectionNameTypeErrorCases
                 $tag,
                 'list',
                 'global',
+                scenario: 'namespace-relative-type-error',
             );
             yield 'global namespace-relative mismatch/' . $tag => [
                 '{"value":[42]}',

@@ -17,12 +17,18 @@ final class CollectionNameDeclaration
      * @return array{class-string, string}
      * @throws RuntimeException
      */
-    public static function source(array $specification, string $tag, string $shape, string $scope): array
-    {
+    public static function source(
+        array $specification,
+        string $tag,
+        string $shape,
+        string $scope,
+        string $scenario = '',
+    ): array {
         [$imports, $itemType] = $specification;
         $container = $specification[3] ?? 'ArrayObject';
         $field = self::field($itemType, $tag, $shape, $container);
-        $key = sha1($imports . $field . $scope);
+        // Separate scenarios must not share class metadata cached by the decoder.
+        $key = sha1($imports . $field . $scope . $scenario);
         $namespace = 'CollectionNames_' . $key . '\\Nested';
         $class = 'Target_' . $key;
         $parent = $scope === 'inherited' ? 'class ParentTarget {' . $field . '} ' : '';
