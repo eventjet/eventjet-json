@@ -33,7 +33,7 @@ final readonly class FieldValueConverter
         private ListType|MapType|TupleType|CollectionUnionType|null $collection,
     ) {
         $this->type = $field->getType();
-        $this->literals = PhpDocLiteralField::resolve($field);
+        $this->literals = PhpDocFieldType::hasPhpDoc($field) ? PhpDocLiteralField::resolve($field, $collection) : null;
         $this->literalConstrained = $this->literals !== null;
         $this->enumLookup = $this->type instanceof ReflectionUnionType ? new EnumUnionLookup($this->type) : null;
         $this->typeName = $this->type instanceof ReflectionNamedType
@@ -50,9 +50,11 @@ final readonly class FieldValueConverter
      */
     public function convert(string $class, mixed $value, string $path): array|bool|float|int|object|string|null
     {
-        $value = PhpDocLiteralScalarConverter::convert($class, $path, $this->literals, $value);
-        if ($value instanceof DecodeError) {
-            return $value;
+        if ($this->literalConstrained) {
+            $value = PhpDocLiteralScalarConverter::convert($class, $path, $this->literals, $value);
+            if ($value instanceof DecodeError) {
+                return $value;
+            }
         }
         return $this->convertValue($class, $value, $path);
     }

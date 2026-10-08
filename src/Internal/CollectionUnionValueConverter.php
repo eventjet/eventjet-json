@@ -35,7 +35,7 @@ final class CollectionUnionValueConverter
             return CollectionValueConverter::convert($class, $path, $collection, $value);
         }
         $names = $type->names();
-        foreach ($names as $name) {
+        foreach ($type->literalNames as $name) {
             $matchesLiteral = PhpDocLiteral::matches($name, $value);
             if ($matchesLiteral) {
                 return PhpDocLiteral::value($name);

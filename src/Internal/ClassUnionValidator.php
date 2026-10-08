@@ -80,16 +80,16 @@ final class ClassUnionValidator
             return FieldCollectionUnionResolver::resolve($class, $field, $type);
         }
         $fieldName = $field->getName();
-        $classUnionError = self::validate($class, $field, $type);
+        $literals = PhpDocFieldType::hasPhpDoc($field) ? PhpDocLiteralField::resolve($field) : null;
+        $unionError = self::validate($class, $field, $type) ?? EnumUnionValidator::validate(
+            $class,
+            $fieldName,
+            $type,
+            $literals,
+        );
 
-        if ($classUnionError !== null) {
-            return $classUnionError;
-        }
-
-        $enumUnionError = EnumUnionValidator::validate($class, $fieldName, $type);
-
-        if ($enumUnionError !== null) {
-            return $enumUnionError;
+        if ($unionError !== null) {
+            return $unionError;
         }
 
         $memberResults = [];
@@ -116,10 +116,15 @@ final class ClassUnionValidator
         if ($memberResults === []) {
             return $nonEncodableError;
         }
-        return (
-            PhpDocLiteralFieldValidator::validate($class, $field)
-            ?? (in_array(null, $memberResults, strict: true) ? null : false)
-        );
+        if ($literals !== null) {
+            $literalUnion = new CollectionUnionType($literals);
+            return (
+                PhpDocLiteralFieldValidator::validate($class, $field)
+                ?? CollectionUnionTypeValidator::validate($class, $fieldName, $literalUnion)
+                ?? $literalUnion
+            );
+        }
+        return in_array(null, $memberResults, strict: true) ? null : false;
     }
 
     private static function hasCollection(ReflectionUnionType $type): bool

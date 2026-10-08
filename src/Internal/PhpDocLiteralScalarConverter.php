@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use stdClass;
 
+use function class_exists;
+use function enum_exists;
+use function get_debug_type;
 use function implode;
 use function is_float;
+use function is_int;
 
 /** @internal */
 final class PhpDocLiteralScalarConverter
@@ -27,7 +32,7 @@ final class PhpDocLiteralScalarConverter
         if ($names === null) {
             return $value;
         }
-        $matches = PhpDocLiteralField::matches($names, $value);
+        $matches = self::matches($names, $value);
         return $matches
             ? self::restore($names, $value)
             : DecodeError::fieldTypeMismatch($class, $path, implode('|', $names), $value);
@@ -48,5 +53,25 @@ final class PhpDocLiteralScalarConverter
             }
         }
         return $value;
+    }
+
+    /** @param list<string> $names */
+    private static function matches(array $names, mixed $value): bool
+    {
+        foreach ($names as $name) {
+            $matches = PhpDocLiteral::matches($name, $value);
+            if (
+                $matches
+                || $name === get_debug_type($value)
+                || $name === 'float' && is_int($value)
+                || enum_exists($name)
+            ) {
+                return true;
+            }
+            if ($value instanceof stdClass && class_exists($name)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -22,20 +22,12 @@ final class LiteralSyntaxRoundTripCases
      */
     public static function objects(): iterable
     {
-        foreach (self::values() as [$declaration, $native, $value]) {
+        foreach (self::values() as $index => [$declaration, $native, $value]) {
             foreach (['param', 'var'] as $tag) {
-                yield 'literal syntax ' . $declaration . ' in ' . $tag => [CollectionDeclarationFixture::object(
-                    $native,
-                    $declaration,
-                    $tag,
-                    $value,
-                )];
-                yield 'list literal syntax ' . $declaration . ' in ' . $tag => [CollectionDeclarationFixture::object(
-                    'array',
-                    'list<' . $declaration . '>',
-                    $tag,
-                    [$value],
-                )];
+                yield 'literal syntax ' . $index . ' ' . $declaration . ' in ' . $tag =>
+                    [CollectionDeclarationFixture::object($native, $declaration, $tag, $value)];
+                yield 'list literal syntax ' . $index . ' ' . $declaration . ' in ' . $tag =>
+                    [CollectionDeclarationFixture::object('array', 'list<' . $declaration . '>', $tag, [$value])];
             }
         }
         yield from self::collectionUnions();
@@ -81,6 +73,16 @@ final class LiteralSyntaxRoundTripCases
             ['\\' . ExtendedLiteralFields::class . '::NUMBER', 'int', 42],
             ['\\' . ExtendedLiteralFields::class . '::class', 'string', ExtendedLiteralFields::class],
             ['\\' . StringBackedStatus::class . '::Ready', '\\' . StringBackedStatus::class, StringBackedStatus::Ready],
+            [
+                '\\' . StringBackedStatus::class . "::Ready|'pending'",
+                '\\' . StringBackedStatus::class . '|string',
+                'pending',
+            ],
+            [
+                '\\' . StringBackedStatus::class . "::Ready|'pending'",
+                '\\' . StringBackedStatus::class . '|string',
+                StringBackedStatus::Ready,
+            ],
         ];
     }
 

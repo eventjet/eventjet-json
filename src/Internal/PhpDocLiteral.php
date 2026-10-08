@@ -11,6 +11,7 @@ use function constant;
 use function defined;
 use function is_float;
 use function is_int;
+use function preg_match;
 use function str_contains;
 
 /** @internal */
@@ -32,7 +33,13 @@ final class PhpDocLiteral
         if ($name === 'true' || $name === 'false') {
             return $name === 'true';
         }
-        return PhpDocLiteralNumber::parse($name) ?? PhpDocLiteralString::parse($name);
+        $literalSyntax = preg_match('/\A[\x27"0-9.+-]/', $name);
+        if ($literalSyntax !== 1) {
+            return null;
+        }
+        return $name[0] === "'" || $name[0] === '"'
+            ? PhpDocLiteralString::parse($name)
+            : PhpDocLiteralNumber::parse($name);
     }
 
     public static function matches(string $name, mixed $value): bool

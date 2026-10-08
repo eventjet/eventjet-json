@@ -8,6 +8,8 @@ use Override;
 use stdClass;
 use Stringable;
 
+use function array_filter;
+use function array_values;
 use function implode;
 use function is_array;
 use function is_string;
@@ -17,6 +19,8 @@ final readonly class CollectionUnionType implements Stringable
 {
     /** @var list<string> */
     private array $names;
+    /** @var list<string> */
+    public array $literalNames;
     /** @var array<string, ListType|MapType|TupleType> */
     private array $collections;
 
@@ -35,6 +39,10 @@ final readonly class CollectionUnionType implements Stringable
             $collections[$kind] = $member->collection;
         }
         $this->names = $names;
+        $this->literalNames = array_values(array_filter(
+            $names,
+            static fn(string $name): bool => PhpDocLiteral::value($name) !== null,
+        ));
         $this->collections = $collections;
     }
 

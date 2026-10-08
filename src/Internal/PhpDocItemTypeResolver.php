@@ -22,13 +22,6 @@ final class PhpDocItemTypeResolver
         ReflectionParameter|ReflectionProperty $field,
         PhpDocType $type,
     ): string|CollectionUnionType|NestedCollectionType|null {
-        $literal = PhpDocLiteral::value($type->name);
-        if ($type->arguments === [] && $literal === null) {
-            $constants = PhpDocConstantResolver::resolve($field, $type->name);
-            if ($constants !== null) {
-                return new CollectionUnionType($constants);
-            }
-        }
         $nested = NestedCollectionTypeResolver::resolve($field, $type);
         if ($nested !== null) {
             return $nested;
@@ -38,7 +31,12 @@ final class PhpDocItemTypeResolver
             return PhpDocUnionTypeResolver::resolve($field, $type->arguments);
         }
 
-        return self::named($field, $type);
+        $named = self::named($field, $type);
+        if ($named !== null) {
+            return $named;
+        }
+        $constants = $type->arguments === [] ? PhpDocConstantResolver::resolve($field, $type->name) : null;
+        return $constants === null ? null : new CollectionUnionType($constants);
     }
 
     /** @return string|null */
