@@ -25,12 +25,6 @@ final class ObjectTypeValidator
      */
     public static function validate(ReflectionClass $class, array $values, string $path): array|DecodeError
     {
-        $targetError = RootTypeValidator::validate($class);
-
-        if ($targetError !== null) {
-            return $targetError;
-        }
-
         $className = $class->getName();
         $collections = [];
 

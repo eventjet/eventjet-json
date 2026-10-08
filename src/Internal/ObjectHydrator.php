@@ -14,6 +14,9 @@ use function get_object_vars;
 /** @internal */
 final class ObjectHydrator
 {
+    /** @var array<class-string, ReflectionClass<object>> */
+    private static array $validatedClasses = [];
+
     /**
      * @template T of object
      * @param class-string<T> $class
@@ -22,7 +25,16 @@ final class ObjectHydrator
     public static function hydrate(string $class, stdClass $object, string $path = ''): object
     {
         try {
-            $reflection = new ReflectionClass($class);
+            /** @var ReflectionClass<T>|null $reflection */
+            $reflection = self::$validatedClasses[$class] ?? null;
+            if ($reflection === null) {
+                $reflection = new ReflectionClass($class);
+                $targetError = RootTypeValidator::validate($reflection);
+                if ($targetError !== null) {
+                    return $targetError;
+                }
+                self::$validatedClasses[$class] = $reflection;
+            }
             /** @var array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values */
             $values = get_object_vars($object);
             $collections = ObjectTypeValidator::validate($reflection, $values, $path);
