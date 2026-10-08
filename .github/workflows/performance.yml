@@ -55,6 +55,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup-php
+        with:
+          extensions: none, bcmath, ctype, curl, dom, fileinfo, filter, iconv, intl, mbstring, opcache, pcntl, phar, posix, simplexml, tokenizer, xml, xmlreader, xmlwriter, zip
       - name: Prepare request benchmark runtime
         run: |
           command -v php-fpm8.4
