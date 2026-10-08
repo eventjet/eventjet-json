@@ -30,11 +30,21 @@ final class ConstructorPlan
      */
     private Closure|false|null $compiledHydrator = false;
 
+    /** @psalm-suppress UnusedProperty Psalm does not track references from the hydrate property hook. */
+    private int $hydrations = 0;
+
     /** @var (Closure(stdClass): (object|null))|null */
     public Closure|null $hydrate {
-        get => $this->compiledHydrator === false
-            ? ($this->compiledHydrator = ScalarHydratorCompiler::compile($this->class))
-            : $this->compiledHydrator;
+        get {
+            if ($this->compiledHydrator !== false) {
+                return $this->compiledHydrator;
+            }
+            // Short requests cannot amortize reflection and runtime compilation.
+            if (++$this->hydrations < 128) {
+                return null;
+            }
+            return $this->compiledHydrator = ScalarHydratorCompiler::compile($this->class);
+        }
     }
 
     /**

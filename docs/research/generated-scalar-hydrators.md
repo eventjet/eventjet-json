@@ -9,7 +9,7 @@ property names are quoted and class names come from Reflection's canonical name.
 
 This draft uses runtime `eval` with a narrowly scoped lint exception. It avoids
 filesystem writes. Compilation is deferred until an eligible constructor plan
-is reused, so the first decode does not load the compiler. Plans for classes
+has been reused 128 times, so short requests do not load the compiler. Plans for classes
 with additional public properties never access the compiler. The resulting
 closure (including an unsupported result) is cached. Build-time
 generation is an alternative deployment design, not part of these measurements.
@@ -49,6 +49,14 @@ regressed cold scalar decoding by 8.49% with OPcache and 15.44% without it in CI
 An interleaved 21-pair local PHP 8.4.26 comparison reproduced a 12.71% regression
 without OPcache. Deferring compilation changed that comparison to -2.33%; a
 separate warm comparison retained a 12.58% reduction with OPcache. These local
-diagnostics do not replace the full CI gate. A process-isolated autoload test
-locks down the absence of compiler work on the first decode and reuse of the
-same closure afterward.
+diagnostics do not replace the full CI gate. Compiling on the second use still
+charged short requests before they could amortize compilation. The final
+activation threshold is 128 cached-plan uses; in particular, a fresh 100-record
+batch never compiles. A process-isolated autoload test locks down this boundary
+and reuse of the same closure afterward. Default and exception tests explicitly
+warm past the boundary before exercising the generated path.
+
+Hosted timing also contains false positives: an unchanged `d56aa02` versus
+`d56aa02` [control run](https://github.com/eventjet/eventjet-json/actions/runs/37815574072)
+reported an 8.36% cold JSON:API regression. No thresholds or performance tooling
+were changed to accommodate that noise.

@@ -68,7 +68,7 @@ final class AutoloadingTest extends TestCase
 {
     #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
     #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
-    public function testFirstDecodeDoesNotLoadTheScalarCompiler(): void
+    public function testShortRequestsDoNotLoadTheScalarCompiler(): void
     {
         $class = \Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields::class;
         $original = new $class('value', 42, 1.5, true);
@@ -79,6 +79,10 @@ final class AutoloadingTest extends TestCase
         $input->boolean = true;
         static::assertFalse(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));
         static::assertEquals($original, \Eventjet\Json\Internal\ObjectHydrator::hydrate($class, $input));
+        static::assertFalse(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));
+        for ($index = 0; $index < 127; ++$index) {
+            static::assertEquals($original, \Eventjet\Json\Internal\ObjectHydrator::hydrate($class, $input));
+        }
         static::assertFalse(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));
         static::assertEquals($original, \Eventjet\Json\Internal\ObjectHydrator::hydrate($class, $input));
         static::assertTrue(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));

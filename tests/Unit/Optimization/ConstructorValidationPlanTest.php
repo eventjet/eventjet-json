@@ -140,7 +140,9 @@ final class ConstructorValidationPlanTest extends TestCase
         $class = DefaultedConstructorFields::class;
         $original = new DefaultedConstructorFields('required', 'explicit', null);
         $input = self::input(\get_object_vars($original));
-        static::assertEquals($original, ObjectHydrator::hydrate($class, $input));
+        for ($index = 0; $index < 129; ++$index) {
+            static::assertEquals($original, ObjectHydrator::hydrate($class, $input));
+        }
         static::assertEquals($original, ObjectHydrator::hydrate($class, $input));
         $plan = ConstructorDecoder::scalarPlan($class);
         static::assertNotNull($plan);
@@ -164,6 +166,9 @@ final class ConstructorValidationPlanTest extends TestCase
 
         $class = ScalarConstructorGuard::class;
         $expected = new ScalarConstructorGuard(0);
+        for ($index = 0; $index < 129; ++$index) {
+            static::assertEquals($expected, ObjectHydrator::hydrate($class, self::input(['value' => 0])));
+        }
         $before = ScalarConstructorGuard::$calls;
         static::assertEquals($expected, ObjectHydrator::hydrate($class, self::input([
             'value' => 0,
