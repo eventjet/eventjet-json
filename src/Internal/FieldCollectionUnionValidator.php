@@ -24,14 +24,13 @@ final class FieldCollectionUnionValidator
 {
     /**
      * @param class-string $class
-     * @param list<string> $names
      * @throws ReflectionException
      */
     public static function validate(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionNamedType|ReflectionUnionType $native,
-        array $names,
+        CollectionUnionType $type,
     ): DecodeError|null {
         $expected = [];
         $members = $native instanceof ReflectionUnionType ? $native->getTypes() : [$native];
@@ -53,6 +52,16 @@ final class FieldCollectionUnionValidator
         }
         if ($native instanceof ReflectionNamedType && $native->allowsNull()) {
             $expected[] = 'null';
+        }
+        $names = [];
+        foreach ($type->members as $member) {
+            if (!$member instanceof NestedCollectionType) {
+                $names[] = $member;
+                continue;
+            }
+            $names[] = $member->collection instanceof MapType && $member->collection->arrayObject
+                ? ArrayObject::class
+                : 'array';
         }
         $names = array_unique($names);
         sort($names);

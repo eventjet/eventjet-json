@@ -14,7 +14,7 @@ final readonly class ConstructorValidationPlan
     /**
      * @param class-string $class
      * @param array<string, ConstructorValueValidator> $fields
-     * @param array<string, ListType|MapType|TupleType|FieldCollectionUnionType|null> $collections
+     * @param array<string, ListType|MapType|TupleType|CollectionUnionType|null> $collections
      */
     public function __construct(
         private string $class,
@@ -24,7 +24,7 @@ final readonly class ConstructorValidationPlan
 
     /**
      * @param array<array-key, mixed> $values
-     * @return array<string, ListType|MapType|TupleType|FieldCollectionUnionType|null>|DecodeError
+     * @return array<string, ListType|MapType|TupleType|CollectionUnionType|null>|DecodeError
      */
     public function validate(array $values, string $path): array|DecodeError
     {

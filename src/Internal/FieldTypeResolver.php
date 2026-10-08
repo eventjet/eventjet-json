@@ -12,7 +12,7 @@ use ReflectionProperty;
 /** @internal */
 final class FieldTypeResolver
 {
-    /** @var array<class-string, array<class-string<ReflectionParameter|ReflectionProperty>, array<string, ListType|MapType|TupleType|FieldCollectionUnionType|false>>> */
+    /** @var array<class-string, array<class-string<ReflectionParameter|ReflectionProperty>, array<string, ListType|MapType|TupleType|CollectionUnionType|false>>> */
     private static array $collections = [];
 
     /**
@@ -24,7 +24,7 @@ final class FieldTypeResolver
     public static function resolve(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
-    ): ListType|MapType|TupleType|FieldCollectionUnionType|DecodeError|null {
+    ): ListType|MapType|TupleType|CollectionUnionType|DecodeError|null {
         $kind = $field::class;
         $name = $field->getName();
         $resolved = self::$collections[$class][$kind][$name] ?? null;

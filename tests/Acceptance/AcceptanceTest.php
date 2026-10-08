@@ -29,9 +29,7 @@ use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldCollectionUnionMemberResolver;
 use Eventjet\Json\Internal\FieldCollectionUnionResolver;
-use Eventjet\Json\Internal\FieldCollectionUnionType;
 use Eventjet\Json\Internal\FieldCollectionUnionValidator;
-use Eventjet\Json\Internal\FieldCollectionUnionValueConverter;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
@@ -130,9 +128,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(FieldTypeValidator::class)]
 #[CoversClass(FieldCollectionUnionMemberResolver::class)]
 #[CoversClass(FieldCollectionUnionValidator::class)]
-#[CoversClass(FieldCollectionUnionType::class)]
 #[CoversClass(FieldCollectionUnionResolver::class)]
-#[CoversClass(FieldCollectionUnionValueConverter::class)]
 #[CoversClass(FieldPath::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
 #[CoversClass(FieldTypeResolver::class)]

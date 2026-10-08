@@ -11,7 +11,7 @@ use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionUnionType;
 
-use function implode;
+use function array_values;
 use function in_array;
 use function strtolower;
 
@@ -39,55 +39,30 @@ final class FieldCollectionUnionResolver
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionNamedType|ReflectionUnionType $native,
-    ): FieldCollectionUnionType|DecodeError {
+    ): CollectionUnionType|DecodeError {
         $type = PhpDocFieldType::resolve($field);
         if ($type === null || $type->name !== '|') {
             return CollectionTypeResolver::invalidDeclaration($class, $field);
         }
-        $collections = [];
-        $names = [];
-        $nativeNames = [];
-        $leafNames = [];
-        $shapes = [];
+        $members = [];
         foreach ($type->arguments as $member) {
             $resolved = FieldCollectionUnionMemberResolver::resolve($class, $field, $member);
             if ($resolved instanceof DecodeError) {
                 return $resolved;
             }
-            if (in_array($resolved['name'], $names, strict: true)) {
-                continue;
-            }
-            if ($resolved['collection'] === null) {
-                $leafNames[] = $resolved['name'];
-            }
-            $kind = $resolved['kind'];
-            if ($kind !== null) {
-                if (in_array($kind, $shapes, strict: true)) {
-                    return DecodeError::nonInstantiableTarget(
-                        $class,
-                        'Field '
-                        . $field->getName()
-                        . ' has multiple union members with the same JSON shape. JSON cannot identify which type to restore.',
-                    );
-                }
-                $shapes[] = $kind;
-                if ($resolved['collection'] !== null) {
-                    $collections[$kind] = $resolved['collection'];
-                }
-            }
-            $names[] = $resolved['name'];
-            $nativeNames[] = $resolved['native'];
+            $members[(string) $resolved] = $resolved;
+        }
+        $union = new CollectionUnionType(array_values($members));
+        $shapeError = CollectionUnionShapeValidator::validate($class, $field->getName(), $union);
+        if ($shapeError !== null) {
+            return $shapeError;
         }
         $error = FieldCollectionUnionValidator::validate(
             $class,
             $field,
             $native,
-            $nativeNames,
-        ) ?? EnumUnionValidator::validateNames($class, $field->getName(), $leafNames);
-        return $error ?? new FieldCollectionUnionType(
-            $collections,
-            new CollectionUnionType($leafNames),
-            implode('|', $names),
-        );
+            $union,
+        ) ?? EnumUnionValidator::validateNames($class, $field->getName(), $union->names());
+        return $error ?? $union;
     }
 }
