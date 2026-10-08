@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/performance-summary.php';
+
 // This runner targets the same Linux environment as the Performance workflow.
 // GNU timeout bounds each subprocess; the workflow also bounds the entire job.
 /**
@@ -71,6 +73,9 @@ function writeJson(string $path, array $data): void
 function publish(string $results, string $text): void
 {
     file_put_contents($results . '/summary.md', $text);
+    if (!file_exists($results . '/comment.md')) {
+        file_put_contents($results . '/comment.md', $text);
+    }
     $summary = getenv('GITHUB_STEP_SUMMARY');
     if ($summary !== false && $summary !== '') {
         file_put_contents($summary, $text, FILE_APPEND);
@@ -262,12 +267,14 @@ $measure = static function (string $version, string $name, string|null $baseline
 $measure('baseline', 'discovery', null, '--revs=1');
 $status = 0;
 $reports = [];
+$comparisonPaths = [];
 foreach (workloadFilters($results . '/discovery.xml') as $index => [$subjectFilter, $variantFilter, $group]) {
     $filters = [$subjectFilter, $variantFilter];
     $baselineName = 'baseline-' . $index;
     $candidateName = 'candidate-' . $index;
     $measure('baseline', $baselineName, null, ...$filters);
     $status = max($status, $measure('candidate', $candidateName, $baselineName, ...$filters));
+    $comparisonPaths[] = $results . '/' . $candidateName . '.xml';
     $workloadReport = file_get_contents($results . '/' . $candidateName . '.txt');
     if ($workloadReport === false) {
         throw new RuntimeException('Cannot read PHPBench report');
@@ -286,9 +293,12 @@ foreach ([
         $report .= "\n### $group\n\n```text\n" . $reports[$group] . "\n```\n";
     }
 }
+$comment = performanceSummary($comparisonPaths, $status);
+file_put_contents($results . '/comment.md', $comment);
 publish(
     $results,
-    "## Performance comparison\n\nBaseline: `$base`. Candidate: `$candidate`. OPcache: **$opcacheOption**. Frozen workloads: `$workloads`.\n\n"
+    $comment
+    . "\nBaseline: `$base`. Candidate: `$candidate`. OPcache: **$opcacheOption**. Frozen workloads: `$workloads`.\n\n"
     . ($status === 0 ? 'PHPBench assertions passed.' : 'PHPBench assertions failed: performance regression.')
     . " PHPBench mode time per decode must be at most 105% of the target's mode for every workload.\n\n"
     . 'Each target workload is measured immediately before its candidate counterpart, using the same configuration and dependencies on this runner. '

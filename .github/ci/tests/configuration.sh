@@ -77,7 +77,7 @@ if ($config['runner.php_config']['opcache.enable_cli'] !== $expectedOpcache
 $time = (int) trim(file_get_contents('src/time.txt'));
 foreach ($argv as $argument) {
     if (str_contains($argument, 'benchControl')) {
-        $time = 100;
+        $time = $time === 100 ? 100 : (int) (getenv('PERFORMANCE_TEST_CONTROL_TIME') ?: 100);
     }
 }
 $arguments = [PHP_BINARY, getenv('PERFORMANCE_TEST_PHPBENCH'), ...array_slice($argv, 1),
@@ -87,8 +87,8 @@ exit($status);
 PHP
 
 check_run() {
-    local expected=$1 name=$2 status=0
-    shift 2
+    local expected=$1 name=$2 verdict=$3 counts=$4 overall=$5 status=0
+    shift 5
     php "$runner" --base "$baseline" --candidate "$candidate" "$@" > "$name.log" 2>&1 || status=$?
     if [ "$status" -ne "$expected" ]; then
         cat "$name.log"
@@ -99,6 +99,14 @@ check_run() {
     test -s .perf/results/candidate-0.xml
     test -s .perf/results/candidate-0.txt
     test -s .perf/results/summary.md
+    test -s .perf/results/comment.md
+    for text in "$verdict" "$counts" "$overall" '**3 workloads**' '100.00 µs' 'Negative means faster'; do
+        if ! grep -Fq -- "$text" .perf/results/comment.md; then
+            cat .perf/results/comment.md
+            echo "Missing summary text: $text"
+            exit 1
+        fi
+    done
     test -s .perf/results/candidate-workloads.xml
     php <<'PHP'
 <?php
@@ -116,22 +124,30 @@ foreach ($files as $file) {
 PHP
     mv .perf "$name-results"
 }
-check_run 0 unchanged
-for entry in '50 improvement 0' '104 below-limit 0' '105 at-limit 0' '106 regression 2'; do
+check_run 0 unchanged '⚪ No significant performance changes' '| 0 | 3 | 0 |' '+0.00%'
+for entry in '50 improvement 0' '94 improvement-boundary 0' '95 at-improvement-limit 0' '104 below-limit 0' '105 at-limit 0' '106 regression 2'; do
     read -r time name expected <<< "$entry"
     printf '%s\n' "$time" > src/time.txt
     git add src/time.txt
     git commit --quiet -m "$name"
     candidate=$(git rev-parse HEAD)
-    check_run "$expected" "$name"
+    case "$name" in
+        improvement) check_run "$expected" "$name" '🟢 Performance improvement' '| 2 | 1 | 0 |' '-37.00%' ;;
+        improvement-boundary) check_run "$expected" "$name" '🟢 Performance improvement' '| 2 | 1 | 0 |' '-4.04%' ;;
+        at-improvement-limit) check_run "$expected" "$name" '⚪ No significant performance changes' '| 0 | 3 | 0 |' '-3.36%' ;;
+        below-limit) check_run "$expected" "$name" '⚪ No significant performance changes' '| 0 | 3 | 0 |' '+2.65%' ;;
+        at-limit) check_run "$expected" "$name" '⚪ No significant performance changes' '| 0 | 3 | 0 |' '+3.31%' ;;
+        regression) check_run "$expected" "$name" '🔴 Performance regression' '| 0 | 1 | 2 |' '+3.96%' ;;
+    esac
 done
+PERFORMANCE_TEST_CONTROL_TIME=50 check_run 2 mixed '🔴 Performance regression' '| 1 | 0 | 2 |' '-17.49%'
 if ! grep -Fq 'PHPBench assertions failed' regression-results/results/summary.md; then
     cat regression.log
     exit 1
 fi
 echo 'Native PHPBench assertions, boundaries, configuration isolation, and failure artifacts passed.'
 
-EXPECTED_OPCACHE=0 check_run 2 opcache-off --opcache off
+EXPECTED_OPCACHE=0 check_run 2 opcache-off '🔴 Performance regression' '| 0 | 1 | 2 |' '+3.96%' --opcache off
 php <<'PHP'
 <?php
 $metadata = json_decode(file_get_contents('opcache-off-results/results/metadata.json'), true, flags: JSON_THROW_ON_ERROR);
@@ -165,6 +181,7 @@ empty_tree=$(git mktree </dev/null)
 no_benchmarks=$(git commit-tree "$empty_tree" -m 'No benchmark suite')
 php "$runner" --base "$no_benchmarks" --candidate "$candidate" --workloads "$candidate" > no-baseline.log 2>&1
 grep -Fq 'No comparable baseline' .perf/results/summary.md
+grep -Fq 'No comparable baseline' .perf/results/comment.md
 mv .perf no-baseline-results
 echo 'Missing baseline with explicit workloads passed.'
 
@@ -186,4 +203,5 @@ for diagnostic in 'Command failed (23)' 'Benchmark failure detail on stdout' 'Be
         exit 1
     fi
 done
+test ! -e .perf/results/comment.md
 echo 'Subprocess failure diagnostics passed.'
