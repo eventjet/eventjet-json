@@ -8,6 +8,11 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function preg_match;
+use function preg_match_all;
+use function preg_replace;
+use function str_replace;
+use function strpbrk;
+use function trim;
 
 /** @internal */
 final class PhpDocFieldType
@@ -29,10 +34,7 @@ final class PhpDocFieldType
         $doc = $doc === false ? '' : $doc;
         $types = $cache->resolve(
             $doc,
-            /** @return list<array{PhpDocType, string}> */ static fn(): array => PhpDocFieldTypeParser::parse(
-                $doc,
-                $tag,
-            ),
+            /** @return list<array{PhpDocType, string}> */ static fn(): array => self::parse($doc, $tag),
         );
         if ($field instanceof ReflectionParameter) {
             /** @var MetadataCache<array<string, PhpDocType>> $parameters */
@@ -67,11 +69,33 @@ final class PhpDocFieldType
         foreach ($types as [$type, $remainder]) {
             $matches = [];
             preg_match('/\\A\\s+\\$([^\\s]+)(?:\\s|$)/', $remainder, $matches);
-            $parameterName = $matches[1] ?? null;
-            if ($parameterName !== null) {
-                $parameters[$parameterName] = $type;
-            }
+            $parameters[$matches[1] ?? ''] = $type;
         }
         return $parameters;
+    }
+
+    /** @return list<array{PhpDocType, string}> */
+    private static function parse(string $doc, string $tag): array
+    {
+        $doc =
+            preg_replace('/^[ \t]*\*[ \t]?/m', replacement: '', subject: str_replace('*/', replace: '', subject: $doc))
+            ?? '';
+        $matches = [];
+        $quoteIndex = (int) (strpbrk($doc, characters: "'\"") !== false);
+        $patterns = [
+            '/' . $tag . '\s+([^@]+)/',
+            '/' . $tag . '\s+(?=([\s\S]*))/',
+        ];
+        $pattern = $patterns[$quoteIndex] ?? $patterns[0];
+        preg_match_all($pattern, $doc, $matches);
+        /** @var array{list<string>, list<string>} $matches */
+        $types = [];
+        foreach ($matches[1] as $source) {
+            $parsed = PhpDocTypeParser::prefix(trim($source, characters: " \t\r\n\v\f"));
+            if ($parsed !== null) {
+                $types[] = $parsed;
+            }
+        }
+        return $types;
     }
 }
