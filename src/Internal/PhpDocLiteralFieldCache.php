@@ -9,7 +9,6 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 
-use function array_key_exists;
 use function enum_exists;
 use function preg_match;
 use function serialize;
@@ -64,17 +63,17 @@ final class PhpDocLiteralFieldCache
         $matches = [];
         $found = $field instanceof ReflectionParameter
             ? preg_match(
-                '~@param[ \t]+([^\r\n*]+?)[ \t]+(?:&|\.\.\.)?\$'
+                '~@param[ \t]+(?P<type>[^\r\n*]+?)[ \t]+(?:&|\.\.\.)?\$'
                 . preg_quote($field->getName(), delimiter: '~')
                 . '(?:[ \t]|\r?\n|$)~',
                 $doc,
                 $matches,
             )
-            : preg_match('~@var[ \t]+([^\r\n*]+)~', $doc, $matches);
-        if ($found !== 1 || !array_key_exists(1, $matches)) {
+            : preg_match('~@var[ \t]+(?P<type>[^\r\n*]+)~', $doc, $matches);
+        if ($found !== 1) {
             return false;
         }
-        $type = trim($matches[1]);
+        $type = trim($matches['type'] ?? '');
         return self::$literalMarkers[$type] ??=
             preg_match('~[\'"\d:]|\b(?:true|false|null|[A-Z][A-Za-z0-9_]*)\b~', subject: $type) === 1;
     }
