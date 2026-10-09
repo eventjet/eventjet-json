@@ -11,6 +11,7 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function class_exists;
+use function enum_exists;
 use function interface_exists;
 use function str_contains;
 use function strcasecmp;
@@ -18,12 +19,15 @@ use function strcasecmp;
 /** @internal */
 final class FieldTypeNameResolver
 {
-    /** @mutation-free */
     public static function hasScalarPhpDoc(
         ReflectionParameter|ReflectionProperty $field,
         ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
     ): bool {
         if ($collection !== null) {
+            return false;
+        }
+        $type = $field->getType();
+        if ($type instanceof ReflectionNamedType && !$type->isBuiltin() && !enum_exists($type->getName())) {
             return false;
         }
         $doc = $field instanceof ReflectionParameter
