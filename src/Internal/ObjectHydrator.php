@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use JsonException;
 use ReflectionClass;
-use ReflectionException;
-use ReflectionProperty;
 use stdClass;
 use Throwable;
 
@@ -34,12 +31,34 @@ final class ObjectHydrator
             $reflection = self::$validatedClasses[$class] ?? null;
             /** @var array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values */
             $values = get_object_vars($object);
-            $assignments = [];
+            $uncached = $reflection === null;
+            if ($reflection === null) {
+                $reflection = new ReflectionClass($class);
+                $targetError = RootTypeValidator::validate($reflection);
+                if ($targetError !== null) {
+                    return $targetError;
+                }
+                self::$validatedClasses[$class] = $reflection;
+            }
             $convertedValues = $reflection instanceof ConstructorPlan
                 ? $reflection->decode($values, $path)
-                : self::prepare($class, $reflection, $values, $path, $assignments);
+                : ConstructorDecoder::convert($reflection, $values, $path);
             if ($convertedValues instanceof DecodeError) {
                 return $convertedValues;
+            }
+            $assignments = [];
+            if ($reflection instanceof ReflectionClass) {
+                $properties = PublicProperties::resolve($reflection);
+                $assignments =
+                    $properties === [] || $properties instanceof DecodeError
+                        ? $properties
+                        : PublicPropertyHydrator::prepare($class, $properties, $values, $path);
+                if ($assignments instanceof DecodeError) {
+                    return $assignments;
+                }
+                if ($uncached && $properties === []) {
+                    self::cacheConstructorPlan($class);
+                }
             }
             /**
              * @mago-expect analysis:unknown-class-instantiation The constructor target is intentionally dynamic.
@@ -54,52 +73,6 @@ final class ObjectHydrator
         } catch (Throwable $error) {
             return DecodeError::cannotInstantiate($class, $error);
         }
-    }
-
-    /**
-     * @template T of object
-     * @param class-string<T> $class
-     * @param ReflectionClass<T>|null $reflection
-     * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
-     * @param list<array{property: ReflectionProperty, value: mixed}> $assignments
-     * @param-out list<array{property: ReflectionProperty, value: mixed}> $assignments
-     * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
-     * @throws JsonException
-     * @throws ReflectionException
-     */
-    private static function prepare(
-        string $class,
-        ReflectionClass|null $reflection,
-        array $values,
-        string $path,
-        array &$assignments,
-    ): array|DecodeError {
-        $uncached = $reflection === null;
-        if ($reflection === null) {
-            $reflection = new ReflectionClass($class);
-            $targetError = RootTypeValidator::validate($reflection);
-            if ($targetError !== null) {
-                return $targetError;
-            }
-            self::$validatedClasses[$class] = $reflection;
-        }
-        $convertedValues = ConstructorDecoder::convert($reflection, $values, $path);
-        if ($convertedValues instanceof DecodeError) {
-            return $convertedValues;
-        }
-        $properties = PublicProperties::resolve($reflection);
-        $prepared =
-            $properties === [] || $properties instanceof DecodeError
-                ? $properties
-                : PublicPropertyHydrator::prepare($class, $properties, $values, $path);
-        if ($prepared instanceof DecodeError) {
-            return $prepared;
-        }
-        if ($uncached && $properties === []) {
-            self::cacheConstructorPlan($class);
-        }
-        $assignments = $prepared;
-        return $convertedValues;
     }
 
     /** @param class-string $class */
