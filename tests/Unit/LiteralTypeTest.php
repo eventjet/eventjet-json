@@ -110,22 +110,24 @@ final class LiteralTypeTest extends TestCase
     public function testLiteralMetadataFastPathsAndFieldCacheKeys(): void
     {
         $object = new class(99) {
+            public int $value;
+            /** @var 13 */
+            public int $property;
+
             /**
              * @param 11 $value
              * @param 99 $value
              */
-            public function __construct(
-                public int $value,
-                /** @var 13 */
-                public int $property = 13,
-            ) {}
+            public function __construct(int $value)
+            {
+                $this->value = $value;
+                $this->property = 13;
+            }
 
             /** @param 12 $value */
             public function other(int $value): void
             {
-                if ($value !== 12) {
-                    throw new \LogicException();
-                }
+                $this->value = $value;
             }
         };
         $constructorParameter = new \ReflectionParameter([$object::class, '__construct'], 'value');
