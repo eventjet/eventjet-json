@@ -11,8 +11,6 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 
-use function class_exists;
-use function interface_exists;
 use function strcasecmp;
 use function strpbrk;
 
