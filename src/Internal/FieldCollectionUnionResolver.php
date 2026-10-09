@@ -62,7 +62,15 @@ final class FieldCollectionUnionResolver
             return $error;
         }
         $names = $union->names();
-        if (array_any($names, PhpDocType::literalSyntax(...))) {
+        $hasLiteral = false;
+        foreach ($names as $name) {
+            $isLiteral = PhpDocType::literalSyntax($name);
+            if ($isLiteral) {
+                $hasLiteral = true;
+                break;
+            }
+        }
+        if ($hasLiteral) {
             $error = PhpDocLiteralUnionValidator::validate($class, $field->getName(), $names);
             if ($error !== null) {
                 return $error;
