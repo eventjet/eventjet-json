@@ -7,6 +7,7 @@ namespace Eventjet\Json\Test\Unit;
 use Eventjet\Json\Internal\ClassUnionValidator;
 use Eventjet\Json\Internal\CollectionUnionType;
 use Eventjet\Json\Internal\ConstructorParameterConverter;
+use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
@@ -83,6 +84,7 @@ use const PHP_INT_MIN;
 #[UsesClass(\Eventjet\Json\Internal\CollectionTypeResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionTypeValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
+#[UsesClass(EnumFieldTypes::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
