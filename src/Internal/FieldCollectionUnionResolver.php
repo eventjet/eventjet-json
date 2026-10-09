@@ -61,11 +61,14 @@ final class FieldCollectionUnionResolver
         if ($error !== null) {
             return $error;
         }
-        $error = PhpDocLiteralUnionValidator::validate($class, $field->getName(), $union->names());
-        if ($error !== null) {
-            return $error;
+        $names = $union->names();
+        if (array_any($names, PhpDocType::literalSyntax(...))) {
+            $error = PhpDocLiteralUnionValidator::validate($class, $field->getName(), $names);
+            if ($error !== null) {
+                return $error;
+            }
         }
-        $error = EnumUnionValidator::validateNames($class, $field->getName(), $union->names());
+        $error = EnumUnionValidator::validateNames($class, $field->getName(), $names);
         return $error ?? $union;
     }
 }
