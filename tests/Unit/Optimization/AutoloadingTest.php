@@ -274,13 +274,13 @@ final class AutoloadingTest extends TestCase
                     new ConstructorParameter($parameter, $class),
                     [],
                 ));
-                static::assertSame($value, new FieldValueConverter($parameter, null)->convert(
+                static::assertSame($value, new FieldValueConverter($parameter, null, null)->convert(
                     $class->getName(),
                     $value,
                     $name,
                 ));
                 $property = $class->getProperty($name);
-                static::assertSame($value, new FieldValueConverter($property, null)->convert(
+                static::assertSame($value, new FieldValueConverter($property, null, null)->convert(
                     $class->getName(),
                     $value,
                     $name,

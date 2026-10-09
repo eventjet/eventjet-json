@@ -47,9 +47,7 @@ final readonly class ConstructorParameter
     }
 
     /** @throws ReflectionException */
-    public function converter(
-        ListType|MapType|TupleType|CollectionUnionType|false|null $resolved,
-    ): FieldValueConverter|LiteralFieldValueConverter|null
+    public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
     {
         $collection = $resolved === false ? null : $resolved;
         $literal = FieldTypeNameResolver::hasScalarPhpDoc($this->reflection, $collection)
@@ -57,9 +55,7 @@ final readonly class ConstructorParameter
             : null;
         return $this->builtin && $collection === null && $literal === null
             ? null
-            : ($literal !== null
-                ? new LiteralFieldValueConverter($this->reflection, $collection, $literal)
-                : new FieldValueConverter($this->reflection, $collection));
+            : new FieldValueConverter($this->reflection, $collection, $literal);
     }
 
     /**

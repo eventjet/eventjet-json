@@ -15,7 +15,7 @@ final class PublicPropertyHydrator
 {
     /**
      * @param class-string $class
-     * @param array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter|LiteralFieldValueConverter, builtinType: ReflectionNamedType|null}> $publicProperties
+     * @param array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}> $publicProperties
      * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
      * @return list<array{property: ReflectionProperty, value: mixed}>|DecodeError
      * @throws JsonException
