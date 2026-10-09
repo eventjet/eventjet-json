@@ -79,7 +79,7 @@ final class PhpDocLiteralFieldCache
             $matches,
             PREG_SET_ORDER,
         );
-        /** @var list<array{type: non-empty-string, name: non-empty-string}> $matches */
+        /** @var list<array{0: string, type: non-empty-string, 1: non-empty-string, name: non-falsy-string, 2: non-falsy-string}> $matches */
         $parameters = [];
         foreach ($matches as $match) {
             $parameters[$match['name']] = self::isLiteralMarker(trim($match['type']));
