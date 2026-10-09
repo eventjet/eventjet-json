@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionEnum;
+use ReflectionEnumBackedCase;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionType;
@@ -13,6 +14,8 @@ use ReflectionUnionType;
 
 use function array_filter;
 use function array_map;
+use function array_shift;
+use function count;
 use function enum_exists;
 use function in_array;
 use function sort;
@@ -65,7 +68,7 @@ final class EnumUnionValidator
             );
         }
 
-        $overlap = EnumBackingValueOverlap::find($enumNames);
+        $overlap = self::findOverlappingBackingValue($enumNames);
 
         if ($overlap !== null) {
             [$firstEnum, $secondEnum, $value] = $overlap;
@@ -93,20 +96,44 @@ final class EnumUnionValidator
     private static function backedEnumNames(array $memberNames): array
     {
         /** @var list<enum-string> $enumNames */
-        $enumNames = array_filter($memberNames, self::isBackedEnum(...));
+        $enumNames = array_filter($memberNames, EnumFieldTypes::isBackedEnum(...));
         sort($enumNames);
 
         return $enumNames;
     }
 
-    /** @throws ReflectionException */
-    private static function isBackedEnum(string $type): bool
+    /**
+     * @param list<enum-string> $enumNames
+     * @return array{enum-string, enum-string, int|string}|null
+     * @throws ReflectionException
+     */
+    private static function findOverlappingBackingValue(array $enumNames): array|null
     {
-        if (!enum_exists($type)) {
-            return false;
+        if (count($enumNames) < 2) {
+            return null;
         }
 
-        return new ReflectionEnum($type)->isBacked();
+        /** @var list<array{enum: enum-string, value: int|string}> $seen */
+        $seen = [];
+
+        foreach ($enumNames as $enumName) {
+            $enum = new ReflectionEnum($enumName);
+
+            foreach ($enum->getCases() as $case) {
+                /** @var ReflectionEnumBackedCase $case */
+                $value = $case->getBackingValue();
+
+                foreach ($seen as $existing) {
+                    if ($existing['value'] === $value) {
+                        return [$existing['enum'], $enumName, $value];
+                    }
+                }
+
+                $seen[] = ['enum' => $enumName, 'value' => $value];
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -117,13 +144,19 @@ final class EnumUnionValidator
      */
     private static function findAmbiguousPair(array $remainingNames, array $memberNames): array|null
     {
-        foreach ($remainingNames as $memberName) {
-            $ambiguousPair = self::ambiguousPair($memberName, $memberNames);
-            if ($ambiguousPair !== null) {
-                return $ambiguousPair;
-            }
+        $memberName = array_shift($remainingNames);
+
+        if ($memberName === null) {
+            return null;
         }
-        return null;
+
+        $ambiguousPair = self::ambiguousPair($memberName, $memberNames);
+
+        if ($ambiguousPair !== null) {
+            return $ambiguousPair;
+        }
+
+        return self::findAmbiguousPair($remainingNames, $memberNames);
     }
 
     /**
