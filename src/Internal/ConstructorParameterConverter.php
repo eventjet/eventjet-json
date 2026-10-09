@@ -58,14 +58,18 @@ final class ConstructorParameterConverter
         ReflectionParameter $field,
         ReflectionType|null $type,
         string|false|null $_docComment,
+        bool $hasLiteralPhpDoc,
         ListType|MapType|TupleType|CollectionUnionType|false|null $resolved,
     ): FieldValueConverter|null {
         $collection = $resolved === false ? null : $resolved;
         $builtin = $type instanceof ReflectionNamedType && $type->isBuiltin();
-        if ($collection !== null) {
-            return new FieldValueConverter($field, $collection);
+        if ($builtin && $collection === null && !$hasLiteralPhpDoc) {
+            return null;
         }
-        return $builtin ? null : new FieldValueConverter($field, $collection);
+        if ($hasLiteralPhpDoc && $collection === null) {
+            return self::createLiteral($field) ?? new FieldValueConverter($field, $collection);
+        }
+        return new FieldValueConverter($field, $collection);
     }
 
     /** @throws ReflectionException */

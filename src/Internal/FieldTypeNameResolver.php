@@ -35,6 +35,15 @@ final class FieldTypeNameResolver
         'string' => 'string',
     ];
 
+    public static function literalMarkerDocComment(string|false $docComment): string|false
+    {
+        if ($docComment === false) {
+            return false;
+        }
+        $mayContainLiteralMarker = self::mayContainLiteralMarker($docComment);
+        return $mayContainLiteralMarker ? $docComment : false;
+    }
+
     /** @throws ReflectionException */
     public static function hasLiteralPhpDoc(
         ReflectionParameter|ReflectionProperty $field,
