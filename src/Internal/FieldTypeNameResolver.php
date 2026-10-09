@@ -47,8 +47,8 @@ final class FieldTypeNameResolver
         // Constructor parameters share one docblock, whose marker map is already
         // checked and cached per function. Avoid rescanning that whole comment
         // once for every parameter before consulting the map.
-        $mayContainLiteral = $field instanceof ReflectionParameter
-            || ($docComment !== null && self::mayContainLiteralMarker($docComment));
+        $mayContainLiteral =
+            $field instanceof ReflectionParameter || $docComment !== null && self::mayContainLiteralMarker($docComment);
         if (!$mayContainLiteral) {
             return false;
         }
