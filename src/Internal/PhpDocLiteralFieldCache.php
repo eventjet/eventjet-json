@@ -14,6 +14,7 @@ use function enum_exists;
 use function preg_match;
 use function preg_match_all;
 use function serialize;
+use function str_contains;
 use function trim;
 
 /** @internal */
@@ -47,24 +48,31 @@ final class PhpDocLiteralFieldCache
         ReflectionParameter|ReflectionProperty $field,
         string|false|null $docComment = null,
     ): bool {
+        $function = $field instanceof ReflectionParameter ? $field->getDeclaringFunction() : null;
+        $doc = $docComment ?? ($function?->getDocComment() ?? $field->getDocComment());
+        if ($doc === false || $doc === null || $doc === '') {
+            return false;
+        }
         $native = $field->getType();
         if ($native instanceof ReflectionNamedType && !$native->isBuiltin() && !enum_exists($native->getName())) {
             return false;
         }
         if ($field instanceof ReflectionParameter) {
-            $function = $field->getDeclaringFunction();
+            /** @var ReflectionFunctionAbstract $function */
             $key = serialize([
                 $field->getDeclaringClass()?->getName(),
                 $function->getName(),
                 $function->getFileName(),
                 $function->getStartLine(),
             ]);
-            self::$parameterMarkers[$key] ??= self::parameterMarkers($function, $docComment);
+            self::$parameterMarkers[$key] ??= self::parameterMarkers($function, $doc);
             return self::$parameterMarkers[$key][$field->getName()] ?? false;
         }
-        $doc = $docComment ?? $field->getDocComment();
+        if (!str_contains($doc, '@var')) {
+            return false;
+        }
         $matches = [];
-        preg_match('~@var[ \t]+(?P<type>[^\r\n*]+)~', (string) $doc, $matches);
+        preg_match('~@var[ \t]+(?P<type>[^\r\n*]+)~', $doc, $matches);
         return self::isLiteralMarker(trim($matches['type'] ?? ''));
     }
 
