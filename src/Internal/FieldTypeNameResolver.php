@@ -9,6 +9,7 @@ use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
+use WeakMap;
 
 use function class_exists;
 use function interface_exists;
@@ -18,7 +19,9 @@ use function strcasecmp;
 /** @internal */
 final class FieldTypeNameResolver
 {
-    /** @mutation-free */
+    /** @var WeakMap<ReflectionParameter|ReflectionProperty, bool>|null */
+    private static WeakMap|null $scalarPhpDoc = null;
+
     public static function hasScalarPhpDoc(
         ReflectionParameter|ReflectionProperty $field,
         ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
@@ -26,11 +29,15 @@ final class FieldTypeNameResolver
         if ($collection !== null) {
             return false;
         }
+        $cache = self::$scalarPhpDoc ??= new WeakMap();
+        if (isset($cache[$field])) {
+            return $cache[$field];
+        }
         $doc = $field instanceof ReflectionParameter
             ? $field->getDeclaringFunction()->getDocComment()
             : $field->getDocComment();
         $needle = $field instanceof ReflectionParameter ? '$' . $field->getName() : '/**';
-        return str_contains((string) $doc, $needle);
+        return $cache[$field] = str_contains((string) $doc, $needle);
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
