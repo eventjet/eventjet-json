@@ -39,6 +39,9 @@ final class PhpDocLiteralFieldCache
             }
             return false;
         }
+        if ($docComment === false) {
+            return false;
+        }
         $resolved = PhpDocLiteralField::resolveUncached($field);
         self::$literalPresence[$key] = [true, $resolved];
         self::$literalDocComments[$key] = $docComment;
