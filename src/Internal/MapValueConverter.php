@@ -8,9 +8,6 @@ use Eventjet\Json\DecodeError;
 use JsonException;
 use ReflectionException;
 
-use function array_key_exists;
-use function array_keys;
-use function assert;
 use function in_array;
 
 /** @internal */
@@ -38,7 +35,7 @@ final class MapValueConverter
 
     /**
      * @param class-string $class
-     * @param array<string, mixed> $values
+     * @param array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values
      * @return array<string, mixed>|DecodeError
      * @throws JsonException
      * @throws ReflectionException
@@ -51,10 +48,9 @@ final class MapValueConverter
     ): array|DecodeError {
         $converted = [];
 
-        foreach (array_keys($values) as $key) {
-            assert(array_key_exists($key, $values), description: 'A key returned by array_keys() must exist.');
+        foreach ($values as $key => $value) {
             $itemPath = FieldPath::key($path, $key);
-            $convertedValue = CollectionItemValueConverter::convert($class, $itemPath, $type, $values[$key]);
+            $convertedValue = CollectionItemValueConverter::convert($class, $itemPath, $type, $value);
 
             if ($convertedValue instanceof DecodeError) {
                 return $convertedValue;

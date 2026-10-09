@@ -7,7 +7,6 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use stdClass;
 
-use function array_keys;
 use function is_int;
 
 /** @internal */
@@ -40,7 +39,7 @@ final class MapInputNormalizer
      */
     private static function stringKeys(string $class, string $path, array $values): array|DecodeError
     {
-        foreach (array_keys($values) as $key) {
+        foreach ($values as $key => $_) {
             if (is_int($key)) {
                 return MapDecodeError::numericKey($class, $path, $key);
             }

@@ -64,7 +64,7 @@ final class TupleValueConverter
             );
             $item = CollectionItemValueConverter::convert(
                 $class,
-                sprintf('%s[%d]', $path, $index),
+                $path . '[' . $index . ']',
                 $types[$index],
                 $value[$index],
             );

@@ -104,7 +104,7 @@ final readonly class ConstructorPlan
             }
             $value = $values[$name];
             if ($converter !== null) {
-                $fieldPath = $path === '' ? (string) $name : FieldPath::field($path, (string) $name);
+                $fieldPath = $path === '' ? (string) $name : $path . '.' . $name;
                 $value = $converter->convert($this->class, $value, $fieldPath);
                 if ($value instanceof DecodeError) {
                     return $value;
