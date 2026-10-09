@@ -9,7 +9,6 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
-use ReflectionProperty;
 use ReflectionType;
 
 use function sprintf;
@@ -47,7 +46,7 @@ final readonly class ConstructorParameter
         $this->builtin = $this->type instanceof ReflectionNamedType && $this->type->isBuiltin();
         $this->variadic = $reflection->isVariadic();
         $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
-        $this->recoverable = self::isPublicInstanceProperty($property);
+        $this->recoverable = ConstructorValueValidator::isPublicInstanceProperty($property);
         $this->hasLiteralPhpDoc =
             $literalDocComment !== false
             && ConstructorParameterConverter::hasLiteralMarker($reflection, $this->type, $literalDocComment);
@@ -56,17 +55,16 @@ final readonly class ConstructorParameter
     /** @throws ReflectionException */
     public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
     {
-        return ConstructorValueValidator::forConstructor($this, $resolved);
-    }
-
-    public static function expected(ReflectionNamedType $type, string $name): string
-    {
-        return $type->allowsNull() && $name !== 'null' ? $name . '|null' : $name;
-    }
-
-    private static function isPublicInstanceProperty(ReflectionProperty|null $property): bool
-    {
-        return $property !== null && $property->isPublic() && !$property->isStatic();
+        $collection = $resolved === false ? null : $resolved;
+        if ($this->hasLiteralPhpDoc && $collection === null) {
+            return (
+                ConstructorParameterConverter::createLiteral($this->reflection) ?? new FieldValueConverter(
+                    $this->reflection,
+                    null,
+                )
+            );
+        }
+        return $this->builtin && $collection === null ? null : new FieldValueConverter($this->reflection, $collection);
     }
 
     /**
