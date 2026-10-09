@@ -44,8 +44,12 @@ final class FieldTypeNameResolver
         if ($collection !== null || $docComment === false) {
             return false;
         }
-        $mayContainLiteral = $docComment !== null && self::mayContainLiteralMarker($docComment);
-        if ($docComment !== null && !$mayContainLiteral) {
+        // Constructor parameters share one docblock, whose marker map is already
+        // checked and cached per function. Avoid rescanning that whole comment
+        // once for every parameter before consulting the map.
+        $mayContainLiteral = $field instanceof ReflectionParameter
+            || ($docComment !== null && self::mayContainLiteralMarker($docComment));
+        if (!$mayContainLiteral) {
             return false;
         }
         return PhpDocLiteralFieldCache::hasLiteral($field, $docComment);
