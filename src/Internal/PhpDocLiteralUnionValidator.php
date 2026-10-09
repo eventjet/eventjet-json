@@ -8,6 +8,7 @@ use BackedEnum;
 use Eventjet\Json\DecodeError;
 use ReflectionException;
 
+use function array_filter;
 use function get_debug_type;
 use function is_float;
 use function is_int;
@@ -23,7 +24,7 @@ final class PhpDocLiteralUnionValidator
      */
     public static function validate(string $class, string $path, array $names): DecodeError|null
     {
-        foreach ($names as $name) {
+        foreach (array_filter($names, PhpDocType::literalSyntax(...)) as $name) {
             $literal = PhpDocLiteral::value($name);
             if ($literal === null) {
                 continue;

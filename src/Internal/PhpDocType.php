@@ -58,6 +58,11 @@ final readonly class PhpDocType
     /** @pure */
     public static function literalSyntax(string $name): bool
     {
-        return strspn($name, characters: "'\"0123456789.+-", length: 1) === 1 || str_contains($name, '::');
+        return (
+            $name === 'true'
+            || $name === 'false'
+            || strspn($name, characters: "'\"0123456789.+-", length: 1) === 1
+            || str_contains($name, '::')
+        );
     }
 }
