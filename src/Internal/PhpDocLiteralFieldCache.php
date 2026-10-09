@@ -89,7 +89,7 @@ final class PhpDocLiteralFieldCache
 
     private static function isLiteralMarker(string $type): bool
     {
-        return preg_match('~[\'"\d:]|\b(?:true|false|null|[A-Z][A-Za-z0-9_]*)\b~', subject: $type) === 1;
+        return preg_match('~[\'"\d:]|\b(?:true|false|null)\b~', subject: $type) === 1;
     }
 
     /**
