@@ -39,8 +39,8 @@ final class PhpDocLiteralFieldCache
             return $cached[0];
         }
         $resolved = PhpDocLiteralField::resolveUncached($field);
-        self::$literalPresence[$key] = [$resolved !== null, $resolved];
-        return $resolved !== null;
+        self::$literalPresence[$key] = [true, $resolved];
+        return true;
     }
 
     public static function mayContainLiteral(
