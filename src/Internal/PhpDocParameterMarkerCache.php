@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use ReflectionFunctionAbstract;
 use ReflectionParameter;
 
 use function array_key_exists;
-use function preg_match_all;
-use function trim;
 
 /** @internal */
 final class PhpDocParameterMarkerCache
@@ -42,27 +39,8 @@ final class PhpDocParameterMarkerCache
             }
             return false;
         }
-        self::$parameterMarkers[$functionKey] = self::parameterMarkers($function, $doc);
+        self::$parameterMarkers[$functionKey] = PhpDocLiteralFieldMarker::parameterMarkers($function, $doc);
         self::$functionDocComments[$functionKey] = $doc;
         return self::$parameterMarkers[$functionKey][$field->getName()] ?? false;
-    }
-
-    /** @return array<string, bool> */
-    private static function parameterMarkers(ReflectionFunctionAbstract $function, string|false|null $docComment): array
-    {
-        $doc = $docComment ?? $function->getDocComment();
-        $matches = [];
-        preg_match_all(
-            '~@param[ \t]+(?P<type>[^\r\n*]+?)[ \t]+(?:&|\.\.\.)?\$(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?:[ \t]|\r?\n|$)~',
-            (string) $doc,
-            $matches,
-            PREG_SET_ORDER,
-        );
-        /** @var list<array{0: string, type: non-empty-string, 1: non-empty-string, name: non-falsy-string, 2: non-falsy-string}> $matches */
-        $parameters = [];
-        foreach ($matches as $match) {
-            $parameters[$match['name']] = PhpDocLiteralFieldMarker::isLiteralMarker(trim($match['type']));
-        }
-        return $parameters;
     }
 }

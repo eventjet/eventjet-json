@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use ReflectionFunctionAbstract;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 
 use function enum_exists;
 use function preg_match;
+use function preg_match_all;
 use function str_contains;
+use function strpbrk;
 use function trim;
+
+use const PREG_SET_ORDER;
 
 /** @internal */
 final class PhpDocLiteralFieldMarker
@@ -31,7 +36,7 @@ final class PhpDocLiteralFieldMarker
         if ($doc === false || $doc === '') {
             return false;
         }
-        if (!str_contains($doc, '@var')) {
+        if (!str_contains($doc, '@var') || !self::isLiteralMarker($doc)) {
             return false;
         }
         $matches = [];
@@ -41,6 +46,32 @@ final class PhpDocLiteralFieldMarker
 
     public static function isLiteralMarker(string $type): bool
     {
-        return preg_match('~[\'"\d:]|\b(?:true|false|null)\b~', subject: $type) === 1;
+        if (strpbrk($type, characters: "'\"0123456789:") !== false) {
+            return true;
+        }
+
+        return preg_match('~\b(?:true|false|null)\b~', subject: $type) === 1;
+    }
+
+    /** @return array<string, bool> */
+    public static function parameterMarkers(ReflectionFunctionAbstract $function, string|false|null $docComment): array
+    {
+        $doc = $docComment ?? $function->getDocComment();
+        if (!self::isLiteralMarker((string) $doc)) {
+            return [];
+        }
+        $matches = [];
+        preg_match_all(
+            '~@param[ \t]+(?P<type>[^\r\n*]+?)[ \t]+(?:&|\.\.\.)?\$(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?:[ \t]|\r?\n|$)~',
+            (string) $doc,
+            $matches,
+            PREG_SET_ORDER,
+        );
+        /** @var list<array{0: string, type: non-empty-string, 1: non-empty-string, name: non-falsy-string, 2: non-falsy-string}> $matches */
+        $parameters = [];
+        foreach ($matches as $match) {
+            $parameters[$match['name']] = self::isLiteralMarker(trim($match['type']));
+        }
+        return $parameters;
     }
 }
