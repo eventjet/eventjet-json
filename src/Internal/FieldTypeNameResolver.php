@@ -55,6 +55,7 @@ final class FieldTypeNameResolver
         return PhpDocLiteralFieldCache::hasLiteral($field, $docComment);
     }
 
+    /** @pure */
     public static function mayContainLiteralMarker(string $docComment): bool
     {
         if (strpbrk($docComment, characters: "'\"0123456789") !== false) {

@@ -112,6 +112,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ClassTypeDependencies::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[CoversClass(ConstructorParameterConverter::class)]
+#[CoversClass(\Eventjet\Json\Internal\ConstructorParameterMetadata::class)]
 #[CoversClass(Json::class)]
 #[CoversClass(JsonType::class)]
 #[CoversClass(ArrayJsonType::class)]
