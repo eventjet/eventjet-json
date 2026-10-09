@@ -12,6 +12,7 @@ use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
+use Eventjet\Json\Internal\DeclaredClassType;
 use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\EnumUnionLookup;
 use Eventjet\Json\Internal\FieldNameCollisions;
@@ -48,6 +49,7 @@ use RuntimeException;
 use function class_alias;
 
 #[CoversClass(FieldValueConverter::class)]
+#[CoversClass(DeclaredClassType::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[CoversClass(ConstructorValueValidator::class)]

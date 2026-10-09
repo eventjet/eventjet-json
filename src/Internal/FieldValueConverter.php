@@ -14,8 +14,6 @@ use ReflectionType;
 use ReflectionUnionType;
 
 use function assert;
-use function class_exists;
-use function enum_exists;
 
 /** @internal */
 final readonly class FieldValueConverter
@@ -23,6 +21,10 @@ final readonly class FieldValueConverter
     private ReflectionType|null $type;
     private string $typeName;
     private EnumUnionLookup|null $enumLookup;
+    /** @var enum-string|null */
+    private string|null $enumName;
+    /** @var class-string|null */
+    private string|null $className;
 
     /** @throws ReflectionException */
     public function __construct(
@@ -34,6 +36,7 @@ final readonly class FieldValueConverter
         $this->typeName = $this->type instanceof ReflectionNamedType
             ? FieldTypeNameResolver::resolve($field, $this->type)
             : (string) $this->type;
+        [$this->enumName, $this->className] = DeclaredClassType::resolve($this->type, $this->typeName);
     }
 
     /**
@@ -45,20 +48,20 @@ final readonly class FieldValueConverter
      */
     public function convert(string $class, mixed $value, string $path): array|bool|float|int|object|string|null
     {
+        if ($this->collection === null) {
+            if ($this->type instanceof ReflectionUnionType) {
+                assert($this->enumLookup !== null, description: 'Union fields have a prepared union lookup.');
+                return $this->enumLookup->convertField($class, $this->field, $this->type, $value, $path);
+            }
+            if ($this->type instanceof ReflectionNamedType) {
+                return $this->convertNamed($class, $this->type, $value, $path);
+            }
+            return $value;
+        }
         if ($this->collection instanceof CollectionUnionType) {
             return CollectionUnionValueConverter::convert($class, $path, $this->collection, $value);
         }
-        if ($this->collection !== null) {
-            return CollectionValueConverter::convert($class, $path, $this->collection, $value);
-        }
-        if ($this->type instanceof ReflectionUnionType) {
-            assert($this->enumLookup !== null, description: 'Union fields have a prepared union lookup.');
-            return $this->enumLookup->convertField($class, $this->field, $this->type, $value, $path);
-        }
-        if ($this->type instanceof ReflectionNamedType) {
-            return $this->convertNamed($class, $this->type, $value, $path);
-        }
-        return $value;
+        return CollectionValueConverter::convert($class, $path, $this->collection, $value);
     }
 
     /**
@@ -73,27 +76,24 @@ final readonly class FieldValueConverter
         mixed $value,
         string $path,
     ): array|bool|float|int|object|string|null {
-        if ($type->isBuiltin()) {
-            $matches = ValueTypeMatcher::matches($value, $type);
-            if (!$matches) {
-                return DecodeError::fieldTypeMismatch(
-                    $class,
-                    $path,
-                    FieldTypeNameResolver::expected($type, $this->typeName),
-                    $value,
-                );
-            }
-            return $value;
-        }
-        if (enum_exists($this->typeName)) {
+        if ($this->enumName !== null) {
             if ($value === null && $type->allowsNull()) {
                 return null;
             }
-            return BackedEnumValueConverter::convertValue($class, $path, $this->typeName, $value, $type);
+            return BackedEnumValueConverter::convertValue($class, $path, $this->enumName, $value, $type);
         }
-        if (class_exists($this->typeName)) {
-            return ConcreteClassValueConverter::convert($class, $this->field, $this->typeName, $value, $path);
+        if ($this->className !== null) {
+            return ConcreteClassValueConverter::convert($class, $this->field, $this->className, $value, $path);
         }
-        return $value;
+        $matches = !$type->isBuiltin() || ValueTypeMatcher::matches($value, $type);
+        if ($matches) {
+            return $value;
+        }
+        return DecodeError::fieldTypeMismatch(
+            $class,
+            $path,
+            FieldTypeNameResolver::expected($type, $this->typeName),
+            $value,
+        );
     }
 }

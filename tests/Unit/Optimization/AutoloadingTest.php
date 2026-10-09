@@ -15,6 +15,7 @@ use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
+use Eventjet\Json\Internal\DeclaredClassType;
 use Eventjet\Json\Internal\EnumUnionLookup;
 use Eventjet\Json\Internal\EnumUnionValidator;
 use Eventjet\Json\Internal\FieldNameCollisions;
@@ -64,6 +65,7 @@ use function spl_autoload_unregister;
 
 #[CoversClass(PhpDocClassNameResolver::class)]
 #[CoversClass(FieldValueConverter::class)]
+#[CoversClass(DeclaredClassType::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[CoversClass(\Eventjet\Json\Internal\ListValueConverter::class)]
