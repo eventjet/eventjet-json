@@ -53,9 +53,10 @@ final class ConstructorDecoder
         $converters = [];
         $constructor = $class->getConstructor();
         $docComment = $constructor?->getDocComment() ?? false;
+        $literalDocComment = ConstructorParameterMetadata::literalDocComment($docComment);
 
         foreach ($constructor?->getParameters() ?? [] as $reflection) {
-            $parameter = new ConstructorParameter($reflection, $class, $docComment);
+            $parameter = new ConstructorParameter($reflection, $class, $docComment, $literalDocComment);
             $name = $names[$parameter->name] ?? $parameter->name;
             $resolved = $parameter->resolveType($className);
             $cacheable = $cacheable && $resolved !== null;

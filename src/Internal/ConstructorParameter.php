@@ -35,6 +35,7 @@ final readonly class ConstructorParameter
         public ReflectionParameter $reflection,
         ReflectionClass $class,
         private string|false|null $docComment = null,
+        string|false|null $literalDocComment = null,
     ) {
         $this->class = $class->getName();
         $this->name = $reflection->getName();
@@ -45,11 +46,11 @@ final readonly class ConstructorParameter
         $this->builtin = $this->type instanceof ReflectionNamedType && $this->type->isBuiltin();
         $this->variadic = $reflection->isVariadic();
         $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
-        $this->recoverable = ConstructorParameterConverter::isRecoverable($property);
+        $this->recoverable = ConstructorParameterMetadata::isRecoverable($property);
         $this->hasLiteralPhpDoc = ConstructorParameterConverter::hasLiteralMarker(
             $reflection,
             $this->type,
-            $docComment,
+            $literalDocComment,
         );
     }
 
