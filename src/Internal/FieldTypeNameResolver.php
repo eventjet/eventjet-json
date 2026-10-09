@@ -29,18 +29,21 @@ final class FieldTypeNameResolver
         if ($collection !== null || $docComment === false) {
             return false;
         }
-        $comment =
-            $docComment
-            ?? (
-                $field instanceof ReflectionParameter
-                    ? $field->getDeclaringFunction()->getDocComment()
-                    : $field->getDocComment()
-            );
-        $mayContainLiteralMarker = self::mayContainLiteralMarker((string) $comment);
+        $mayContainLiteralMarker = $field instanceof ReflectionParameter
+            ? PhpDocLiteralFieldMarker::mayContainLiteral($field, $docComment)
+            : self::propertyMayContainLiteralMarker($field, $docComment);
         if (!$mayContainLiteralMarker) {
             return false;
         }
         return PhpDocLiteralFieldCache::hasLiteral($field, $docComment);
+    }
+
+    private static function propertyMayContainLiteralMarker(
+        ReflectionProperty $field,
+        string|false|null $docComment,
+    ): bool {
+        $comment = $docComment ?? $field->getDocComment();
+        return $comment !== false && self::mayContainLiteralMarker($comment);
     }
 
     public static function mayContainLiteralMarker(string $docComment): bool

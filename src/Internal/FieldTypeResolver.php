@@ -51,15 +51,17 @@ final class FieldTypeResolver
         ReflectionNamedType|ReflectionUnionType $type,
     ): array {
         $docComment = $field->getDocComment();
-        $hasLiteralPhpDoc = false;
-        if ($docComment !== false && str_contains($docComment, '@var')) {
-            $mayContainLiteralMarker = FieldTypeNameResolver::mayContainLiteralMarker($docComment);
-            if ($mayContainLiteralMarker) {
-                $docComment = self::literalDocComment($field, $type);
-                $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($field, docComment: $docComment);
-            }
+        if ($docComment === false || !str_contains($docComment, '@var')) {
+            return [$docComment, false];
         }
 
+        $mayContainLiteralMarker = FieldTypeNameResolver::mayContainLiteralMarker($docComment);
+        if (!$mayContainLiteralMarker) {
+            return [$docComment, false];
+        }
+
+        $docComment = self::literalDocComment($field, $type);
+        $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($field, docComment: $docComment);
         return [$docComment, $hasLiteralPhpDoc];
     }
 

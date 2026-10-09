@@ -38,12 +38,11 @@ final class PhpDocLiteralFieldCache
         }
 
         $key = self::cacheKey($field);
-        if (array_key_exists($key, self::$literalPresence)) {
-            return true;
+        if (!array_key_exists($key, self::$literalPresence)) {
+            $resolved = PhpDocLiteralField::resolveUncached($field);
+            self::$literalPresence[$key] = $resolved;
         }
 
-        $resolved = PhpDocLiteralField::resolveUncached($field);
-        self::$literalPresence[$key] = $resolved;
         return true;
     }
 
@@ -60,11 +59,7 @@ final class PhpDocLiteralFieldCache
      */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
     {
-        $hasLiteral = self::hasLiteral($field);
-        if (!$hasLiteral) {
-            return null;
-        }
-
+        self::hasLiteral($field);
         return self::$literalPresence[self::cacheKey($field)] ?? null;
     }
 
@@ -74,12 +69,11 @@ final class PhpDocLiteralFieldCache
         return (
             $field instanceof ReflectionParameter
                 ? serialize([
-                    'parameter',
                     $field->getDeclaringClass()?->getName(),
                     $field->getDeclaringFunction()->getName(),
                     $field->getName(),
                 ])
-                : serialize(['property', $field->getDeclaringClass()->getName(), $field->getName()])
+                : serialize([$field->getDeclaringClass()->getName(), $field->getName()])
         );
     }
 }
