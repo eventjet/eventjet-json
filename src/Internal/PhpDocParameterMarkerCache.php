@@ -6,11 +6,9 @@ namespace Eventjet\Json\Internal;
 
 use ReflectionFunctionAbstract;
 use ReflectionParameter;
-use WeakMap;
 
 use function array_key_exists;
 use function preg_match_all;
-use function serialize;
 use function trim;
 
 /** @internal */
@@ -18,43 +16,31 @@ final class PhpDocParameterMarkerCache
 {
     /** @var array<string, array<string, bool>> */
     private static array $parameterMarkers = [];
-    /** @var WeakMap<ReflectionParameter, bool>|null */
-    private static WeakMap|null $fieldMarkers = null;
+    /** @var array<string, true> */
+    private static array $functionsWithoutDoc = [];
 
     public static function hasMarker(ReflectionParameter $field, string|false|null $docComment = null): bool
     {
-        if (self::$fieldMarkers !== null && self::$fieldMarkers->offsetExists($field)) {
-            return self::$fieldMarkers[$field] ?? false;
-        }
         $function = $field->getDeclaringFunction();
-        $key = serialize([
-            $field->getDeclaringClass()?->getName(),
-            $function->getName(),
-            $function->getFileName(),
-            $function->getStartLine(),
-        ]);
-        if (array_key_exists($key, self::$parameterMarkers)) {
-            return self::remember($field, self::$parameterMarkers[$key][$field->getName()] ?? false);
+        $functionName = $function->getName();
+        $functionKey = ($field->getDeclaringClass()?->getName() ?? '') . '::' . $functionName;
+        if ($functionName === '{closure}') {
+            $functionKey .= ':' . $function->getFileName() . ':' . $function->getStartLine();
+        }
+        if ($docComment === null && array_key_exists($functionKey, self::$functionsWithoutDoc)) {
+            return false;
         }
         $doc = $docComment ?? $function->getDocComment();
         if ($doc === false || $doc === '') {
-            self::$parameterMarkers[$key] = [];
-            return self::remember($field, false);
+            if ($docComment === null) {
+                self::$functionsWithoutDoc[$functionKey] = true;
+            }
+            return false;
         }
-        self::$parameterMarkers[$key] = self::parameterMarkers($function, $doc);
-        return self::remember($field, self::$parameterMarkers[$key][$field->getName()] ?? false);
-    }
-
-    private static function remember(ReflectionParameter $field, bool $hasMarker): bool
-    {
-        /** @var WeakMap<ReflectionParameter, bool>|null $fieldMarkers */
-        $fieldMarkers = self::$fieldMarkers;
-        if ($fieldMarkers === null) {
-            $fieldMarkers = new WeakMap();
-            self::$fieldMarkers = $fieldMarkers;
+        if (!array_key_exists($doc, self::$parameterMarkers)) {
+            self::$parameterMarkers[$doc] = self::parameterMarkers($function, $doc);
         }
-        $fieldMarkers[$field] = $hasMarker;
-        return $hasMarker;
+        return self::$parameterMarkers[$doc][$field->getName()] ?? false;
     }
 
     /** @return array<string, bool> */
