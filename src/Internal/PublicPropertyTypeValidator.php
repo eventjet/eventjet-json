@@ -54,7 +54,9 @@ final class PublicPropertyTypeValidator
         $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($property, $collection);
         $literals = $hasLiteralPhpDoc ? PhpDocLiteralField::resolve($property) : null;
 
-        return new FieldValueConverter($property, $collection, $literals);
+        return $literals === null
+            ? new FieldValueConverter($property, $collection)
+            : new PhpDocLiteralFieldValueConverter($property, $collection, $literals);
     }
 
     /** @param class-string $class */

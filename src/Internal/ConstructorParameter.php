@@ -52,9 +52,10 @@ final readonly class ConstructorParameter
         $collection = $resolved === false ? null : $resolved;
         $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($this->reflection, $collection);
         $literal = $hasLiteralPhpDoc ? PhpDocLiteralField::resolve($this->reflection) : null;
-        return $this->builtin && $collection === null && $literal === null
-            ? null
-            : new FieldValueConverter($this->reflection, $collection, $literal);
+        if ($literal !== null) {
+            return new PhpDocLiteralFieldValueConverter($this->reflection, $collection, $literal);
+        }
+        return $this->builtin && $collection === null ? null : new FieldValueConverter($this->reflection, $collection);
     }
 
     /**

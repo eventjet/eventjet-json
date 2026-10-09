@@ -6,7 +6,6 @@ namespace Eventjet\Json\Test\Unit;
 
 use Eventjet\Json\Internal\CollectionUnionType;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
@@ -23,6 +22,7 @@ use Eventjet\Json\Internal\PhpDocLiteral;
 use Eventjet\Json\Internal\PhpDocLiteralField;
 use Eventjet\Json\Internal\PhpDocLiteralFieldCache;
 use Eventjet\Json\Internal\PhpDocLiteralFieldValidator;
+use Eventjet\Json\Internal\PhpDocLiteralFieldValueConverter;
 use Eventjet\Json\Internal\PhpDocLiteralNumber;
 use Eventjet\Json\Internal\PhpDocLiteralString;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
@@ -69,7 +69,7 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocTokenStream::class)]
 #[UsesClass(NestedCollectionTypeResolver::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
-#[UsesClass(FieldValueConverter::class)]
+#[UsesClass(PhpDocLiteralFieldValueConverter::class)]
 #[UsesClass(PhpDocClassNameResolver::class)]
 #[UsesClass(PhpDocImports::class)]
 #[UsesClass(PhpDocImportKind::class)]
@@ -163,12 +163,6 @@ final class LiteralTypeTest extends TestCase
             $constructorParameter,
             new ListType('int', nonEmpty: false),
         ));
-        static::assertFalse(new FieldValueConverter(
-            $constructorParameter,
-            new ListType('int', nonEmpty: false),
-            ['11'],
-        )->literalConstrained);
-
         $ordinary = new class {
             /** @var \DateTimeImmutable */
             public \DateTimeImmutable $object;
