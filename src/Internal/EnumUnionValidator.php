@@ -15,7 +15,6 @@ use ReflectionUnionType;
 use function array_filter;
 use function array_map;
 use function array_shift;
-use function count;
 use function enum_exists;
 use function in_array;
 use function sort;
@@ -96,10 +95,20 @@ final class EnumUnionValidator
     private static function backedEnumNames(array $memberNames): array
     {
         /** @var list<enum-string> $enumNames */
-        $enumNames = array_filter($memberNames, EnumFieldTypes::isBackedEnum(...));
+        $enumNames = array_filter($memberNames, self::isBackedEnum(...));
         sort($enumNames);
 
         return $enumNames;
+    }
+
+    /** @throws ReflectionException */
+    private static function isBackedEnum(string $type): bool
+    {
+        if (!enum_exists($type)) {
+            return false;
+        }
+
+        return new ReflectionEnum($type)->isBacked();
     }
 
     /**
@@ -109,10 +118,6 @@ final class EnumUnionValidator
      */
     private static function findOverlappingBackingValue(array $enumNames): array|null
     {
-        if (count($enumNames) < 2) {
-            return null;
-        }
-
         /** @var list<array{enum: enum-string, value: int|string}> $seen */
         $seen = [];
 
