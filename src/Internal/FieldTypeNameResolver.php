@@ -13,6 +13,7 @@ use WeakMap;
 
 use function class_exists;
 use function interface_exists;
+use function is_bool;
 use function str_contains;
 use function strcasecmp;
 
@@ -29,15 +30,22 @@ final class FieldTypeNameResolver
         if ($collection !== null) {
             return false;
         }
-        $cache = self::$scalarPhpDoc ??= new WeakMap();
-        if (isset($cache[$field])) {
-            return $cache[$field];
+        $cache = self::$scalarPhpDoc;
+        if ($cache === null) {
+            $cache = new WeakMap();
+            self::$scalarPhpDoc = $cache;
+        }
+        $cached = $cache[$field] ?? null;
+        if (is_bool($cached)) {
+            return $cached;
         }
         $doc = $field instanceof ReflectionParameter
             ? $field->getDeclaringFunction()->getDocComment()
             : $field->getDocComment();
         $needle = $field instanceof ReflectionParameter ? '$' . $field->getName() : '/**';
-        return $cache[$field] = str_contains((string) $doc, $needle);
+        $hasDoc = str_contains((string) $doc, $needle);
+        $cache[$field] = $hasDoc;
+        return $hasDoc;
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
