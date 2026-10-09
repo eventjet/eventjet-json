@@ -12,7 +12,6 @@ use ReflectionProperty;
 
 use function class_exists;
 use function interface_exists;
-use function preg_match;
 use function str_contains;
 use function strcasecmp;
 
@@ -31,12 +30,7 @@ final class FieldTypeNameResolver
             ? $field->getDeclaringFunction()->getDocComment()
             : $field->getDocComment();
         $needle = $field instanceof ReflectionParameter ? '$' . $field->getName() : '/**';
-        $doc = (string) $doc;
-        $hasLiteralSyntax = preg_match(
-            '~(?:\'[^\'\r\n]*\'|"[^"\r\n]*")|::|\b(?:true|false|null)\b|(?<![A-Za-z_])[-+.]?\d~',
-            $doc,
-        ) === 1;
-        return str_contains($doc, $needle) && $hasLiteralSyntax;
+        return str_contains((string) $doc, $needle);
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
