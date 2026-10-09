@@ -75,6 +75,7 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PublicPropertyTypeValidator::class)]
 #[CoversClass(FieldNames::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocFieldType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldCache::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]
