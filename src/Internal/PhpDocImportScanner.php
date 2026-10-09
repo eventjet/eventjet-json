@@ -6,8 +6,6 @@ namespace Eventjet\Json\Internal;
 
 use function in_array;
 use function ord;
-use function strpos;
-use function substr;
 
 use const T_CLASS;
 use const T_COMMENT;
@@ -32,7 +30,7 @@ final class PhpDocImportScanner
         string $targetNamespace,
         PhpDocImportKind $kind = PhpDocImportKind::ClassName,
     ): array {
-        $source = self::beforeLine($source, $startLine);
+        $source = PhpDocImports::sourceBeforeLine($source, $startLine);
 
         $imports = [];
         $depth = 0;
@@ -92,18 +90,5 @@ final class PhpDocImportScanner
         }
 
         return $imports;
-    }
-
-    private static function beforeLine(string $source, int $line): string
-    {
-        $lineOffset = 0;
-        for ($currentLine = 1; $currentLine < $line; ++$currentLine) {
-            $newline = strpos($source, needle: "\n", offset: $lineOffset);
-            if ($newline === false) {
-                break;
-            }
-            $lineOffset = $newline + 1;
-        }
-        return substr($source, offset: 0, length: $lineOffset);
     }
 }

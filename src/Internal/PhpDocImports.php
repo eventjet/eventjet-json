@@ -8,12 +8,30 @@ use ReflectionClass;
 
 use function file_get_contents;
 use function is_file;
+use function strpos;
+use function substr;
 
 /** @internal */
 final class PhpDocImports
 {
     /** @var array<string, MetadataCache<array<string, string>>> */
     private static array $imports = [];
+
+    public static function sourceBeforeLine(string $source, int $line): string
+    {
+        if ($line <= 1) {
+            return $source;
+        }
+        $lineOffset = 0;
+        for ($currentLine = 1; $currentLine < $line; ++$currentLine) {
+            $newline = strpos($source, needle: "\n", offset: $lineOffset);
+            if ($newline === false) {
+                return $source;
+            }
+            $lineOffset = $newline + 1;
+        }
+        return substr($source, offset: 0, length: $lineOffset);
+    }
 
     /**
      * @param ReflectionClass<object> $class
