@@ -29,7 +29,8 @@ final class PhpDocLiteralFieldCache
         ReflectionParameter|ReflectionProperty $field,
         string|false|null $docComment = null,
     ): bool {
-        if ($docComment === false) {
+        $mayContainLiteral = self::mayContainLiteral($field, $docComment);
+        if (!$mayContainLiteral) {
             return false;
         }
         $key = self::cacheKey($field);
@@ -37,10 +38,9 @@ final class PhpDocLiteralFieldCache
             $cached = self::$literalPresence[$key];
             return $cached[0];
         }
-        $hasLiteral = self::mayContainLiteral($field, $docComment);
-        $resolved = $hasLiteral ? PhpDocLiteralField::resolveUncached($field) : null;
-        self::$literalPresence[$key] = [$hasLiteral, $resolved];
-        return $hasLiteral;
+        $resolved = PhpDocLiteralField::resolveUncached($field);
+        self::$literalPresence[$key] = [$resolved !== null, $resolved];
+        return $resolved !== null;
     }
 
     public static function mayContainLiteral(
