@@ -30,10 +30,10 @@ final class PhpDocFieldType
         $tag = $field instanceof ReflectionParameter ? '@param' : '@var';
         $doc = $doc === false ? '' : $doc;
         self::$declarations[$tag][$doc] ??= self::parse($doc, $tag);
-        $types = self::$declarations[$tag][$doc] ?? [];
+        $types = self::$declarations[$tag][$doc];
         if ($field instanceof ReflectionParameter) {
             self::$parameters[$tag][$doc] ??= self::parameters($types);
-            $byName = self::$parameters[$tag][$doc] ?? [];
+            $byName = self::$parameters[$tag][$doc];
             return $byName[$field->getName()] ?? null;
         }
         foreach ($types as $parsed) {
