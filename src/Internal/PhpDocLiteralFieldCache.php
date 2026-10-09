@@ -13,7 +13,7 @@ use function serialize;
 /** @internal */
 final class PhpDocLiteralFieldCache
 {
-    /** @var array<string, array{bool, list<string>|null}> */
+    /** @var array<string, array{string|false, bool, list<string>|null}> */
     private static array $literalPresence = [];
 
     /** @throws ReflectionException */
@@ -21,16 +21,28 @@ final class PhpDocLiteralFieldCache
         ReflectionParameter|ReflectionProperty $field,
         string|false|null $docComment = null,
     ): bool {
-        $mayContainLiteral = self::mayContainLiteral($field, $docComment);
-        if (!$mayContainLiteral) {
+        if ($docComment === false) {
             return false;
         }
+
         $key = self::cacheKey($field);
-        if (array_key_exists($key, self::$literalPresence)) {
-            return self::$literalPresence[$key][0];
+        $comment =
+            $docComment
+            ?? (
+                $field instanceof ReflectionParameter
+                    ? $field->getDeclaringFunction()->getDocComment()
+                    : $field->getDocComment()
+            );
+        if (array_key_exists($key, self::$literalPresence) && self::$literalPresence[$key][0] === $comment) {
+            return self::$literalPresence[$key][1];
         }
+        if (!self::mayContainLiteral($field, $comment)) {
+            self::$literalPresence[$key] = [$comment, false, null];
+            return false;
+        }
+
         $resolved = PhpDocLiteralField::resolveUncached($field);
-        self::$literalPresence[$key] = [true, $resolved];
+        self::$literalPresence[$key] = [$comment, true, $resolved];
         return true;
     }
 
@@ -48,8 +60,8 @@ final class PhpDocLiteralFieldCache
     public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
     {
         self::hasLiteral($field);
-        $cached = self::$literalPresence[self::cacheKey($field)] ?? [false, null];
-        return $cached[1];
+        $cached = self::$literalPresence[self::cacheKey($field)] ?? ['', false, null];
+        return $cached[2];
     }
 
     /** @throws ReflectionException */
