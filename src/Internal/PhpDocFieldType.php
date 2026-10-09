@@ -21,11 +21,16 @@ final class PhpDocFieldType
     /** @var array<string, MetadataCache<array<string, PhpDocType>>> */
     private static array $parameters = [];
 
-    public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|null
+    public static function resolve(
+        ReflectionParameter|ReflectionProperty $field,
+        string|false|null $docComment = null,
+    ): PhpDocType|null
     {
-        $doc = $field instanceof ReflectionParameter
-            ? $field->getDeclaringFunction()->getDocComment()
-            : $field->getDocComment();
+        $doc = $docComment ?? (
+            $field instanceof ReflectionParameter
+                ? $field->getDeclaringFunction()->getDocComment()
+                : $field->getDocComment()
+        );
         $tag = $field instanceof ReflectionParameter ? '@param' : '@var';
         /** @var MetadataCache<list<array{PhpDocType, string}>> $cache */
         $cache = self::$declarations[$tag] ?? new MetadataCache();

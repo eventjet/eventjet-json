@@ -10,14 +10,11 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function enum_exists;
-use function preg_match;
 use function serialize;
 
 /** @internal */
 final class PhpDocLiteralFieldCache
 {
-    /** @var array<string, bool> */
-    private static array $literalMarkers = [];
     /** @var array<string, array{bool, list<string>|null}> */
     private static array $literalPresence = [];
 
@@ -34,9 +31,7 @@ final class PhpDocLiteralFieldCache
             $cached = self::$literalPresence[$key];
             return $cached[0];
         }
-        $hasLiteral =
-            self::mayContainLiteral($field, $docComment)
-            && PhpDocFieldType::resolve($field)?->containsLiteral() === true;
+        $hasLiteral = self::mayContainLiteral($field, $docComment);
         $resolved = $hasLiteral ? PhpDocLiteralField::resolveUncached($field) : null;
         self::$literalPresence[$key] = [$hasLiteral, $resolved];
         return $hasLiteral;
@@ -50,34 +45,10 @@ final class PhpDocLiteralFieldCache
         if ($native instanceof ReflectionNamedType && !$native->isBuiltin() && !enum_exists($native->getName())) {
             return false;
         }
-        $doc =
-            $docComment
-            ?? (
-                $field instanceof ReflectionParameter
-                    ? $field->getDeclaringFunction()->getDocComment()
-                    : $field->getDocComment()
-            );
-        if ($doc === false) {
+        if ($docComment === false) {
             return false;
         }
-        $matches = [];
-        $found = $field instanceof ReflectionParameter
-            ? preg_match(
-                '~@param[ \t]+(?P<type>[^\r\n*]+?)[ \t]+(?:&|\.\.\.)?\$'
-                . preg_quote($field->getName(), delimiter: '~')
-                . '(?:[ \t]|\r?\n|$)~',
-                $doc,
-                $matches,
-            )
-            : preg_match('~@var[ \t]+(?P<type>[^\r\n*]+)~', $doc, $matches);
-        if ($found !== 1) {
-            return false;
-        }
-        /** @var array{0: non-falsy-string, 1: non-empty-string, type: non-empty-string} $captures */
-        $captures = $matches;
-        $type = trim($captures['type']);
-        return self::$literalMarkers[$type] ??=
-            preg_match('~[\'"\d:]|\b(?:true|false|null|[A-Z][A-Za-z0-9_]*)\b~', subject: $type) === 1;
+        return PhpDocFieldType::resolve($field, $docComment)?->containsLiteral() === true;
     }
 
     /**
