@@ -10,10 +10,10 @@ use ReflectionException;
 use stdClass;
 
 use function array_all;
-use function array_column;
 use function array_intersect_key;
 use function array_key_exists;
 use function count;
+use function current;
 use function is_array;
 use function is_bool;
 use function is_float;
@@ -45,10 +45,11 @@ final readonly class ConstructorPlan
             $converters,
             static fn(FieldValueConverter|null $converter): bool => $converter === null,
         );
+        $single = count($converters) === 1 ? current($converters) : null;
         // Small roots cannot amortize parser setup in short decoding runs.
         $this->directCandidate =
             $this->scalarOnly && count($converters) >= self::MIN_DIRECT_SCALAR_FIELDS
-            || count($converters) === 1 && array_column($fields, 'typeName') === ['array'];
+            || $single instanceof FieldValueConverter && $single->collection instanceof ListType;
     }
 
     /**

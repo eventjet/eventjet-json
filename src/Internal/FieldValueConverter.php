@@ -29,7 +29,7 @@ final readonly class FieldValueConverter
     /** @throws ReflectionException */
     public function __construct(
         private ReflectionParameter|ReflectionProperty $field,
-        private ListType|MapType|TupleType|CollectionUnionType|null $collection,
+        public ListType|MapType|TupleType|CollectionUnionType|null $collection,
     ) {
         $this->type = $field->getType();
         $this->enumLookup = $this->type instanceof ReflectionUnionType ? new EnumUnionLookup($this->type) : null;

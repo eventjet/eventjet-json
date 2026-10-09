@@ -97,6 +97,9 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTokens::class)]
 #[UsesClass(\Eventjet\Json\Internal\ListValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\MapDecodeError::class)]
+#[UsesClass(\Eventjet\Json\Internal\MapInputNormalizer::class)]
+#[UsesClass(\Eventjet\Json\Internal\MapValueConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\ScalarMapValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\MapTypeResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\NestedCollectionType::class)]
 #[UsesClass(\Eventjet\Json\Internal\NestedCollectionTypeResolver::class)]
@@ -753,6 +756,14 @@ final class ConstructorValidationPlanTest extends TestCase
             ) {}
         };
         static::assertFalse(\Eventjet\Json\Internal\DirectJsonParser::compile($map::class));
+        $nonEmptyMap = new class(['a' => 1]) {
+            /** @param non-empty-array<string, int> $values */
+            public function __construct(
+                public array $values,
+            ) {}
+        };
+        static::assertEquals($nonEmptyMap, \Eventjet\Json\Json::decode('{"values":{"a":1}}', $nonEmptyMap::class));
+        static::assertFalse(self::readDirectPlan($nonEmptyMap::class));
         $mapped = new class([]) implements \JsonSerializable {
             use \Eventjet\Json\MappedJsonFields;
 
