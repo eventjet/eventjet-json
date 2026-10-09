@@ -25,7 +25,7 @@ final class PhpDocParameterMarkerCache
         $functionName = $function->getName();
         $functionKey = ($field->getDeclaringClass()?->getName() ?? '') . '::' . $functionName;
         if ($functionName === '{closure}') {
-            $functionKey .= ':' . $function->getFileName() . ':' . $function->getStartLine();
+            $functionKey .= ':' . (string) $function->getFileName() . ':' . (string) $function->getStartLine();
         }
         if ($docComment === null && array_key_exists($functionKey, self::$functionsWithoutDoc)) {
             return false;
