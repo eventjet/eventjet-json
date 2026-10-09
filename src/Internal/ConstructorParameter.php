@@ -47,11 +47,8 @@ final readonly class ConstructorParameter
         $this->variadic = $reflection->isVariadic();
         $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
         $this->recoverable = ConstructorValueValidator::isPublicInstanceProperty($property);
-        $this->hasLiteralPhpDoc = ConstructorParameterConverter::hasLiteralMarker(
-            $reflection,
-            $this->type,
-            $literalDocComment,
-        );
+        $this->hasLiteralPhpDoc = $literalDocComment !== false
+            && ConstructorParameterConverter::hasLiteralMarker($reflection, $this->type, $literalDocComment);
     }
 
     /** @throws ReflectionException */
@@ -61,14 +58,14 @@ final readonly class ConstructorParameter
         if ($this->builtin && $collection === null && !$this->hasLiteralPhpDoc) {
             return null;
         }
-        return $this->hasLiteralPhpDoc && $collection === null
-            ? ConstructorParameterConverter::createLiteral($this->reflection) ?? ConstructorParameterConverter::create(
-                $this->reflection,
-                $this->type,
-                $this->docComment,
-                $resolved,
-            )
-            : ConstructorParameterConverter::create($this->reflection, $this->type, $this->docComment, $resolved);
+        if ($this->hasLiteralPhpDoc && $collection === null) {
+            $literals = ConstructorParameterConverter::createLiteral($this->reflection);
+            if ($literals !== null) {
+                return $literals;
+            }
+        }
+
+        return new FieldValueConverter($this->reflection, $collection);
     }
 
     /**
