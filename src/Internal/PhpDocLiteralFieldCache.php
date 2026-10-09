@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use ReflectionException;
+use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 
 use function array_key_exists;
+use function enum_exists;
 use function preg_match;
 
 /** @internal */
@@ -21,6 +23,10 @@ final class PhpDocLiteralFieldCache
 
     public static function mayContainLiteral(ReflectionParameter|ReflectionProperty $field): bool
     {
+        $native = $field->getType();
+        if ($native instanceof ReflectionNamedType && !$native->isBuiltin() && !enum_exists($native->getName())) {
+            return false;
+        }
         $doc = $field instanceof ReflectionParameter
             ? $field->getDeclaringFunction()->getDocComment()
             : $field->getDocComment();
@@ -34,7 +40,8 @@ final class PhpDocLiteralFieldCache
             . '@'
             . (string) $field->getDeclaringFunction()->getStartLine()
             : $field->getDeclaringClass()->getName() . '::$' . $field->getName();
-        return self::$literalMarkers[$key] ??= preg_match('~[\'"\d:]|\b(?:true|false|null)\b~', subject: $doc) === 1;
+        return self::$literalMarkers[$key] ??=
+            preg_match('~[\'"\d:]|\b(?:true|false|null|[A-Z][A-Za-z0-9_]*)\b~', subject: $doc) === 1;
     }
 
     /**
