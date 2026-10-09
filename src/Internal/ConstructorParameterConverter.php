@@ -15,16 +15,6 @@ use function enum_exists;
 /** @internal */
 final class ConstructorParameterConverter
 {
-    public static function literalMarkerDocComment(string|false $docComment): string|false
-    {
-        if ($docComment === false) {
-            return false;
-        }
-
-        $mayContainLiteralMarker = FieldTypeNameResolver::mayContainLiteralMarker($docComment);
-        return $mayContainLiteralMarker ? $docComment : false;
-    }
-
     /** @throws ReflectionException */
     public static function hasLiteralMarker(
         ReflectionParameter $field,
@@ -58,18 +48,14 @@ final class ConstructorParameterConverter
         ReflectionParameter $field,
         ReflectionType|null $type,
         string|false|null $_docComment,
-        bool $hasLiteralPhpDoc,
         ListType|MapType|TupleType|CollectionUnionType|false|null $resolved,
     ): FieldValueConverter|null {
         $collection = $resolved === false ? null : $resolved;
         $builtin = $type instanceof ReflectionNamedType && $type->isBuiltin();
-        if ($builtin && $collection === null && !$hasLiteralPhpDoc) {
-            return null;
+        if ($collection !== null) {
+            return new FieldValueConverter($field, $collection);
         }
-        if ($hasLiteralPhpDoc && $collection === null) {
-            return self::createLiteral($field) ?? new FieldValueConverter($field, $collection);
-        }
-        return new FieldValueConverter($field, $collection);
+        return $builtin ? null : new FieldValueConverter($field, null);
     }
 
     /** @throws ReflectionException */
