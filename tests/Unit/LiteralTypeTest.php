@@ -54,6 +54,8 @@ use const PHP_INT_MIN;
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(PhpDocLiteralField::class)]
 #[CoversClass(PhpDocLiteralFieldCache::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldMarker::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerCache::class)]
 #[CoversClass(PhpDocLiteralFieldValidator::class)]
 #[CoversClass(PhpDocFieldType::class)]
 #[UsesClass(PhpDocItemTypeResolver::class)]

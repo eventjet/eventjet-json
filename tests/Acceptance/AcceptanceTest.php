@@ -99,6 +99,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
@@ -203,6 +204,8 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(MappedConstructorPlan::class)]
 #[CoversClass(FieldNameCollisions::class)]
 #[CoversClass(FieldNames::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldMarker::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerCache::class)]
 final class AcceptanceTest extends TestCase
 {
     #[DataProviderExternal(ParserSyntaxCases::class, 'types')]

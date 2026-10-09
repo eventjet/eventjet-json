@@ -102,6 +102,8 @@ use function spl_autoload_unregister;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
 #[UsesClass(PhpDocLiteralFieldCache::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldMarker::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerCache::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionTypeResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionValueConverter::class)]

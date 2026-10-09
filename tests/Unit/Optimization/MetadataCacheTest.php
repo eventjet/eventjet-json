@@ -96,6 +96,8 @@ use function class_alias;
 #[UsesClass(NestedCollectionTypeResolver::class)]
 #[UsesClass(PhpDocFieldType::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldCache::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldMarker::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerCache::class)]
 #[UsesClass(PhpDocItemTypeResolver::class)]
 #[UsesClass(PhpDocType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
