@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use ReflectionException;
 use ReflectionNamedType;
-use ReflectionProperty;
 
 use function array_key_exists;
 use function enum_exists;
@@ -14,11 +14,6 @@ use function enum_exists;
 /** @internal */
 final readonly class ConstructorValueValidator
 {
-    public static function isPublicInstanceProperty(ReflectionProperty|null $property): bool
-    {
-        return $property !== null && $property->isPublic() && !$property->isStatic();
-    }
-
     public string $typeName;
     public bool $nullable;
 
@@ -28,11 +23,6 @@ final readonly class ConstructorValueValidator
     ) {
         $this->typeName = $type->getName();
         $this->nullable = $type->allowsNull();
-    }
-
-    public static function expected(ReflectionNamedType $type, string $name): string
-    {
-        return $type->allowsNull() && $name !== 'null' ? $name . '|null' : $name;
     }
 
     /** @param array<array-key, mixed> $values */
@@ -51,8 +41,28 @@ final readonly class ConstructorValueValidator
         ) {
             return null;
         }
-        $expected = self::expected($type, $parameter->typeName);
+        $expected = ConstructorParameter::expected($type, $parameter->typeName);
         return new self($type, $expected);
+    }
+
+    /** @throws ReflectionException */
+    public static function forConstructor(
+        ConstructorParameter $parameter,
+        ListType|MapType|TupleType|CollectionUnionType|false|null $resolved,
+    ): FieldValueConverter|null {
+        $collection = $resolved === false ? null : $resolved;
+        if ($parameter->hasLiteralPhpDoc && $collection === null) {
+            return (
+                ConstructorParameterConverter::createLiteral($parameter->reflection) ?? new FieldValueConverter(
+                    $parameter->reflection,
+                    null,
+                )
+            );
+        }
+        if ($parameter->builtin && $collection === null) {
+            return null;
+        }
+        return new FieldValueConverter($parameter->reflection, $collection);
     }
 
     /**
