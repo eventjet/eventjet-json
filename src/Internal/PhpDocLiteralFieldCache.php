@@ -25,11 +25,6 @@ final class PhpDocLiteralFieldCache
             return false;
         }
 
-        $key = self::cacheKey($field);
-        if (array_key_exists($key, self::$literalPresence)) {
-            return self::$literalPresence[$key] !== null;
-        }
-
         $comment =
             $docComment
             ?? (
@@ -39,12 +34,15 @@ final class PhpDocLiteralFieldCache
             );
         $mayContainLiteral = self::mayContainLiteral($field, $comment);
         if (!$mayContainLiteral) {
-            self::$literalPresence[$key] = null;
             return false;
         }
 
-        $resolved = PhpDocLiteralField::resolveUncached($field);
-        self::$literalPresence[$key] = $resolved;
+        $key = self::cacheKey($field);
+        if (!array_key_exists($key, self::$literalPresence)) {
+            $resolved = PhpDocLiteralField::resolveUncached($field);
+            self::$literalPresence[$key] = $resolved;
+        }
+
         return true;
     }
 
