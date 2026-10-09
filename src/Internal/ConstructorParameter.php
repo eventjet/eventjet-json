@@ -25,6 +25,7 @@ final readonly class ConstructorParameter
     public bool $builtin;
     private bool $variadic;
     private bool $recoverable;
+    private bool $hasLiteralPhpDoc;
 
     /**
      * @template T of object
@@ -49,18 +50,24 @@ final readonly class ConstructorParameter
             $property !== null
             && ($property->getModifiers() & (ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_STATIC))
                 === ReflectionProperty::IS_PUBLIC;
+        $this->hasLiteralPhpDoc = ConstructorParameterConverter::hasLiteralMarker(
+            $reflection,
+            $this->type,
+            $docComment,
+        );
     }
 
     /** @throws ReflectionException */
     public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
     {
         $collection = $resolved === false ? null : $resolved;
-        if ($collection !== null || $this->docComment === false) {
-            return $this->builtin && $collection === null
-                ? null
-                : new FieldValueConverter($this->reflection, $collection);
-        }
-        return ConstructorParameterConverter::create($this->reflection, $this->type, $this->docComment, $resolved);
+        return $this->hasLiteralPhpDoc && $collection === null
+            ? ConstructorParameterConverter::createLiteral($this->reflection) ?? ConstructorParameterConverter::create(
+                $this->reflection,
+                $this->type,
+                $resolved,
+            )
+            : ConstructorParameterConverter::create($this->reflection, $this->type, $resolved);
     }
 
     /**
@@ -84,16 +91,15 @@ final readonly class ConstructorParameter
                 '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
             );
         }
-        $hasLiteralPhpDoc = $this->docComment === false ? false : null;
         $resolved = $this->type instanceof ReflectionNamedType
             ? FieldTypeValidator::validateNamedType(
                 $class,
                 $this->reflection,
                 $this->type,
                 $this->docComment,
-                $hasLiteralPhpDoc,
+                $this->hasLiteralPhpDoc,
             )
-            : FieldTypeValidator::validate($class, $this->reflection, $this->docComment, $hasLiteralPhpDoc);
+            : FieldTypeValidator::validate($class, $this->reflection, $this->docComment, $this->hasLiteralPhpDoc);
         if ($resolved instanceof DecodeError) {
             return $resolved;
         }

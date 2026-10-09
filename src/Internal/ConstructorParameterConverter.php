@@ -8,40 +8,55 @@ use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
-
-use function enum_exists;
+use ReflectionUnionType;
 
 /** @internal */
 final class ConstructorParameterConverter
 {
+    /** @throws ReflectionException */
+    public static function hasLiteralMarker(
+        ReflectionParameter $field,
+        ReflectionType|null $type,
+        string|false|null $docComment,
+    ): bool {
+        if ($docComment === false) {
+            return false;
+        }
+        if ($type instanceof ReflectionNamedType && $type->isBuiltin() && $type->getName() === 'array') {
+            return false;
+        }
+        if ($type instanceof ReflectionUnionType) {
+            $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
+            if ($hasCollection) {
+                return false;
+            }
+        }
+        return FieldTypeNameResolver::hasLiteralPhpDoc($field, docComment: $docComment);
+    }
+
     /**
      * @throws ReflectionException
      */
     public static function create(
         ReflectionParameter $field,
         ReflectionType|null $type,
-        string|false|null $docComment,
         ListType|MapType|TupleType|CollectionUnionType|false|null $resolved,
     ): FieldValueConverter|null {
         $collection = $resolved === false ? null : $resolved;
         $builtin = $type instanceof ReflectionNamedType && $type->isBuiltin();
-        if ($collection !== null || $docComment === false) {
-            if ($builtin && $collection === null) {
-                return null;
-            }
+        if ($collection !== null) {
             return new FieldValueConverter($field, $collection);
-        }
-        $typeName = $type instanceof ReflectionNamedType && !$builtin
-            ? FieldTypeNameResolver::resolve($field, $type)
-            : null;
-        if ($typeName !== null && !enum_exists($typeName)) {
-            return new FieldValueConverter($field, $collection);
-        }
-        $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($field, $collection, $docComment);
-        $literals = $hasLiteralPhpDoc ? PhpDocLiteralField::resolve($field) : null;
-        if ($literals !== null) {
-            return new PhpDocLiteralFieldValueConverter($field, $collection, $literals);
         }
         return $builtin ? null : new FieldValueConverter($field, $collection);
+    }
+
+    /** @throws ReflectionException */
+    public static function createLiteral(ReflectionParameter $field): FieldValueConverter|null
+    {
+        $literals = PhpDocLiteralField::resolve($field);
+        if ($literals !== null) {
+            return new PhpDocLiteralFieldValueConverter($field, null, $literals);
+        }
+        return null;
     }
 }
