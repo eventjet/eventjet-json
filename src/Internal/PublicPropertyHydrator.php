@@ -7,7 +7,6 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use JsonException;
 use ReflectionException;
-use ReflectionNamedType;
 use ReflectionProperty;
 
 /** @internal */
@@ -15,7 +14,7 @@ final class PublicPropertyHydrator
 {
     /**
      * @param class-string $class
-     * @param array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}> $publicProperties
+     * @param array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: array{string, bool}|null}> $publicProperties
      * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
      * @return list<array{property: ReflectionProperty, value: mixed}>|DecodeError
      * @throws JsonException
@@ -39,7 +38,7 @@ final class PublicPropertyHydrator
 
             $builtinType = $field['builtinType'];
             if ($builtinType !== null) {
-                $matches = ValueTypeMatcher::matches($value, $builtinType);
+                $matches = ValueTypeMatcher::matchesName($value, $builtinType[0], $builtinType[1]);
                 if ($matches) {
                     $assignments[] = ['property' => $field['property'], 'value' => $value];
                     continue;
