@@ -17,6 +17,7 @@ use Eventjet\Json\Internal\PhpDocImportStatement;
 use Eventjet\Json\Internal\PhpDocItemTypeResolver;
 use Eventjet\Json\Internal\PhpDocLiteral;
 use Eventjet\Json\Internal\PhpDocLiteralField;
+use Eventjet\Json\Internal\PhpDocLiteralFieldCache;
 use Eventjet\Json\Internal\PhpDocLiteralNumber;
 use Eventjet\Json\Internal\PhpDocLiteralString;
 use Eventjet\Json\Internal\PhpDocStringEscape;
@@ -46,6 +47,7 @@ use const PHP_INT_MIN;
 #[CoversClass(PhpDocConstantValues::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(PhpDocLiteralField::class)]
+#[CoversClass(PhpDocLiteralFieldCache::class)]
 #[CoversClass(PhpDocFieldType::class)]
 #[UsesClass(PhpDocItemTypeResolver::class)]
 #[UsesClass(PhpDocLiteral::class)]

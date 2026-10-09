@@ -24,11 +24,14 @@ final class PhpDocLiteralField
      */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
     {
-        return PhpDocLiteralFieldCache::resolve($field, static fn(): array|null => self::resolveUncached($field));
+        return PhpDocLiteralFieldCache::resolve($field);
     }
 
-    /** @return list<string>|null */
-    private static function resolveUncached(ReflectionParameter|ReflectionProperty $field): array|null
+    /**
+     * @return list<string>|null
+     * @throws ReflectionException
+     */
+    public static function resolveUncached(ReflectionParameter|ReflectionProperty $field): array|null
     {
         $native = $field->getType();
         $ordinaryClass =

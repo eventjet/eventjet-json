@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use Closure;
+use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
 
@@ -17,10 +17,10 @@ final class PhpDocLiteralFieldCache
     private static array $resolved = [];
 
     /**
-     * @param Closure(): list<string>|null $resolve
      * @return list<string>|null
+     * @throws ReflectionException
      */
-    public static function resolve(ReflectionParameter|ReflectionProperty $field, Closure $resolve): array|null
+    public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
     {
         $key = $field instanceof ReflectionParameter
             ? ($field->getDeclaringClass()?->getName() ?? '')
@@ -32,6 +32,6 @@ final class PhpDocLiteralFieldCache
         if (array_key_exists($key, self::$resolved)) {
             return self::$resolved[$key];
         }
-        return self::$resolved[$key] = $resolve();
+        return self::$resolved[$key] = PhpDocLiteralField::resolveUncached($field);
     }
 }
