@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use ReflectionClass;
+use ReflectionParameter;
+use ReflectionProperty;
 
+use function class_exists;
 use function explode;
+use function interface_exists;
 use function ltrim;
 use function str_starts_with;
 use function strtolower;
@@ -15,6 +19,15 @@ use function substr;
 /** @internal */
 final class PhpDocClassNameResolver
 {
+    /** @return class-string|null */
+    public static function resolvePhpDocClass(ReflectionParameter|ReflectionProperty $field, string $type): string|null
+    {
+        /** @var ReflectionClass<object> $declaringClass */
+        $declaringClass = $field->getDeclaringClass();
+        $resolvedType = self::resolve($declaringClass, $type);
+        return class_exists($resolvedType) || interface_exists($resolvedType) ? $resolvedType : null;
+    }
+
     /** @param ReflectionClass<object> $class */
     public static function resolve(ReflectionClass $class, string $type): string
     {

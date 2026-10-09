@@ -96,25 +96,10 @@ final class FieldTypeNameResolver
     /** @return 'bool'|'float'|'int'|'string'|class-string|null */
     public static function resolvePhpDoc(ReflectionParameter|ReflectionProperty $field, string $type): string|null
     {
-        $primitive = self::primitivePhpDoc($type);
+        $primitive = self::PRIMITIVE_PHPDOC[$type] ?? null;
         if ($primitive !== null) {
             return $primitive;
         }
-
-        /** @var ReflectionClass<object> $declaringClass */
-        $declaringClass = $field->getDeclaringClass();
-
-        $resolvedType = PhpDocClassNameResolver::resolve($declaringClass, $type);
-
-        return class_exists($resolvedType) || interface_exists($resolvedType) ? $resolvedType : null;
-    }
-
-    /**
-     * @pure
-     * @return 'bool'|'float'|'int'|'string'|null
-     */
-    private static function primitivePhpDoc(string $type): string|null
-    {
-        return self::PRIMITIVE_PHPDOC[$type] ?? null;
+        return PhpDocClassNameResolver::resolvePhpDocClass($field, $type);
     }
 }
