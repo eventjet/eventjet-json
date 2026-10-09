@@ -9,6 +9,7 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionProperty;
 use ReflectionType;
 
 use function sprintf;
@@ -38,11 +39,15 @@ final readonly class ConstructorParameter
         $this->class = $class->getName();
         $this->name = $reflection->getName();
         $this->type = $reflection->getType();
-        $this->typeName = ConstructorValueValidator::typeName($reflection, $this->type);
+        $this->typeName = $this->type instanceof ReflectionNamedType
+            ? FieldTypeNameResolver::resolve($reflection, $this->type)
+            : (string) $this->type;
         $this->builtin = $this->type instanceof ReflectionNamedType && $this->type->isBuiltin();
         $this->variadic = $reflection->isVariadic();
         $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
-        $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
+        $this->recoverable = $property !== null
+            && ($property->getModifiers() & (ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_STATIC))
+            === ReflectionProperty::IS_PUBLIC;
     }
 
     /** @throws ReflectionException */
