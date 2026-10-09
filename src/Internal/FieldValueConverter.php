@@ -25,6 +25,24 @@ readonly class FieldValueConverter
     private EnumUnionLookup|null $enumLookup;
 
     /** @throws ReflectionException */
+    public static function forConstructor(
+        ConstructorParameter $parameter,
+        ListType|MapType|TupleType|CollectionUnionType|false|null $resolved,
+    ): self|null {
+        $collection = $resolved === false ? null : $resolved;
+        if ($parameter->hasLiteralPhpDoc && $collection === null) {
+            $literals = PhpDocLiteralField::resolve($parameter->reflection);
+            if ($literals !== null) {
+                return new PhpDocLiteralFieldValueConverter($parameter->reflection, null, $literals);
+            }
+        }
+        if ($parameter->builtin && $collection === null) {
+            return null;
+        }
+        return new self($parameter->reflection, $collection);
+    }
+
+    /** @throws ReflectionException */
     public function __construct(
         private ReflectionParameter|ReflectionProperty $field,
         private ListType|MapType|TupleType|CollectionUnionType|null $collection,

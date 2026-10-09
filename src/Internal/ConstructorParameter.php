@@ -24,7 +24,7 @@ final readonly class ConstructorParameter
     public bool $builtin;
     private bool $variadic;
     private bool $recoverable;
-    private bool $hasLiteralPhpDoc;
+    public bool $hasLiteralPhpDoc;
 
     /**
      * @template T of object
@@ -55,15 +55,7 @@ final readonly class ConstructorParameter
     /** @throws ReflectionException */
     public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
     {
-        $collection = $resolved === false ? null : $resolved;
-        return $this->hasLiteralPhpDoc && $collection === null
-            ? ConstructorParameterConverter::createLiteral($this->reflection) ?? ConstructorParameterConverter::create(
-                $this->reflection,
-                $this->type,
-                $this->docComment,
-                $resolved,
-            )
-            : ConstructorParameterConverter::create($this->reflection, $this->type, $this->docComment, $resolved);
+        return FieldValueConverter::forConstructor($this, $resolved);
     }
 
     /**
