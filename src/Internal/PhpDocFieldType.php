@@ -67,11 +67,12 @@ final class PhpDocFieldType
         $parameters = [];
         foreach ($types as [$type, $remainder]) {
             $matches = [];
-            $matched = preg_match('/\\A\\s+\\$([^\\s]+)(?:\\s|$)/', $remainder, $matches);
-            if ($matched !== 1 || !isset($matches[1])) {
+            preg_match('/\\A\\s+\\$([^\\s]+)(?:\\s|$)/', $remainder, $matches);
+            $parameterName = $matches[1] ?? null;
+            if ($parameterName === null) {
                 continue;
             }
-            $parameters[$matches[1]] ??= $type;
+            $parameters[$parameterName] ??= $type;
         }
         return $parameters;
     }
