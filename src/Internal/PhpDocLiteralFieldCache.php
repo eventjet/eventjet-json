@@ -51,8 +51,20 @@ final class PhpDocLiteralFieldCache
         if ($doc === false) {
             return false;
         }
-        return self::$literalMarkers[$doc] ??=
-            preg_match('~[\'"\d:]|\b(?:true|false|null|[A-Z][A-Za-z0-9_]*)\b~', subject: $doc) === 1;
+        $matches = [];
+        $found = $field instanceof ReflectionParameter
+            ? preg_match(
+                '~@param\s+(.+?)\s+(?:&|\.\.\.)?\$' . preg_quote($field->getName(), delimiter: '~') . '(?:\s|$)~s',
+                $doc,
+                $matches,
+            )
+            : preg_match('~@var\s+(.+?)(?=\s+\$[A-Za-z_]\w*\s*(?:\r?\n|\*/|$)|\s*(?:\r?\n|\*/|$))~s', $doc, $matches);
+        if ($found !== 1) {
+            return false;
+        }
+        $type = trim($matches[1] ?? '');
+        return self::$literalMarkers[$type] ??=
+            preg_match('~[\'"\d:]|\b(?:true|false|null|[A-Z][A-Za-z0-9_]*)\b~', subject: $type) === 1;
     }
 
     /**

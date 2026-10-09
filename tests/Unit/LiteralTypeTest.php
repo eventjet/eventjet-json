@@ -149,6 +149,16 @@ final class LiteralTypeTest extends TestCase
         static::assertSame(['12'], PhpDocLiteralField::resolve($otherParameter));
         static::assertSame(['13'], PhpDocLiteralField::resolve(new ReflectionProperty($object, 'property')));
         static::assertTrue(PhpDocLiteralFieldCache::mayContainLiteral($constructorParameter));
+        $plain = new class {
+            /**
+             * @param int $plain
+             * @return 14
+             */
+            public function plain(int $plain): void {}
+        };
+        static::assertFalse(PhpDocLiteralFieldCache::mayContainLiteral(
+            new \ReflectionParameter([$plain::class, 'plain'], 'plain'),
+        ));
         static::assertFalse(FieldTypeNameResolver::hasLiteralPhpDoc(
             $constructorParameter,
             new ListType('int', nonEmpty: false),
