@@ -8,36 +8,31 @@ use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
-use WeakMap;
 
 use function array_key_exists;
 use function enum_exists;
 use function preg_match;
+use function serialize;
 
 /** @internal */
 final class PhpDocLiteralFieldCache
 {
     /** @var array<string, bool> */
     private static array $literalMarkers = [];
-    /** @var WeakMap<object, array{bool, list<string>|null}>|null */
-    private static WeakMap|null $literalPresence = null;
+    /** @var array<string, array{bool, list<string>|null}> */
+    private static array $literalPresence = [];
 
     /** @throws ReflectionException */
     public static function hasLiteral(ReflectionParameter|ReflectionProperty $field): bool
     {
-        if (self::$literalPresence === null) {
-            /** @var WeakMap<object, array{bool, list<string>|null}> $literalPresence */
-            $literalPresence = new WeakMap();
-            self::$literalPresence = $literalPresence;
-        }
-        $cache = self::$literalPresence;
-        if ($cache->offsetExists($field)) {
-            $cached = $cache[$field] ?? [false, null];
+        $key = self::cacheKey($field);
+        if (array_key_exists($key, self::$literalPresence)) {
+            $cached = self::$literalPresence[$key];
             return $cached[0];
         }
         $hasLiteral = self::mayContainLiteral($field) && PhpDocFieldType::resolve($field)?->containsLiteral() === true;
         $resolved = $hasLiteral ? PhpDocLiteralField::resolveUncached($field) : null;
-        $cache[$field] = [$hasLiteral, $resolved];
+        self::$literalPresence[$key] = [$hasLiteral, $resolved];
         return $hasLiteral;
     }
 
@@ -78,8 +73,22 @@ final class PhpDocLiteralFieldCache
     public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
     {
         self::hasLiteral($field);
-        assert(self::$literalPresence !== null, description: 'Literal field metadata has been initialized.');
-        $cached = self::$literalPresence[$field] ?? [false, null];
+        $cached = self::$literalPresence[self::cacheKey($field)] ?? [false, null];
         return $cached[1];
+    }
+
+    /** @throws ReflectionException */
+    private static function cacheKey(ReflectionParameter|ReflectionProperty $field): string
+    {
+        return (
+            $field instanceof ReflectionParameter
+                ? serialize([
+                    'parameter',
+                    $field->getDeclaringClass()?->getName(),
+                    $field->getDeclaringFunction()->getName(),
+                    $field->getName(),
+                ])
+                : serialize(['property', $field->getDeclaringClass()->getName(), $field->getName()])
+        );
     }
 }
