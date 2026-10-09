@@ -25,11 +25,10 @@ final class ConstructorParameterConverter
             return false;
         }
         if ($type instanceof ReflectionNamedType) {
-            $typeName = FieldTypeNameResolver::resolve($field, $type);
-            if ($type->isBuiltin() && $typeName === 'array') {
+            if ($type->isBuiltin() && $type->getName() === 'array') {
                 return false;
             }
-            if (!$type->isBuiltin() && !enum_exists($typeName)) {
+            if (!$type->isBuiltin() && !enum_exists($type->getName())) {
                 return false;
             }
         }
