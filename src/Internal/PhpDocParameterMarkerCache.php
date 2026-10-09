@@ -24,7 +24,7 @@ final class PhpDocParameterMarkerCache
     public static function hasMarker(ReflectionParameter $field, string|false|null $docComment = null): bool
     {
         if (self::$fieldMarkers !== null && self::$fieldMarkers->offsetExists($field)) {
-            return self::$fieldMarkers[$field];
+            return self::$fieldMarkers[$field] ?? false;
         }
         $function = $field->getDeclaringFunction();
         $key = serialize([
@@ -47,8 +47,13 @@ final class PhpDocParameterMarkerCache
 
     private static function remember(ReflectionParameter $field, bool $hasMarker): bool
     {
-        self::$fieldMarkers ??= new WeakMap();
-        self::$fieldMarkers[$field] = $hasMarker;
+        /** @var WeakMap<ReflectionParameter, bool>|null $fieldMarkers */
+        $fieldMarkers = self::$fieldMarkers;
+        if ($fieldMarkers === null) {
+            $fieldMarkers = new WeakMap();
+            self::$fieldMarkers = $fieldMarkers;
+        }
+        $fieldMarkers[$field] = $hasMarker;
         return $hasMarker;
     }
 
