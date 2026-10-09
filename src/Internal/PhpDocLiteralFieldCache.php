@@ -10,6 +10,7 @@ use ReflectionParameter;
 use ReflectionProperty;
 use WeakMap;
 
+use function array_key_exists;
 use function enum_exists;
 use function preg_match;
 
@@ -31,7 +32,7 @@ final class PhpDocLiteralFieldCache
         }
         $cache = self::$literalPresence;
         if ($cache->offsetExists($field)) {
-            $cached = $cache[$field];
+            $cached = $cache[$field] ?? [false, null];
             return $cached[0];
         }
         $hasLiteral = self::mayContainLiteral($field) && PhpDocFieldType::resolve($field)?->containsLiteral() === true;
@@ -62,10 +63,10 @@ final class PhpDocLiteralFieldCache
                 $matches,
             )
             : preg_match('~@var[ \t]+([^\r\n*]+)~', $doc, $matches);
-        if ($found !== 1) {
+        if ($found !== 1 || !array_key_exists(1, $matches)) {
             return false;
         }
-        $type = trim($matches[1] ?? '');
+        $type = trim($matches[1]);
         return self::$literalMarkers[$type] ??=
             preg_match('~[\'"\d:]|\b(?:true|false|null|[A-Z][A-Za-z0-9_]*)\b~', subject: $type) === 1;
     }
