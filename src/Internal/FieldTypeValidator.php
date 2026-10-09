@@ -7,8 +7,7 @@ namespace Eventjet\Json\Internal;
 use ArrayObject;
 use BackedEnum;
 use Eventjet\Json\DecodeError;
-use JsonSerializable;
-use ReflectionEnum;
+use ReflectionClass;
 use ReflectionException;
 use ReflectionIntersectionType;
 use ReflectionNamedType;
@@ -25,6 +24,22 @@ use function is_a;
 final class FieldTypeValidator
 {
     // False identifies a valid non-collection declaration; null leaves unresolved types uncached.
+    /**
+     * @param class-string $class
+     * @throws ReflectionException
+     */
+    public static function resolveForGraph(
+        string $class,
+        ReflectionParameter $parameter,
+        ReflectionClass $reflection,
+    ): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null {
+        $usesUnion = $parameter->getType() instanceof ReflectionUnionType;
+        $docComment = $usesUnion
+            ? PhpDocParameterMarkerCache::constructorDocComment($class, $reflection->getConstructor())
+            : false;
+        return new ConstructorParameter($parameter, $reflection, $docComment, $docComment)->resolveType($class);
+    }
+
     /**
      * @param class-string $class
      * @throws ReflectionException
@@ -88,18 +103,5 @@ final class FieldTypeValidator
             return $hasLiteralPhpDoc ? PhpDocLiteralFieldValidator::validate($class, $field) ?? false : false;
         }
         return ClassFieldTypeValidator::validateNamed($class, $fieldName, $typeName, $type);
-    }
-
-    public static function isNonEncodable(string $type): bool
-    {
-        if (in_array($type, ['resource', 'open-resource', 'closed-resource'], strict: true)) {
-            return true;
-        }
-
-        return (
-            enum_exists($type)
-            && !new ReflectionEnum($type)->isBacked()
-            && !is_a($type, JsonSerializable::class, allow_string: true)
-        );
     }
 }
