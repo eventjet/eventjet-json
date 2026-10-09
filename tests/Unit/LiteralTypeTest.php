@@ -35,7 +35,6 @@ use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionProperty;
 
@@ -58,6 +57,7 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocUnionTypeResolver::class)]
 #[UsesClass(PhpDocType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
+#[UsesClass(ListType::class)]
 #[UsesClass(PhpDocTypeTokens::class)]
 #[UsesClass(PhpDocTokenStream::class)]
 #[UsesClass(NestedCollectionTypeResolver::class)]
@@ -109,7 +109,7 @@ final class LiteralTypeTest extends TestCase
     /** @throws \ReflectionException */
     public function testLiteralMetadataFastPathsAndFieldCacheKeys(): void
     {
-        $object = new class(11) {
+        $object = new class(99) {
             /**
              * @param int
              * @param 11 $value
@@ -122,10 +122,13 @@ final class LiteralTypeTest extends TestCase
             ) {}
 
             /** @param 12 $value */
-            public function other(int $value): void {}
+            public function other(int $value): void
+            {
+                $this->value = $value;
+            }
         };
-        $constructorParameter = new ReflectionMethod($object, '__construct')->getParameters()[0];
-        $otherParameter = new ReflectionMethod($object, 'other')->getParameters()[0];
+        $constructorParameter = new \ReflectionParameter([$object::class, '__construct'], 'value');
+        $otherParameter = new \ReflectionParameter([$object::class, 'other'], 'value');
 
         static::assertSame(['11'], PhpDocLiteralField::resolve($constructorParameter));
         static::assertSame(['12'], PhpDocLiteralField::resolve($otherParameter));
@@ -142,6 +145,14 @@ final class LiteralTypeTest extends TestCase
             public int $refined;
             /** @var scalar */
             public int $nonLiteral;
+
+            public function __construct()
+            {
+                $this->object = new \DateTimeImmutable();
+                $this->undocumented = 0;
+                $this->refined = 1;
+                $this->nonLiteral = 2;
+            }
         };
         $objectProperty = new ReflectionProperty($ordinary, 'object');
         $undocumentedProperty = new ReflectionProperty($ordinary, 'undocumented');
