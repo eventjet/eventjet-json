@@ -36,6 +36,15 @@ final readonly class FieldValueConverter
         private ListType|MapType|TupleType|CollectionUnionType|null $collection,
         array|null $literals,
     ) {
+        if ($this->collection !== null) {
+            $this->type = null;
+            $this->literals = null;
+            $this->literalConstrained = false;
+            $this->enumLookup = null;
+            $this->typeName = '';
+            return;
+        }
+
         $this->type = $field->getType();
         $this->literals = $literals;
         $this->literalConstrained = $this->literals !== null;
