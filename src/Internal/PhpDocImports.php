@@ -8,6 +8,7 @@ use ReflectionClass;
 
 use function file_get_contents;
 use function is_file;
+use function stripos;
 use function strpos;
 use function substr;
 
@@ -30,7 +31,9 @@ final class PhpDocImports
             }
             $lineOffset = $newline + 1;
         }
-        return substr($source, offset: 0, length: $lineOffset);
+        $prefix = substr($source, offset: 0, length: $lineOffset);
+        $hasUse = stripos($prefix, needle: 'use') !== false;
+        return $hasUse ? $prefix : '';
     }
 
     /**
