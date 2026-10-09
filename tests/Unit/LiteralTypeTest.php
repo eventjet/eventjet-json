@@ -111,7 +111,6 @@ final class LiteralTypeTest extends TestCase
     {
         $object = new class(99) {
             /**
-             * @param int
              * @param 11 $value
              * @param 99 $value
              */
@@ -124,7 +123,9 @@ final class LiteralTypeTest extends TestCase
             /** @param 12 $value */
             public function other(int $value): void
             {
-                $this->value = $value;
+                if ($value !== 12) {
+                    throw new \LogicException();
+                }
             }
         };
         $constructorParameter = new \ReflectionParameter([$object::class, '__construct'], 'value');
@@ -143,15 +144,15 @@ final class LiteralTypeTest extends TestCase
             public int $undocumented;
             /** @var positive-int */
             public int $refined;
-            /** @var scalar */
-            public int $nonLiteral;
+            /** @var list<string> */
+            public array $nonLiteral;
 
             public function __construct()
             {
                 $this->object = new \DateTimeImmutable();
                 $this->undocumented = 0;
                 $this->refined = 1;
-                $this->nonLiteral = 2;
+                $this->nonLiteral = [];
             }
         };
         $objectProperty = new ReflectionProperty($ordinary, 'object');
