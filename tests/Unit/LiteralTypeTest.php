@@ -51,11 +51,6 @@ use const NAN;
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
 
-final class LiteralTypeConstants
-{
-    public const NOT_FINITE = INF;
-}
-
 #[CoversClass(PhpDocLiteralNumber::class)]
 #[CoversClass(PhpDocLiteralString::class)]
 #[CoversClass(PhpDocStringEscape::class)]
@@ -113,10 +108,10 @@ final class LiteralTypeTest extends TestCase
             public array $items = [];
             /** @var positive-int */
             public int $refined = 1;
-            /** @var positive-int */
+            /** @var list<int>|positive-int */
             public array|int $union = 1;
 
-            public function __construct(int $_plain) {}
+            public function __construct(public int $_plain) {}
         };
         $items = new ReflectionProperty($object, 'items');
         $refined = new ReflectionProperty($object, 'refined');
@@ -141,7 +136,7 @@ final class LiteralTypeTest extends TestCase
         static::assertNull(ConstructorParameterConverter::create($parameter, $parameterType, false, null));
 
         $invalid = new class(1) {
-            /** @param int|float|LiteralTypeConstants::NOT_FINITE $value */
+            /** @param int|float|INF $value */
             public function __construct(
                 public int|float $value,
             ) {}
