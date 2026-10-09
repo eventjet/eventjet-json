@@ -38,7 +38,7 @@ final class MapTypeResolver
         $hasStringKey = $key->name === 'string' && $key->arguments === [];
 
         if ($arrayObject) {
-            $container = FieldTypeNameResolver::resolvePhpDoc($field, $type->name);
+            $container = PhpDocClassNameResolver::resolveType($field, $type->name);
             if (!$hasStringKey || strcasecmp($container ?? $type->name, ArrayObject::class) !== 0) {
                 return MapDecodeError::unsupportedDeclaration($class, $field->getName(), ArrayObject::class);
             }

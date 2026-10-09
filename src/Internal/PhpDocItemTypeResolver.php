@@ -51,7 +51,7 @@ final class PhpDocItemTypeResolver
             if ($literal !== null || in_array($type->name, ['null', 'true', 'false'], strict: true)) {
                 return $type->name;
             }
-            return FieldTypeNameResolver::resolvePhpDoc($field, $type->name);
+            return PhpDocClassNameResolver::resolveType($field, $type->name);
         }
 
         if ($type->name !== 'int' || count($arguments) !== 2) {

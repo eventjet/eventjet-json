@@ -63,7 +63,7 @@ final class NestedCollectionTypeResolver
         if (!$hasStringKey) {
             return null;
         }
-        $container = FieldTypeNameResolver::resolvePhpDoc($field, $type->name);
+        $container = PhpDocClassNameResolver::resolveType($field, $type->name);
         $arrayObject = strcasecmp($container ?? $type->name, ArrayObject::class) === 0;
         if (!$arrayObject && !in_array($type->name, ['non-empty-array', 'non-empty-map'], strict: true)) {
             return null;
