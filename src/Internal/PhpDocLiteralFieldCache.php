@@ -36,7 +36,8 @@ final class PhpDocLiteralFieldCache
         if (array_key_exists($key, self::$literalPresence) && self::$literalPresence[$key][0] === $comment) {
             return self::$literalPresence[$key][1];
         }
-        if (!self::mayContainLiteral($field, $comment)) {
+        $mayContainLiteral = self::mayContainLiteral($field, $comment);
+        if (!$mayContainLiteral) {
             self::$literalPresence[$key] = [$comment, false, null];
             return false;
         }
