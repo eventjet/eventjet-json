@@ -111,7 +111,9 @@ final class LiteralTypeTest extends TestCase
             /** @var list<int>|positive-int */
             public array|int $union = 1;
 
-            public function __construct(public int $_plain) {}
+            public function __construct(
+                public int $_plain,
+            ) {}
         };
         $items = new ReflectionProperty($object, 'items');
         $refined = new ReflectionProperty($object, 'refined');
