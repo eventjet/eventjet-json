@@ -38,9 +38,7 @@ final readonly class ConstructorParameter
         $this->class = $class->getName();
         $this->name = $reflection->getName();
         $this->type = $reflection->getType();
-        $this->typeName = $this->type instanceof ReflectionNamedType
-            ? FieldTypeNameResolver::resolve($reflection, $this->type)
-            : (string) $this->type;
+        $this->typeName = ConstructorValueValidator::typeName($reflection, $this->type);
         $this->builtin = $this->type instanceof ReflectionNamedType && $this->type->isBuiltin();
         $this->variadic = $reflection->isVariadic();
         $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
@@ -50,8 +48,8 @@ final readonly class ConstructorParameter
     /** @throws ReflectionException */
     public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
     {
-        if ($this->docComment === false) {
-            $collection = $resolved === false ? null : $resolved;
+        $collection = $resolved === false ? null : $resolved;
+        if ($collection !== null || $this->docComment === false) {
             return $this->builtin && $collection === null
                 ? null
                 : new FieldValueConverter($this->reflection, $collection);

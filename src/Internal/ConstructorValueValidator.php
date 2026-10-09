@@ -6,6 +6,8 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionNamedType;
+use ReflectionParameter;
+use ReflectionType;
 
 use function array_key_exists;
 use function enum_exists;
@@ -27,6 +29,13 @@ final readonly class ConstructorValueValidator
     public static function expected(ReflectionNamedType $type, string $name): string
     {
         return $type->allowsNull() && $name !== 'null' ? $name . '|null' : $name;
+    }
+
+    public static function typeName(ReflectionParameter $field, ReflectionType|null $type): string
+    {
+        return $type instanceof ReflectionNamedType
+            ? FieldTypeNameResolver::resolve($field, $type)
+            : (string) $type;
     }
 
     /** @param array<array-key, mixed> $values */
