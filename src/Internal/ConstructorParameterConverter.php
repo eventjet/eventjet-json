@@ -10,6 +10,8 @@ use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
 
+use function enum_exists;
+
 /** @internal */
 final class ConstructorParameterConverter
 {
@@ -22,8 +24,14 @@ final class ConstructorParameterConverter
         if ($docComment === false) {
             return false;
         }
-        if ($type instanceof ReflectionNamedType && $type->isBuiltin() && $type->getName() === 'array') {
-            return false;
+        if ($type instanceof ReflectionNamedType) {
+            $typeName = FieldTypeNameResolver::resolve($field, $type);
+            if ($type->isBuiltin() && $typeName === 'array') {
+                return false;
+            }
+            if (!$type->isBuiltin() && !enum_exists($typeName)) {
+                return false;
+            }
         }
         if ($type instanceof ReflectionUnionType) {
             $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
