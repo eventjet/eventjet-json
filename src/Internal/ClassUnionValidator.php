@@ -7,13 +7,11 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use ReflectionException;
 use ReflectionIntersectionType;
-use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
 
-use function array_any;
 use function array_filter;
 use function array_map;
 use function array_values;
@@ -21,7 +19,6 @@ use function count;
 use function implode;
 use function in_array;
 use function sort;
-use function strtolower;
 
 /** @internal */
 final class ClassUnionValidator
@@ -75,7 +72,7 @@ final class ClassUnionValidator
         ReflectionParameter|ReflectionProperty $field,
         ReflectionUnionType $type,
     ): CollectionUnionType|DecodeError|false|null {
-        $hasCollection = self::hasCollection($type);
+        $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
         if ($hasCollection) {
             return FieldCollectionUnionResolver::resolve($class, $field, $type);
         }
@@ -86,12 +83,29 @@ final class ClassUnionValidator
         if ($classError !== null) {
             return $classError;
         }
-        $unionError = EnumUnionValidator::validate($class, $fieldName, $type, $literals);
+        $unionError =
+            EnumUnionValidator::validate($class, $fieldName, $type, $literals)
+            ?? ($hasLiteralPhpDoc ? PhpDocLiteralFieldValidator::validateUnresolved($class, $field, $literals) : null);
 
         if ($unionError !== null) {
             return $unionError;
         }
 
+        return self::resolveMembers($class, $field, $type, $literals);
+    }
+
+    /**
+     * @param class-string $class
+     * @param list<string>|null $literals
+     * @throws ReflectionException
+     */
+    private static function resolveMembers(
+        string $class,
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionUnionType $type,
+        array|null $literals,
+    ): CollectionUnionType|DecodeError|false|null {
+        $fieldName = $field->getName();
         $memberResults = [];
         $nonEncodableError = null;
         foreach ($type->getTypes() as $member) {
@@ -105,7 +119,7 @@ final class ClassUnionValidator
                 $nonEncodableError ??= DecodeError::nonBackedEnum($class, $name, $fieldName);
                 continue;
             }
-            $error = FieldTypeValidator::validateNamedType($class, $field, $member);
+            $error = FieldTypeValidator::validateNamedType($class, $field, $member, docComment: false);
 
             if ($error instanceof DecodeError) {
                 return $error;
@@ -121,14 +135,5 @@ final class ClassUnionValidator
             return CollectionUnionTypeValidator::validate($class, $fieldName, $literalUnion) ?? $literalUnion;
         }
         return in_array(null, $memberResults, strict: true) ? null : false;
-    }
-
-    private static function hasCollection(ReflectionUnionType $type): bool
-    {
-        return array_any(
-            $type->getTypes(),
-            static fn(ReflectionType $member): bool => $member instanceof ReflectionNamedType
-            && in_array(strtolower($member->getName()), ['array', 'arrayobject'], strict: true),
-        );
     }
 }

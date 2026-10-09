@@ -36,7 +36,8 @@ final class PhpDocLiteralFieldMarker
         if ($doc === false || $doc === '') {
             return false;
         }
-        if (!str_contains($doc, '@var') || !self::isLiteralMarker($doc)) {
+        $hasLiteralToken = self::isLiteralMarker($doc);
+        if (!str_contains($doc, '@var') || !$hasLiteralToken) {
             return false;
         }
         $matches = [];
@@ -44,7 +45,6 @@ final class PhpDocLiteralFieldMarker
         return self::isLiteralMarker(trim($matches['type'] ?? ''));
     }
 
-    /** @pure */
     public static function isLiteralMarker(string $type): bool
     {
         if (strpbrk($type, characters: "'\"0123456789:") !== false) {
@@ -58,7 +58,8 @@ final class PhpDocLiteralFieldMarker
     public static function parameterMarkers(ReflectionFunctionAbstract $function, string|false|null $docComment): array
     {
         $doc = $docComment ?? $function->getDocComment();
-        if (!self::isLiteralMarker((string) $doc)) {
+        $hasLiteralToken = self::isLiteralMarker((string) $doc);
+        if (!$hasLiteralToken) {
             return [];
         }
         $matches = [];

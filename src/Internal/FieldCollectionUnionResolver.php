@@ -9,13 +9,26 @@ use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
+use ReflectionType;
 use ReflectionUnionType;
 
+use function array_any;
 use function array_values;
+use function in_array;
+use function strtolower;
 
 /** @internal */
 final class FieldCollectionUnionResolver
 {
+    public static function hasCollection(ReflectionUnionType $type): bool
+    {
+        return array_any(
+            $type->getTypes(),
+            static fn(ReflectionType $member): bool => $member instanceof ReflectionNamedType
+            && in_array(strtolower($member->getName()), ['array', 'arrayobject'], strict: true),
+        );
+    }
+
     /**
      * @param class-string $class
      * @throws ReflectionException

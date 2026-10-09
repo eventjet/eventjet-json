@@ -14,6 +14,19 @@ final class PhpDocLiteralFieldValidator
 {
     /**
      * @param class-string $class
+     * @param list<string>|null $literals
+     * @throws ReflectionException
+     */
+    public static function validateUnresolved(
+        string $class,
+        ReflectionParameter|ReflectionProperty $field,
+        array|null $literals,
+    ): DecodeError|null {
+        return $literals === null ? self::validate($class, $field) : null;
+    }
+
+    /**
+     * @param class-string $class
      * @throws ReflectionException
      */
     public static function validate(string $class, ReflectionParameter|ReflectionProperty $field): DecodeError|null
