@@ -60,7 +60,9 @@ final class PhpDocLiteralFieldMarker
             return true;
         }
 
-        return preg_match('~\b(?:true|false|null)\b~', subject: $docComment) === 1;
+        return (
+            preg_match('~\b(?:true|false)\b|@(param|var)[ \t]+null(?:[ \t]|\r?\n|\*|$)~', subject: $docComment) === 1
+        );
     }
 
     /** @return array<string, bool> */
