@@ -20,6 +20,21 @@ use function strpbrk;
 /** @internal */
 final class FieldTypeNameResolver
 {
+    private const array PRIMITIVE_PHPDOC = [
+        'non-empty-string' => 'string',
+        'numeric-string' => 'string',
+        'literal-string' => 'string',
+        'positive-int' => 'int',
+        'negative-int' => 'int',
+        'non-positive-int' => 'int',
+        'non-negative-int' => 'int',
+        'non-zero-int' => 'int',
+        'bool' => 'bool',
+        'float' => 'float',
+        'int' => 'int',
+        'string' => 'string',
+    ];
+
     /** @throws ReflectionException */
     public static function hasLiteralPhpDoc(
         ReflectionParameter|ReflectionProperty $field,
@@ -102,21 +117,6 @@ final class FieldTypeNameResolver
      */
     private static function primitivePhpDoc(string $type): string|null
     {
-        return (
-            [
-                'non-empty-string' => 'string',
-                'numeric-string' => 'string',
-                'literal-string' => 'string',
-                'positive-int' => 'int',
-                'negative-int' => 'int',
-                'non-positive-int' => 'int',
-                'non-negative-int' => 'int',
-                'non-zero-int' => 'int',
-                'bool' => 'bool',
-                'float' => 'float',
-                'int' => 'int',
-                'string' => 'string',
-            ][$type] ?? null
-        );
+        return self::PRIMITIVE_PHPDOC[$type] ?? null;
     }
 }

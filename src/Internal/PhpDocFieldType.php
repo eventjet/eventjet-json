@@ -81,12 +81,9 @@ final class PhpDocFieldType
             preg_replace('/^[ \t]*\*[ \t]?/m', replacement: '', subject: str_replace('*/', replace: '', subject: $doc))
             ?? '';
         $matches = [];
-        $quoteIndex = (int) (strpbrk($doc, characters: "'\"") !== false);
-        $patterns = [
-            '/' . $tag . '\s+([^@]+)/',
-            '/' . $tag . '\s+(?=([\s\S]*))/',
-        ];
-        $pattern = $patterns[$quoteIndex] ?? $patterns[0];
+        $pattern = strpbrk($doc, characters: "'\"") === false
+            ? '/' . $tag . '\s+([^@]+)/'
+            : '/' . $tag . '\s+(?=([\s\S]*))/';
         preg_match_all($pattern, $doc, $matches);
         /** @var array{list<string>, list<string>} $matches */
         $types = [];
