@@ -14,6 +14,7 @@ use function class_exists;
 use function interface_exists;
 use function str_contains;
 use function strcasecmp;
+use function strpbrk;
 
 /** @internal */
 final class FieldTypeNameResolver
@@ -30,7 +31,16 @@ final class FieldTypeNameResolver
             ? $field->getDeclaringFunction()->getDocComment()
             : $field->getDocComment();
         $needle = $field instanceof ReflectionParameter ? '$' . $field->getName() : '/**';
-        return str_contains((string) $doc, $needle);
+        $doc = (string) $doc;
+        if (!str_contains($doc, $needle)) {
+            return false;
+        }
+        return (
+            strpbrk($doc, "'\"0123456789:") !== false
+            || str_contains($doc, 'true')
+            || str_contains($doc, 'false')
+            || str_contains($doc, 'null')
+        );
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
