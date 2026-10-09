@@ -26,7 +26,7 @@ final readonly class ConstructorPlan
     /**
      * @param class-string $class
      * @param array<array-key, ConstructorValueValidator> $fields
-     * @param array<array-key, FieldValueConverter|null> $converters
+     * @param array<array-key, FieldValueConverter|LiteralFieldValueConverter|null> $converters
      */
     public function __construct(
         private string $class,
@@ -35,7 +35,7 @@ final readonly class ConstructorPlan
     ) {
         $this->scalarOnly = array_all(
             $converters,
-            static fn(FieldValueConverter|null $converter): bool => $converter === null,
+            static fn(FieldValueConverter|LiteralFieldValueConverter|null $converter): bool => $converter === null,
         );
     }
 

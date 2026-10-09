@@ -20,25 +20,16 @@ use function enum_exists;
 /** @internal */
 final readonly class FieldValueConverter
 {
-    public bool $literalConstrained;
     private ReflectionType|null $type;
     private string $typeName;
     private EnumUnionLookup|null $enumLookup;
-    /** @var list<string>|null */
-    private array|null $literals;
 
-    /**
-     * @param list<string>|null $literals
-     * @throws ReflectionException
-     */
+    /** @throws ReflectionException */
     public function __construct(
         private ReflectionParameter|ReflectionProperty $field,
         private ListType|MapType|TupleType|CollectionUnionType|null $collection,
-        array|null $literals,
     ) {
         $this->type = $field->getType();
-        $this->literals = $literals;
-        $this->literalConstrained = $this->literals !== null;
         $this->enumLookup = $this->type instanceof ReflectionUnionType ? new EnumUnionLookup($this->type) : null;
         $this->typeName = $this->type instanceof ReflectionNamedType
             ? FieldTypeNameResolver::resolve($field, $this->type)
@@ -54,9 +45,6 @@ final readonly class FieldValueConverter
      */
     public function convert(string $class, mixed $value, string $path): array|bool|float|int|object|string|null
     {
-        if ($this->literalConstrained) {
-            return $this->convertLiteral($class, $value, $path);
-        }
         if ($this->collection instanceof CollectionUnionType) {
             return CollectionUnionValueConverter::convert($class, $path, $this->collection, $value);
         }
@@ -71,26 +59,6 @@ final readonly class FieldValueConverter
             return $this->convertNamed($class, $this->type, $value, $path);
         }
         return $value;
-    }
-
-    /**
-     * @param class-string $class
-     * @param array<array-key, mixed>|bool|float|int|object|string|null $value
-     * @return array<array-key, mixed>|bool|float|int|object|string|null
-     * @throws ReflectionException
-     */
-    private function convertLiteral(string $class, mixed $value, string $path): array|bool|float|int|object|string|null
-    {
-        assert($this->literals !== null, description: 'Constrained fields have prepared literal names.');
-        $value = PhpDocLiteralScalarConverter::convert($class, $path, $this->literals, $value);
-        if ($value instanceof DecodeError) {
-            return $value;
-        }
-        assert(
-            $this->type instanceof ReflectionNamedType,
-            description: 'Literal unions have a collection converter; constrained scalar fields have named native types.',
-        );
-        return $this->convertNamed($class, $this->type, $value, $path);
     }
 
     /**

@@ -23,7 +23,10 @@ final class PublicPropertyTypeValidator
      * @param class-string $class
      * @throws ReflectionException
      */
-    public static function validate(string $class, ReflectionProperty $property): FieldValueConverter|DecodeError
+    public static function validate(
+        string $class,
+        ReflectionProperty $property,
+    ): FieldValueConverter|LiteralFieldValueConverter|DecodeError
     {
         $field = $property->getName();
         $type = $property->getType();
@@ -55,7 +58,9 @@ final class PublicPropertyTypeValidator
             ? PhpDocLiteralField::resolve($property)
             : null;
 
-        return new FieldValueConverter($property, $collection, $literals);
+        return $literals === null
+            ? new FieldValueConverter($property, $collection)
+            : new LiteralFieldValueConverter($property, $collection, $literals);
     }
 
     /** @param class-string $class */
