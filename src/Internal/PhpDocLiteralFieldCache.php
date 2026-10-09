@@ -48,7 +48,7 @@ final class PhpDocLiteralFieldCache
         if ($docComment === false) {
             return false;
         }
-        return PhpDocFieldType::resolve($field, $docComment)?->containsLiteral() === true;
+        return PhpDocFieldType::resolve($field)?->containsLiteral() === true;
     }
 
     /**
