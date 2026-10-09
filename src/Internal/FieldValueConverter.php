@@ -20,6 +20,11 @@ use function enum_exists;
 /** @internal */
 readonly class FieldValueConverter
 {
+    public static function expected(ReflectionNamedType $type, string $name): string
+    {
+        return $type->allowsNull() && $name !== 'null' ? $name . '|null' : $name;
+    }
+
     private ReflectionType|null $type;
     private string $typeName;
     private EnumUnionLookup|null $enumLookup;
@@ -83,12 +88,7 @@ readonly class FieldValueConverter
         if ($type->isBuiltin()) {
             $matches = ValueTypeMatcher::matches($value, $type);
             if (!$matches) {
-                return DecodeError::fieldTypeMismatch(
-                    $class,
-                    $path,
-                    FieldTypeNameResolver::expected($type, $this->typeName),
-                    $value,
-                );
+                return DecodeError::fieldTypeMismatch($class, $path, self::expected($type, $this->typeName), $value);
             }
             return $value;
         }

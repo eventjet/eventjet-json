@@ -53,7 +53,7 @@ final class FieldTypeResolver
         $docComment = $field->getDocComment();
         $hasLiteralPhpDoc = false;
         if ($docComment !== false && str_contains($docComment, '@var')) {
-            $mayContainLiteralMarker = FieldTypeNameResolver::mayContainLiteralMarker($docComment);
+            $mayContainLiteralMarker = PhpDocLiteralFieldMarker::mayContainLiteralMarker($docComment);
             if ($mayContainLiteralMarker) {
                 $docComment = self::literalDocComment($field, $type);
                 $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($field, docComment: $docComment);

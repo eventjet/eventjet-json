@@ -40,7 +40,7 @@ final readonly class ConstructorValueValidator
         ) {
             return null;
         }
-        $expected = FieldTypeNameResolver::expected($type, $parameter->typeName);
+        $expected = FieldValueConverter::expected($type, $parameter->typeName);
         return new self($type, $expected);
     }
 

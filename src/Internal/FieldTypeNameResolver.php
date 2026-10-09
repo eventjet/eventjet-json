@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use ArrayObject;
+use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 
-use function preg_match;
+use function class_exists;
+use function interface_exists;
 use function strcasecmp;
-use function strpbrk;
 
 /** @internal */
 final class FieldTypeNameResolver
@@ -33,21 +34,11 @@ final class FieldTypeNameResolver
                     ? $field->getDeclaringFunction()->getDocComment()
                     : $field->getDocComment()
             );
-        if ($comment === false || !self::mayContainLiteralMarker($comment)) {
+        $mayContainLiteralMarker = PhpDocLiteralFieldMarker::mayContainLiteralMarker((string) $comment);
+        if (!$mayContainLiteralMarker) {
             return false;
         }
         return PhpDocLiteralFieldCache::hasLiteral($field, $docComment);
-    }
-
-    public static function mayContainLiteralMarker(string $docComment): bool
-    {
-        if (strpbrk($docComment, characters: "'\"0123456789:") !== false) {
-            return true;
-        }
-
-        return (
-            preg_match('~\b(?:true|false)\b|@(param|var)[ \t]+null(?:[ \t]|\r?\n|\*|$)~', subject: $docComment) === 1
-        );
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
@@ -70,8 +61,47 @@ final class FieldTypeNameResolver
         return $parent === false ? $name : $parent->getName();
     }
 
-    public static function expected(ReflectionNamedType $type, string $name): string
+    /** @return 'bool'|'float'|'int'|'string'|class-string|null */
+    public static function resolvePhpDoc(ReflectionParameter|ReflectionProperty $field, string $type): string|null
     {
-        return $type->allowsNull() && $name !== 'null' ? $name . '|null' : $name;
+        $primitive = self::primitivePhpDoc($type);
+        if ($primitive !== null) {
+            return $primitive;
+        }
+
+        /** @var ReflectionClass<object> $declaringClass */
+        $declaringClass = $field->getDeclaringClass();
+
+        if ($type === 'self') {
+            return $declaringClass->getName();
+        }
+
+        $resolvedType = PhpDocClassNameResolver::resolve($declaringClass, $type);
+
+        return class_exists($resolvedType) || interface_exists($resolvedType) ? $resolvedType : null;
+    }
+
+    /**
+     * @pure
+     * @return 'bool'|'float'|'int'|'string'|null
+     */
+    private static function primitivePhpDoc(string $type): string|null
+    {
+        return (
+            [
+                'non-empty-string' => 'string',
+                'numeric-string' => 'string',
+                'literal-string' => 'string',
+                'positive-int' => 'int',
+                'negative-int' => 'int',
+                'non-positive-int' => 'int',
+                'non-negative-int' => 'int',
+                'non-zero-int' => 'int',
+                'bool' => 'bool',
+                'float' => 'float',
+                'int' => 'int',
+                'string' => 'string',
+            ][$type] ?? null
+        );
     }
 }
