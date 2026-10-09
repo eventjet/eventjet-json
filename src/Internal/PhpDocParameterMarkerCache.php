@@ -30,7 +30,7 @@ final class PhpDocParameterMarkerCache
         if (
             $docComment !== false
             && array_key_exists($functionKey, self::$parameterMarkers)
-            && ($docComment === null || $docComment === self::$functionDocComments[$functionKey])
+            && ($docComment === null || $docComment === (self::$functionDocComments[$functionKey] ?? null))
         ) {
             return self::$parameterMarkers[$functionKey][$field->getName()] ?? false;
         }
