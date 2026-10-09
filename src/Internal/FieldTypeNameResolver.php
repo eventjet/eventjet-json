@@ -48,12 +48,12 @@ final class FieldTypeNameResolver
 
     public static function mayContainLiteralMarker(string $docComment): bool
     {
-        if (strpbrk($docComment, characters: "'\"0123456789:") !== false) {
+        if (strpbrk($docComment, characters: "'\"0123456789") !== false) {
             return true;
         }
 
         return (
-            preg_match('~\\b(?:true|false)\\b|@(param|var)[ \\t]+null(?:[ \\t]|\\r?\\n|\\*|$)~', subject: $docComment)
+            preg_match('~::|\\b(?:true|false)\\b|@(param|var)[ \\t]+null(?:[ \\t]|\\r?\\n|\\*|$)~', subject: $docComment)
             === 1
         );
     }

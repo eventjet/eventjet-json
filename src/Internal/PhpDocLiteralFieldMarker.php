@@ -47,21 +47,21 @@ final class PhpDocLiteralFieldMarker
 
     public static function isLiteralMarker(string $type): bool
     {
-        if (strpbrk($type, characters: "'\"0123456789:") !== false) {
+        if (strpbrk($type, characters: "'\"0123456789") !== false) {
             return true;
         }
 
-        return preg_match('~\b(?:true|false)\b|^\s*null\s*$~', subject: $type) === 1;
+        return preg_match('~::|\b(?:true|false)\b|^\s*null\s*$~', subject: $type) === 1;
     }
 
     public static function mayContainLiteralMarker(string $docComment): bool
     {
-        if (strpbrk($docComment, characters: "'\"0123456789:") !== false) {
+        if (strpbrk($docComment, characters: "'\"0123456789") !== false) {
             return true;
         }
 
         return (
-            preg_match('~\b(?:true|false)\b|@(param|var)[ \t]+null(?:[ \t]|\r?\n|\*|$)~', subject: $docComment) === 1
+            preg_match('~::|\b(?:true|false)\b|@(param|var)[ \t]+null(?:[ \t]|\r?\n|\*|$)~', subject: $docComment) === 1
         );
     }
 
