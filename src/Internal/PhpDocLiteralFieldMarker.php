@@ -36,8 +36,7 @@ final class PhpDocLiteralFieldMarker
         if ($doc === false || $doc === '') {
             return false;
         }
-        $hasLiteralToken = self::mayContainLiteralMarker($doc);
-        if (!str_contains($doc, '@var') || !$hasLiteralToken) {
+        if (!str_contains($doc, '@var')) {
             return false;
         }
         $matches = [];
