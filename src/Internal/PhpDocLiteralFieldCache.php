@@ -54,11 +54,13 @@ final class PhpDocLiteralFieldCache
         $matches = [];
         $found = $field instanceof ReflectionParameter
             ? preg_match(
-                '~@param\s+(.+?)\s+(?:&|\.\.\.)?\$' . preg_quote($field->getName(), delimiter: '~') . '(?:\s|$)~s',
+                '~@param[ \t]+([^\r\n*]+?)[ \t]+(?:&|\.\.\.)?\$'
+                . preg_quote($field->getName(), delimiter: '~')
+                . '(?:[ \t]|$)~',
                 $doc,
                 $matches,
             )
-            : preg_match('~@var\s+(.+?)(?=\s+\$[A-Za-z_]\w*\s*(?:\r?\n|\*/|$)|\s*(?:\r?\n|\*/|$))~s', $doc, $matches);
+            : preg_match('~@var[ \t]+([^\r\n*]+)~', $doc, $matches);
         if ($found !== 1) {
             return false;
         }
