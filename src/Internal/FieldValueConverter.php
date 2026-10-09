@@ -28,20 +28,15 @@ final readonly class FieldValueConverter
     private array|null $literals;
 
     /**
-     * @param list<string>|false|null $literals
+     * @param list<string>|null $literals
      * @throws ReflectionException
      */
     public function __construct(
         private ReflectionParameter|ReflectionProperty $field,
         private ListType|MapType|TupleType|CollectionUnionType|null $collection,
-        array|false|null $literals = false,
+        array|null $literals,
     ) {
         $this->type = $field->getType();
-        if ($literals === false) {
-            $literals = FieldTypeNameResolver::hasScalarPhpDoc($field, $collection)
-                ? PhpDocLiteralField::resolve($field)
-                : null;
-        }
         $this->literals = $literals;
         $this->literalConstrained = $this->literals !== null;
         $this->enumLookup = $this->type instanceof ReflectionUnionType ? new EnumUnionLookup($this->type) : null;
