@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use ReflectionException;
 use ReflectionNamedType;
 use ReflectionProperty;
 
