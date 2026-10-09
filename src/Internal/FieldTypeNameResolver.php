@@ -79,7 +79,7 @@ final class FieldTypeNameResolver
      * @pure
      * @return 'bool'|'float'|'int'|'string'|null
      */
-    public static function primitivePhpDoc(string $type): string|null
+    private static function primitivePhpDoc(string $type): string|null
     {
         return (
             [

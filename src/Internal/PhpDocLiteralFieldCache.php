@@ -13,7 +13,7 @@ use function serialize;
 /** @internal */
 final class PhpDocLiteralFieldCache
 {
-    /** @var array<string, array{string|false, bool, list<string>|null}> */
+    /** @var array<string, list<string>|null> */
     private static array $literalPresence = [];
 
     /** @throws ReflectionException */
@@ -25,7 +25,6 @@ final class PhpDocLiteralFieldCache
             return false;
         }
 
-        $key = self::cacheKey($field);
         $comment =
             $docComment
             ?? (
@@ -33,17 +32,17 @@ final class PhpDocLiteralFieldCache
                     ? $field->getDeclaringFunction()->getDocComment()
                     : $field->getDocComment()
             );
-        if (array_key_exists($key, self::$literalPresence) && self::$literalPresence[$key][0] === $comment) {
-            return self::$literalPresence[$key][1];
-        }
-        $mayContainLiteral = self::mayContainLiteral($field, $comment);
-        if (!$mayContainLiteral) {
-            self::$literalPresence[$key] = [$comment, false, null];
+        if (!self::mayContainLiteral($field, $comment)) {
             return false;
         }
 
+        $key = self::cacheKey($field);
+        if (array_key_exists($key, self::$literalPresence)) {
+            return true;
+        }
+
         $resolved = PhpDocLiteralField::resolveUncached($field);
-        self::$literalPresence[$key] = [$comment, true, $resolved];
+        self::$literalPresence[$key] = $resolved;
         return true;
     }
 
@@ -60,9 +59,11 @@ final class PhpDocLiteralFieldCache
      */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
     {
-        self::hasLiteral($field);
-        $cached = self::$literalPresence[self::cacheKey($field)] ?? ['', false, null];
-        return $cached[2];
+        if (!self::hasLiteral($field)) {
+            return null;
+        }
+
+        return self::$literalPresence[self::cacheKey($field)] ?? null;
     }
 
     /** @throws ReflectionException */
