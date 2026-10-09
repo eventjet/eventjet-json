@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Unit;
 
+use Eventjet\Json\Internal\ClassUnionValidator;
 use Eventjet\Json\Internal\CollectionUnionType;
+use Eventjet\Json\Internal\ConstructorParameterConverter;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
+use Eventjet\Json\Internal\FieldTypeResolver;
+use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
@@ -71,6 +75,16 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocTokenStream::class)]
 #[UsesClass(NestedCollectionTypeResolver::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
+#[CoversClass(FieldTypeResolver::class)]
+#[CoversClass(FieldTypeValidator::class)]
+#[CoversClass(ConstructorParameterConverter::class)]
+#[CoversClass(ClassUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\ClassFieldTypeValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\CollectionTypeResolver::class)]
+#[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
+#[UsesClass(\Eventjet\Json\Internal\FieldValueConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
 #[UsesClass(PhpDocLiteralFieldValueConverter::class)]
 #[UsesClass(PhpDocClassNameResolver::class)]
 #[UsesClass(PhpDocImports::class)]
@@ -80,6 +94,59 @@ use const PHP_INT_MIN;
 #[UsesClass(MetadataCache::class)]
 final class LiteralTypeTest extends TestCase
 {
+    /** @throws \ReflectionException */
+    public function testLiteralAndCollectionResolversKeepTheirDeclarationsDistinct(): void
+    {
+        $object = new class {
+            /** @var list<int> */
+            public array $items = [];
+            /** @var positive-int */
+            public int $refined = 1;
+            /** @var positive-int */
+            public array|int $union = 1;
+
+            public function __construct(int $plain) {}
+        };
+        $items = new ReflectionProperty($object, 'items');
+        $refined = new ReflectionProperty($object, 'refined');
+        $union = new ReflectionProperty($object, 'union');
+        $itemsType = $items->getType();
+        $unionType = $union->getType();
+        static::assertInstanceOf(ReflectionNamedType::class, $itemsType);
+        static::assertInstanceOf(\ReflectionUnionType::class, $unionType);
+
+        static::assertNull(FieldTypeResolver::literalDocComment($items, $itemsType));
+        static::assertNull(FieldTypeResolver::literalDocComment($union, $unionType));
+        $refinedType = $refined->getType();
+        static::assertInstanceOf(ReflectionNamedType::class, $refinedType);
+        static::assertSame($refined->getDocComment(), FieldTypeResolver::literalDocComment($refined, $refinedType));
+        static::assertInstanceOf(ListType::class, FieldTypeResolver::resolve($object::class, $items));
+        static::assertInstanceOf(ListType::class, FieldTypeResolver::resolve($object::class, $items));
+
+        $parameter = new \ReflectionParameter([$object::class, '__construct'], 'plain');
+        $parameterType = $parameter->getType();
+        static::assertInstanceOf(ReflectionNamedType::class, $parameterType);
+        static::assertFalse(FieldTypeValidator::validateNamedType($object::class, $parameter, $parameterType, false));
+        static::assertNull(ConstructorParameterConverter::create($parameter, $parameterType, false, null));
+
+        $invalid = new class(1) {
+            /** @param MissingLiteralClass::VALUE $value */
+            public function __construct(
+                public int|float $value,
+            ) {}
+        };
+        $invalidParameter = new \ReflectionParameter([$invalid::class, '__construct'], 'value');
+        $invalidType = $invalidParameter->getType();
+        static::assertInstanceOf(\ReflectionUnionType::class, $invalidType);
+        $error = ClassUnionValidator::resolve(
+            $invalid::class,
+            $invalidParameter,
+            $invalidType,
+            $invalidParameter->getDeclaringFunction()->getDocComment(),
+        );
+        static::assertInstanceOf(\Eventjet\Json\DecodeError::class, $error);
+    }
+
     /** @throws \ReflectionException */
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
@@ -194,7 +261,28 @@ final class LiteralTypeTest extends TestCase
         static::assertNull(PhpDocLiteralFieldValidator::validate($ordinary::class, $undocumentedProperty));
         static::assertNull(PhpDocLiteralField::resolve($refinedProperty));
         static::assertNull(PhpDocLiteralField::resolve($nonLiteralProperty));
+        static::assertFalse(PhpDocLiteralFieldCache::hasLiteral($undocumentedProperty));
+        static::assertFalse(PhpDocLiteralFieldCache::hasLiteral($refinedProperty, $refinedProperty->getDocComment()));
         static::assertFalse(new PhpDocType('|', [new PhpDocType('string'), new PhpDocType('int')])->containsLiteral());
+
+        $ordinaryWithMetadata = new class {
+            /** @var int @since 1 */
+            public int $value = 1;
+        };
+        static::assertNull(PhpDocLiteralField::resolveUncached(new ReflectionProperty($ordinaryWithMetadata, 'value')));
+        static::assertTrue(new PhpDocType('null')->containsLiteral());
+        static::assertTrue(new PhpDocType('true')->containsLiteral());
+        static::assertTrue(new PhpDocType('1')->containsLiteral());
+        static::assertTrue(new PhpDocType('|', [new PhpDocType('string'), new PhpDocType('1')])->containsLiteral());
+
+        $tagged = new class {
+            /**
+             * @since 1
+             * @var 'a@b'
+             */
+            public string $value = 'a@b';
+        };
+        static::assertSame("'a@b'", PhpDocFieldType::resolve(new ReflectionProperty($tagged, 'value'))?->name);
 
         $enum = new class {
             /** @var StringBackedStatus::Ready */

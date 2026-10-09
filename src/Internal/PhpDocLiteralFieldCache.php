@@ -20,21 +20,7 @@ final class PhpDocLiteralFieldCache
     public static function hasLiteral(
         ReflectionParameter|ReflectionProperty $field,
         string|false|null $docComment = null,
-        bool $markerAlreadyChecked = false,
     ): bool {
-        if ($field instanceof ReflectionProperty) {
-            $key = self::cacheKey($field);
-            if (array_key_exists($key, self::$literalPresence)) {
-                return self::$literalPresence[$key][0];
-            }
-            if (!$markerAlreadyChecked && !self::mayContainLiteral($field, $docComment)) {
-                self::$literalPresence[$key] = [false, null];
-                return false;
-            }
-            self::$literalPresence[$key] = [true, PhpDocLiteralField::resolveUncached($field)];
-            return true;
-        }
-
         $mayContainLiteral = self::mayContainLiteral($field, $docComment);
         if (!$mayContainLiteral) {
             return false;

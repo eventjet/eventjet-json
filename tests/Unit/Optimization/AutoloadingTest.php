@@ -120,6 +120,21 @@ final class AutoloadingTest extends TestCase
     /** @throws ReflectionException */
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
+    public function testOrdinaryScalarPhpDocDoesNotLoadLiteralResolution(): void
+    {
+        $object = new class {
+            /** @var positive-int */
+            public int $value = 42;
+        };
+        $property = new \ReflectionProperty($object, 'value');
+
+        static::assertFalse(FieldTypeNameResolver::hasLiteralPhpDoc($property, docComment: $property->getDocComment()));
+        static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralField::class, autoload: false));
+    }
+
+    /** @throws ReflectionException */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function testNullableClassCollectionsDoNotLoadUnneededUnionValidators(): void
     {
         static::assertNull(CollectionUnionTypeValidator::validate(

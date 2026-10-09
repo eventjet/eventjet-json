@@ -27,14 +27,7 @@ final class FieldTypeNameResolver
         if ($collection !== null || $docComment === false) {
             return false;
         }
-        if ($docComment !== null && !PhpDocLiteralFieldMarker::mayContainLiteralMarker($docComment)) {
-            return false;
-        }
-        return PhpDocLiteralFieldCache::hasLiteral(
-            $field,
-            $docComment,
-            $field instanceof ReflectionProperty && $docComment !== null,
-        );
+        return PhpDocLiteralFieldCache::hasLiteral($field, $docComment);
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
