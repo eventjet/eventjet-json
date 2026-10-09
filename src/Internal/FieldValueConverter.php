@@ -31,11 +31,12 @@ final readonly class FieldValueConverter
     public function __construct(
         private ReflectionParameter|ReflectionProperty $field,
         private ListType|MapType|TupleType|CollectionUnionType|null $collection,
+        array|null|false $literals = false,
     ) {
         $this->type = $field->getType();
-        $this->literals = FieldTypeNameResolver::hasScalarPhpDoc($field, $collection)
-            ? PhpDocLiteralField::resolve($field)
-            : null;
+        $this->literals = $literals === false
+            ? (FieldTypeNameResolver::hasScalarPhpDoc($field, $collection) ? PhpDocLiteralField::resolve($field) : null)
+            : $literals;
         $this->literalConstrained = $this->literals !== null;
         $this->enumLookup = $this->type instanceof ReflectionUnionType ? new EnumUnionLookup($this->type) : null;
         $this->typeName = $this->type instanceof ReflectionNamedType

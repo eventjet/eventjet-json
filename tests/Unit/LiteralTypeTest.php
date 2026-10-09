@@ -56,7 +56,6 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocTokenStream::class)]
 #[UsesClass(NestedCollectionTypeResolver::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[UsesClass(\Eventjet\Json\Internal\ScalarPhpDocPresence::class)]
 #[UsesClass(PhpDocClassNameResolver::class)]
 #[UsesClass(PhpDocImports::class)]
 #[UsesClass(PhpDocImportKind::class)]

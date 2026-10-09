@@ -12,17 +12,25 @@ use ReflectionProperty;
 
 use function class_exists;
 use function interface_exists;
+use function str_contains;
 use function strcasecmp;
 
 /** @internal */
 final class FieldTypeNameResolver
 {
+    /** @mutation-free */
     public static function hasScalarPhpDoc(
         ReflectionParameter|ReflectionProperty $field,
         ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
-    ): bool
-    {
-        return ScalarPhpDocPresence::has($field, $collection);
+    ): bool {
+        if ($collection !== null) {
+            return false;
+        }
+        $doc = $field instanceof ReflectionParameter
+            ? $field->getDeclaringFunction()->getDocComment()
+            : $field->getDocComment();
+        $needle = $field instanceof ReflectionParameter ? '$' . $field->getName() : '/**';
+        return str_contains((string) $doc, $needle);
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string

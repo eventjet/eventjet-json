@@ -55,7 +55,7 @@ final readonly class ConstructorParameter
             : null;
         return $this->builtin && $collection === null && $literal === null
             ? null
-            : new FieldValueConverter($this->reflection, $collection);
+            : new FieldValueConverter($this->reflection, $collection, $literal);
     }
 
     /**

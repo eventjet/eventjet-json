@@ -107,7 +107,6 @@ use function spl_autoload_unregister;
 #[UsesClass(\Eventjet\Json\Internal\ConcreteClassValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTypeParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTokens::class)]
-#[UsesClass(\Eventjet\Json\Internal\ScalarPhpDocPresence::class)]
 #[UsesClass(\Eventjet\Json\Internal\ScalarListValueConverter::class)]
 #[CoversClass(\Eventjet\Json\Internal\ClassTypeDependencies::class)]
 final class AutoloadingTest extends TestCase

@@ -100,7 +100,6 @@ use function class_alias;
 #[CoversClass(FieldTypeResolver::class)]
 #[CoversClass(FieldTypeValidator::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[UsesClass(\Eventjet\Json\Internal\ScalarPhpDocPresence::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ClassUnionValidator::class)]
 #[UsesClass(EnumUnionValidator::class)]
