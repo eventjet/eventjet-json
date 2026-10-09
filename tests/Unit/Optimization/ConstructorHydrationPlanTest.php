@@ -30,6 +30,7 @@ use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
+use Eventjet\Json\Test\Acceptance\Fixtures\MappedSpecialNames;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
@@ -259,6 +260,29 @@ final class ConstructorHydrationPlanTest extends TestCase
             static::assertEquals(
                 DecodeError::fieldTypeMismatch($class, 'nested.$ref', 'string|null', 42),
                 ObjectHydrator::hydrate($class, $invalid, 'nested'),
+            );
+        }
+    }
+
+    /** @throws ReflectionException */
+    public function testNumericMappedNamesKeepRootPathsAfterWarming(): void
+    {
+        $class = MappedSpecialNames::class;
+        $input = new stdClass();
+        $input->{'0'} = 'zero';
+        $input->{''} = 'empty';
+        $input->second = 'A';
+        $input->first = 'B';
+        $invalid = clone $input;
+        $invalid->{'0'} = 42;
+        for ($attempt = 0; $attempt < 2; ++$attempt) {
+            static::assertEquals(
+                new MappedSpecialNames('zero', 'empty', 'A', 'B'),
+                ObjectHydrator::hydrate($class, $input),
+            );
+            static::assertEquals(
+                DecodeError::fieldTypeMismatch($class, '0', 'string', 42),
+                ObjectHydrator::hydrate($class, $invalid),
             );
         }
     }
