@@ -33,9 +33,7 @@ final readonly class ConstructorValueValidator
 
     public static function typeName(ReflectionParameter $field, ReflectionType|null $type): string
     {
-        return $type instanceof ReflectionNamedType
-            ? FieldTypeNameResolver::resolve($field, $type)
-            : (string) $type;
+        return $type instanceof ReflectionNamedType ? FieldTypeNameResolver::resolve($field, $type) : (string) $type;
     }
 
     /** @param array<array-key, mixed> $values */
