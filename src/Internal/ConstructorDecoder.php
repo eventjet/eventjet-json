@@ -53,6 +53,7 @@ final class ConstructorDecoder
         $converters = [];
         $constructor = $class->getConstructor();
         $docComment = $constructor?->getDocComment() ?? false;
+        $docComment = PhpDocParameterMarkerCache::literalComment($docComment);
 
         foreach ($constructor?->getParameters() ?? [] as $reflection) {
             $parameter = new ConstructorParameter($reflection, $class, $docComment);
