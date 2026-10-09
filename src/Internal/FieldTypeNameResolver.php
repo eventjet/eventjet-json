@@ -18,8 +18,7 @@ use function strcasecmp;
 /** @internal */
 final class FieldTypeNameResolver
 {
-    /** @mutation-free */
-    public static function hasScalarPhpDoc(
+    public static function hasLiteralPhpDoc(
         ReflectionParameter|ReflectionProperty $field,
         ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
     ): bool {
@@ -30,7 +29,7 @@ final class FieldTypeNameResolver
             ? $field->getDeclaringFunction()->getDocComment()
             : $field->getDocComment();
         $needle = $field instanceof ReflectionParameter ? '$' . $field->getName() : '/**';
-        return str_contains((string) $doc, $needle);
+        return str_contains((string) $doc, $needle) && PhpDocFieldType::resolve($field)?->containsLiteral() === true;
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string

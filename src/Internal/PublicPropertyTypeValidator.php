@@ -51,9 +51,8 @@ final class PublicPropertyTypeValidator
             return $collection;
         }
 
-        $literals = FieldTypeNameResolver::hasScalarPhpDoc($property, $collection)
-            ? PhpDocLiteralField::resolve($property)
-            : null;
+        $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($property, $collection);
+        $literals = $hasLiteralPhpDoc ? PhpDocLiteralField::resolve($property) : null;
 
         return new FieldValueConverter($property, $collection, $literals);
     }

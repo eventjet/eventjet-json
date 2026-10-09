@@ -45,6 +45,16 @@ final readonly class PhpDocType
         return $this->name === $name && $this->arguments === [];
     }
 
+    public function containsLiteral(): bool
+    {
+        return (
+            in_array($this->name, ['null', 'true', 'false'], strict: true)
+            || self::literalSyntax($this->name)
+            || $this->name === '|'
+            && array_any($this->arguments, static fn(self $member): bool => $member->containsLiteral())
+        );
+    }
+
     /** @pure */
     public static function literalSyntax(string $name): bool
     {
