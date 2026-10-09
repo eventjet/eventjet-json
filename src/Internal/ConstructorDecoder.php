@@ -52,7 +52,7 @@ final class ConstructorDecoder
         $cacheable = true;
         $converters = [];
         $constructor = $class->getConstructor();
-        $docComment = PhpDocParameterMarkerCache::constructorDocComment($className, $constructor);
+        $docComment = $constructor?->getDocComment() ?? false;
         $literalDocComment = $docComment === false
             ? false
             : FieldTypeNameResolver::literalMarkerDocComment($docComment);
