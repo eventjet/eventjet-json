@@ -48,9 +48,14 @@ final class PhpDocLiteralFieldCache
         ReflectionParameter|ReflectionProperty $field,
         string|false|null $docComment = null,
     ): bool {
-        $function = $field instanceof ReflectionParameter ? $field->getDeclaringFunction() : null;
-        $doc = $docComment ?? ($function?->getDocComment() ?? $field->getDocComment());
-        if ($doc === false || $doc === null || $doc === '') {
+        if ($field instanceof ReflectionParameter) {
+            $function = $field->getDeclaringFunction();
+            $doc = $docComment ?? $function->getDocComment();
+        } else {
+            $function = null;
+            $doc = $docComment ?? $field->getDocComment();
+        }
+        if ($doc === false || $doc === '') {
             return false;
         }
         $native = $field->getType();
