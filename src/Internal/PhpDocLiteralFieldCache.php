@@ -15,36 +15,22 @@ final class PhpDocLiteralFieldCache
 {
     /** @var array<string, array{bool, list<string>|null}> */
     private static array $literalPresence = [];
-    /** @var array<string, string|null> */
-    private static array $literalDocComments = [];
 
     /** @throws ReflectionException */
     public static function hasLiteral(
         ReflectionParameter|ReflectionProperty $field,
         string|false|null $docComment = null,
     ): bool {
-        $key = self::cacheKey($field);
-        if (
-            $docComment !== false
-            && array_key_exists($key, self::$literalPresence)
-            && $docComment === (self::$literalDocComments[$key] ?? null)
-        ) {
-            return self::$literalPresence[$key][0];
-        }
         $mayContainLiteral = self::mayContainLiteral($field, $docComment);
         if (!$mayContainLiteral) {
-            if ($docComment !== false) {
-                self::$literalPresence[$key] = [false, null];
-                self::$literalDocComments[$key] = $docComment;
-            }
             return false;
         }
-        if ($docComment === false) {
-            return false;
+        $key = self::cacheKey($field);
+        if (array_key_exists($key, self::$literalPresence)) {
+            return self::$literalPresence[$key][0];
         }
         $resolved = PhpDocLiteralField::resolveUncached($field);
         self::$literalPresence[$key] = [true, $resolved];
-        self::$literalDocComments[$key] = $docComment;
         return true;
     }
 

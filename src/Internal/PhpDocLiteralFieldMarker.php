@@ -44,6 +44,7 @@ final class PhpDocLiteralFieldMarker
         return self::isLiteralMarker(trim($matches['type'] ?? ''));
     }
 
+    /** @pure */
     public static function isLiteralMarker(string $type): bool
     {
         if (strpbrk($type, characters: "'\"0123456789:") !== false) {
