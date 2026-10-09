@@ -25,11 +25,12 @@ final class PhpDocLiteralFieldCache
     public static function hasLiteral(ReflectionParameter|ReflectionProperty $field): bool
     {
         if (self::$literalPresence === null) {
-            self::$literalPresence = new WeakMap();
+            /** @var WeakMap<object, array{bool, list<string>|null}> $literalPresence */
+            $literalPresence = new WeakMap();
+            self::$literalPresence = $literalPresence;
         }
         $cache = self::$literalPresence;
         if ($cache->offsetExists($field)) {
-            /** @var array{bool, list<string>|null} $cached */
             $cached = $cache[$field];
             return $cached[0];
         }
@@ -77,7 +78,7 @@ final class PhpDocLiteralFieldCache
     {
         self::hasLiteral($field);
         assert(self::$literalPresence !== null, description: 'Literal field metadata has been initialized.');
-        $cached = self::$literalPresence[$field];
+        $cached = self::$literalPresence[$field] ?? [false, null];
         return $cached[1];
     }
 }
