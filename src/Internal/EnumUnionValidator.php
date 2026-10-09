@@ -6,7 +6,6 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionEnum;
-use ReflectionEnumBackedCase;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionType;
@@ -14,7 +13,6 @@ use ReflectionUnionType;
 
 use function array_filter;
 use function array_map;
-use function array_shift;
 use function enum_exists;
 use function in_array;
 use function sort;
@@ -67,7 +65,7 @@ final class EnumUnionValidator
             );
         }
 
-        $overlap = self::findOverlappingBackingValue($enumNames);
+        $overlap = EnumBackingValueOverlap::find($enumNames);
 
         if ($overlap !== null) {
             [$firstEnum, $secondEnum, $value] = $overlap;
@@ -112,36 +110,6 @@ final class EnumUnionValidator
     }
 
     /**
-     * @param list<enum-string> $enumNames
-     * @return array{enum-string, enum-string, int|string}|null
-     * @throws ReflectionException
-     */
-    private static function findOverlappingBackingValue(array $enumNames): array|null
-    {
-        /** @var list<array{enum: enum-string, value: int|string}> $seen */
-        $seen = [];
-
-        foreach ($enumNames as $enumName) {
-            $enum = new ReflectionEnum($enumName);
-
-            foreach ($enum->getCases() as $case) {
-                /** @var ReflectionEnumBackedCase $case */
-                $value = $case->getBackingValue();
-
-                foreach ($seen as $existing) {
-                    if ($existing['value'] === $value) {
-                        return [$existing['enum'], $enumName, $value];
-                    }
-                }
-
-                $seen[] = ['enum' => $enumName, 'value' => $value];
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * @param array<array-key, string> $remainingNames
      * @param array<array-key, string> $memberNames
      * @return array{string, string}|null
@@ -149,19 +117,13 @@ final class EnumUnionValidator
      */
     private static function findAmbiguousPair(array $remainingNames, array $memberNames): array|null
     {
-        $memberName = array_shift($remainingNames);
-
-        if ($memberName === null) {
-            return null;
+        foreach ($remainingNames as $memberName) {
+            $ambiguousPair = self::ambiguousPair($memberName, $memberNames);
+            if ($ambiguousPair !== null) {
+                return $ambiguousPair;
+            }
         }
-
-        $ambiguousPair = self::ambiguousPair($memberName, $memberNames);
-
-        if ($ambiguousPair !== null) {
-            return $ambiguousPair;
-        }
-
-        return self::findAmbiguousPair($remainingNames, $memberNames);
+        return null;
     }
 
     /**
