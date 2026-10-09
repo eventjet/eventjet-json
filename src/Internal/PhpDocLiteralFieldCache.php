@@ -73,7 +73,9 @@ final class PhpDocLiteralFieldCache
         if ($found !== 1) {
             return false;
         }
-        $type = trim($matches['type'] ?? '');
+        /** @var array{0: string, 1: string, type: string} $captures */
+        $captures = $matches;
+        $type = trim($captures['type']);
         return self::$literalMarkers[$type] ??=
             preg_match('~[\'"\d:]|\b(?:true|false|null|[A-Z][A-Za-z0-9_]*)\b~', subject: $type) === 1;
     }
