@@ -12,6 +12,7 @@ use ReflectionProperty;
 use function array_key_exists;
 use function enum_exists;
 use function preg_match;
+use function serialize;
 
 /** @internal */
 final class PhpDocLiteralFieldCache
@@ -33,14 +34,7 @@ final class PhpDocLiteralFieldCache
         if ($doc === false) {
             return false;
         }
-        $key = $field instanceof ReflectionParameter
-            ? ($field->getDeclaringClass()?->getName() ?? '')
-            . '::'
-            . $field->getDeclaringFunction()->getName()
-            . '@'
-            . (string) $field->getDeclaringFunction()->getStartLine()
-            : $field->getDeclaringClass()->getName() . '::$' . $field->getName();
-        return self::$literalMarkers[$key] ??=
+        return self::$literalMarkers[$doc] ??=
             preg_match('~[\'"\d:]|\b(?:true|false|null|[A-Z][A-Za-z0-9_]*)\b~', subject: $doc) === 1;
     }
 
@@ -51,15 +45,16 @@ final class PhpDocLiteralFieldCache
     public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
     {
         $key = $field instanceof ReflectionParameter
-            ? ($field->getDeclaringClass()?->getName() ?? '')
-            . '::'
-            . $field->getDeclaringFunction()->getName()
-            . '::$'
-            . $field->getName()
-            : $field->getDeclaringClass()->getName() . '::$' . $field->getName();
+            ? serialize([
+                'parameter',
+                $field->getDeclaringClass()?->getName(),
+                $field->getDeclaringFunction()->getName(),
+                $field->getName(),
+            ])
+            : serialize(['property', $field->getDeclaringClass()->getName(), $field->getName()]);
         if (array_key_exists($key, self::$resolved)) {
             return self::$resolved[$key];
         }
-        return self::$resolved[$key] = PhpDocLiteralField::resolveUncached($field);
+        return self::$resolved[$key] ??= PhpDocLiteralField::resolveUncached($field);
     }
 }

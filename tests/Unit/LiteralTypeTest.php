@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit;
 
 use Eventjet\Json\Internal\FieldTypeNameResolver;
+use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
@@ -18,6 +19,7 @@ use Eventjet\Json\Internal\PhpDocItemTypeResolver;
 use Eventjet\Json\Internal\PhpDocLiteral;
 use Eventjet\Json\Internal\PhpDocLiteralField;
 use Eventjet\Json\Internal\PhpDocLiteralFieldCache;
+use Eventjet\Json\Internal\PhpDocLiteralFieldValidator;
 use Eventjet\Json\Internal\PhpDocLiteralNumber;
 use Eventjet\Json\Internal\PhpDocLiteralString;
 use Eventjet\Json\Internal\PhpDocStringEscape;
@@ -33,6 +35,7 @@ use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionProperty;
 
@@ -48,6 +51,7 @@ use const PHP_INT_MIN;
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(PhpDocLiteralField::class)]
 #[CoversClass(PhpDocLiteralFieldCache::class)]
+#[CoversClass(PhpDocLiteralFieldValidator::class)]
 #[CoversClass(PhpDocFieldType::class)]
 #[UsesClass(PhpDocItemTypeResolver::class)]
 #[UsesClass(PhpDocLiteral::class)]
@@ -100,6 +104,56 @@ final class LiteralTypeTest extends TestCase
             PhpDocFieldType::resolve(new ReflectionProperty($object, 'integer')),
             PhpDocFieldType::resolve(new ReflectionProperty($object, 'integer')),
         );
+    }
+
+    /** @throws \ReflectionException */
+    public function testLiteralMetadataFastPathsAndFieldCacheKeys(): void
+    {
+        $object = new class(11) {
+            /**
+             * @param int
+             * @param 11 $value
+             * @param 99 $value
+             */
+            public function __construct(
+                public int $value,
+                /** @var 13 */
+                public int $property = 13,
+            ) {}
+
+            /** @param 12 $value */
+            public function other(int $value): void {}
+        };
+        $constructorParameter = new ReflectionMethod($object, '__construct')->getParameters()[0];
+        $otherParameter = new ReflectionMethod($object, 'other')->getParameters()[0];
+
+        static::assertSame(['11'], PhpDocLiteralField::resolve($constructorParameter));
+        static::assertSame(['12'], PhpDocLiteralField::resolve($otherParameter));
+        static::assertSame(['13'], PhpDocLiteralField::resolve(new ReflectionProperty($object, 'property')));
+        static::assertFalse(FieldTypeNameResolver::hasLiteralPhpDoc(
+            $constructorParameter,
+            new ListType('int', nonEmpty: false),
+        ));
+
+        $ordinary = new class {
+            public \DateTimeImmutable $object;
+            public int $undocumented;
+            /** @var positive-int */
+            public int $refined;
+            /** @var scalar */
+            public int $nonLiteral;
+        };
+        $objectProperty = new ReflectionProperty($ordinary, 'object');
+        $undocumentedProperty = new ReflectionProperty($ordinary, 'undocumented');
+        $refinedProperty = new ReflectionProperty($ordinary, 'refined');
+        $nonLiteralProperty = new ReflectionProperty($ordinary, 'nonLiteral');
+
+        static::assertNull(PhpDocLiteralField::resolve($objectProperty));
+        static::assertNull(PhpDocLiteralField::resolve($undocumentedProperty));
+        static::assertNull(PhpDocLiteralFieldValidator::validate($ordinary::class, $undocumentedProperty));
+        static::assertNull(PhpDocLiteralField::resolve($refinedProperty));
+        static::assertNull(PhpDocLiteralField::resolve($nonLiteralProperty));
+        static::assertFalse(new PhpDocType('|', [new PhpDocType('string'), new PhpDocType('int')])->containsLiteral());
     }
 
     public function testIntegerBoundariesAndNotation(): void
