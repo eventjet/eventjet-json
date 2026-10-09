@@ -53,8 +53,10 @@ final class ClassGraphValidator
         }
 
         $constructor = $reflection->getConstructor();
-        $docComment = PhpDocParameterMarkerCache::constructorDocComment($reflection);
-        $literalDocComment = FieldTypeNameResolver::literalMarkerDocComment($docComment);
+        $docComment = PhpDocParameterMarkerCache::constructorDocComment($class, $constructor);
+        $literalDocComment = $docComment === false
+            ? false
+            : FieldTypeNameResolver::literalMarkerDocComment($docComment);
         foreach ($constructor?->getParameters() ?? [] as $parameter) {
             $resolved = new ConstructorParameter($parameter, $reflection, $docComment, $literalDocComment)->resolveType(
                 $class,
