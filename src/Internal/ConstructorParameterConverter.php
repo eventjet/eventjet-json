@@ -40,6 +40,7 @@ final class ConstructorParameterConverter
     public static function create(
         ReflectionParameter $field,
         ReflectionType|null $type,
+        string|false|null $_docComment,
         ListType|MapType|TupleType|CollectionUnionType|false|null $resolved,
     ): FieldValueConverter|null {
         $collection = $resolved === false ? null : $resolved;

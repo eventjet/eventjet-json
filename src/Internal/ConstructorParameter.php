@@ -65,9 +65,10 @@ final readonly class ConstructorParameter
             ? ConstructorParameterConverter::createLiteral($this->reflection) ?? ConstructorParameterConverter::create(
                 $this->reflection,
                 $this->type,
+                $this->docComment,
                 $resolved,
             )
-            : ConstructorParameterConverter::create($this->reflection, $this->type, $resolved);
+            : ConstructorParameterConverter::create($this->reflection, $this->type, $this->docComment, $resolved);
     }
 
     /**
