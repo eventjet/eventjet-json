@@ -8,11 +8,6 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function preg_match;
-use function preg_match_all;
-use function preg_replace;
-use function str_contains;
-use function str_replace;
-use function trim;
 
 /** @internal */
 final class PhpDocFieldType
@@ -34,7 +29,10 @@ final class PhpDocFieldType
         $doc = $doc === false ? '' : $doc;
         $types = $cache->resolve(
             $doc,
-            /** @return list<array{PhpDocType, string}> */ static fn(): array => self::parse($doc, $tag),
+            /** @return list<array{PhpDocType, string}> */ static fn(): array => PhpDocFieldTypeParser::parse(
+                $doc,
+                $tag,
+            ),
         );
         if ($field instanceof ReflectionParameter) {
             /** @var MetadataCache<array<string, PhpDocType>> $parameters */
@@ -75,28 +73,5 @@ final class PhpDocFieldType
             }
         }
         return $parameters;
-    }
-
-    /** @return list<array{PhpDocType, string}> */
-    private static function parse(string $doc, string $tag): array
-    {
-        $doc =
-            preg_replace('/^[ \t]*\*[ \t]?/m', replacement: '', subject: str_replace('*/', replace: '', subject: $doc))
-            ?? '';
-        $matches = [];
-        $pattern = str_contains($doc, "'") || str_contains($doc, '"')
-            // Keep the remaining comment intact: quoted literals can contain @ characters.
-            ? '/' . $tag . '\s+(?=([\s\S]*))/'
-            : '/' . $tag . '\s+([^@]+)/';
-        preg_match_all($pattern, $doc, $matches);
-        /** @var array{list<string>, list<string>} $matches */
-        $types = [];
-        foreach ($matches[1] as $source) {
-            $parsed = PhpDocTypeParser::prefix(trim($source, characters: " \t\r\n\v\f"));
-            if ($parsed !== null) {
-                $types[] = $parsed;
-            }
-        }
-        return $types;
     }
 }
