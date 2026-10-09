@@ -24,14 +24,18 @@ final class FieldTypeResolver
         ReflectionProperty $field,
         ReflectionNamedType|ReflectionUnionType $type,
     ): string|false|null {
-        if ($type instanceof ReflectionUnionType && FieldCollectionUnionResolver::hasCollection($type)) {
-            return null;
+        if ($type instanceof ReflectionUnionType) {
+            $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
+            if ($hasCollection) {
+                return null;
+            }
         }
-        if (
-            $type instanceof ReflectionNamedType
-            && in_array(FieldTypeNameResolver::resolve($field, $type), ['array', ArrayObject::class], strict: true)
-        ) {
-            return null;
+        if ($type instanceof ReflectionNamedType) {
+            $typeName = FieldTypeNameResolver::resolve($field, $type);
+            $isCollection = in_array($typeName, ['array', ArrayObject::class], strict: true);
+            if ($isCollection) {
+                return null;
+            }
         }
 
         return $field->getDocComment();
