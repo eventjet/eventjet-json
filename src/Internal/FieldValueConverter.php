@@ -54,14 +54,14 @@ final readonly class FieldValueConverter
      */
     public function convert(string $class, mixed $value, string $path): array|bool|float|int|object|string|null
     {
-        if ($this->literalConstrained) {
-            return $this->convertLiteral($class, $value, $path);
-        }
         if ($this->collection instanceof CollectionUnionType) {
             return CollectionUnionValueConverter::convert($class, $path, $this->collection, $value);
         }
         if ($this->collection !== null) {
             return CollectionValueConverter::convert($class, $path, $this->collection, $value);
+        }
+        if ($this->literalConstrained) {
+            return $this->convertLiteral($class, $value, $path);
         }
         if ($this->type instanceof ReflectionUnionType) {
             assert($this->enumLookup !== null, description: 'Union fields have a prepared union lookup.');
