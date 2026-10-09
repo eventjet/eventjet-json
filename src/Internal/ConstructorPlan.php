@@ -13,6 +13,7 @@ use function array_all;
 use function array_column;
 use function array_intersect_key;
 use function array_key_exists;
+use function count;
 use function is_array;
 use function is_bool;
 use function is_float;

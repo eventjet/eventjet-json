@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use function json_encode;
+use function json_validate;
+use function preg_match;
+use function preg_quote;
+use function strlen;
+
+use const JSON_THROW_ON_ERROR;
+use const PREG_OFFSET_CAPTURE;
+
 /** @internal Validate a complete record list before calling any constructor. */
 final readonly class DirectListPlan
 {

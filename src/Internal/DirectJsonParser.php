@@ -10,6 +10,16 @@ use ReflectionClass;
 use ReflectionNamedType;
 use Throwable;
 
+use function class_exists;
+use function count;
+use function implode;
+use function is_string;
+use function json_encode;
+use function json_validate;
+use function preg_quote;
+
+use const JSON_THROW_ON_ERROR;
+
 /**
  * @internal Compile the small schemas that benefit from direct construction.
  * @mago-expect lint:cyclomatic-complexity Explicit eligibility guards preserve compatibility for unsupported declarations.

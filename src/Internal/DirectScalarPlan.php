@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use function assert;
+use function json_decode;
+use function preg_match;
+use function strlen;
+use function substr;
+
 /** @internal A fully validated scalar object, without an intermediate object tree. */
 final readonly class DirectScalarPlan
 {
