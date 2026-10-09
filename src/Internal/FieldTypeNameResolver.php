@@ -20,9 +20,6 @@ use function strpbrk;
 /** @internal */
 final class FieldTypeNameResolver
 {
-    /** @var array<string, bool> */
-    private static array $literalMarkerCandidates = [];
-
     private const array PRIMITIVE_PHPDOC = [
         'non-empty-string' => 'string',
         'numeric-string' => 'string',
@@ -47,31 +44,28 @@ final class FieldTypeNameResolver
         if ($collection !== null || $docComment === false) {
             return false;
         }
-        $comment =
-            $docComment
-            ?? (
-                $field instanceof ReflectionParameter
-                    ? $field->getDeclaringFunction()->getDocComment()
-                    : $field->getDocComment()
-            );
-        if ($comment === false) {
-            return false;
-        }
-        $mayContainLiteral = self::mayContainLiteralMarker($comment);
+        // Constructor parameters share a docblock; the caller checks it once
+        // before creating each parameter's metadata.
+        $mayContainLiteral =
+            $field instanceof ReflectionParameter || $docComment !== null && self::mayContainLiteralMarker($docComment);
         if (!$mayContainLiteral) {
             return false;
         }
-        return PhpDocLiteralFieldCache::hasLiteral($field, $comment);
+        return PhpDocLiteralFieldCache::hasLiteral($field, $docComment);
     }
 
     public static function mayContainLiteralMarker(string $docComment): bool
     {
-        return self::$literalMarkerCandidates[$docComment] ??=
-            strpbrk($docComment, characters: "'\"0123456789") !== false
-            || preg_match(
+        if (strpbrk($docComment, characters: "'\"0123456789") !== false) {
+            return true;
+        }
+
+        return (
+            preg_match(
                 '~::|\\b(?:true|false)\\b|@(param|var)[ \\t]+null(?:[ \\t]|\\r?\\n|\\*|$)~',
                 subject: $docComment,
-            ) === 1;
+            ) === 1
+        );
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
