@@ -160,6 +160,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocConstantResolver::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocConstantValues::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralFieldCache::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralValueConverter::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocStringEscape::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]

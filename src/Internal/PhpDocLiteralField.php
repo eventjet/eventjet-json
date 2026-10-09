@@ -24,6 +24,12 @@ final class PhpDocLiteralField
      */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
     {
+        return PhpDocLiteralFieldCache::resolve($field, static fn(): array|null => self::resolveUncached($field));
+    }
+
+    /** @return list<string>|null */
+    private static function resolveUncached(ReflectionParameter|ReflectionProperty $field): array|null
+    {
         $native = $field->getType();
         $ordinaryClass =
             $native instanceof ReflectionNamedType && !$native->isBuiltin() && !enum_exists($native->getName());
