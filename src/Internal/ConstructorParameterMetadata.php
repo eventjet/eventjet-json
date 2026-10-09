@@ -11,9 +11,12 @@ final class ConstructorParameterMetadata
 {
     public static function literalDocComment(string|false $docComment): string|false
     {
-        return $docComment !== false && FieldTypeNameResolver::mayContainLiteralMarker($docComment)
-            ? $docComment
-            : false;
+        if ($docComment === false) {
+            return false;
+        }
+
+        $mayContainLiteralMarker = FieldTypeNameResolver::mayContainLiteralMarker($docComment);
+        return $mayContainLiteralMarker ? $docComment : false;
     }
 
     public static function isRecoverable(ReflectionProperty|null $property): bool
