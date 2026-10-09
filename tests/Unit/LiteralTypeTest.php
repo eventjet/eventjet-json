@@ -81,10 +81,12 @@ use const PHP_INT_MIN;
 #[CoversClass(ClassUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassFieldTypeValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionTypeResolver::class)]
+#[UsesClass(\Eventjet\Json\Internal\CollectionTypeValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\DecodeError::class)]
 #[UsesClass(PhpDocLiteralFieldValueConverter::class)]
 #[UsesClass(PhpDocClassNameResolver::class)]
 #[UsesClass(PhpDocImports::class)]
@@ -94,7 +96,11 @@ use const PHP_INT_MIN;
 #[UsesClass(MetadataCache::class)]
 final class LiteralTypeTest extends TestCase
 {
-    /** @throws \ReflectionException */
+    /**
+     * @throws \ReflectionException
+     * @throws \PHPUnit\Framework\Exception
+     * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
+     */
     public function testLiteralAndCollectionResolversKeepTheirDeclarationsDistinct(): void
     {
         $object = new class(1) {
@@ -105,7 +111,7 @@ final class LiteralTypeTest extends TestCase
             /** @var positive-int */
             public array|int $union = 1;
 
-            public function __construct(int $plain) {}
+            public function __construct(int $_plain) {}
         };
         $items = new ReflectionProperty($object, 'items');
         $refined = new ReflectionProperty($object, 'refined');
@@ -123,14 +129,14 @@ final class LiteralTypeTest extends TestCase
         static::assertInstanceOf(ListType::class, FieldTypeResolver::resolve($object::class, $items));
         static::assertInstanceOf(ListType::class, FieldTypeResolver::resolve($object::class, $items));
 
-        $parameter = new \ReflectionParameter([$object::class, '__construct'], 'plain');
+        $parameter = new \ReflectionParameter([$object::class, '__construct'], '_plain');
         $parameterType = $parameter->getType();
         static::assertInstanceOf(ReflectionNamedType::class, $parameterType);
         static::assertFalse(FieldTypeValidator::validateNamedType($object::class, $parameter, $parameterType, false));
         static::assertNull(ConstructorParameterConverter::create($parameter, $parameterType, false, null));
 
         $invalid = new class(1) {
-            /** @param MissingLiteralClass::VALUE $value */
+            /** @param int|float|1e999 $value */
             public function __construct(
                 public int|float $value,
             ) {}
