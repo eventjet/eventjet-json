@@ -109,18 +109,20 @@ final class LiteralTypeTest extends TestCase
     /** @throws \ReflectionException */
     public function testLiteralMetadataFastPathsAndFieldCacheKeys(): void
     {
-        $object = new class(99) {
+        $object = new class(11, 12) {
             public int $value;
+            public int $second;
             /** @var 13 */
             public int $property;
 
             /**
              * @param 11 $value
-             * @param 99 $value
+             * @param 12 $second
              */
-            public function __construct(int $value)
+            public function __construct(int $value, int $second)
             {
                 $this->value = $value;
+                $this->second = $second;
                 $this->property = 13;
             }
 
@@ -131,9 +133,11 @@ final class LiteralTypeTest extends TestCase
             }
         };
         $constructorParameter = new \ReflectionParameter([$object::class, '__construct'], 'value');
+        $secondParameter = new \ReflectionParameter([$object::class, '__construct'], 'second');
         $otherParameter = new \ReflectionParameter([$object::class, 'other'], 'value');
 
         static::assertSame(['11'], PhpDocLiteralField::resolve($constructorParameter));
+        static::assertSame(['12'], PhpDocLiteralField::resolve($secondParameter));
         static::assertSame(['12'], PhpDocLiteralField::resolve($otherParameter));
         static::assertSame(['13'], PhpDocLiteralField::resolve(new ReflectionProperty($object, 'property')));
         static::assertFalse(FieldTypeNameResolver::hasLiteralPhpDoc(
