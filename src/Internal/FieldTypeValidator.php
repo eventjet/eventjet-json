@@ -77,7 +77,9 @@ final class FieldTypeValidator
         }
 
         if ($type->isBuiltin() || enum_exists($typeName) && is_a($typeName, BackedEnum::class, allow_string: true)) {
-            return PhpDocLiteralFieldValidator::validate($class, $field) ?? false;
+            return FieldTypeNameResolver::hasScalarPhpDoc($field)
+                ? PhpDocLiteralFieldValidator::validate($class, $field) ?? false
+                : false;
         }
         return ClassFieldTypeValidator::validateNamed($class, $fieldName, $typeName, $type);
     }

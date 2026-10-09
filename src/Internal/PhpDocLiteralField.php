@@ -27,7 +27,7 @@ final class PhpDocLiteralField
         $native = $field->getType();
         $ordinaryClass =
             $native instanceof ReflectionNamedType && !$native->isBuiltin() && !enum_exists($native->getName());
-        if ($ordinaryClass || !ScalarPhpDocPresence::has($field)) {
+        if ($ordinaryClass) {
             return null;
         }
         $type = PhpDocFieldType::resolve($field);

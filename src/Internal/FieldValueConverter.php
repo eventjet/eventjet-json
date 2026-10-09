@@ -33,7 +33,7 @@ final readonly class FieldValueConverter
         private ListType|MapType|TupleType|CollectionUnionType|null $collection,
     ) {
         $this->type = $field->getType();
-        $this->literals = $collection === null
+        $this->literals = FieldTypeNameResolver::hasScalarPhpDoc($field, $collection)
             ? PhpDocLiteralField::resolve($field)
             : null;
         $this->literalConstrained = $this->literals !== null;

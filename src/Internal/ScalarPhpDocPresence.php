@@ -4,45 +4,47 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use ReflectionMethod;
 use ReflectionParameter;
 use ReflectionProperty;
 
+use function is_bool;
 use function str_contains;
 
 /** @internal */
 final class ScalarPhpDocPresence
 {
-    /** @var array<string, string> */
-    private static array $comments = [];
+    /** @var array<string, bool> */
+    private static array $presence = [];
 
-    public static function has(ReflectionParameter|ReflectionProperty $field): bool
-    {
-        if ($field instanceof ReflectionParameter) {
-            $function = $field->getDeclaringFunction();
-            $key = $function instanceof ReflectionMethod
-                ? $function->getDeclaringClass()->getName() . '::' . $function->getName()
-                : $function->getName() . '@' . $function->getFileName() . ':' . $function->getStartLine();
-            $doc = self::comment($key, $function->getDocComment());
-
-            return str_contains($doc, '$' . $field->getName());
+    public static function has(
+        ReflectionParameter|ReflectionProperty $field,
+        ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
+    ): bool {
+        if ($collection !== null) {
+            return false;
         }
 
-        $key = $field->getDeclaringClass()->getName() . '::$' . $field->getName();
+        if ($field instanceof ReflectionParameter) {
+            $function = $field->getDeclaringFunction();
+            $declaringClass = $field->getDeclaringClass();
+            $key = ($declaringClass?->getName() ?? '') . '::' . $function->getName()
+                . '@' . $function->getFileName() . ':' . $function->getStartLine() . '::$' . $field->getName();
+            $doc = $function->getDocComment();
+            $needle = '$' . $field->getName();
+        } else {
+            $key = $field->getDeclaringClass()->getName() . '::$' . $field->getName();
+            $doc = $field->getDocComment();
+            $needle = '/**';
+        }
 
-        return str_contains(self::comment($key, $field->getDocComment()), '/**');
-    }
-
-    private static function comment(string $key, string|false $comment): string
-    {
-        $cached = self::$comments[$key] ?? null;
-        if ($cached !== null) {
+        $cached = self::$presence[$key] ?? null;
+        if (is_bool($cached)) {
             return $cached;
         }
 
-        $comment = (string) $comment;
-        self::$comments[$key] = $comment;
+        $hasComment = str_contains((string) $doc, $needle);
+        self::$presence[$key] = $hasComment;
 
-        return $comment;
+        return $hasComment;
     }
 }

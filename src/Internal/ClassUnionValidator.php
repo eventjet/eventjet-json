@@ -80,7 +80,7 @@ final class ClassUnionValidator
             return FieldCollectionUnionResolver::resolve($class, $field, $type);
         }
         $fieldName = $field->getName();
-        $literals = PhpDocLiteralField::resolve($field);
+        $literals = FieldTypeNameResolver::hasScalarPhpDoc($field) ? PhpDocLiteralField::resolve($field) : null;
         $classError = self::validate($class, $field, $type);
         if ($classError !== null) {
             return $classError;

@@ -17,6 +17,13 @@ use function strcasecmp;
 /** @internal */
 final class FieldTypeNameResolver
 {
+    public static function hasScalarPhpDoc(
+        ReflectionParameter|ReflectionProperty $field,
+        ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
+    ): bool {
+        return ScalarPhpDocPresence::has($field, $collection);
+    }
+
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
     {
         $name = $type->getName();
