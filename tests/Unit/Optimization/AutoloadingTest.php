@@ -27,6 +27,7 @@ use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
+use Eventjet\Json\Internal\PhpDocLiteralFieldCache;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\RootTypeValidator;
@@ -98,6 +99,7 @@ use function spl_autoload_unregister;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocFieldType::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
+#[UsesClass(PhpDocLiteralFieldCache::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionTypeResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionValueConverter::class)]
