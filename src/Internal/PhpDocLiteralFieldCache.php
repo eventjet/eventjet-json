@@ -48,30 +48,32 @@ final class PhpDocLiteralFieldCache
         ReflectionParameter|ReflectionProperty $field,
         string|false|null $docComment = null,
     ): bool {
-        if ($field instanceof ReflectionParameter) {
-            $function = $field->getDeclaringFunction();
-            $doc = $docComment ?? $function->getDocComment();
-        } else {
-            $function = null;
-            $doc = $docComment ?? $field->getDocComment();
-        }
-        if ($doc === false || $doc === '') {
-            return false;
-        }
         $native = $field->getType();
         if ($native instanceof ReflectionNamedType && !$native->isBuiltin() && !enum_exists($native->getName())) {
             return false;
         }
         if ($field instanceof ReflectionParameter) {
-            /** @var ReflectionFunctionAbstract $function */
+            $function = $field->getDeclaringFunction();
             $key = serialize([
                 $field->getDeclaringClass()?->getName(),
                 $function->getName(),
                 $function->getFileName(),
                 $function->getStartLine(),
             ]);
-            self::$parameterMarkers[$key] ??= self::parameterMarkers($function, $doc);
+            if (array_key_exists($key, self::$parameterMarkers)) {
+                return self::$parameterMarkers[$key][$field->getName()] ?? false;
+            }
+            $doc = $docComment ?? $function->getDocComment();
+            if ($doc === false || $doc === '') {
+                self::$parameterMarkers[$key] = [];
+                return false;
+            }
+            self::$parameterMarkers[$key] = self::parameterMarkers($function, $doc);
             return self::$parameterMarkers[$key][$field->getName()] ?? false;
+        }
+        $doc = $docComment ?? $field->getDocComment();
+        if ($doc === false || $doc === '') {
+            return false;
         }
         if (!str_contains($doc, '@var')) {
             return false;
