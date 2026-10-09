@@ -16,8 +16,8 @@ final class PhpDocParameterMarkerCache
 {
     /** @var array<string, array<string, bool>> */
     private static array $parameterMarkers = [];
-    /** @var array<string, true> */
-    private static array $functionsWithoutDoc = [];
+    /** @var array<string, string> */
+    private static array $functionDocComments = [];
 
     public static function hasMarker(ReflectionParameter $field, string|false|null $docComment = null): bool
     {
@@ -27,20 +27,24 @@ final class PhpDocParameterMarkerCache
         if ($functionName === '{closure}') {
             $functionKey .= ':' . (string) $function->getFileName() . ':' . (string) $function->getStartLine();
         }
-        if ($docComment === null && array_key_exists($functionKey, self::$functionsWithoutDoc)) {
-            return false;
+        if (
+            $docComment !== false
+            && array_key_exists($functionKey, self::$parameterMarkers)
+            && ($docComment === null || $docComment === self::$functionDocComments[$functionKey])
+        ) {
+            return self::$parameterMarkers[$functionKey][$field->getName()] ?? false;
         }
         $doc = $docComment ?? $function->getDocComment();
         if ($doc === false || $doc === '') {
             if ($docComment === null) {
-                self::$functionsWithoutDoc[$functionKey] = true;
+                self::$parameterMarkers[$functionKey] = [];
+                self::$functionDocComments[$functionKey] = '';
             }
             return false;
         }
-        if (!array_key_exists($doc, self::$parameterMarkers)) {
-            self::$parameterMarkers[$doc] = self::parameterMarkers($function, $doc);
-        }
-        return self::$parameterMarkers[$doc][$field->getName()] ?? false;
+        self::$parameterMarkers[$functionKey] = self::parameterMarkers($function, $doc);
+        self::$functionDocComments[$functionKey] = $doc;
+        return self::$parameterMarkers[$functionKey][$field->getName()] ?? false;
     }
 
     /** @return array<string, bool> */

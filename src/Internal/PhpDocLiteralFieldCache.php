@@ -21,14 +21,16 @@ final class PhpDocLiteralFieldCache
         ReflectionParameter|ReflectionProperty $field,
         string|false|null $docComment = null,
     ): bool {
+        $key = self::cacheKey($field);
+        if ($docComment === null && array_key_exists($key, self::$literalPresence)) {
+            return self::$literalPresence[$key][0];
+        }
         $mayContainLiteral = self::mayContainLiteral($field, $docComment);
         if (!$mayContainLiteral) {
+            if ($docComment === null) {
+                self::$literalPresence[$key] = [false, null];
+            }
             return false;
-        }
-        $key = self::cacheKey($field);
-        if (array_key_exists($key, self::$literalPresence)) {
-            $cached = self::$literalPresence[$key];
-            return $cached[0];
         }
         $resolved = PhpDocLiteralField::resolveUncached($field);
         self::$literalPresence[$key] = [true, $resolved];
