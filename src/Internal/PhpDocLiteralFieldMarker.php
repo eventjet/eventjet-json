@@ -54,6 +54,7 @@ final class PhpDocLiteralFieldMarker
         return preg_match('~::|\b(?:true|false)\b|^\s*null\s*$~', subject: $type) === 1;
     }
 
+    /** @pure */
     public static function mayContainLiteralMarker(string $docComment): bool
     {
         if (strpbrk($docComment, characters: "'\"0123456789") !== false) {
