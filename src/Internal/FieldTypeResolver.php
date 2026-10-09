@@ -87,7 +87,7 @@ final class FieldTypeResolver
             return $resolved === false ? null : $resolved;
         }
 
-        $resolved = FieldTypeValidator::validate($class, $field, $docComment);
+        $resolved = FieldTypeValidator::validate($class, $field, $docComment, $hasLiteralPhpDoc);
         if ($resolved !== null && !$resolved instanceof DecodeError) {
             self::$collections[$class][$kind][$name] = $resolved;
         }

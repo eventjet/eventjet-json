@@ -72,13 +72,14 @@ final class ClassUnionValidator
         ReflectionParameter|ReflectionProperty $field,
         ReflectionUnionType $type,
         string|false|null $docComment = null,
+        bool|null $hasLiteralPhpDoc = null,
     ): CollectionUnionType|DecodeError|false|null {
         $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
         if ($hasCollection) {
             return FieldCollectionUnionResolver::resolve($class, $field, $type);
         }
         $fieldName = $field->getName();
-        $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($field, docComment: $docComment);
+        $hasLiteralPhpDoc ??= FieldTypeNameResolver::hasLiteralPhpDoc($field, docComment: $docComment);
         $literals = $hasLiteralPhpDoc ? PhpDocLiteralField::resolve($field) : null;
         $classError = self::validate($class, $field, $type);
         if ($classError !== null) {
