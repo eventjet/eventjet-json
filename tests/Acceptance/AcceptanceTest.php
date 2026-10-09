@@ -98,6 +98,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
@@ -145,7 +146,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(FieldCollectionUnionResolver::class)]
 #[CoversClass(FieldPath::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
-#[\PHPUnit\Framework\Attributes\UsesClass(\Eventjet\Json\Internal\ScalarPhpDocPresence::class)]
+#[UsesClass(\Eventjet\Json\Internal\ScalarPhpDocPresence::class)]
 #[CoversClass(FieldTypeResolver::class)]
 #[CoversClass(PhpDocImportScanner::class)]
 #[CoversClass(PhpDocImportStatement::class)]

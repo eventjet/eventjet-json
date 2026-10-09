@@ -28,7 +28,8 @@ final class ScalarPhpDocPresence
         if ($field instanceof ReflectionParameter) {
             $function = $field->getDeclaringFunction();
             $declaringClass = $field->getDeclaringClass();
-            $key = ($declaringClass?->getName() ?? '') . '::' . $function->getName()
+            $key =
+                ($declaringClass?->getName() ?? '') . '::' . $function->getName()
                 . '@' . $function->getFileName() . ':' . $function->getStartLine() . '::$' . $field->getName();
             $doc = $function->getDocComment();
             $needle = '$' . $field->getName();

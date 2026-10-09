@@ -60,6 +60,7 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
+#[UsesClass(\Eventjet\Json\Internal\ScalarPhpDocPresence::class)]
 #[UsesClass(FieldTypeResolver::class)]
 #[UsesClass(FieldTypeValidator::class)]
 #[UsesClass(MetadataCache::class)]

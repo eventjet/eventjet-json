@@ -78,6 +78,7 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocFieldType::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\ScalarPhpDocPresence::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]
