@@ -16,15 +16,6 @@ final class PhpDocParameterMarkerCache
     /** @var array<string, string> */
     private static array $functionDocComments = [];
 
-    public static function literalComment(string|false $docComment): string|false
-    {
-        if ($docComment === false) {
-            return false;
-        }
-        $hasLiteralMarker = PhpDocLiteralFieldMarker::mayContainLiteralMarker($docComment);
-        return $hasLiteralMarker ? $docComment : false;
-    }
-
     public static function hasMarker(ReflectionParameter $field, string|false|null $docComment = null): bool
     {
         $function = $field->getDeclaringFunction();
