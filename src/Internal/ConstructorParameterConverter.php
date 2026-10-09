@@ -9,6 +9,8 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
 
+use function enum_exists;
+
 /** @internal */
 final class ConstructorParameterConverter
 {
@@ -27,6 +29,12 @@ final class ConstructorParameterConverter
             if ($builtin && $collection === null) {
                 return null;
             }
+            return new FieldValueConverter($field, $collection);
+        }
+        $typeName = $type instanceof ReflectionNamedType && !$builtin
+            ? FieldTypeNameResolver::resolve($field, $type)
+            : null;
+        if ($typeName !== null && !enum_exists($typeName)) {
             return new FieldValueConverter($field, $collection);
         }
         $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($field, $collection, $docComment);
