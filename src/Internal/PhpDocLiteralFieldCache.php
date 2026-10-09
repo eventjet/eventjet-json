@@ -32,7 +32,8 @@ final class PhpDocLiteralFieldCache
                     ? $field->getDeclaringFunction()->getDocComment()
                     : $field->getDocComment()
             );
-        if (!self::mayContainLiteral($field, $comment)) {
+        $mayContainLiteral = self::mayContainLiteral($field, $comment);
+        if (!$mayContainLiteral) {
             return false;
         }
 
@@ -59,7 +60,8 @@ final class PhpDocLiteralFieldCache
      */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
     {
-        if (!self::hasLiteral($field)) {
+        $hasLiteral = self::hasLiteral($field);
+        if (!$hasLiteral) {
             return null;
         }
 
