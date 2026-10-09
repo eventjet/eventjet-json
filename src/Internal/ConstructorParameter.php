@@ -9,7 +9,6 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
-use ReflectionProperty;
 use ReflectionType;
 
 use function sprintf;
@@ -46,10 +45,7 @@ final readonly class ConstructorParameter
         $this->builtin = $this->type instanceof ReflectionNamedType && $this->type->isBuiltin();
         $this->variadic = $reflection->isVariadic();
         $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
-        $this->recoverable =
-            $property !== null
-            && ($property->getModifiers() & (ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_STATIC))
-                === ReflectionProperty::IS_PUBLIC;
+        $this->recoverable = ConstructorParameterConverter::isRecoverable($property);
         $this->hasLiteralPhpDoc = ConstructorParameterConverter::hasLiteralMarker(
             $reflection,
             $this->type,
@@ -61,6 +57,9 @@ final readonly class ConstructorParameter
     public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
     {
         $collection = $resolved === false ? null : $resolved;
+        if ($this->builtin && $collection === null && !$this->hasLiteralPhpDoc) {
+            return null;
+        }
         return $this->hasLiteralPhpDoc && $collection === null
             ? ConstructorParameterConverter::createLiteral($this->reflection) ?? ConstructorParameterConverter::create(
                 $this->reflection,
