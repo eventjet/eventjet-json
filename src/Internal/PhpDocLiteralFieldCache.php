@@ -73,7 +73,7 @@ final class PhpDocLiteralFieldCache
         if ($found !== 1) {
             return false;
         }
-        /** @var array{0: string, 1: string, type: string} $captures */
+        /** @var array{0: non-falsy-string, 1: non-empty-string, type: non-empty-string} $captures */
         $captures = $matches;
         $type = trim($captures['type']);
         return self::$literalMarkers[$type] ??=
