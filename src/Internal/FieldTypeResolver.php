@@ -13,6 +13,7 @@ use ReflectionProperty;
 use ReflectionUnionType;
 
 use function in_array;
+use function str_contains;
 
 /** @internal */
 final class FieldTypeResolver
@@ -39,6 +40,24 @@ final class FieldTypeResolver
         }
 
         return $field->getDocComment();
+    }
+
+    /**
+     * @return array{string|false, bool}
+     * @throws ReflectionException
+     */
+    public static function literalMetadata(
+        ReflectionProperty $field,
+        ReflectionNamedType|ReflectionUnionType $type,
+    ): array {
+        $docComment = $field->getDocComment();
+        $hasLiteralPhpDoc = false;
+        if ($docComment !== false && str_contains($docComment, '@var')) {
+            $docComment = self::literalDocComment($field, $type);
+            $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($field, docComment: $docComment);
+        }
+
+        return [$docComment, $hasLiteralPhpDoc];
     }
 
     /**

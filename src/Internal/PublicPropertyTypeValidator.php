@@ -45,8 +45,7 @@ final class PublicPropertyTypeValidator
             }
         }
 
-        $docComment = FieldTypeResolver::literalDocComment($property, $type);
-        $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($property, docComment: $docComment);
+        [$docComment, $hasLiteralPhpDoc] = FieldTypeResolver::literalMetadata($property, $type);
 
         $collection = FieldTypeResolver::resolve($class, $property, $docComment, $hasLiteralPhpDoc);
 
