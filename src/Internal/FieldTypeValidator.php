@@ -7,7 +7,9 @@ namespace Eventjet\Json\Internal;
 use ArrayObject;
 use BackedEnum;
 use Eventjet\Json\DecodeError;
+use JsonSerializable;
 use ReflectionClass;
+use ReflectionEnum;
 use ReflectionException;
 use ReflectionIntersectionType;
 use ReflectionNamedType;
@@ -25,7 +27,9 @@ final class FieldTypeValidator
 {
     // False identifies a valid non-collection declaration; null leaves unresolved types uncached.
     /**
+     * @template T of object
      * @param class-string $class
+     * @param ReflectionClass<T> $reflection
      * @throws ReflectionException
      */
     public static function resolveForGraph(
@@ -33,10 +37,11 @@ final class FieldTypeValidator
         ReflectionParameter $parameter,
         ReflectionClass $reflection,
     ): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null {
-        $usesUnion = $parameter->getType() instanceof ReflectionUnionType;
-        $docComment = $usesUnion
-            ? PhpDocParameterMarkerCache::constructorDocComment($class, $reflection->getConstructor())
-            : false;
+        $docComment = PhpDocParameterMarkerCache::constructorDocComment(
+            $class,
+            $reflection->getConstructor(),
+            $parameter->getType(),
+        );
         return new ConstructorParameter($parameter, $reflection, $docComment, $docComment)->resolveType($class);
     }
 
@@ -103,5 +108,18 @@ final class FieldTypeValidator
             return $hasLiteralPhpDoc ? PhpDocLiteralFieldValidator::validate($class, $field) ?? false : false;
         }
         return ClassFieldTypeValidator::validateNamed($class, $fieldName, $typeName, $type);
+    }
+
+    public static function isNonEncodable(string $type): bool
+    {
+        if (in_array($type, ['resource', 'open-resource', 'closed-resource'], strict: true)) {
+            return true;
+        }
+
+        return (
+            enum_exists($type)
+            && !new ReflectionEnum($type)->isBacked()
+            && !is_a($type, JsonSerializable::class, allow_string: true)
+        );
     }
 }
