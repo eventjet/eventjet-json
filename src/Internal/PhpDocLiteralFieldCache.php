@@ -56,7 +56,7 @@ final class PhpDocLiteralFieldCache
             ? preg_match(
                 '~@param[ \t]+([^\r\n*]+?)[ \t]+(?:&|\.\.\.)?\$'
                 . preg_quote($field->getName(), delimiter: '~')
-                . '(?:[ \t]|$)~',
+                . '(?:[ \t]|\r?\n|$)~',
                 $doc,
                 $matches,
             )

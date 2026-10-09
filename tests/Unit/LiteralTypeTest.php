@@ -152,7 +152,7 @@ final class LiteralTypeTest extends TestCase
         $plain = new class {
             /**
              * @param int $plain
-             * @return 14
+             * @since 14
              */
             public function plain(int $plain): void {}
         };
