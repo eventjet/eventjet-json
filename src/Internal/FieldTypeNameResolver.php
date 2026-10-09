@@ -10,10 +10,8 @@ use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
-use ReflectionUnionType;
 
 use function class_exists;
-use function enum_exists;
 use function interface_exists;
 use function strcasecmp;
 
@@ -45,16 +43,6 @@ final class FieldTypeNameResolver
             return false;
         }
         return PhpDocLiteralFieldCache::hasLiteral($field, $docComment);
-    }
-
-    public static function supportsLiteralPhpDoc(ReflectionNamedType|ReflectionUnionType $type): bool
-    {
-        if (!$type instanceof ReflectionNamedType || $type->isBuiltin()) {
-            return true;
-        }
-
-        $typeName = $type->getName();
-        return strcasecmp($typeName, ArrayObject::class) === 0 || enum_exists($typeName);
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
