@@ -25,6 +25,7 @@ use Eventjet\Json\Internal\ConcreteClassUnionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
+use Eventjet\Json\Internal\ConstructorParameterConverter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
@@ -109,6 +110,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ClassGraphValidator::class)]
 #[CoversClass(ClassTypeDependencies::class)]
 #[CoversClass(ConstructorParameter::class)]
+#[CoversClass(ConstructorParameterConverter::class)]
 #[CoversClass(Json::class)]
 #[CoversClass(JsonType::class)]
 #[CoversClass(ArrayJsonType::class)]

@@ -51,7 +51,8 @@ final class PublicPropertyTypeValidator
             return $collection;
         }
 
-        $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($property, $collection);
+        $docComment = $property->getDocComment();
+        $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($property, $collection, $docComment);
         $literals = $hasLiteralPhpDoc ? PhpDocLiteralField::resolve($property) : null;
 
         return $literals === null
