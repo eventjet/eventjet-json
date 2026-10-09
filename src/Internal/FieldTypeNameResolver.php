@@ -13,7 +13,9 @@ use ReflectionProperty;
 
 use function class_exists;
 use function interface_exists;
+use function preg_match;
 use function strcasecmp;
+use function strpbrk;
 
 /** @internal */
 final class FieldTypeNameResolver
@@ -42,7 +44,25 @@ final class FieldTypeNameResolver
         if ($collection !== null || $docComment === false) {
             return false;
         }
+        $mayContainLiteral = $docComment !== null && self::mayContainLiteralMarker($docComment);
+        if ($docComment !== null && !$mayContainLiteral) {
+            return false;
+        }
         return PhpDocLiteralFieldCache::hasLiteral($field, $docComment);
+    }
+
+    public static function mayContainLiteralMarker(string $docComment): bool
+    {
+        if (strpbrk($docComment, characters: "'\"0123456789") !== false) {
+            return true;
+        }
+
+        return (
+            preg_match(
+                '~::|\\b(?:true|false)\\b|@(param|var)[ \\t]+null(?:[ \\t]|\\r?\\n|\\*|$)~',
+                subject: $docComment,
+            ) === 1
+        );
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
