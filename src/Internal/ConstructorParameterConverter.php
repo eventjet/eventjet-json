@@ -7,6 +7,7 @@ namespace Eventjet\Json\Internal;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
 
@@ -15,6 +16,15 @@ use function enum_exists;
 /** @internal */
 final class ConstructorParameterConverter
 {
+    public static function isRecoverable(ReflectionProperty|null $property): bool
+    {
+        return (
+            $property !== null
+            && ($property->getModifiers() & (ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_STATIC))
+            === ReflectionProperty::IS_PUBLIC
+        );
+    }
+
     /** @throws ReflectionException */
     public static function hasLiteralMarker(
         ReflectionParameter $field,

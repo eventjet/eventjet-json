@@ -78,7 +78,6 @@ use function spl_autoload_unregister;
 #[UsesClass(ClassFieldTypeValidator::class)]
 #[UsesClass(ConstructorParameter::class)]
 #[UsesClass(ConstructorParameterConverter::class)]
-#[UsesClass(\Eventjet\Json\Internal\ConstructorParameterMetadata::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
 #[UsesClass(FieldTypeResolver::class)]
 #[UsesClass(FieldTypeValidator::class)]
