@@ -50,6 +50,11 @@ final class FieldTypeResolver
         ReflectionProperty $field,
         ReflectionNamedType|ReflectionUnionType $type,
     ): array {
+        $supportsLiteralPhpDoc = FieldTypeNameResolver::supportsLiteralPhpDoc($field, $type);
+        if (!$supportsLiteralPhpDoc) {
+            return [false, false];
+        }
+
         $docComment = $field->getDocComment();
         if ($docComment === false || !str_contains($docComment, '@var')) {
             return [$docComment, false];
