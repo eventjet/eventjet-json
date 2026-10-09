@@ -97,7 +97,7 @@ final class LiteralTypeTest extends TestCase
     /** @throws \ReflectionException */
     public function testLiteralAndCollectionResolversKeepTheirDeclarationsDistinct(): void
     {
-        $object = new class {
+        $object = new class(1) {
             /** @var list<int> */
             public array $items = [];
             /** @var positive-int */
