@@ -14,6 +14,11 @@ use function substr;
 /** @internal */
 final class PhpDocTypeTokens
 {
+    private const IDENTIFIER_PATTERN = '/\G\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff-]*(?:\\\\[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)*(?:::[A-Za-z_*\x80-\xff][A-Za-z0-9_*\x80-\xff]*)?/';
+    private const NUMBER_PATTERN = '/\G[+-]?(?:0[xX][0-9a-fA-F]+(?:_[0-9a-fA-F]+)*|0[bB][01]+(?:_[01]+)*|0[oO][0-7]+(?:_[0-7]+)*|(?:[0-9]+(?:_[0-9]+)*(?:\.[0-9]*(?:_[0-9]+)*)?|\.[0-9]+(?:_[0-9]+)*)(?:[eE][+-]?[0-9]+(?:_[0-9]+)*)?)/';
+    private const SINGLE_QUOTED_PATTERN = '/\G\x27(?:[^\x27\\\\]|\\\\[\s\S])*\x27/';
+    private const DOUBLE_QUOTED_PATTERN = '/\G"(?:[^"\\\\]|\\\\[\s\S])*"/';
+
     private int $offset = 0;
 
     public function __construct(
@@ -95,14 +100,12 @@ final class PhpDocTypeTokens
     /** @return non-empty-string */
     private function pattern(): string
     {
-        $first = substr($this->source, offset: $this->offset, length: 1);
-        $number = strspn($this->source, characters: '0123456789.+-', offset: $this->offset, length: 1) === 1;
-        return match (true) {
-            $first === "'" => '/\G\x27(?:[^\x27\\\\]|\\\\[\s\S])*\x27/',
-            $first === '"' => '/\G"(?:[^"\\\\]|\\\\[\s\S])*"/',
-            $number
-                => '/\G[+-]?(?:0[xX][0-9a-fA-F]+(?:_[0-9a-fA-F]+)*|0[bB][01]+(?:_[01]+)*|0[oO][0-7]+(?:_[0-7]+)*|(?:[0-9]+(?:_[0-9]+)*(?:\.[0-9]*(?:_[0-9]+)*)?|\.[0-9]+(?:_[0-9]+)*)(?:[eE][+-]?[0-9]+(?:_[0-9]+)*)?)/',
-            default => '/\G\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff-]*(?:\\\\[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)*(?:::[A-Za-z_*\x80-\xff][A-Za-z0-9_*\x80-\xff]*)?/',
+        $first = $this->source[$this->offset] ?? '';
+        return match ($first) {
+            "'" => self::SINGLE_QUOTED_PATTERN,
+            '"' => self::DOUBLE_QUOTED_PATTERN,
+            '+', '-', '.' => self::NUMBER_PATTERN,
+            default => $first >= '0' && $first <= '9' ? self::NUMBER_PATTERN : self::IDENTIFIER_PATTERN,
         };
     }
 }
