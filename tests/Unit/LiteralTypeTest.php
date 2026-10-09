@@ -138,7 +138,7 @@ final class LiteralTypeTest extends TestCase
         static::assertNull(ConstructorParameterConverter::create($parameter, $parameterType, false, null));
 
         $invalid = new class(1) {
-            public const NOT_FINITE = INF;
+            public const float NOT_FINITE = INF;
 
             /** @param int|float|self::NOT_FINITE $value */
             public function __construct(
