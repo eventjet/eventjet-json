@@ -36,6 +36,7 @@ final readonly class ConstructorParameter
         public ReflectionParameter $reflection,
         ReflectionClass $class,
         private string|false|null $docComment = null,
+        bool|null $hasLiteralPhpDoc = null,
     ) {
         $this->class = $class->getName();
         $this->name = $reflection->getName();
@@ -50,7 +51,7 @@ final readonly class ConstructorParameter
             $property !== null
             && ($property->getModifiers() & (ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_STATIC))
                 === ReflectionProperty::IS_PUBLIC;
-        $this->hasLiteralPhpDoc = ConstructorParameterConverter::hasLiteralMarker(
+        $this->hasLiteralPhpDoc = $hasLiteralPhpDoc ?? ConstructorParameterConverter::hasLiteralMarker(
             $reflection,
             $this->type,
             $docComment,
