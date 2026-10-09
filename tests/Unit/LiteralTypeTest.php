@@ -85,11 +85,14 @@ final class LiteralTypeTest extends TestCase
             public int $integer = 42;
             /** @var string|null */
             public string|null $text = null;
+            /** @var null|bool */
+            public bool|null $flag = null;
             /** @var null */
             public null $nothing = null;
         };
         static::assertNull(PhpDocLiteralField::resolve(new ReflectionProperty($object, 'integer')));
         static::assertNull(PhpDocLiteralField::resolve(new ReflectionProperty($object, 'text')));
+        static::assertNull(PhpDocLiteralField::resolve(new ReflectionProperty($object, 'flag')));
         static::assertSame(['null'], PhpDocLiteralField::resolve(new ReflectionProperty($object, 'nothing')));
         static::assertSame(
             PhpDocFieldType::resolve(new ReflectionProperty($object, 'integer')),
