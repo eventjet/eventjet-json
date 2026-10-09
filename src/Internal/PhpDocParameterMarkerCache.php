@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use ReflectionFunctionAbstract;
 use ReflectionParameter;
+use WeakMap;
 
 use function array_key_exists;
 use function preg_match_all;
@@ -17,9 +18,14 @@ final class PhpDocParameterMarkerCache
 {
     /** @var array<string, array<string, bool>> */
     private static array $parameterMarkers = [];
+    /** @var WeakMap<ReflectionParameter, bool>|null */
+    private static WeakMap|null $fieldMarkers = null;
 
     public static function hasMarker(ReflectionParameter $field, string|false|null $docComment = null): bool
     {
+        if (self::$fieldMarkers !== null && self::$fieldMarkers->offsetExists($field)) {
+            return self::$fieldMarkers[$field];
+        }
         $function = $field->getDeclaringFunction();
         $key = serialize([
             $field->getDeclaringClass()?->getName(),
@@ -28,15 +34,22 @@ final class PhpDocParameterMarkerCache
             $function->getStartLine(),
         ]);
         if (array_key_exists($key, self::$parameterMarkers)) {
-            return self::$parameterMarkers[$key][$field->getName()] ?? false;
+            return self::remember($field, self::$parameterMarkers[$key][$field->getName()] ?? false);
         }
         $doc = $docComment ?? $function->getDocComment();
         if ($doc === false || $doc === '') {
             self::$parameterMarkers[$key] = [];
-            return false;
+            return self::remember($field, false);
         }
         self::$parameterMarkers[$key] = self::parameterMarkers($function, $doc);
-        return self::$parameterMarkers[$key][$field->getName()] ?? false;
+        return self::remember($field, self::$parameterMarkers[$key][$field->getName()] ?? false);
+    }
+
+    private static function remember(ReflectionParameter $field, bool $hasMarker): bool
+    {
+        self::$fieldMarkers ??= new WeakMap();
+        self::$fieldMarkers[$field] = $hasMarker;
+        return $hasMarker;
     }
 
     /** @return array<string, bool> */
