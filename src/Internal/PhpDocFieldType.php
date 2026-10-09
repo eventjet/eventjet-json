@@ -26,25 +26,32 @@ final class PhpDocFieldType
         $doc = $field instanceof ReflectionParameter
             ? $field->getDeclaringFunction()->getDocComment()
             : $field->getDocComment();
-        $tag = $field instanceof ReflectionParameter ? '@param' : '@var';
+        $doc = $doc === false ? '' : $doc;
+        if ($field instanceof ReflectionProperty) {
+            return self::property(self::parse($doc, '@var'));
+        }
+
+        $tag = '@param';
         /** @var MetadataCache<list<array{PhpDocType, string}>> $cache */
         $cache = self::$declarations[$tag] ?? new MetadataCache();
         self::$declarations[$tag] = $cache;
-        $doc = $doc === false ? '' : $doc;
         $types = $cache->resolve(
             $doc,
             /** @return list<array{PhpDocType, string}> */ static fn(): array => self::parse($doc, $tag),
         );
-        if ($field instanceof ReflectionParameter) {
-            /** @var MetadataCache<array<string, PhpDocType>> $parameters */
-            $parameters = self::$parameters[$tag] ?? new MetadataCache();
-            self::$parameters[$tag] = $parameters;
-            $byName = $parameters->resolve(
-                $doc,
-                /** @return array<string, PhpDocType> */ static fn(): array => self::parameters($types),
-            );
-            return $byName[$field->getName()] ?? null;
-        }
+        /** @var MetadataCache<array<string, PhpDocType>> $parameters */
+        $parameters = self::$parameters[$tag] ?? new MetadataCache();
+        self::$parameters[$tag] = $parameters;
+        $byName = $parameters->resolve(
+            $doc,
+            /** @return array<string, PhpDocType> */ static fn(): array => self::parameters($types),
+        );
+        return $byName[$field->getName()] ?? null;
+    }
+
+    /** @param list<array{PhpDocType, string}> $types */
+    private static function property(array $types): PhpDocType|null
+    {
         foreach ($types as $parsed) {
             [$type, $remainder] = $parsed;
             $suffixPattern = '/\\A(?:\\s+[^\\s|&<>\\[\\],?:{}].*)?\\z/s';
