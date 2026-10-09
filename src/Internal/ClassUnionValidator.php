@@ -121,7 +121,13 @@ final class ClassUnionValidator
                 $nonEncodableError ??= DecodeError::nonBackedEnum($class, $name, $fieldName);
                 continue;
             }
-            $error = FieldTypeValidator::validateNamedType($class, $field, $member, docComment: false);
+            $error = FieldTypeValidator::validateNamedType(
+                $class,
+                $field,
+                $member,
+                docComment: false,
+                hasLiteralPhpDoc: false,
+            );
 
             if ($error instanceof DecodeError) {
                 return $error;

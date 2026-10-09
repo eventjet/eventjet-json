@@ -50,8 +50,11 @@ final readonly class ConstructorParameter
     /** @throws ReflectionException */
     public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
     {
-        if ($this->builtin && $this->docComment === false && $resolved === false) {
-            return null;
+        if ($this->docComment === false) {
+            $collection = $resolved === false ? null : $resolved;
+            return $this->builtin && $collection === null
+                ? null
+                : new FieldValueConverter($this->reflection, $collection);
         }
         return ConstructorParameterConverter::create($this->reflection, $this->type, $this->docComment, $resolved);
     }
@@ -77,9 +80,16 @@ final readonly class ConstructorParameter
                 '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
             );
         }
+        $hasLiteralPhpDoc = $this->docComment === false ? false : null;
         $resolved = $this->type instanceof ReflectionNamedType
-            ? FieldTypeValidator::validateNamedType($class, $this->reflection, $this->type, $this->docComment)
-            : FieldTypeValidator::validate($class, $this->reflection, $this->docComment);
+            ? FieldTypeValidator::validateNamedType(
+                $class,
+                $this->reflection,
+                $this->type,
+                $this->docComment,
+                $hasLiteralPhpDoc,
+            )
+            : FieldTypeValidator::validate($class, $this->reflection, $this->docComment, $hasLiteralPhpDoc);
         if ($resolved instanceof DecodeError) {
             return $resolved;
         }
