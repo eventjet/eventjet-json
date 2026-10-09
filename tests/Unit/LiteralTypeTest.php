@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit;
 
 use Eventjet\Json\Internal\FieldTypeNameResolver;
+use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
@@ -55,13 +56,14 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocItemTypeResolver::class)]
 #[UsesClass(PhpDocLiteral::class)]
 #[UsesClass(PhpDocUnionTypeResolver::class)]
-#[UsesClass(PhpDocType::class)]
+#[CoversClass(PhpDocType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
 #[UsesClass(ListType::class)]
 #[UsesClass(PhpDocTypeTokens::class)]
 #[UsesClass(PhpDocTokenStream::class)]
 #[UsesClass(NestedCollectionTypeResolver::class)]
-#[UsesClass(FieldTypeNameResolver::class)]
+#[CoversClass(FieldTypeNameResolver::class)]
+#[UsesClass(FieldValueConverter::class)]
 #[UsesClass(PhpDocClassNameResolver::class)]
 #[UsesClass(PhpDocImports::class)]
 #[UsesClass(PhpDocImportKind::class)]
@@ -140,12 +142,19 @@ final class LiteralTypeTest extends TestCase
         static::assertSame(['12'], PhpDocLiteralField::resolve($secondParameter));
         static::assertSame(['12'], PhpDocLiteralField::resolve($otherParameter));
         static::assertSame(['13'], PhpDocLiteralField::resolve(new ReflectionProperty($object, 'property')));
+        static::assertTrue(PhpDocLiteralFieldCache::mayContainLiteral($constructorParameter));
         static::assertFalse(FieldTypeNameResolver::hasLiteralPhpDoc(
             $constructorParameter,
             new ListType('int', nonEmpty: false),
         ));
+        static::assertFalse(new FieldValueConverter(
+            $constructorParameter,
+            new ListType('int', nonEmpty: false),
+            ['11'],
+        )->literalConstrained);
 
         $ordinary = new class {
+            /** @var \DateTimeImmutable */
             public \DateTimeImmutable $object;
             public int $undocumented;
             /** @var positive-int */
@@ -166,12 +175,28 @@ final class LiteralTypeTest extends TestCase
         $refinedProperty = new ReflectionProperty($ordinary, 'refined');
         $nonLiteralProperty = new ReflectionProperty($ordinary, 'nonLiteral');
 
+        static::assertFalse(PhpDocLiteralFieldCache::mayContainLiteral($objectProperty));
         static::assertNull(PhpDocLiteralField::resolve($objectProperty));
         static::assertNull(PhpDocLiteralField::resolve($undocumentedProperty));
+        static::assertNull(PhpDocLiteralField::resolveUncached($undocumentedProperty));
+        static::assertFalse(PhpDocLiteralFieldCache::mayContainLiteral($undocumentedProperty));
         static::assertNull(PhpDocLiteralFieldValidator::validate($ordinary::class, $undocumentedProperty));
         static::assertNull(PhpDocLiteralField::resolve($refinedProperty));
         static::assertNull(PhpDocLiteralField::resolve($nonLiteralProperty));
         static::assertFalse(new PhpDocType('|', [new PhpDocType('string'), new PhpDocType('int')])->containsLiteral());
+
+        $enum = new class {
+            /** @var StringBackedStatus::Ready */
+            public StringBackedStatus $status;
+
+            public function __construct()
+            {
+                $this->status = StringBackedStatus::Ready;
+            }
+        };
+        $enumProperty = new ReflectionProperty($enum, 'status');
+        static::assertTrue(PhpDocLiteralFieldCache::mayContainLiteral($enumProperty));
+        static::assertSame([StringBackedStatus::class . '::Ready'], PhpDocLiteralField::resolve($enumProperty));
     }
 
     public function testIntegerBoundariesAndNotation(): void

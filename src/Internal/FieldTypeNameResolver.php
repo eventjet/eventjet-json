@@ -24,10 +24,7 @@ final class FieldTypeNameResolver
         if ($collection !== null) {
             return false;
         }
-        return (
-            PhpDocLiteralFieldCache::mayContainLiteral($field)
-            && PhpDocFieldType::resolve($field)?->containsLiteral() === true
-        );
+        return PhpDocLiteralFieldCache::hasLiteral($field);
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string

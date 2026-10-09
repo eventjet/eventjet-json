@@ -4,23 +4,36 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
+use WeakMap;
 
-use function array_key_exists;
 use function enum_exists;
 use function preg_match;
-use function serialize;
 
 /** @internal */
 final class PhpDocLiteralFieldCache
 {
-    /** @var array<string, list<string>|null> */
-    private static array $resolved = [];
     /** @var array<string, bool> */
     private static array $literalMarkers = [];
+    /** @var WeakMap<object, array{bool, list<string>|null}>|null */
+    private static WeakMap|null $literalPresence = null;
+
+    public static function hasLiteral(ReflectionParameter|ReflectionProperty $field): bool
+    {
+        if (self::$literalPresence === null) {
+            self::$literalPresence = new WeakMap();
+        }
+        $cache = self::$literalPresence;
+        if ($cache->offsetExists($field)) {
+            return $cache[$field][0];
+        }
+        $hasLiteral = self::mayContainLiteral($field) && PhpDocFieldType::resolve($field)?->containsLiteral() === true;
+        $resolved = $hasLiteral ? PhpDocLiteralField::resolveUncached($field) : null;
+        $cache[$field] = [$hasLiteral, $resolved];
+        return $hasLiteral;
+    }
 
     public static function mayContainLiteral(ReflectionParameter|ReflectionProperty $field): bool
     {
@@ -38,23 +51,11 @@ final class PhpDocLiteralFieldCache
             preg_match('~[\'"\d:]|\b(?:true|false|null|[A-Z][A-Za-z0-9_]*)\b~', subject: $doc) === 1;
     }
 
-    /**
-     * @return list<string>|null
-     * @throws ReflectionException
-     */
+    /** @return list<string>|null */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
     {
-        $key = $field instanceof ReflectionParameter
-            ? serialize([
-                'parameter',
-                $field->getDeclaringClass()?->getName(),
-                $field->getDeclaringFunction()->getName(),
-                $field->getName(),
-            ])
-            : serialize(['property', $field->getDeclaringClass()->getName(), $field->getName()]);
-        if (array_key_exists($key, self::$resolved)) {
-            return self::$resolved[$key];
-        }
-        return self::$resolved[$key] ??= PhpDocLiteralField::resolveUncached($field);
+        self::hasLiteral($field);
+        assert(self::$literalPresence !== null, description: 'Literal field metadata has been initialized.');
+        return self::$literalPresence[$field][1];
     }
 }

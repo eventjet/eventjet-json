@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use ReflectionException;
-use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 
 use function array_any;
 use function count;
-use function enum_exists;
 use function in_array;
 use function is_string;
 
@@ -24,10 +22,6 @@ final class PhpDocLiteralField
      */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
     {
-        $native = $field->getType();
-        if ($native instanceof ReflectionNamedType && !$native->isBuiltin() && !enum_exists($native->getName())) {
-            return null;
-        }
         return PhpDocLiteralFieldCache::resolve($field);
     }
 
@@ -41,20 +35,7 @@ final class PhpDocLiteralField
         if ($type === null) {
             return null;
         }
-        if (FieldTypeNameResolver::primitivePhpDoc($type->name) !== null) {
-            return null;
-        }
         $members = $type->name === '|' ? $type->arguments : [$type];
-        $hasLiteralSyntax = array_any(
-            $members,
-            static fn(PhpDocType $member): bool => (
-                in_array($member->name, ['null', 'true', 'false'], strict: true)
-                || PhpDocType::literalSyntax($member->name)
-            ),
-        );
-        if (!$hasLiteralSyntax) {
-            return null;
-        }
         $names = [];
         foreach ($members as $member) {
             $resolved = PhpDocItemTypeResolver::resolve($field, $member);
