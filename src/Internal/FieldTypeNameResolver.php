@@ -12,9 +12,9 @@ use ReflectionProperty;
 
 use function class_exists;
 use function interface_exists;
+use function preg_match;
 use function str_contains;
 use function strcasecmp;
-use function strpbrk;
 
 /** @internal */
 final class FieldTypeNameResolver
@@ -32,14 +32,9 @@ final class FieldTypeNameResolver
             : $field->getDocComment();
         $needle = $field instanceof ReflectionParameter ? '$' . $field->getName() : '/**';
         $doc = (string) $doc;
-        if (!str_contains($doc, $needle)) {
-            return false;
-        }
         return (
-            strpbrk($doc, "'\"0123456789:") !== false
-            || str_contains($doc, 'true')
-            || str_contains($doc, 'false')
-            || str_contains($doc, 'null')
+            str_contains($doc, $needle)
+            && preg_match(pattern: '~[\'"\d:]|\b(?:true|false|null)\b~', subject: $doc) === 1
         );
     }
 
