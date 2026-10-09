@@ -18,10 +18,8 @@ final class PhpDocParameterMarkerCache
     /** @var array<string, array<string, bool>> */
     private static array $parameterMarkers = [];
 
-    public static function hasMarker(
-        ReflectionParameter $field,
-        string|false|null $docComment = null,
-    ): bool {
+    public static function hasMarker(ReflectionParameter $field, string|false|null $docComment = null): bool
+    {
         $function = $field->getDeclaringFunction();
         $key = serialize([
             $field->getDeclaringClass()?->getName(),
