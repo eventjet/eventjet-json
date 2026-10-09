@@ -23,18 +23,18 @@ final class FieldTypeResolver
     public static function literalDocComment(
         ReflectionProperty $field,
         ReflectionNamedType|ReflectionUnionType $type,
-    ): string|false|null {
+    ): string|false {
         if ($type instanceof ReflectionUnionType) {
             $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
             if ($hasCollection) {
-                return null;
+                return false;
             }
         }
         if ($type instanceof ReflectionNamedType) {
             $typeName = FieldTypeNameResolver::resolve($field, $type);
             $isCollection = in_array($typeName, ['array', ArrayObject::class], strict: true);
             if ($isCollection) {
-                return null;
+                return false;
             }
         }
 
@@ -51,7 +51,11 @@ final class FieldTypeResolver
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         string|false|null $docComment = null,
+        bool|null $hasLiteralPhpDoc = null,
     ): ListType|MapType|TupleType|CollectionUnionType|DecodeError|null {
+        if ($hasLiteralPhpDoc === false) {
+            $docComment = false;
+        }
         $kind = $field::class;
         $name = $field->getName();
         $resolved = self::$collections[$class][$kind][$name] ?? null;

@@ -123,8 +123,8 @@ final class LiteralTypeTest extends TestCase
         static::assertInstanceOf(ReflectionNamedType::class, $itemsType);
         static::assertInstanceOf(\ReflectionUnionType::class, $unionType);
 
-        static::assertNull(FieldTypeResolver::literalDocComment($items, $itemsType));
-        static::assertNull(FieldTypeResolver::literalDocComment($union, $unionType));
+        static::assertFalse(FieldTypeResolver::literalDocComment($items, $itemsType));
+        static::assertFalse(FieldTypeResolver::literalDocComment($union, $unionType));
         $refinedType = $refined->getType();
         static::assertInstanceOf(ReflectionNamedType::class, $refinedType);
         static::assertSame($refined->getDocComment(), FieldTypeResolver::literalDocComment($refined, $refinedType));

@@ -46,13 +46,14 @@ final class PublicPropertyTypeValidator
         }
 
         $docComment = FieldTypeResolver::literalDocComment($property, $type);
-        $collection = FieldTypeResolver::resolve($class, $property, $docComment);
+        $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($property, docComment: $docComment);
+
+        $collection = FieldTypeResolver::resolve($class, $property, $docComment, $hasLiteralPhpDoc);
 
         if ($collection instanceof DecodeError) {
             return $collection;
         }
 
-        $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($property, $collection, $docComment);
         $literals = $hasLiteralPhpDoc ? PhpDocLiteralField::resolve($property) : null;
 
         return $literals === null
