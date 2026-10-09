@@ -24,7 +24,7 @@ final class FieldTypeNameResolver
         ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
         string|false|null $docComment = null,
     ): bool {
-        if ($collection !== null) {
+        if ($collection !== null || $docComment === false) {
             return false;
         }
         return PhpDocLiteralFieldCache::hasLiteral($field, $docComment);

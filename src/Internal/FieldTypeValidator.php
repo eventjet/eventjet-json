@@ -46,7 +46,7 @@ final class FieldTypeValidator
         }
 
         if ($type instanceof ReflectionUnionType) {
-            return ClassUnionValidator::resolve($class, $field, $type);
+            return ClassUnionValidator::resolve($class, $field, $type, $docComment);
         }
 
         return null;
