@@ -53,8 +53,10 @@ final class FieldTypeNameResolver
         }
 
         return (
-            preg_match('~::|\\b(?:true|false)\\b|@(param|var)[ \\t]+null(?:[ \\t]|\\r?\\n|\\*|$)~', subject: $docComment)
-            === 1
+            preg_match(
+                '~::|\\b(?:true|false)\\b|@(param|var)[ \\t]+null(?:[ \\t]|\\r?\\n|\\*|$)~',
+                subject: $docComment,
+            ) === 1
         );
     }
 
