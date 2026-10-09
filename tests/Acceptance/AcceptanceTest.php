@@ -145,6 +145,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(FieldCollectionUnionResolver::class)]
 #[CoversClass(FieldPath::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
+#[\PHPUnit\Framework\Attributes\UsesClass(\Eventjet\Json\Internal\ScalarPhpDocPresence::class)]
 #[CoversClass(FieldTypeResolver::class)]
 #[CoversClass(PhpDocImportScanner::class)]
 #[CoversClass(PhpDocImportStatement::class)]

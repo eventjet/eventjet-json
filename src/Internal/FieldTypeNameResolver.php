@@ -20,7 +20,8 @@ final class FieldTypeNameResolver
     public static function hasScalarPhpDoc(
         ReflectionParameter|ReflectionProperty $field,
         ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
-    ): bool {
+    ): bool
+    {
         return ScalarPhpDocPresence::has($field, $collection);
     }
 

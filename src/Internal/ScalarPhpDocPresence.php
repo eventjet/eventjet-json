@@ -19,7 +19,8 @@ final class ScalarPhpDocPresence
     public static function has(
         ReflectionParameter|ReflectionProperty $field,
         ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
-    ): bool {
+    ): bool
+    {
         if ($collection !== null) {
             return false;
         }
