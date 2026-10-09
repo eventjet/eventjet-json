@@ -33,6 +33,7 @@ final readonly class ConstructorParameter
     public function __construct(
         public ReflectionParameter $reflection,
         ReflectionClass $class,
+        private string|false|null $docComment = null,
     ) {
         $this->class = $class->getName();
         $this->name = $reflection->getName();
@@ -50,7 +51,7 @@ final readonly class ConstructorParameter
     public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
     {
         $collection = $resolved === false ? null : $resolved;
-        $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($this->reflection, $collection);
+        $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($this->reflection, $collection, $this->docComment);
         $literal = $hasLiteralPhpDoc ? PhpDocLiteralField::resolve($this->reflection) : null;
         if ($literal !== null) {
             return new PhpDocLiteralFieldValueConverter($this->reflection, $collection, $literal);
@@ -80,8 +81,8 @@ final readonly class ConstructorParameter
             );
         }
         $resolved = $this->type instanceof ReflectionNamedType
-            ? FieldTypeValidator::validateNamedType($class, $this->reflection, $this->type)
-            : FieldTypeValidator::validate($class, $this->reflection);
+            ? FieldTypeValidator::validateNamedType($class, $this->reflection, $this->type, $this->docComment)
+            : FieldTypeValidator::validate($class, $this->reflection, $this->docComment);
         if ($resolved instanceof DecodeError) {
             return $resolved;
         }

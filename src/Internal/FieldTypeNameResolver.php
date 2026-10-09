@@ -22,11 +22,12 @@ final class FieldTypeNameResolver
     public static function hasLiteralPhpDoc(
         ReflectionParameter|ReflectionProperty $field,
         ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
+        string|false|null $docComment = null,
     ): bool {
         if ($collection !== null) {
             return false;
         }
-        return PhpDocLiteralFieldCache::hasLiteral($field);
+        return PhpDocLiteralFieldCache::hasLiteral($field, $docComment);
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string

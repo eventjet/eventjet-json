@@ -32,6 +32,7 @@ final class FieldTypeValidator
     public static function validate(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
+        string|false|null $docComment = null,
     ): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null {
         $fieldName = $field->getName();
         $type = $field->getType();
@@ -41,7 +42,7 @@ final class FieldTypeValidator
         }
 
         if ($type instanceof ReflectionNamedType) {
-            return self::validateNamedType($class, $field, $type);
+            return self::validateNamedType($class, $field, $type, $docComment);
         }
 
         if ($type instanceof ReflectionUnionType) {
@@ -59,6 +60,7 @@ final class FieldTypeValidator
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionNamedType $type,
+        string|false|null $docComment = null,
     ): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null {
         $fieldName = $field->getName();
         $typeName = FieldTypeNameResolver::resolve($field, $type);
@@ -77,7 +79,7 @@ final class FieldTypeValidator
         }
 
         if ($type->isBuiltin() || enum_exists($typeName) && is_a($typeName, BackedEnum::class, allow_string: true)) {
-            $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($field);
+            $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($field, docComment: $docComment);
             return $hasLiteralPhpDoc ? PhpDocLiteralFieldValidator::validate($class, $field) ?? false : false;
         }
         return ClassFieldTypeValidator::validateNamed($class, $fieldName, $typeName, $type);

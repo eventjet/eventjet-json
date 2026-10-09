@@ -23,28 +23,41 @@ final class PhpDocLiteralFieldCache
     private static array $literalPresence = [];
 
     /** @throws ReflectionException */
-    public static function hasLiteral(ReflectionParameter|ReflectionProperty $field): bool
-    {
+    public static function hasLiteral(
+        ReflectionParameter|ReflectionProperty $field,
+        string|false|null $docComment = null,
+    ): bool {
+        if ($docComment === false) {
+            return false;
+        }
         $key = self::cacheKey($field);
         if (array_key_exists($key, self::$literalPresence)) {
             $cached = self::$literalPresence[$key];
             return $cached[0];
         }
-        $hasLiteral = self::mayContainLiteral($field) && PhpDocFieldType::resolve($field)?->containsLiteral() === true;
+        $hasLiteral =
+            self::mayContainLiteral($field, $docComment)
+            && PhpDocFieldType::resolve($field)?->containsLiteral() === true;
         $resolved = $hasLiteral ? PhpDocLiteralField::resolveUncached($field) : null;
         self::$literalPresence[$key] = [$hasLiteral, $resolved];
         return $hasLiteral;
     }
 
-    public static function mayContainLiteral(ReflectionParameter|ReflectionProperty $field): bool
-    {
+    public static function mayContainLiteral(
+        ReflectionParameter|ReflectionProperty $field,
+        string|false|null $docComment = null,
+    ): bool {
         $native = $field->getType();
         if ($native instanceof ReflectionNamedType && !$native->isBuiltin() && !enum_exists($native->getName())) {
             return false;
         }
-        $doc = $field instanceof ReflectionParameter
-            ? $field->getDeclaringFunction()->getDocComment()
-            : $field->getDocComment();
+        $doc =
+            $docComment
+            ?? (
+                $field instanceof ReflectionParameter
+                    ? $field->getDeclaringFunction()->getDocComment()
+                    : $field->getDocComment()
+            );
         if ($doc === false) {
             return false;
         }
