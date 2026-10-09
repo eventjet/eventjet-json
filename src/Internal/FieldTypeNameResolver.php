@@ -42,10 +42,6 @@ final class FieldTypeNameResolver
         if ($collection !== null || $docComment === false) {
             return false;
         }
-        $mayContainLiteralMarker = PhpDocLiteralFieldMarker::mayContainLiteral($field, $docComment);
-        if (!$mayContainLiteralMarker) {
-            return false;
-        }
         return PhpDocLiteralFieldCache::hasLiteral($field, $docComment);
     }
 
