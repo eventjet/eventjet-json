@@ -53,26 +53,6 @@ final readonly class EnumUnionLookup
         $this->enums = $enums;
     }
 
-    /** @param class-string $class */
-    private function convert(string $class, mixed $value, string $path): BackedEnum|DecodeError|null
-    {
-        $valueType = get_debug_type($value);
-        $enums = $this->enums[$valueType] ?? null;
-        if ($enums === null) {
-            return null;
-        }
-        // Only int and string backing types have entries in the enum lookup.
-        /** @var int|string $value */
-        return (
-            $this->cases[$valueType][$value] ?? BackedEnumValueConverter::unknownUnionValue(
-                $class,
-                $path,
-                $enums,
-                $value,
-            )
-        );
-    }
-
     public function find(mixed $value): BackedEnum|null
     {
         if (!is_int($value) && !is_string($value)) {
@@ -94,9 +74,19 @@ final readonly class EnumUnionLookup
         mixed $value,
         string $path,
     ): array|bool|float|int|object|string|null {
-        $converted = $this->convert($class, $value, $path);
-        if ($converted !== null) {
-            return $converted;
+        $valueType = get_debug_type($value);
+        $enums = $this->enums[$valueType] ?? null;
+        if ($enums !== null) {
+            // Only int and string backing types have entries in the enum lookup.
+            /** @var int|string $value */
+            return (
+                $this->cases[$valueType][$value] ?? BackedEnumValueConverter::unknownUnionValue(
+                    $class,
+                    $path,
+                    $enums,
+                    $value,
+                )
+            );
         }
         if ($value instanceof stdClass) {
             $converted = ConcreteClassUnionValueConverter::convert($class, $field, $type, $value, $path);

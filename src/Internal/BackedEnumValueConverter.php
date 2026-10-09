@@ -19,6 +19,8 @@ use function enum_exists;
 use function get_debug_type;
 use function implode;
 use function is_array;
+use function is_int;
+use function is_string;
 use function sort;
 use function sprintf;
 use function var_export;
@@ -133,7 +135,7 @@ final class BackedEnumValueConverter
             return DecodeError::fieldTypeMismatch($class, $field, (string) ($declaredType ?? $enumName), $value);
         }
         $backingType = $plan['type'];
-        $valueMatchesBackingType = get_debug_type($value) === $backingType;
+        $valueMatchesBackingType = $backingType === 'int' ? is_int($value) : is_string($value);
 
         if (!$valueMatchesBackingType) {
             return DecodeError::nonInstantiableField(
