@@ -24,6 +24,11 @@ final readonly class ConstructorValueValidator
         $this->nullable = $type->allowsNull();
     }
 
+    public static function expected(ReflectionNamedType $type, string $name): string
+    {
+        return $type->allowsNull() && $name !== 'null' ? $name . '|null' : $name;
+    }
+
     /** @param array<array-key, mixed> $values */
     public static function forParameter(
         ConstructorParameter $parameter,
@@ -40,7 +45,7 @@ final readonly class ConstructorValueValidator
         ) {
             return null;
         }
-        $expected = FieldValueConverter::expected($type, $parameter->typeName);
+        $expected = self::expected($type, $parameter->typeName);
         return new self($type, $expected);
     }
 
