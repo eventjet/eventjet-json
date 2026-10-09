@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Unit;
 
+use Eventjet\Json\Internal\CollectionUnionType;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
+use Eventjet\Json\Internal\PhpDocConstantResolver;
 use Eventjet\Json\Internal\PhpDocConstantValues;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImportKind;
@@ -23,6 +25,7 @@ use Eventjet\Json\Internal\PhpDocLiteralFieldCache;
 use Eventjet\Json\Internal\PhpDocLiteralFieldValidator;
 use Eventjet\Json\Internal\PhpDocLiteralNumber;
 use Eventjet\Json\Internal\PhpDocLiteralString;
+use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
 use Eventjet\Json\Internal\PhpDocStringEscape;
 use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocType;
@@ -54,6 +57,9 @@ use const PHP_INT_MIN;
 #[CoversClass(PhpDocLiteralFieldValidator::class)]
 #[CoversClass(PhpDocFieldType::class)]
 #[UsesClass(PhpDocItemTypeResolver::class)]
+#[UsesClass(CollectionUnionType::class)]
+#[UsesClass(PhpDocConstantResolver::class)]
+#[UsesClass(PhpDocNamespaceDeclaration::class)]
 #[UsesClass(PhpDocLiteral::class)]
 #[UsesClass(PhpDocUnionTypeResolver::class)]
 #[CoversClass(PhpDocType::class)]

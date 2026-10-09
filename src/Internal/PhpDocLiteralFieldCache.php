@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
@@ -20,6 +21,7 @@ final class PhpDocLiteralFieldCache
     /** @var WeakMap<object, array{bool, list<string>|null}>|null */
     private static WeakMap|null $literalPresence = null;
 
+    /** @throws ReflectionException */
     public static function hasLiteral(ReflectionParameter|ReflectionProperty $field): bool
     {
         if (self::$literalPresence === null) {
@@ -27,7 +29,9 @@ final class PhpDocLiteralFieldCache
         }
         $cache = self::$literalPresence;
         if ($cache->offsetExists($field)) {
-            return $cache[$field][0];
+            /** @var array{bool, list<string>|null} $cached */
+            $cached = $cache[$field];
+            return $cached[0];
         }
         $hasLiteral = self::mayContainLiteral($field) && PhpDocFieldType::resolve($field)?->containsLiteral() === true;
         $resolved = $hasLiteral ? PhpDocLiteralField::resolveUncached($field) : null;
@@ -51,11 +55,15 @@ final class PhpDocLiteralFieldCache
             preg_match('~[\'"\d:]|\b(?:true|false|null|[A-Z][A-Za-z0-9_]*)\b~', subject: $doc) === 1;
     }
 
-    /** @return list<string>|null */
+    /**
+     * @return list<string>|null
+     * @throws ReflectionException
+     */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
     {
         self::hasLiteral($field);
         assert(self::$literalPresence !== null, description: 'Literal field metadata has been initialized.');
-        return self::$literalPresence[$field][1];
+        $cached = self::$literalPresence[$field];
+        return $cached[1];
     }
 }

@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
@@ -17,6 +18,7 @@ use function strcasecmp;
 /** @internal */
 final class FieldTypeNameResolver
 {
+    /** @throws ReflectionException */
     public static function hasLiteralPhpDoc(
         ReflectionParameter|ReflectionProperty $field,
         ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
