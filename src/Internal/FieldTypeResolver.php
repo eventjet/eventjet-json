@@ -60,11 +60,6 @@ final class FieldTypeResolver
             return [$docComment, false];
         }
 
-        $mayContainLiteralMarker = FieldTypeNameResolver::mayContainLiteralMarker($docComment);
-        if (!$mayContainLiteralMarker) {
-            return [$docComment, false];
-        }
-
         $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($field, docComment: $docComment);
         return [$docComment, $hasLiteralPhpDoc];
     }
