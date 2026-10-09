@@ -14,7 +14,6 @@ use function class_exists;
 use function enum_exists;
 use function in_array;
 use function is_string;
-use function sprintf;
 
 /** @internal */
 final class ListValueConverter
@@ -28,9 +27,7 @@ final class ListValueConverter
     public static function convert(string $class, string $path, ListType $collection, mixed $value): array|DecodeError
     {
         $itemType = $collection->itemType;
-
-        $expectedType = sprintf('%s<%s>', $collection->nonEmpty ? 'non-empty-list' : 'list', $itemType);
-        $value = ListInputNormalizer::normalize($class, $path, $expectedType, $collection, $value);
+        $value = ListInputNormalizer::normalize($class, $path, $collection, $value);
 
         if ($value instanceof DecodeError) {
             return $value;
@@ -66,7 +63,7 @@ final class ListValueConverter
         while (array_key_exists($index, $value)) {
             $convertedItem = CollectionItemValueConverter::convert(
                 $class,
-                sprintf('%s[%d]', $path, $index),
+                $path . '[' . $index . ']',
                 $itemType,
                 $value[$index],
             );
@@ -97,7 +94,7 @@ final class ListValueConverter
         $converted = [];
         /** @var mixed $value */
         foreach ($values as $index => $value) {
-            $itemPath = sprintf('%s[%d]', $path, $index);
+            $itemPath = $path . '[' . $index . ']';
             if (!$value instanceof stdClass) {
                 return DecodeError::fieldTypeMismatch($class, $itemPath, $itemType, $value);
             }

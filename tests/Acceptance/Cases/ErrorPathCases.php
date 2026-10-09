@@ -45,6 +45,14 @@ final class ErrorPathCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Field ["a.b"][0].firstName must be of type string, int given.',
             3,
         ];
+        yield 'error path quotes an empty map key' => [
+            '{"value":{"":"wrong"}}',
+            CollectionDeclarationFixture::create('array', 'non-empty-array<string, int>', 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('array', 'non-empty-array<string, int>', 'param')
+                . ' from the JSON object: Field value[""] must be of type int, string given.',
+            3,
+        ];
         yield 'error path escapes a newline in a map key' => [
             '{"value":{"a\n":"wrong"}}',
             CollectionDeclarationFixture::create('array', 'non-empty-array<string, int>', 'param'),

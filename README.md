@@ -9,6 +9,11 @@ encoded and decoded without losing their types or JSON object/array shapes.
 Ordinary data classes need no package-specific attributes or interfaces.
 Optional field-name mapping uses `#[Field]` with PHP's `JsonSerializable`.
 
+`Json::decode()` parses supported shapes directly into their target objects,
+with native decoding as a compatibility fallback. It uses PHP's JSON and PCRE
+facilities; no FFI is required. Performance depends on the document and whether
+its schema is already cached; see [performance](docs/performance.md).
+
 ## Installation
 
 Requires PHP 8.4 or later, with the JSON and Tokenizer extensions. There are no

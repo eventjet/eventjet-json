@@ -23,17 +23,26 @@ final readonly class FieldValueConverter
     private ReflectionType|null $type;
     private string $typeName;
     private EnumUnionLookup|null $enumLookup;
+    /** @var enum-string|null */
+    private string|null $enumName;
 
     /** @throws ReflectionException */
     public function __construct(
         private ReflectionParameter|ReflectionProperty $field,
-        private ListType|MapType|TupleType|CollectionUnionType|null $collection,
+        public ListType|MapType|TupleType|CollectionUnionType|null $collection,
     ) {
         $this->type = $field->getType();
         $this->enumLookup = $this->type instanceof ReflectionUnionType ? new EnumUnionLookup($this->type) : null;
-        $this->typeName = $this->type instanceof ReflectionNamedType
+        $typeName = $this->type instanceof ReflectionNamedType
             ? FieldTypeNameResolver::resolve($field, $this->type)
             : (string) $this->type;
+        $this->typeName = $typeName;
+        // Builtin names would reach autoloaders.
+        $this->enumName = $this->type instanceof ReflectionNamedType
+        && !$this->type->isBuiltin()
+        && enum_exists($typeName)
+            ? $typeName
+            : null;
     }
 
     /**
@@ -85,11 +94,11 @@ final readonly class FieldValueConverter
             }
             return $value;
         }
-        if (enum_exists($this->typeName)) {
+        if ($this->enumName !== null) {
             if ($value === null && $type->allowsNull()) {
                 return null;
             }
-            return BackedEnumValueConverter::convertValue($class, $path, $this->typeName, $value, $type);
+            return BackedEnumValueConverter::convertValue($class, $path, $this->enumName, $value, $type);
         }
         if (class_exists($this->typeName)) {
             return ConcreteClassValueConverter::convert($class, $this->field, $this->typeName, $value, $path);

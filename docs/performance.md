@@ -2,6 +2,16 @@
 
 [Back to the README](../README.md) · [Development setup](../CONTRIBUTING.md)
 
+`Json::decode()` uses cached direct plans for scalar roots with at least eight
+constructor fields and objects containing one list of scalar records. The entire
+input must match the supported schema before any constructor runs. Scalar roots
+use a flat native argument array; lists parse individual records directly. Other
+schemas and inputs use native decoding and existing hydration plans.
+
+No FFI, generated PHP, or additional runtime dependency is required. The first
+successful decode uses native hydration and registers eligibility; a later call
+compiles an eligible direct plan. This is a string-in, object-out API.
+
 The decoder reuses validated field declarations, public-property metadata, resolved
 collection declarations, and PHPDoc imports within the current PHP process. Every
 incoming value is still checked, including collection shapes, item types, enum values, and nested error paths. Decoded

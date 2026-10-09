@@ -1,12 +1,15 @@
 # Direct JSON parsing investigation
 
-Keep native `json_decode()` followed by typed hydration for now. Direct parsing
-could avoid the intermediate generic object tree, but no performance comparison
-has established a benefit for this package. Replacing the JSON parser would also
-make this package responsible for maintaining JSON syntax and numeric behavior.
+The public decoder uses direct plans for scalar roots with at least eight
+constructor fields and objects containing a single list of scalar records.
+Complete schema validation precedes target construction. Scalar roots still use
+`json_decode()` to obtain a flat argument array; supported lists read records
+directly without an intermediate generic object tree. The first decode and
+unsupported schemas or inputs use native decoding followed by typed hydration.
+See [performance](../performance.md) for the current implementation.
 This decision is separate from the internal parser for PHPDoc types.
 
-The current [decode entry point](../../src/Json.php) validates the complete document
+The native fallback in the [decode entry point](../../src/Json.php) validates the complete document
 before [hydration](../../src/Internal/ObjectHydrator.php) invokes any target constructor.
 Malformed content in an ignored member or after the root therefore returns an
 invalid-JSON error before construction or field validation. A container probe
@@ -40,7 +43,7 @@ There are three approaches worth distinguishing:
 
 | Approach | Construction and compatibility | Runtime and memory implications |
 | --- | --- | --- |
-| Native decoding, then hydration (current) | Syntax errors precede target construction. Existing validation and construction rules remain separate from JSON parsing. | Builds a generic tree before the target graph; native parsing handles JSON syntax. |
+| Native decoding, then hydration (fallback) | Syntax errors precede target construction. Existing validation and construction rules remain separate from JSON parsing. | Builds a generic tree before the target graph; native parsing handles JSON syntax. |
 | One-pass typed parsing | Constructing a child as soon as its object closes can run user code before a later syntax error. Deferring construction requires retaining values, source spans, or construction plans until the complete document is valid. | Could remove generic objects, but retained plans and constructor arguments still consume memory. A PHP lexer is not proven faster than native parsing. |
 | Native validation, then typed parsing | A complete validation pass can preserve the syntax-before-construction boundary. The typed parser still needs compatible value decoding and hydration rules. | Avoids a generic tree, but scans the document again and still retains the input string and final object graph. |
 
@@ -55,11 +58,11 @@ current validation order rather than report whichever type error appears first
 in the JSON text. It would not make the existing string-in, object-out API a
 bounded-memory streaming API.
 
-Reconsider replacement only with a dependency-free prototype that passes the
+Broader replacement requires a dependency-free prototype that passes the
 existing acceptance and error-contract cases and generated differential checks
 against native decoding. Include malformed ignored subtrees, trailing content,
 constructor side effects, nesting boundaries, Unicode, numeric limits, and
 object/array shape distinctions. Compare end-to-end time and peak memory on the
 same PHP build with small documents, large lists and maps, deeply nested
 objects, and large ignored fields, including validation and metadata costs.
-Until then, any speed or memory improvement remains a hypothesis.
+Benefits outside the supported direct shapes remain unproven.

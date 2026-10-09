@@ -13,13 +13,13 @@ use ReflectionProperty;
 /** @internal */
 final class PublicProperties
 {
-    /** @var array<class-string, array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>> */
+    /** @var array<class-string, array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: array{string, bool}|null}>> */
     private static array $properties = [];
 
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>|DecodeError
+     * @return array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: array{string, bool}|null}>|DecodeError
      * @phpstan-impure
      * @throws ReflectionException
      */
@@ -57,7 +57,7 @@ final class PublicProperties
                 $declaredType instanceof ReflectionNamedType
                 && $declaredType->isBuiltin()
                 && $declaredType->getName() !== 'array'
-                    ? $declaredType
+                    ? [$declaredType->getName(), $declaredType->allowsNull()]
                     : null;
             $properties[$names[$property->getName()] ?? $property->getName()] = [
                 'property' => $property,

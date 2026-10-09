@@ -6,6 +6,7 @@ namespace Eventjet\Json;
 
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
+use Eventjet\Json\Internal\DirectJsonParser;
 use Eventjet\Json\Internal\MapType;
 use Eventjet\Json\Internal\NestedCollectionType;
 use Eventjet\Json\Internal\ObjectHydrator;
@@ -22,6 +23,7 @@ use function json_last_error_msg;
 
 use const JSON_ERROR_NONE;
 
+/** @mago-expect lint:cyclomatic-complexity The public API validates root shapes and dispatches cached direct plans. */
 final class Json
 {
     /**
@@ -46,7 +48,6 @@ final class Json
 
     /**
      * @template T
-     * @param string $json
      * @param class-string<T&object>|JsonType<T> $class
      * @phpstan-param (T is object ? class-string<T> : never)|JsonType<T> $class
      * @psalm-param class-string<T&object>|JsonType<T> $class
@@ -54,21 +55,34 @@ final class Json
      */
     public static function decode(string $json, string|JsonType $class): mixed
     {
+        /**
+         * @mago-expect lint:no-empty False cache entries deliberately skip all direct-parser work.
+         * @phpstan-ignore empty.notAllowed (Only plans and boolean eligibility markers occur in this hot cache.)
+         */
+        if (is_string($class) && !empty(ObjectHydrator::$directPlans[$class])) {
+            /** @mago-expect analysis:less-specific-nested-argument-type The cache key selects a class target. */
+            $direct = DirectJsonParser::decode($json, $class);
+            if ($direct !== false) {
+                /**
+                 * @var (T&object)|DecodeError $value The cached parser targets the requested class.
+                 * @mago-expect analysis:redundant-docblock-type PHPStan and Psalm need the cache key's generic relationship.
+                 * @mago-expect lint:inline-variable-return The annotation preserves the public generic contract.
+                 */
+                $value = $direct;
+                return $value;
+            }
+        }
         /** @var mixed $values */
         $values = json_decode($json);
-
         if ($values === null && json_last_error() !== JSON_ERROR_NONE) {
             return DecodeError::invalidJson(json_last_error_msg());
         }
-
         if (!is_string($class)) {
             return self::decodeCollection($class, $values);
         }
-
         if (!$values instanceof stdClass) {
             return DecodeError::unexpectedRootValue($values);
         }
-
         return ObjectHydrator::hydrate($class, $values);
     }
 
@@ -87,18 +101,14 @@ final class Json
         if (!$matchesRoot) {
             return DecodeError::unexpectedRootValue($values, $rootType);
         }
-
         $class = $type->itemClass();
-
         try {
             $error = ClassFieldTypeValidator::validate($class, '[]', $class) ?? RootTypeValidator::validate(
                 new ReflectionClass($class),
             );
-
             if ($error !== null) {
                 return $error;
             }
-
             return $type->decodeValue($values);
         } catch (Throwable $error) {
             return DecodeError::cannotInstantiate($class, $error);
@@ -107,7 +117,7 @@ final class Json
 
     /**
      * @param JsonType<mixed> $type
-     * @return 'array'|'object'
+     * @return 'object'|'array'
      */
     private static function rootType(JsonType $type): string
     {

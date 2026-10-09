@@ -16,6 +16,8 @@ final class ObjectHydrator
 {
     /** @var array<class-string, ReflectionClass<object>|ConstructorPlan> */
     private static array $validatedClasses = [];
+    /** @var array<class-string, DirectScalarPlan|DirectListPlan|bool> */
+    public static array $directPlans = [];
 
     /**
      * @template T of object
@@ -79,6 +81,7 @@ final class ObjectHydrator
         $plan = ConstructorDecoder::cachedPlan($class);
         if ($plan !== null) {
             self::$validatedClasses[$class] = $plan;
+            self::$directPlans[$class] = $plan->directCandidate;
         }
     }
 }

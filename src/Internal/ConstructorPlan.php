@@ -12,16 +12,24 @@ use stdClass;
 use function array_all;
 use function array_intersect_key;
 use function array_key_exists;
+use function count;
+use function current;
 use function is_array;
 use function is_bool;
 use function is_float;
 use function is_int;
 use function is_string;
 
-/** @internal */
+/**
+ * @internal
+ * @mago-expect lint:cyclomatic-complexity Scalar validation and direct eligibility require independent type and shape guards.
+ */
 final readonly class ConstructorPlan
 {
+    private const int MIN_DIRECT_SCALAR_FIELDS = 8;
+
     public bool $scalarOnly;
+    public bool $directCandidate;
 
     /**
      * @param class-string $class
@@ -37,6 +45,11 @@ final readonly class ConstructorPlan
             $converters,
             static fn(FieldValueConverter|null $converter): bool => $converter === null,
         );
+        $single = count($converters) === 1 ? current($converters) : null;
+        // Small roots cannot amortize parser setup in short decoding runs.
+        $this->directCandidate =
+            $this->scalarOnly && count($converters) >= self::MIN_DIRECT_SCALAR_FIELDS
+            || $single instanceof FieldValueConverter && $single->collection instanceof ListType;
     }
 
     /**
@@ -92,7 +105,7 @@ final readonly class ConstructorPlan
             }
             $value = $values[$name];
             if ($converter !== null) {
-                $fieldPath = $path === '' ? (string) $name : FieldPath::field($path, (string) $name);
+                $fieldPath = $path === '' ? (string) $name : $path . '.' . $name;
                 $value = $converter->convert($this->class, $value, $fieldPath);
                 if ($value instanceof DecodeError) {
                     return $value;

@@ -34,11 +34,16 @@ final class ValueTypeMatcher
 
     public static function matches(mixed $value, ReflectionNamedType $type): bool
     {
+        return self::matchesName($value, $type->getName(), $type->allowsNull());
+    }
+
+    public static function matchesName(mixed $value, string $name, bool $nullable): bool
+    {
         if ($value === null) {
-            return $type->allowsNull();
+            return $nullable;
         }
 
-        return match ($type->getName()) {
+        return match ($name) {
             'array' => is_array($value) || $value instanceof stdClass,
             'bool' => is_bool($value),
             'false' => $value === false,
