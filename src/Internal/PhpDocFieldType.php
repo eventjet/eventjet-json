@@ -18,6 +18,8 @@ final class PhpDocFieldType
 {
     /** @var array<string, MetadataCache<list<array{PhpDocType, string}>>> */
     private static array $declarations = [];
+    /** @var array<string, MetadataCache<array<string, PhpDocType>>> */
+    private static array $parameters = [];
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|null
     {
@@ -33,11 +35,19 @@ final class PhpDocFieldType
             $doc,
             /** @return list<array{PhpDocType, string}> */ static fn(): array => self::parse($doc, $tag),
         );
+        if ($field instanceof ReflectionParameter) {
+            /** @var MetadataCache<array<string, PhpDocType>> $parameters */
+            $parameters = self::$parameters[$tag] ?? new MetadataCache();
+            self::$parameters[$tag] = $parameters;
+            $byName = $parameters->resolve(
+                $doc,
+                /** @return array<string, PhpDocType> */ static fn(): array => self::parameters($types),
+            );
+            return $byName[$field->getName()] ?? null;
+        }
         foreach ($types as $parsed) {
             [$type, $remainder] = $parsed;
-            $suffixPattern = $field instanceof ReflectionParameter
-                ? '/\\A\\s+\\$' . $field->getName() . '(?:\\s|$)/'
-                : '/\\A(?:\\s+[^\\s|&<>\\[\\],?:{}].*)?\\z/s';
+            $suffixPattern = '/\\A(?:\\s+[^\\s|&<>\\[\\],?:{}].*)?\\z/s';
             $validSuffix = preg_match($suffixPattern, $remainder) === 1;
 
             if ($validSuffix) {
@@ -46,6 +56,24 @@ final class PhpDocFieldType
         }
 
         return null;
+    }
+
+    /**
+     * @param list<array{PhpDocType, string}> $types
+     * @return array<string, PhpDocType>
+     */
+    private static function parameters(array $types): array
+    {
+        $parameters = [];
+        foreach ($types as [$type, $remainder]) {
+            $matches = [];
+            $matched = preg_match('/\\A\\s+\\$([^\\s]+)(?:\\s|$)/', $remainder, $matches);
+            if ($matched !== 1 || !isset($matches[1])) {
+                continue;
+            }
+            $parameters[$matches[1]] ??= $type;
+        }
+        return $parameters;
     }
 
     /** @return list<array{PhpDocType, string}> */
