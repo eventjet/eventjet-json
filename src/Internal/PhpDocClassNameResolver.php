@@ -18,6 +18,10 @@ final class PhpDocClassNameResolver
     /** @param ReflectionClass<object> $class */
     public static function resolve(ReflectionClass $class, string $type): string
     {
+        if ($type === 'self') {
+            return $class->getName();
+        }
+
         $namespace = $class->getNamespaceName();
         if (str_starts_with($type, '\\')) {
             return ltrim($type, characters: '\\');
