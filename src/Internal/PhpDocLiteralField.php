@@ -45,6 +45,16 @@ final class PhpDocLiteralField
             return null;
         }
         $members = $type->name === '|' ? $type->arguments : [$type];
+        $hasLiteralSyntax = array_any(
+            $members,
+            static fn(PhpDocType $member): bool => (
+                in_array($member->name, ['null', 'true', 'false'], strict: true)
+                || PhpDocType::literalSyntax($member->name)
+            ),
+        );
+        if (!$hasLiteralSyntax) {
+            return null;
+        }
         $names = [];
         foreach ($members as $member) {
             $resolved = PhpDocItemTypeResolver::resolve($field, $member);
