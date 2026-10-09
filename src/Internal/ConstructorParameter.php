@@ -50,6 +50,9 @@ final readonly class ConstructorParameter
     /** @throws ReflectionException */
     public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
     {
+        if ($this->builtin && $this->docComment === false && $resolved === false) {
+            return null;
+        }
         return ConstructorParameterConverter::create($this->reflection, $this->type, $this->docComment, $resolved);
     }
 
