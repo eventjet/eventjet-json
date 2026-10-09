@@ -56,7 +56,7 @@ final class PublicProperties
             $builtinType = $declaredType instanceof ReflectionNamedType
             && $declaredType->isBuiltin()
             && $declaredType->getName() !== 'array'
-            && !$type->literalConstrained
+            && !$type instanceof PhpDocLiteralFieldValueConverter
                 ? $declaredType
                 : null;
             $properties[$names[$property->getName()] ?? $property->getName()] = [

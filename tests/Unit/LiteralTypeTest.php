@@ -151,13 +151,12 @@ final class LiteralTypeTest extends TestCase
         static::assertTrue(PhpDocLiteralFieldCache::mayContainLiteral($constructorParameter));
         $plain = new class {
             /**
-             * @param int $plain
              * @since 14
              */
-            public function plain(int $plain): void {}
+            public function plain(int $_plain): void {}
         };
         static::assertFalse(PhpDocLiteralFieldCache::mayContainLiteral(
-            new \ReflectionParameter([$plain::class, 'plain'], 'plain'),
+            new \ReflectionParameter([$plain::class, 'plain'], '_plain'),
         ));
         static::assertFalse(FieldTypeNameResolver::hasLiteralPhpDoc(
             $constructorParameter,
