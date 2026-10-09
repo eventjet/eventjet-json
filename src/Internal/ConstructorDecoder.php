@@ -8,22 +8,12 @@ use Eventjet\Json\DecodeError;
 use JsonException;
 use ReflectionClass;
 use ReflectionException;
-use ReflectionProperty;
 
 use function array_flip;
 
 /** @internal */
 final class ConstructorDecoder
 {
-    public static function isRecoverable(ReflectionProperty|null $property): bool
-    {
-        return (
-            $property !== null
-            && ($property->getModifiers() & (ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_STATIC))
-            === ReflectionProperty::IS_PUBLIC
-        );
-    }
-
     /** @var array<class-string, ConstructorPlan|MappedConstructorPlan> */
     private static array $plans = [];
 

@@ -46,7 +46,7 @@ final readonly class ConstructorParameter
         $this->builtin = $this->type instanceof ReflectionNamedType && $this->type->isBuiltin();
         $this->variadic = $reflection->isVariadic();
         $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
-        $this->recoverable = ConstructorDecoder::isRecoverable($property);
+        $this->recoverable = ConstructorValueValidator::isPublicInstanceProperty($property);
         $this->hasLiteralPhpDoc = ConstructorParameterConverter::hasLiteralMarker(
             $reflection,
             $this->type,

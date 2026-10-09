@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionNamedType;
+use ReflectionProperty;
 
 use function array_key_exists;
 use function enum_exists;
@@ -13,6 +14,11 @@ use function enum_exists;
 /** @internal */
 final readonly class ConstructorValueValidator
 {
+    public static function isPublicInstanceProperty(ReflectionProperty|null $property): bool
+    {
+        return $property !== null && $property->isPublic() && !$property->isStatic();
+    }
+
     public string $typeName;
     public bool $nullable;
 
