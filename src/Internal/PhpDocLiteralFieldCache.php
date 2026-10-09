@@ -54,7 +54,7 @@ final class PhpDocLiteralFieldCache
         if ($field instanceof ReflectionParameter) {
             $function = $field->getDeclaringFunction();
             $key = serialize([
-                $function->getDeclaringClass()?->getName(),
+                $field->getDeclaringClass()?->getName(),
                 $function->getName(),
                 $function->getFileName(),
                 $function->getStartLine(),
@@ -65,10 +65,7 @@ final class PhpDocLiteralFieldCache
         $doc = $docComment ?? $field->getDocComment();
         $matches = [];
         preg_match('~@var[ \t]+(?P<type>[^\r\n*]+)~', (string) $doc, $matches);
-        /** @var array{0: non-falsy-string, 1: non-empty-string, type: non-empty-string} $captures */
-        $captures = $matches;
-        $type = $captures['type'] ?? null;
-        return $type !== null && self::isLiteralMarker(trim($type));
+        return self::isLiteralMarker(trim($matches['type'] ?? ''));
     }
 
     /** @return array<string, bool> */
