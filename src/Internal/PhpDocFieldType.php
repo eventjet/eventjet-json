@@ -17,9 +17,9 @@ use function trim;
 /** @internal */
 final class PhpDocFieldType
 {
-    /** @var array<string, MetadataCache<list<array{PhpDocType, string}>>> */
+    /** @var array<string, array<string, list<array{PhpDocType, string}>>> */
     private static array $declarations = [];
-    /** @var array<string, MetadataCache<array<string, PhpDocType>>> */
+    /** @var array<string, array<string, array<string, PhpDocType>>> */
     private static array $parameters = [];
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|null
@@ -28,22 +28,12 @@ final class PhpDocFieldType
             ? $field->getDeclaringFunction()->getDocComment()
             : $field->getDocComment();
         $tag = $field instanceof ReflectionParameter ? '@param' : '@var';
-        /** @var MetadataCache<list<array{PhpDocType, string}>> $cache */
-        $cache = self::$declarations[$tag] ?? new MetadataCache();
-        self::$declarations[$tag] = $cache;
         $doc = $doc === false ? '' : $doc;
-        $types = $cache->resolve(
-            $doc,
-            /** @return list<array{PhpDocType, string}> */ static fn(): array => self::parse($doc, $tag),
-        );
+        self::$declarations[$tag][$doc] ??= self::parse($doc, $tag);
+        $types = self::$declarations[$tag][$doc] ?? [];
         if ($field instanceof ReflectionParameter) {
-            /** @var MetadataCache<array<string, PhpDocType>> $parameters */
-            $parameters = self::$parameters[$tag] ?? new MetadataCache();
-            self::$parameters[$tag] = $parameters;
-            $byName = $parameters->resolve(
-                $doc,
-                /** @return array<string, PhpDocType> */ static fn(): array => self::parameters($types),
-            );
+            self::$parameters[$tag][$doc] ??= self::parameters($types);
+            $byName = self::$parameters[$tag][$doc] ?? [];
             return $byName[$field->getName()] ?? null;
         }
         foreach ($types as $parsed) {
