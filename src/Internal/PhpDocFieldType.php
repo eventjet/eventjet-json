@@ -10,6 +10,7 @@ use ReflectionProperty;
 use function preg_match;
 use function preg_match_all;
 use function preg_replace;
+use function str_contains;
 use function str_replace;
 use function trim;
 
@@ -83,8 +84,11 @@ final class PhpDocFieldType
             preg_replace('/^[ \t]*\*[ \t]?/m', replacement: '', subject: str_replace('*/', replace: '', subject: $doc))
             ?? '';
         $matches = [];
-        // Keep the remaining comment intact: quoted literals can contain @ characters.
-        preg_match_all('/' . $tag . '\s+(?=([\s\S]*))/', $doc, $matches);
+        $pattern = str_contains($doc, "'") || str_contains($doc, '"')
+            // Keep the remaining comment intact: quoted literals can contain @ characters.
+            ? '/' . $tag . '\s+(?=([\s\S]*))/'
+            : '/' . $tag . '\s+([^@]+)/';
+        preg_match_all($pattern, $doc, $matches);
         /** @var array{list<string>, list<string>} $matches */
         $types = [];
         foreach ($matches[1] as $source) {
