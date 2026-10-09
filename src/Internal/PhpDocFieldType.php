@@ -24,13 +24,14 @@ final class PhpDocFieldType
     public static function resolve(
         ReflectionParameter|ReflectionProperty $field,
         string|false|null $docComment = null,
-    ): PhpDocType|null
-    {
-        $doc = $docComment ?? (
-            $field instanceof ReflectionParameter
-                ? $field->getDeclaringFunction()->getDocComment()
-                : $field->getDocComment()
-        );
+    ): PhpDocType|null {
+        $doc =
+            $docComment
+            ?? (
+                $field instanceof ReflectionParameter
+                    ? $field->getDeclaringFunction()->getDocComment()
+                    : $field->getDocComment()
+            );
         $tag = $field instanceof ReflectionParameter ? '@param' : '@var';
         /** @var MetadataCache<list<array{PhpDocType, string}>> $cache */
         $cache = self::$declarations[$tag] ?? new MetadataCache();
