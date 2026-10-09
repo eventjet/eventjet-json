@@ -50,7 +50,7 @@ final class FieldTypeResolver
         ReflectionProperty $field,
         ReflectionNamedType|ReflectionUnionType $type,
     ): array {
-        $supportsLiteralPhpDoc = FieldTypeNameResolver::supportsLiteralPhpDoc($field, $type);
+        $supportsLiteralPhpDoc = FieldTypeNameResolver::supportsLiteralPhpDoc($type);
         if (!$supportsLiteralPhpDoc) {
             return [false, false];
         }

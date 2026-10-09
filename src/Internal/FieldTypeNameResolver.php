@@ -47,16 +47,14 @@ final class FieldTypeNameResolver
         return PhpDocLiteralFieldCache::hasLiteral($field, $docComment);
     }
 
-    public static function supportsLiteralPhpDoc(
-        ReflectionProperty $field,
-        ReflectionNamedType|ReflectionUnionType $type,
-    ): bool {
+    public static function supportsLiteralPhpDoc(ReflectionNamedType|ReflectionUnionType $type): bool
+    {
         if (!$type instanceof ReflectionNamedType || $type->isBuiltin()) {
             return true;
         }
 
-        $typeName = self::resolve($field, $type);
-        return $typeName === ArrayObject::class || enum_exists($typeName);
+        $typeName = $type->getName();
+        return strcasecmp($typeName, ArrayObject::class) === 0 || enum_exists($typeName);
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
