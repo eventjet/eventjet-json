@@ -34,10 +34,12 @@ final class PhpDocParameterMarkerCache
 
     /** @return array<string, bool> */
     public static function parameterMarkers(
-        ReflectionFunctionAbstract $function,
+        ReflectionFunctionAbstract|null $function,
         string|false|null $docComment = null,
-        bool $alreadyFiltered = false,
     ): array {
+        if ($function === null) {
+            return [];
+        }
         $functionName = $function->getName();
         $functionKey = ($function->getDeclaringClass()?->getName() ?? '') . '::' . $functionName;
         if ($functionName === '{closure}') {
@@ -48,7 +50,7 @@ final class PhpDocParameterMarkerCache
             && array_key_exists($functionKey, self::$parameterMarkers)
             && ($docComment === null || $docComment === (self::$functionDocComments[$functionKey] ?? null))
         ) {
-            return self::$parameterMarkers[$functionKey][$field->getName()] ?? false;
+            return self::$parameterMarkers[$functionKey];
         }
         $doc = $docComment ?? $function->getDocComment();
         if ($doc === false || $doc === '') {
@@ -58,11 +60,7 @@ final class PhpDocParameterMarkerCache
             }
             return [];
         }
-        self::$parameterMarkers[$functionKey] = PhpDocLiteralFieldMarker::parameterMarkers(
-            $function,
-            $doc,
-            $alreadyFiltered,
-        );
+        self::$parameterMarkers[$functionKey] = PhpDocLiteralFieldMarker::parameterMarkers($function, $doc);
         self::$functionDocComments[$functionKey] = $doc;
         return self::$parameterMarkers[$functionKey];
     }

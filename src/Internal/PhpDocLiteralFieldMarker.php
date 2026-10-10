@@ -68,16 +68,20 @@ final class PhpDocLiteralFieldMarker
     }
 
     /** @return array<string, bool> */
-    public static function parameterMarkers(
-        ReflectionFunctionAbstract $function,
-        string|false|null $docComment,
-        bool $alreadyFiltered = false,
-    ): array {
+    public static function parameterMarkers(ReflectionFunctionAbstract $function, string|false|null $docComment): array
+    {
         $doc = $docComment ?? $function->getDocComment();
-        $hasLiteralToken = $alreadyFiltered || self::mayContainLiteralMarker((string) $doc);
-        if (!$hasLiteralToken) {
+        if (!self::mayContainLiteralMarker((string) $doc)) {
             return [];
         }
+        return self::parameterMarkersFromFilteredDocComment($function, (string) $doc);
+    }
+
+    /** @return array<string, bool> */
+    public static function parameterMarkersFromFilteredDocComment(
+        ReflectionFunctionAbstract $function,
+        string $doc,
+    ): array {
         $matches = [];
         preg_match_all(
             '~@param[ \t]+(?P<type>[^\r\n*]+?)[ \t]+(?:&|\.\.\.)?\$(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?:[ \t]|\r?\n|$)~',
