@@ -165,7 +165,7 @@ final class LiteralTypeTest extends TestCase
         static::assertInstanceOf(\Eventjet\Json\DecodeError::class, $error);
     }
 
-    /** @throws \PHPUnit\Framework\Exception|\ReflectionException */
+    /** @throws \ReflectionException */
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
     public function testPlainScalarPhpDocDoesNotLoadItemResolution(): void
@@ -316,7 +316,7 @@ final class LiteralTypeTest extends TestCase
         static::assertSame([StringBackedStatus::class . '::Ready'], PhpDocLiteralField::resolve($enumProperty));
     }
 
-    /** @throws \ReflectionException */
+    /** @throws \PHPUnit\Framework\Exception|\ReflectionException */
     public function testPhpDocLiteralMarkerFastPathsAndConstructorCache(): void
     {
         $properties = new class {
@@ -367,7 +367,7 @@ final class LiteralTypeTest extends TestCase
              * @param 42 $_integer
              * @param StringBackedStatus::Ready $_constant
              * @param true $_boolean
-             * @param null|string $_nullable
+             * @param null $_nullable
              */
             public function __construct(
                 string $_string,
