@@ -116,7 +116,7 @@ final class ClassUnionValidator
             }
 
             $name = FieldTypeNameResolver::resolve($field, $member);
-            $isNonEncodable = FieldTypeValidator::isNonEncodable($name);
+            $isNonEncodable = EnumFieldTypes::isNonEncodable($name);
             if ($isNonEncodable) {
                 $nonEncodableError ??= DecodeError::nonBackedEnum($class, $name, $fieldName);
                 continue;

@@ -54,7 +54,7 @@ final class ClassGraphValidator
 
         $constructor = $reflection->getConstructor();
         foreach ($constructor?->getParameters() ?? [] as $parameter) {
-            $resolved = FieldTypeValidator::resolveForGraph($class, $parameter, $reflection);
+            $resolved = FieldTypeValidator::resolveForGraph($class, $parameter, $reflection, $constructor);
             $error = $this->field($class, $parameter, $resolved);
             if ($error !== null) {
                 return $error;

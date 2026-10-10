@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use JsonSerializable;
+use ReflectionEnum;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
@@ -12,12 +14,28 @@ use ReflectionUnionType;
 use WeakMap;
 
 use function array_map;
+use function enum_exists;
+use function in_array;
+use function is_a;
 
 /** @internal */
 final class EnumFieldTypes
 {
     /** @var WeakMap<ReflectionParameter|ReflectionProperty, ReflectionNamedType|array<array-key, string>|false>|null */
     private static WeakMap|null $types = null;
+
+    public static function isNonEncodable(string $type): bool
+    {
+        if (in_array($type, ['resource', 'open-resource', 'closed-resource'], strict: true)) {
+            return true;
+        }
+
+        return (
+            enum_exists($type)
+            && !new ReflectionEnum($type)->isBacked()
+            && !is_a($type, JsonSerializable::class, allow_string: true)
+        );
+    }
 
     /** @return ReflectionNamedType|array<array-key, string>|false */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): ReflectionNamedType|array|false

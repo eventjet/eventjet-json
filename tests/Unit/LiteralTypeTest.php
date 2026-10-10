@@ -10,6 +10,7 @@ use Eventjet\Json\Internal\ConstructorParameterConverter;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
+use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
@@ -84,6 +85,7 @@ use const PHP_INT_MIN;
 #[UsesClass(\Eventjet\Json\Internal\CollectionTypeValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
+#[UsesClass(EnumFieldTypes::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\DecodeError::class)]

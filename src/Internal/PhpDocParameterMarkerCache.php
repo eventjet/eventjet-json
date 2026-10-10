@@ -6,8 +6,6 @@ namespace Eventjet\Json\Internal;
 
 use ReflectionMethod;
 use ReflectionParameter;
-use ReflectionType;
-use ReflectionUnionType;
 
 use function array_key_exists;
 
@@ -22,14 +20,9 @@ final class PhpDocParameterMarkerCache
     private static array $constructorDocComments = [];
 
     /** @param class-string $class */
-    public static function constructorDocComment(
-        string $class,
-        ReflectionMethod|null $constructor,
-        ReflectionType|null $type,
-    ): string|false {
-        return $type instanceof ReflectionUnionType
-            ? (self::$constructorDocComments[$class] ??= $constructor?->getDocComment() ?? false)
-            : false;
+    public static function constructorDocComment(string $class, ReflectionMethod|null $constructor): string|false
+    {
+        return self::$constructorDocComments[$class] ??= $constructor?->getDocComment() ?? false;
     }
 
     public static function hasMarker(ReflectionParameter $field, string|false|null $docComment = null): bool
