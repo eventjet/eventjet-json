@@ -37,7 +37,7 @@ final class PhpDocParameterMarkerCache
         ReflectionFunctionAbstract|null $function,
         string|false|null $docComment = null,
     ): array {
-        if ($function === null) {
+        if ($function === null || $docComment === false) {
             return [];
         }
         $functionName = $function->getName();
