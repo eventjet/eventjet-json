@@ -55,15 +55,7 @@ final class PhpDocLiteralFieldMarker
 
     public static function mayContainLiteralMarker(string $docComment): bool
     {
-        if (strpbrk($docComment, characters: "'\"0123456789") !== false) {
-            return true;
-        }
-        if (str_contains($docComment, '::') || str_contains($docComment, 'true') || str_contains($docComment, 'false')) {
-            return true;
-        }
-        return (str_contains($docComment, '@param') || str_contains($docComment, '@var'))
-            && str_contains($docComment, 'null')
-            && preg_match('~@(param|var)[ \\t]+[^\\r\\n*]+?\\bnull\\b~', subject: $docComment) === 1;
+        return PhpDocLiteralMarkerFilter::mayContain($docComment);
     }
 
     /** @return array<string, bool> */
