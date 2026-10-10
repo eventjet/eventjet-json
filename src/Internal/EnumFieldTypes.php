@@ -34,6 +34,9 @@ final class EnumFieldTypes
     ): string|false {
         if ($type instanceof ReflectionUnionType) {
             $docComment = PhpDocParameterMarkerCache::constructorDocComment($class, $constructor);
+            if ($docComment === false) {
+                return false;
+            }
             $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
             return $hasCollection ? $docComment : FieldTypeNameResolver::literalMarkerDocComment($docComment);
         }
