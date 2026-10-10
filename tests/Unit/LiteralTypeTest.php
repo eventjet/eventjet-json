@@ -361,20 +361,20 @@ final class LiteralTypeTest extends TestCase
         static::assertTrue(PhpDocLiteralMarkerFilter::mayContain("/** @var 'ready' */"));
         static::assertTrue(PhpDocLiteralMarkerFilter::mayContain('/** @param State::Ready $value */'));
         static::assertFalse(PhpDocLiteralMarkerFilter::mayContain('/** @param positive-int $value */'));
-        $subject = new class {
+        $subject = new class('ready', 42, 'Ready', true, null) {
             /**
-             * @param 'ready' $string
-             * @param 42 $integer
-             * @param State::Ready $constant
-             * @param true $boolean
-             * @param null $nullable
+             * @param 'ready' $_string
+             * @param 42 $_integer
+             * @param State::Ready $_constant
+             * @param true $_boolean
+             * @param null|string $_nullable
              */
             public function __construct(
-                string $string,
-                int $integer,
-                string $constant,
-                bool $boolean,
-                string|null $nullable,
+                string $_string,
+                int $_integer,
+                string $_constant,
+                bool $_boolean,
+                string|null $_nullable,
             ) {}
 
             public function plain(int $refined): void {}
@@ -392,11 +392,12 @@ final class LiteralTypeTest extends TestCase
 
         static::assertSame($expected, PhpDocLiteralFieldMarker::parameterMarkers($constructor, $docComment));
         foreach ($parameters as $parameter) {
-            static::assertSame($expected[$parameter->getName()], PhpDocParameterMarkerCache::hasMarker(
+            static::assertArrayHasKey($parameter->getName(), $expected);
+            static::assertSame($expected[$parameter->getName()] ?? null, PhpDocParameterMarkerCache::hasMarker(
                 $parameter,
                 $docComment,
             ));
-            static::assertSame($expected[$parameter->getName()], PhpDocParameterMarkerCache::hasMarker(
+            static::assertSame($expected[$parameter->getName()] ?? null, PhpDocParameterMarkerCache::hasMarker(
                 $parameter,
                 $docComment,
             ));
