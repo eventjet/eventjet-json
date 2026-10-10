@@ -11,6 +11,7 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 
+use function str_contains;
 use function strcasecmp;
 
 /** @internal */
@@ -33,7 +34,7 @@ final class FieldTypeNameResolver
 
     public static function literalMarkerDocComment(string|false $docComment): string|false
     {
-        if ($docComment === false) {
+        if ($docComment === false || !str_contains($docComment, '@param')) {
             return false;
         }
         $mayContainLiteralMarker = self::mayContainLiteralMarker($docComment);
