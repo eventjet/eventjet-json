@@ -6,7 +6,6 @@ namespace Eventjet\Json\Internal;
 
 use UnexpectedValueException;
 
-use function count;
 use function in_array;
 use function trim;
 
@@ -53,7 +52,7 @@ final readonly class PhpDocTypeParser
             $hasNext = $this->tokens->consume($operator);
         } while ($hasNext);
 
-        return count($types) === 1 ? $types[0] : new PhpDocType($operator, $types);
+        return PhpDocType::compound($operator, $types);
     }
 
     /** @throws UnexpectedValueException */
@@ -61,6 +60,16 @@ final readonly class PhpDocTypeParser
     {
         if ($depth >= 64) {
             throw new UnexpectedValueException('PHPDoc nesting exceeds 64 type levels.');
+        }
+
+        $parenthesized = $this->tokens->consume('(');
+        if ($parenthesized) {
+            $type = $this->type($depth + 1);
+            $closed = $this->tokens->consume(')');
+            if (!$closed) {
+                throw new UnexpectedValueException('Expected a closing PHPDoc parenthesis.');
+            }
+            return $type;
         }
 
         $name = $this->tokens->token();

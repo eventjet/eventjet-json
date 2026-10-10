@@ -53,12 +53,12 @@ final class PublicProperties
                 return $type;
             }
             $declaredType = $property->getType();
-            $builtinType =
-                $declaredType instanceof ReflectionNamedType
-                && $declaredType->isBuiltin()
-                && $declaredType->getName() !== 'array'
-                    ? $declaredType
-                    : null;
+            $builtinType = $declaredType instanceof ReflectionNamedType
+            && $declaredType->isBuiltin()
+            && $declaredType->getName() !== 'array'
+            && !$type instanceof PhpDocLiteralFieldValueConverter
+                ? $declaredType
+                : null;
             $properties[$names[$property->getName()] ?? $property->getName()] = [
                 'property' => $property,
                 'converter' => $type,

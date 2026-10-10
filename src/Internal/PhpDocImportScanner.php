@@ -23,8 +23,15 @@ use const T_WHITESPACE;
 final class PhpDocImportScanner
 {
     /** @return array<string, string> */
-    public static function scan(string $source, int $startLine, string $className, string $targetNamespace): array
-    {
+    public static function scan(
+        string $source,
+        int $startLine,
+        string $className,
+        string $targetNamespace,
+        PhpDocImportKind $kind = PhpDocImportKind::ClassName,
+    ): array {
+        $source = PhpDocImports::sourceBeforeLine($source, $startLine);
+
         $imports = [];
         $depth = 0;
         $statement = null;
@@ -60,7 +67,7 @@ final class PhpDocImportScanner
                     $statement .= $token->text;
                     continue;
                 }
-                $imports = [...$imports, ...PhpDocImportStatement::parse($statement)];
+                $imports = [...$imports, ...PhpDocImportStatement::parse($statement, $kind)];
                 $statement = null;
                 continue;
             }

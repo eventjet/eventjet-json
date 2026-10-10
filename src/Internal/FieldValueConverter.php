@@ -18,7 +18,7 @@ use function class_exists;
 use function enum_exists;
 
 /** @internal */
-final readonly class FieldValueConverter
+readonly class FieldValueConverter
 {
     private ReflectionType|null $type;
     private string $typeName;
@@ -29,6 +29,13 @@ final readonly class FieldValueConverter
         private ReflectionParameter|ReflectionProperty $field,
         private ListType|MapType|TupleType|CollectionUnionType|null $collection,
     ) {
+        if ($this->collection !== null) {
+            $this->type = null;
+            $this->enumLookup = null;
+            $this->typeName = '';
+            return;
+        }
+
         $this->type = $field->getType();
         $this->enumLookup = $this->type instanceof ReflectionUnionType ? new EnumUnionLookup($this->type) : null;
         $this->typeName = $this->type instanceof ReflectionNamedType
@@ -79,7 +86,7 @@ final readonly class FieldValueConverter
                 return DecodeError::fieldTypeMismatch(
                     $class,
                     $path,
-                    FieldTypeNameResolver::expected($type, $this->typeName),
+                    ConstructorValueValidator::expected($type, $this->typeName),
                     $value,
                 );
             }

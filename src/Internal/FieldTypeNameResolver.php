@@ -6,19 +6,68 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 
-use function class_exists;
-use function enum_exists;
-use function in_array;
-use function interface_exists;
+use function str_contains;
 use function strcasecmp;
 
 /** @internal */
 final class FieldTypeNameResolver
 {
+    private const array PRIMITIVE_PHPDOC = [
+        'non-empty-string' => 'string',
+        'numeric-string' => 'string',
+        'literal-string' => 'string',
+        'positive-int' => 'int',
+        'negative-int' => 'int',
+        'non-positive-int' => 'int',
+        'non-negative-int' => 'int',
+        'non-zero-int' => 'int',
+        'bool' => 'bool',
+        'float' => 'float',
+        'int' => 'int',
+        'string' => 'string',
+    ];
+
+    public static function literalMarkerDocComment(string|false $docComment): string|false
+    {
+        if ($docComment === false) {
+            return false;
+        }
+        if (!str_contains($docComment, '@param')) {
+            return false;
+        }
+        $mayContainLiteralMarker = self::mayContainLiteralMarker($docComment);
+        return $mayContainLiteralMarker ? $docComment : false;
+    }
+
+    /** @throws ReflectionException */
+    public static function hasLiteralPhpDoc(
+        ReflectionParameter|ReflectionProperty $field,
+        ListType|MapType|TupleType|CollectionUnionType|null $collection = null,
+        string|false|null $docComment = null,
+    ): bool {
+        if ($collection !== null || $docComment === false) {
+            return false;
+        }
+        // Constructor parameters share a docblock; the caller checks it once
+        // before creating each parameter's metadata.
+        $mayContainLiteral =
+            $field instanceof ReflectionParameter || $docComment !== null && self::mayContainLiteralMarker($docComment);
+        if (!$mayContainLiteral) {
+            return false;
+        }
+        return PhpDocLiteralFieldCache::hasLiteral($field, $docComment);
+    }
+
+    public static function mayContainLiteralMarker(string $docComment): bool
+    {
+        return PhpDocLiteralMarkerFilter::mayContain($docComment);
+    }
+
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
     {
         $name = $type->getName();
@@ -39,43 +88,13 @@ final class FieldTypeNameResolver
         return $parent === false ? $name : $parent->getName();
     }
 
-    public static function expected(ReflectionNamedType $type, string $name): string
-    {
-        return $type->allowsNull() && $name !== 'null' ? $name . '|null' : $name;
-    }
-
     /** @return 'bool'|'float'|'int'|'string'|class-string|null */
     public static function resolvePhpDoc(ReflectionParameter|ReflectionProperty $field, string $type): string|null
     {
-        if ($type === 'non-empty-string' || $type === 'numeric-string' || $type === 'literal-string') {
-            return 'string';
+        $primitive = self::PRIMITIVE_PHPDOC[$type] ?? null;
+        if ($primitive !== null) {
+            return $primitive;
         }
-
-        $isRefinedInteger = in_array(
-            $type,
-            ['positive-int', 'negative-int', 'non-positive-int', 'non-negative-int', 'non-zero-int'],
-            strict: true,
-        );
-
-        if ($isRefinedInteger) {
-            return 'int';
-        }
-
-        if (in_array($type, ['bool', 'float', 'int', 'string'], strict: true)) {
-            return $type;
-        }
-
-        /** @var ReflectionClass<object> $declaringClass */
-        $declaringClass = $field->getDeclaringClass();
-
-        if ($type === 'self') {
-            return $declaringClass->getName();
-        }
-
-        $resolvedType = PhpDocClassNameResolver::resolve($declaringClass, $type);
-
-        return enum_exists($resolvedType) || class_exists($resolvedType) || interface_exists($resolvedType)
-            ? $resolvedType
-            : null;
+        return PhpDocClassNameResolver::resolvePhpDocClass($field, $type);
     }
 }

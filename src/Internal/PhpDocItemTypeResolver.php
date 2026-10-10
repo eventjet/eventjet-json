@@ -9,13 +9,14 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function count;
+use function in_array;
 use function preg_match;
 
 /** @internal */
 final class PhpDocItemTypeResolver
 {
     /**
-     * @return 'bool'|'float'|'int'|'string'|class-string|CollectionUnionType|NestedCollectionType|null
+     * @return string|CollectionUnionType|NestedCollectionType|null
      * @throws ReflectionException
      */
     public static function resolve(
@@ -31,15 +32,25 @@ final class PhpDocItemTypeResolver
             return PhpDocUnionTypeResolver::resolve($field, $type->arguments);
         }
 
-        return self::named($field, $type);
+        $named = self::named($field, $type);
+        if ($named !== null) {
+            return $named;
+        }
+        $constants = $type->arguments === [] ? PhpDocConstantResolver::resolve($field, $type->name) : null;
+        return $constants === null ? null : new CollectionUnionType($constants);
     }
 
-    /** @return 'bool'|'float'|'int'|'string'|class-string|null */
-    public static function named(ReflectionParameter|ReflectionProperty $field, PhpDocType $type): string|null
+    /** @return string|null */
+    private static function named(ReflectionParameter|ReflectionProperty $field, PhpDocType $type): string|null
     {
         $arguments = $type->arguments;
 
         if ($arguments === []) {
+            $literalSyntax = PhpDocType::literalSyntax($type->name);
+            $literal = $literalSyntax ? PhpDocLiteral::value($type->name) : null;
+            if ($literal !== null || in_array($type->name, ['null', 'true', 'false'], strict: true)) {
+                return $type->name;
+            }
             return FieldTypeNameResolver::resolvePhpDoc($field, $type->name);
         }
 

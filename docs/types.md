@@ -53,6 +53,42 @@ The round-trip contract also has these representation limits:
   whose member was absent from the input. Exact preservation of omissions is
   outside the object-to-JSON-to-object round-trip contract.
 
+## Literal types
+
+PHPDoc literal types constrain values exactly: `'foo'|42` accepts the string
+`foo` and the integer `42`, and rejects other strings, integers, and `"42"`.
+Use constructor `@param` tags or public-property `@var` tags alongside compatible
+native scalar declarations. Supported literals are single- or double-quoted
+strings, integers within PHP's integer range, finite floats, `true`, and `false`.
+Integers support decimal, hexadecimal (`0x2a`), binary (`0b101010`), and explicit
+octal (`0o52`) notation, signs, and digit separators. Floats support decimal
+and exponent notation, such as `3.0` and `-1.5e2`.
+Unions may also contain scalar types and `null`.
+
+```php
+final readonly class Result
+{
+    /** @param 'foo'|42 $value */
+    public function __construct(public string|int $value) {}
+}
+```
+
+The same literals work in collection declarations, including `list<'foo'|42>`,
+`ArrayObject<string, true>`, and `array{'foo', 42, false}`. String delimiters
+inside quotes are literal characters; escape the matching quote or a backslash
+with a backslash. Native `true` and `false` fields remain supported.
+Double-quoted strings also recognize PHP escape sequences, including hexadecimal,
+octal, and Unicode escapes. Strings do not interpolate variables.
+
+Constant expressions such as `Status::ACTIVE`, `self::VALUE`, `parent::VALUE`,
+`ClassName::class`, global constants, and class-constant wildcards such as
+`self::STATUS_*` resolve to their scalar values or backed enum cases. Class names
+follow the declaring class's namespace and imports; constant imports are also
+recognized. Constants containing arrays, objects other than backed enum cases,
+or non-finite floats are rejected. Whole-valued float literals restore floats
+from integer JSON values. Unions that cannot recover the original PHP type,
+such as `1|1.0` or an enum case alongside its backing scalar, are rejected.
+
 ## Field-name mapping
 
 `#[Field('json-name')]` selects the JSON name of a declared public instance

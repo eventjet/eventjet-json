@@ -8,26 +8,47 @@ use ReflectionClass;
 
 use function file_get_contents;
 use function is_file;
+use function stripos;
+use function strpos;
+use function substr;
 
 /** @internal */
 final class PhpDocImports
 {
-    /** @var MetadataCache<array<string, string>>|null */
-    private static MetadataCache|null $imports = null;
+    /** @var array<string, MetadataCache<array<string, string>>> */
+    private static array $imports = [];
+
+    public static function sourceBeforeLine(string $source, int $line): string
+    {
+        if ($line <= 1) {
+            return $source;
+        }
+        $lineOffset = 0;
+        for ($currentLine = 1; $currentLine < $line; ++$currentLine) {
+            $newline = strpos($source, needle: "\n", offset: $lineOffset);
+            if ($newline === false) {
+                return $source;
+            }
+            $lineOffset = $newline + 1;
+        }
+        $prefix = substr($source, offset: 0, length: $lineOffset);
+        $hasUse = stripos($prefix, needle: 'use') !== false;
+        return $hasUse ? $prefix : '';
+    }
 
     /**
      * @param ReflectionClass<object> $class
      * @return array<string, string>
      */
-    public static function forClass(ReflectionClass $class): array
+    public static function forClass(ReflectionClass $class, PhpDocImportKind $kind = PhpDocImportKind::ClassName): array
     {
         /** @var MetadataCache<array<string, string>> $cache */
-        $cache = self::$imports ?? new MetadataCache();
-        self::$imports = $cache;
+        $cache = self::$imports[$kind->name] ?? new MetadataCache();
+        self::$imports[$kind->name] = $cache;
 
         return $cache->resolve(
             $class->getName(),
-            /** @return array<string, string> */ static fn(): array => self::load($class),
+            /** @return array<string, string> */ static fn(): array => self::load($class, $kind),
         );
     }
 
@@ -35,7 +56,7 @@ final class PhpDocImports
      * @param ReflectionClass<object> $class
      * @return array<string, string>
      */
-    private static function load(ReflectionClass $class): array
+    private static function load(ReflectionClass $class, PhpDocImportKind $kind): array
     {
         $file = (string) $class->getFileName();
         $exists = is_file($file);
@@ -50,6 +71,7 @@ final class PhpDocImports
             (int) $class->getStartLine(),
             $class->getShortName(),
             $class->getNamespaceName(),
+            $kind,
         );
     }
 }

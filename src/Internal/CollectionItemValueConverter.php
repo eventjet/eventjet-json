@@ -48,7 +48,7 @@ final class CollectionItemValueConverter
             default => self::convertClass($class, $path, $type, $value),
         };
 
-        if ($converted === null) {
+        if ($converted === null && $type !== 'null') {
             return DecodeError::fieldTypeMismatch($class, $path, $type, $value);
         }
 
@@ -59,8 +59,12 @@ final class CollectionItemValueConverter
      * @param class-string $class
      * @throws ReflectionException
      */
-    private static function convertClass(string $class, string $path, string $type, mixed $value): object
-    {
+    private static function convertClass(
+        string $class,
+        string $path,
+        string $type,
+        mixed $value,
+    ): string|int|float|bool|object|null {
         if (enum_exists($type)) {
             return BackedEnumValueConverter::convertValue($class, $path, $type, $value);
         }
@@ -69,7 +73,7 @@ final class CollectionItemValueConverter
             return ConcreteClassValueConverter::convertCollectionItem($class, $path, $type, $value);
         }
 
-        return DecodeError::fieldTypeMismatch($class, $path, $type, $value);
+        return PhpDocLiteralValueConverter::convert($class, $path, $type, $value);
     }
 
     private static function convertFloat(mixed $value): float|null

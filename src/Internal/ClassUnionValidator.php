@@ -7,13 +7,11 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use ReflectionException;
 use ReflectionIntersectionType;
-use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
 
-use function array_any;
 use function array_filter;
 use function array_map;
 use function array_values;
@@ -21,7 +19,6 @@ use function count;
 use function implode;
 use function in_array;
 use function sort;
-use function strtolower;
 
 /** @internal */
 final class ClassUnionValidator
@@ -74,24 +71,43 @@ final class ClassUnionValidator
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionUnionType $type,
+        string|false|null $docComment = null,
+        bool|null $hasLiteralPhpDoc = null,
     ): CollectionUnionType|DecodeError|false|null {
-        $hasCollection = self::hasCollection($type);
+        $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
         if ($hasCollection) {
             return FieldCollectionUnionResolver::resolve($class, $field, $type);
         }
         $fieldName = $field->getName();
-        $classUnionError = self::validate($class, $field, $type);
+        $hasLiteralPhpDoc ??= FieldTypeNameResolver::hasLiteralPhpDoc($field, docComment: $docComment);
+        $literals = $hasLiteralPhpDoc ? PhpDocLiteralField::resolve($field) : null;
+        $classError = self::validate($class, $field, $type);
+        if ($classError !== null) {
+            return $classError;
+        }
+        $unionError =
+            EnumUnionValidator::validate($class, $fieldName, $type, $literals)
+            ?? ($hasLiteralPhpDoc ? PhpDocLiteralFieldValidator::validateUnresolved($class, $field, $literals) : null);
 
-        if ($classUnionError !== null) {
-            return $classUnionError;
+        if ($unionError !== null) {
+            return $unionError;
         }
 
-        $enumUnionError = EnumUnionValidator::validate($class, $fieldName, $type);
+        return self::resolveMembers($class, $field, $type, $literals);
+    }
 
-        if ($enumUnionError !== null) {
-            return $enumUnionError;
-        }
-
+    /**
+     * @param class-string $class
+     * @param list<string>|null $literals
+     * @throws ReflectionException
+     */
+    private static function resolveMembers(
+        string $class,
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionUnionType $type,
+        array|null $literals,
+    ): CollectionUnionType|DecodeError|false|null {
+        $fieldName = $field->getName();
         $memberResults = [];
         $nonEncodableError = null;
         foreach ($type->getTypes() as $member) {
@@ -105,7 +121,13 @@ final class ClassUnionValidator
                 $nonEncodableError ??= DecodeError::nonBackedEnum($class, $name, $fieldName);
                 continue;
             }
-            $error = FieldTypeValidator::validateNamedType($class, $field, $member);
+            $error = FieldTypeValidator::validateNamedType(
+                $class,
+                $field,
+                $member,
+                docComment: false,
+                hasLiteralPhpDoc: false,
+            );
 
             if ($error instanceof DecodeError) {
                 return $error;
@@ -116,15 +138,10 @@ final class ClassUnionValidator
         if ($memberResults === []) {
             return $nonEncodableError;
         }
+        if ($literals !== null) {
+            $literalUnion = new CollectionUnionType($literals);
+            return CollectionUnionTypeValidator::validate($class, $fieldName, $literalUnion) ?? $literalUnion;
+        }
         return in_array(null, $memberResults, strict: true) ? null : false;
-    }
-
-    private static function hasCollection(ReflectionUnionType $type): bool
-    {
-        return array_any(
-            $type->getTypes(),
-            static fn(ReflectionType $member): bool => $member instanceof ReflectionNamedType
-            && in_array(strtolower($member->getName()), ['array', 'arrayobject'], strict: true),
-        );
     }
 }

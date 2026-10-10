@@ -28,6 +28,12 @@ final class PhpDocUnionTypeResolver
         $members = [];
         foreach ($types as $type) {
             $resolved = self::member($field, $type);
+            if ($resolved instanceof CollectionUnionType) {
+                foreach ($resolved->names() as $constant) {
+                    $members[$constant] = $constant;
+                }
+                continue;
+            }
             if ($resolved === null) {
                 return null;
             }
@@ -42,7 +48,7 @@ final class PhpDocUnionTypeResolver
     private static function member(
         ReflectionParameter|ReflectionProperty $field,
         PhpDocType $type,
-    ): string|NestedCollectionType|null {
+    ): string|CollectionUnionType|NestedCollectionType|null {
         $isLiteral =
             $type->arguments === []
             && in_array(
@@ -53,10 +59,6 @@ final class PhpDocUnionTypeResolver
         if ($isLiteral) {
             return $type->name;
         }
-        $nested = NestedCollectionTypeResolver::resolve($field, $type);
-        if ($nested !== null) {
-            return $nested;
-        }
-        return PhpDocItemTypeResolver::named($field, $type);
+        return PhpDocItemTypeResolver::resolve($field, $type);
     }
 }

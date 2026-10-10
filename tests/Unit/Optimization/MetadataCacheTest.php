@@ -15,6 +15,7 @@ use Eventjet\Json\Internal\CollectionTypeValidator;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
+use Eventjet\Json\Internal\ConstructorParameterConverter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
@@ -74,6 +75,8 @@ use function class_alias;
 #[UsesClass(ConstructorValueValidator::class)]
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
+#[UsesClass(ConstructorParameterConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarkerFilter::class)]
 #[CoversClass(ClassJsonType::class)]
 #[UsesClass(CollectionItemValueConverter::class)]
 #[UsesClass(ConcreteClassValueConverter::class)]
@@ -93,6 +96,9 @@ use function class_alias;
 #[UsesClass(ListType::class)]
 #[UsesClass(NestedCollectionTypeResolver::class)]
 #[UsesClass(PhpDocFieldType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldCache::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldMarker::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerCache::class)]
 #[UsesClass(PhpDocItemTypeResolver::class)]
 #[UsesClass(PhpDocType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
@@ -106,6 +112,21 @@ use function class_alias;
 #[UsesClass(FieldCollectionUnionResolver::class)]
 #[UsesClass(FieldNameCollisions::class)]
 #[UsesClass(FieldNames::class)]
+#[UsesClass(\Eventjet\Json\Internal\NestedCollectionType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocClassNameResolver::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantResolver::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocImports::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocImportScanner::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocImportStatement::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokenStream::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNamespaceDeclaration::class)]
 final class MetadataCacheTest extends TestCase
 {
     /**

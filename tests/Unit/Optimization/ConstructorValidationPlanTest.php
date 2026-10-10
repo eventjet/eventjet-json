@@ -10,6 +10,7 @@ use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
+use Eventjet\Json\Internal\ConstructorParameterConverter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
@@ -59,6 +60,8 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[CoversClass(ConstructorParameter::class)]
+#[UsesClass(ConstructorParameterConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarkerFilter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(FieldTypeResolver::class)]
 #[UsesClass(FieldTypeValidator::class)]
@@ -74,6 +77,23 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PublicPropertyHydrator::class)]
 #[UsesClass(\Eventjet\Json\Internal\PublicPropertyTypeValidator::class)]
 #[CoversClass(FieldNames::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocFieldType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldCache::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldMarker::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerCache::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantResolver::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocImports::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocImportScanner::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocImportStatement::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokenStream::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNamespaceDeclaration::class)]
 final class ConstructorValidationPlanTest extends TestCase
 {
     /**
