@@ -365,7 +365,7 @@ final class LiteralTypeTest extends TestCase
             /**
              * @param 'ready' $_string
              * @param 42 $_integer
-             * @param State::Ready $_constant
+             * @param StringBackedStatus::Ready $_constant
              * @param true $_boolean
              * @param null|string $_nullable
              */
