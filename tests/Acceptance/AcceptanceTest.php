@@ -205,6 +205,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(FieldNameCollisions::class)]
 #[CoversClass(FieldNames::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldMarker::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarkerFilter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerCache::class)]
 final class AcceptanceTest extends TestCase
 {
