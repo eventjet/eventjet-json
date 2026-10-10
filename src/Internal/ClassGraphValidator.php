@@ -8,6 +8,7 @@ use BackedEnum;
 use Eventjet\Json\DecodeError;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionMethod;
 use ReflectionParameter;
 use ReflectionProperty;
 
@@ -54,7 +55,7 @@ final class ClassGraphValidator
 
         $constructor = $reflection->getConstructor();
         foreach ($constructor?->getParameters() ?? [] as $parameter) {
-            $resolved = FieldTypeValidator::resolveForGraph($class, $parameter, $reflection, $constructor);
+            $resolved = $this->resolveConstructorParameter($class, $parameter, $reflection, $constructor);
             $error = $this->field($class, $parameter, $resolved);
             if ($error !== null) {
                 return $error;
@@ -74,6 +75,25 @@ final class ClassGraphValidator
             }
         }
         return null;
+    }
+
+    /**
+     * @template T of object
+     * @param class-string $class
+     * @param ReflectionClass<T> $reflection
+     * @throws ReflectionException
+     */
+    private function resolveConstructorParameter(
+        string $class,
+        ReflectionParameter $parameter,
+        ReflectionClass $reflection,
+        ReflectionMethod|null $constructor,
+    ): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null {
+        $needsDocComment = FieldCollectionUnionResolver::needsDocComment($parameter->getType());
+        $docComment = $needsDocComment
+            ? PhpDocParameterMarkerCache::constructorDocComment($class, $constructor)
+            : false;
+        return new ConstructorParameter($parameter, $reflection, $docComment, $docComment)->resolveType($class);
     }
 
     /**

@@ -7,10 +7,8 @@ namespace Eventjet\Json\Internal;
 use ArrayObject;
 use BackedEnum;
 use Eventjet\Json\DecodeError;
-use ReflectionClass;
 use ReflectionException;
 use ReflectionIntersectionType;
-use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
@@ -25,30 +23,6 @@ use function is_a;
 final class FieldTypeValidator
 {
     // False identifies a valid non-collection declaration; null leaves unresolved types uncached.
-    /**
-     * @template T of object
-     * @param class-string $class
-     * @param ReflectionClass<T> $reflection
-     * @throws ReflectionException
-     */
-    public static function resolveForGraph(
-        string $class,
-        ReflectionParameter $parameter,
-        ReflectionClass $reflection,
-        ReflectionMethod|null $constructor,
-    ): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null {
-        $type = $parameter->getType();
-        $docComment = false;
-        if ($type instanceof ReflectionUnionType) {
-            $docComment = PhpDocParameterMarkerCache::constructorDocComment($class, $constructor);
-            $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
-            if (!$hasCollection) {
-                $docComment = FieldTypeNameResolver::literalMarkerDocComment($docComment);
-            }
-        }
-        return new ConstructorParameter($parameter, $reflection, $docComment, $docComment)->resolveType($class);
-    }
-
     /**
      * @param class-string $class
      * @throws ReflectionException

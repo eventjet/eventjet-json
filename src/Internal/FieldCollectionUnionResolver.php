@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use ArrayObject;
 use Eventjet\Json\DecodeError;
 use ReflectionException;
 use ReflectionNamedType;
@@ -15,11 +16,24 @@ use ReflectionUnionType;
 use function array_any;
 use function array_values;
 use function in_array;
+use function strcasecmp;
 use function strtolower;
 
 /** @internal */
 final class FieldCollectionUnionResolver
 {
+    public static function needsDocComment(ReflectionType|null $type): bool
+    {
+        if ($type instanceof ReflectionUnionType) {
+            return self::hasCollection($type);
+        }
+        if (!$type instanceof ReflectionNamedType) {
+            return false;
+        }
+        $name = $type->getName();
+        return $name === 'array' || strcasecmp($name, ArrayObject::class) === 0;
+    }
+
     public static function hasCollection(ReflectionUnionType $type): bool
     {
         return array_any(
