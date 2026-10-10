@@ -393,11 +393,11 @@ final class LiteralTypeTest extends TestCase
         static::assertSame($expected, PhpDocLiteralFieldMarker::parameterMarkers($constructor, $docComment));
         foreach ($parameters as $parameter) {
             static::assertArrayHasKey($parameter->getName(), $expected);
-            static::assertSame($expected[$parameter->getName()] ?? null, PhpDocParameterMarkerCache::hasMarker(
+            static::assertSame($expected[$parameter->getName()], PhpDocParameterMarkerCache::hasMarker(
                 $parameter,
                 $docComment,
             ));
-            static::assertSame($expected[$parameter->getName()] ?? null, PhpDocParameterMarkerCache::hasMarker(
+            static::assertSame($expected[$parameter->getName()], PhpDocParameterMarkerCache::hasMarker(
                 $parameter,
                 $docComment,
             ));
