@@ -11,12 +11,9 @@ use ReflectionProperty;
 
 use function enum_exists;
 use function preg_match;
-use function preg_match_all;
 use function str_contains;
 use function strpbrk;
 use function trim;
-
-use const PREG_SET_ORDER;
 
 /** @internal */
 final class PhpDocLiteralFieldMarker
@@ -70,30 +67,6 @@ final class PhpDocLiteralFieldMarker
     /** @return array<string, bool> */
     public static function parameterMarkers(ReflectionFunctionAbstract $function, string|false|null $docComment): array
     {
-        $doc = $docComment ?? $function->getDocComment();
-        if (!self::mayContainLiteralMarker((string) $doc)) {
-            return [];
-        }
-        return self::parameterMarkersFromFilteredDocComment($function, (string) $doc);
-    }
-
-    /** @return array<string, bool> */
-    public static function parameterMarkersFromFilteredDocComment(
-        ReflectionFunctionAbstract $function,
-        string $doc,
-    ): array {
-        $matches = [];
-        preg_match_all(
-            '~@param[ \t]+(?P<type>[^\r\n*]+?)[ \t]+(?:&|\.\.\.)?\$(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?:[ \t]|\r?\n|$)~',
-            (string) $doc,
-            $matches,
-            PREG_SET_ORDER,
-        );
-        /** @var list<array{0: string, type: non-empty-string, 1: non-empty-string, name: non-falsy-string, 2: non-falsy-string}> $matches */
-        $parameters = [];
-        foreach ($matches as $match) {
-            $parameters[$match['name']] = self::isLiteralMarker(trim($match['type']));
-        }
-        return $parameters;
+        return PhpDocParameterMarkerParser::parse($function, $docComment);
     }
 }

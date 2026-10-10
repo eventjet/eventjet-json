@@ -41,7 +41,10 @@ final class PhpDocParameterMarkerCache
             return [];
         }
         $functionName = $function->getName();
-        $functionKey = ($function->getDeclaringClass()?->getName() ?? '') . '::' . $functionName;
+        $functionKey = $functionName;
+        if ($function instanceof ReflectionMethod) {
+            $functionKey = $function->getDeclaringClass()->getName() . '::' . $functionName;
+        }
         if ($functionName === '{closure}') {
             $functionKey .= ':' . (string) $function->getFileName() . ':' . (string) $function->getStartLine();
         }
