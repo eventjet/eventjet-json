@@ -7,6 +7,8 @@ namespace Eventjet\Json\Internal;
 use ArrayObject;
 use BackedEnum;
 use Eventjet\Json\DecodeError;
+use JsonSerializable;
+use ReflectionEnum;
 use ReflectionException;
 use ReflectionIntersectionType;
 use ReflectionNamedType;
@@ -86,5 +88,18 @@ final class FieldTypeValidator
             return $hasLiteralPhpDoc ? PhpDocLiteralFieldValidator::validate($class, $field) ?? false : false;
         }
         return ClassFieldTypeValidator::validateNamed($class, $fieldName, $typeName, $type);
+    }
+
+    public static function isNonEncodable(string $type): bool
+    {
+        if (in_array($type, ['resource', 'open-resource', 'closed-resource'], strict: true)) {
+            return true;
+        }
+
+        return (
+            enum_exists($type)
+            && !new ReflectionEnum($type)->isBacked()
+            && !is_a($type, JsonSerializable::class, allow_string: true)
+        );
     }
 }
