@@ -34,7 +34,11 @@ final class FieldTypeNameResolver
 
     public static function literalMarkerDocComment(string|false $docComment): string|false
     {
-        if ($docComment === false || !str_contains($docComment, '@param')) {
+        if ($docComment === false) {
+            return false;
+        }
+        $hasParameterTag = str_contains($docComment, '@param');
+        if (!$hasParameterTag) {
             return false;
         }
         $mayContainLiteralMarker = self::mayContainLiteralMarker($docComment);
