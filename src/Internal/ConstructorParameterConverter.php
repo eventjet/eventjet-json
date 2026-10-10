@@ -20,11 +20,12 @@ final class ConstructorParameterConverter
         ReflectionParameter $field,
         ReflectionType|null $type,
         string|false|null $docComment,
+        bool|null $parameterHasLiteralMarker = null,
     ): bool {
         if ($docComment === false) {
             return false;
         }
-        $hasMarker = PhpDocParameterMarkerCache::hasMarker($field, $docComment);
+        $hasMarker = $parameterHasLiteralMarker ?? PhpDocParameterMarkerCache::hasMarker($field, $docComment);
         if (!$hasMarker) {
             return false;
         }

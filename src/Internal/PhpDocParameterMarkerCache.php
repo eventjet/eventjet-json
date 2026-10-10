@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use ReflectionFunctionAbstract;
 use ReflectionMethod;
 use ReflectionParameter;
 
@@ -27,9 +28,18 @@ final class PhpDocParameterMarkerCache
 
     public static function hasMarker(ReflectionParameter $field, string|false|null $docComment = null): bool
     {
-        $function = $field->getDeclaringFunction();
+        $markers = self::parameterMarkers($field->getDeclaringFunction(), $docComment);
+        return $markers[$field->getName()] ?? false;
+    }
+
+    /** @return array<string, bool> */
+    public static function parameterMarkers(
+        ReflectionFunctionAbstract $function,
+        string|false|null $docComment = null,
+        bool $alreadyFiltered = false,
+    ): array {
         $functionName = $function->getName();
-        $functionKey = ($field->getDeclaringClass()?->getName() ?? '') . '::' . $functionName;
+        $functionKey = ($function->getDeclaringClass()?->getName() ?? '') . '::' . $functionName;
         if ($functionName === '{closure}') {
             $functionKey .= ':' . (string) $function->getFileName() . ':' . (string) $function->getStartLine();
         }
@@ -46,10 +56,14 @@ final class PhpDocParameterMarkerCache
                 self::$parameterMarkers[$functionKey] = [];
                 self::$functionDocComments[$functionKey] = '';
             }
-            return false;
+            return [];
         }
-        self::$parameterMarkers[$functionKey] = PhpDocLiteralFieldMarker::parameterMarkers($function, $doc);
+        self::$parameterMarkers[$functionKey] = PhpDocLiteralFieldMarker::parameterMarkers(
+            $function,
+            $doc,
+            $alreadyFiltered,
+        );
         self::$functionDocComments[$functionKey] = $doc;
-        return self::$parameterMarkers[$functionKey][$field->getName()] ?? false;
+        return self::$parameterMarkers[$functionKey];
     }
 }

@@ -68,10 +68,13 @@ final class PhpDocLiteralFieldMarker
     }
 
     /** @return array<string, bool> */
-    public static function parameterMarkers(ReflectionFunctionAbstract $function, string|false|null $docComment): array
-    {
+    public static function parameterMarkers(
+        ReflectionFunctionAbstract $function,
+        string|false|null $docComment,
+        bool $alreadyFiltered = false,
+    ): array {
         $doc = $docComment ?? $function->getDocComment();
-        $hasLiteralToken = self::mayContainLiteralMarker((string) $doc);
+        $hasLiteralToken = $alreadyFiltered || self::mayContainLiteralMarker((string) $doc);
         if (!$hasLiteralToken) {
             return [];
         }
