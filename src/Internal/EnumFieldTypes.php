@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use JsonSerializable;
 use ReflectionEnum;
+use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
@@ -17,12 +18,31 @@ use function array_map;
 use function enum_exists;
 use function in_array;
 use function is_a;
+use function strcasecmp;
 
 /** @internal */
 final class EnumFieldTypes
 {
     /** @var WeakMap<ReflectionParameter|ReflectionProperty, ReflectionNamedType|array<array-key, string>|false>|null */
     private static WeakMap|null $types = null;
+
+    /** @param class-string $class */
+    public static function constructorDocCommentForGraph(
+        string $class,
+        ReflectionMethod|null $constructor,
+        ReflectionType|null $type,
+    ): string|false {
+        if ($type instanceof ReflectionUnionType) {
+            $docComment = PhpDocParameterMarkerCache::constructorDocComment($class, $constructor);
+            $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
+            return $hasCollection ? $docComment : FieldTypeNameResolver::literalMarkerDocComment($docComment);
+        }
+
+        $isCollection =
+            $type instanceof ReflectionNamedType
+            && ($type->getName() === 'array' || strcasecmp($type->getName(), \ArrayObject::class) === 0);
+        return $isCollection ? PhpDocParameterMarkerCache::constructorDocComment($class, $constructor) : false;
+    }
 
     public static function isNonEncodable(string $type): bool
     {
