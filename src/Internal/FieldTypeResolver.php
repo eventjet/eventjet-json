@@ -24,6 +24,7 @@ final class FieldTypeResolver
     public static function literalDocComment(
         ReflectionProperty $field,
         ReflectionNamedType|ReflectionUnionType $type,
+        string|false|null $docComment = null,
     ): string|false {
         if ($type instanceof ReflectionUnionType) {
             $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
@@ -39,7 +40,7 @@ final class FieldTypeResolver
             }
         }
 
-        return $field->getDocComment();
+        return $docComment ?? $field->getDocComment();
     }
 
     /**
@@ -55,7 +56,7 @@ final class FieldTypeResolver
             return [$docComment, false];
         }
 
-        $docComment = self::literalDocComment($field, $type);
+        $docComment = self::literalDocComment($field, $type, $docComment);
         if ($docComment === false) {
             return [$docComment, false];
         }
