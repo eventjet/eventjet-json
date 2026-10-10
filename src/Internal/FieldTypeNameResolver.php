@@ -12,6 +12,7 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function strcasecmp;
+use function str_contains;
 use function strpbrk;
 
 /** @internal */
@@ -62,13 +63,15 @@ final class FieldTypeNameResolver
 
     public static function mayContainLiteralMarker(string $docComment): bool
     {
-        $hasLiteralCharacter = strpbrk($docComment, characters: "'\"0123456789") !== false;
-        $hasLiteralKeyword =
-            preg_match(
-                '~::|\\b(?:true|false)\\b|@(param|var)[ \\t]+null(?:[ \\t]|\\r?\\n|\\*|$)~',
-                subject: $docComment,
-            ) === 1;
-        return $hasLiteralCharacter || $hasLiteralKeyword;
+        if (strpbrk($docComment, characters: "'\"0123456789") !== false) {
+            return true;
+        }
+        if (str_contains($docComment, '::') || str_contains($docComment, 'true') || str_contains($docComment, 'false')) {
+            return true;
+        }
+        return (str_contains($docComment, '@param') || str_contains($docComment, '@var'))
+            && str_contains($docComment, 'null')
+            && preg_match('~@(param|var)[ \\t]+[^\\r\\n*]+?\\bnull\\b~', subject: $docComment) === 1;
     }
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string

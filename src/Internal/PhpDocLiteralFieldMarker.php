@@ -58,13 +58,12 @@ final class PhpDocLiteralFieldMarker
         if (strpbrk($docComment, characters: "'\"0123456789") !== false) {
             return true;
         }
-
-        return (
-            preg_match(
-                '~::|\\b(?:true|false)\\b|@(param|var)[ \\t]+null(?:[ \\t]|\\r?\\n|\\*|$)~',
-                subject: $docComment,
-            ) === 1
-        );
+        if (str_contains($docComment, '::') || str_contains($docComment, 'true') || str_contains($docComment, 'false')) {
+            return true;
+        }
+        return (str_contains($docComment, '@param') || str_contains($docComment, '@var'))
+            && str_contains($docComment, 'null')
+            && preg_match('~@(param|var)[ \\t]+[^\\r\\n*]+?\\bnull\\b~', subject: $docComment) === 1;
     }
 
     /** @return array<string, bool> */
