@@ -90,9 +90,10 @@ final class ClassGraphValidator
         ReflectionMethod|null $constructor,
     ): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null {
         $needsDocComment = FieldCollectionUnionResolver::needsDocComment($parameter->getType());
-        $docComment = $needsDocComment
-            ? PhpDocParameterMarkerCache::constructorDocComment($class, $constructor)
-            : false;
+        if (!$needsDocComment) {
+            return false;
+        }
+        $docComment = PhpDocParameterMarkerCache::constructorDocComment($class, $constructor);
         return new ConstructorParameter($parameter, $reflection, $docComment, $docComment)->resolveType($class);
     }
 
