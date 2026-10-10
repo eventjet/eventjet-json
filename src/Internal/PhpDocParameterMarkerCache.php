@@ -49,8 +49,7 @@ final class PhpDocParameterMarkerCache
             $functionKey .= ':' . (string) $function->getFileName() . ':' . (string) $function->getStartLine();
         }
         if (
-            $docComment !== false
-            && array_key_exists($functionKey, self::$parameterMarkers)
+            array_key_exists($functionKey, self::$parameterMarkers)
             && ($docComment === null || $docComment === (self::$functionDocComments[$functionKey] ?? null))
         ) {
             return self::$parameterMarkers[$functionKey];

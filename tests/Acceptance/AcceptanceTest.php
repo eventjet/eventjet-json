@@ -207,6 +207,7 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldMarker::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarkerFilter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerCache::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerParser::class)]
 final class AcceptanceTest extends TestCase
 {
     #[DataProviderExternal(ParserSyntaxCases::class, 'types')]

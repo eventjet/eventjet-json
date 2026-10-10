@@ -18,7 +18,11 @@ final class PhpDocParameterMarkerParser
     public static function parse(ReflectionFunctionAbstract $function, string|false|null $docComment): array
     {
         $doc = $docComment ?? $function->getDocComment();
-        if ($doc === false || !PhpDocLiteralFieldMarker::mayContainLiteralMarker($doc)) {
+        if ($doc === false) {
+            return [];
+        }
+        $mayContainMarker = PhpDocLiteralFieldMarker::mayContainLiteralMarker($doc);
+        if (!$mayContainMarker) {
             return [];
         }
 
