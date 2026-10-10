@@ -32,17 +32,13 @@ final class ConstructorParameterConverter
                 return false;
             }
         }
-        $hasLiteralPhpDoc = FieldTypeNameResolver::hasLiteralPhpDoc($field, docComment: $docComment);
-        if (!$hasLiteralPhpDoc) {
-            return false;
-        }
         if ($type instanceof ReflectionUnionType) {
             $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
             if ($hasCollection) {
                 return false;
             }
         }
-        return true;
+        return FieldTypeNameResolver::hasLiteralPhpDoc($field, docComment: $docComment);
     }
 
     /**

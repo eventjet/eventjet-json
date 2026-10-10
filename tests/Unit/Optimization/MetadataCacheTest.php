@@ -75,7 +75,6 @@ use function class_alias;
 #[UsesClass(ConstructorValueValidator::class)]
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
-#[UsesClass(\Eventjet\Json\Internal\ConstructorParameterLiteralMetadata::class)]
 #[UsesClass(ConstructorParameterConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarkerFilter::class)]
 #[CoversClass(ClassJsonType::class)]

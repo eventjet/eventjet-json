@@ -190,7 +190,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(NestedCollectionTypeResolver::class)]
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
-#[UsesClass(\Eventjet\Json\Internal\ConstructorParameterLiteralMetadata::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[CoversClass(ConstructorValueValidator::class)]
 #[CoversClass(ObjectHydrator::class)]
