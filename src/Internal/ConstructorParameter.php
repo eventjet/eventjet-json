@@ -36,7 +36,6 @@ final readonly class ConstructorParameter
         ReflectionClass $class,
         private string|false|null $docComment = null,
         string|false|null $literalDocComment = null,
-        bool|null $parameterHasLiteralMarker = null,
     ) {
         $this->class = $class->getName();
         $this->name = $reflection->getName();
@@ -50,12 +49,7 @@ final readonly class ConstructorParameter
         $this->recoverable = ConstructorValueValidator::isPublicInstanceProperty($property);
         $this->hasLiteralPhpDoc =
             $literalDocComment !== false
-            && ConstructorParameterConverter::hasLiteralMarker(
-                $reflection,
-                $this->type,
-                $literalDocComment,
-                $parameterHasLiteralMarker,
-            );
+            && ConstructorParameterConverter::hasLiteralMarker($reflection, $this->type, $literalDocComment);
     }
 
     /** @throws ReflectionException */
