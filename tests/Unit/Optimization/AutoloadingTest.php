@@ -67,6 +67,7 @@ use function spl_autoload_unregister;
 #[CoversClass(PhpDocClassNameResolver::class)]
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
+#[UsesClass(\Eventjet\Json\Internal\ConstructorParameterLiteralMetadata::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[CoversClass(\Eventjet\Json\Internal\ListValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\ListInputNormalizer::class)]

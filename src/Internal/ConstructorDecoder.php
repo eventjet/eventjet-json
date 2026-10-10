@@ -53,11 +53,10 @@ final class ConstructorDecoder
         $converters = [];
         $constructor = $class->getConstructor();
         $docComment = $constructor?->getDocComment() ?? false;
-        $literalDocComment = $docComment === false
-            ? false
-            : FieldTypeNameResolver::literalMarkerDocComment($docComment);
+        $parameters = $constructor?->getParameters() ?? [];
 
-        foreach ($constructor?->getParameters() ?? [] as $reflection) {
+        foreach ($parameters as $reflection) {
+            $literalDocComment = ConstructorParameterLiteralMetadata::forParameter($reflection, $docComment);
             $parameter = new ConstructorParameter($reflection, $class, $docComment, $literalDocComment);
             $name = $names[$parameter->name] ?? $parameter->name;
             $resolved = $parameter->resolveType($className);

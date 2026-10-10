@@ -49,6 +49,7 @@ use function class_alias;
 
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
+#[UsesClass(\Eventjet\Json\Internal\ConstructorParameterLiteralMetadata::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[CoversClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
