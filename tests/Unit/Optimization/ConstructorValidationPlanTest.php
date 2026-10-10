@@ -61,6 +61,7 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(ConstructorParameterConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarkerFilter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(FieldTypeResolver::class)]
 #[UsesClass(FieldTypeValidator::class)]

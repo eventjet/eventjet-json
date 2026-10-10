@@ -76,6 +76,7 @@ use function class_alias;
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[UsesClass(ConstructorParameterConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarkerFilter::class)]
 #[CoversClass(ClassJsonType::class)]
 #[UsesClass(CollectionItemValueConverter::class)]
 #[UsesClass(ConcreteClassValueConverter::class)]
