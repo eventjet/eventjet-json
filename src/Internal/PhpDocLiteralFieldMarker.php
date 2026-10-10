@@ -25,12 +25,17 @@ final class PhpDocLiteralFieldMarker
         ReflectionParameter|ReflectionProperty $field,
         string|false|null $docComment = null,
     ): bool {
+        if ($field instanceof ReflectionParameter) {
+            if (!PhpDocParameterMarkerCache::hasMarker($field, $docComment)) {
+                return false;
+            }
+        }
         $native = $field->getType();
         if ($native instanceof ReflectionNamedType && !$native->isBuiltin() && !enum_exists($native->getName())) {
             return false;
         }
         if ($field instanceof ReflectionParameter) {
-            return PhpDocParameterMarkerCache::hasMarker($field, $docComment);
+            return true;
         }
         $doc = $docComment ?? $field->getDocComment();
         if ($doc === false || $doc === '') {

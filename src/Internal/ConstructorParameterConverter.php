@@ -24,6 +24,9 @@ final class ConstructorParameterConverter
         if ($docComment === false) {
             return false;
         }
+        if (!PhpDocParameterMarkerCache::hasMarker($field, $docComment)) {
+            return false;
+        }
         if ($type instanceof ReflectionNamedType) {
             if ($type->isBuiltin() && $type->getName() === 'array') {
                 return false;
