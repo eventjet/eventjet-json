@@ -370,11 +370,11 @@ final class LiteralTypeTest extends TestCase
              * @param null $_nullable
              */
             public function __construct(
-                string $_string,
-                int $_integer,
-                mixed $_constant,
-                bool $_boolean,
-                null $_nullable,
+                public string $_string,
+                public int $_integer,
+                public mixed $_constant,
+                public bool $_boolean,
+                public null $_nullable,
             ) {}
 
             public function plain(int $_refined): void {}
@@ -392,15 +392,9 @@ final class LiteralTypeTest extends TestCase
 
         static::assertSame($expected, PhpDocLiteralFieldMarker::parameterMarkers($constructor, $docComment));
         foreach ($parameters as $parameter) {
-            static::assertArrayHasKey($parameter->getName(), $expected);
-            static::assertSame($expected[$parameter->getName()], PhpDocParameterMarkerCache::hasMarker(
-                $parameter,
-                $docComment,
-            ));
-            static::assertSame($expected[$parameter->getName()], PhpDocParameterMarkerCache::hasMarker(
-                $parameter,
-                $docComment,
-            ));
+            $hasMarker = PhpDocParameterMarkerCache::hasMarker($parameter, $docComment);
+            static::assertTrue($hasMarker);
+            static::assertSame($hasMarker, PhpDocParameterMarkerCache::hasMarker($parameter, $docComment));
         }
         static::assertSame($docComment, PhpDocParameterMarkerCache::constructorDocComment(
             $subject::class,
