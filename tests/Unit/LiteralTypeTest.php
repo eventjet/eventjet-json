@@ -165,7 +165,7 @@ final class LiteralTypeTest extends TestCase
         static::assertInstanceOf(\Eventjet\Json\DecodeError::class, $error);
     }
 
-    /** @throws \ReflectionException */
+    /** @throws \PHPUnit\Framework\Exception|\ReflectionException */
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
     public function testPlainScalarPhpDocDoesNotLoadItemResolution(): void
@@ -372,22 +372,22 @@ final class LiteralTypeTest extends TestCase
             public function __construct(
                 string $_string,
                 int $_integer,
-                string $_constant,
+                mixed $_constant,
                 bool $_boolean,
-                string|null $_nullable,
+                null $_nullable,
             ) {}
 
-            public function plain(int $refined): void {}
+            public function plain(int $_refined): void {}
         };
         $constructor = new ReflectionMethod($subject, '__construct');
         $parameters = $constructor->getParameters();
         $docComment = $constructor->getDocComment();
         $expected = [
-            'string' => true,
-            'integer' => true,
-            'constant' => true,
-            'boolean' => true,
-            'nullable' => true,
+            '_string' => true,
+            '_integer' => true,
+            '_constant' => true,
+            '_boolean' => true,
+            '_nullable' => true,
         ];
 
         static::assertSame($expected, PhpDocLiteralFieldMarker::parameterMarkers($constructor, $docComment));
@@ -408,10 +408,10 @@ final class LiteralTypeTest extends TestCase
         ));
         static::assertFalse(PhpDocParameterMarkerCache::constructorDocComment(\stdClass::class, null));
 
-        $closure = static function (string $value): void {};
-        $closureParameter = new ReflectionParameter($closure, 'value');
-        static::assertTrue(PhpDocParameterMarkerCache::hasMarker($closureParameter, "/** @param 'x' \$value */"));
-        $refinedParameter = new ReflectionParameter([$subject::class, 'plain'], 'refined');
+        $closure = static function (string $_value): void {};
+        $closureParameter = new ReflectionParameter($closure, '_value');
+        static::assertTrue(PhpDocParameterMarkerCache::hasMarker($closureParameter, "/** @param 'x' \$_value */"));
+        $refinedParameter = new ReflectionParameter([$subject::class, 'plain'], '_refined');
         static::assertFalse(PhpDocLiteralFieldMarker::mayContainLiteral($refinedParameter));
         static::assertFalse(PhpDocParameterMarkerCache::hasMarker($refinedParameter, false));
         static::assertFalse(PhpDocLiteralFieldCache::hasLiteral($refinedParameter, false));
