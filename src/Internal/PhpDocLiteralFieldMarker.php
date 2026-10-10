@@ -31,8 +31,11 @@ final class PhpDocLiteralFieldMarker
             }
         }
         $native = $field->getType();
-        if ($native instanceof ReflectionNamedType && !$native->isBuiltin() && !enum_exists($native->getName())) {
-            return false;
+        if ($native instanceof ReflectionNamedType && !$native->isBuiltin()) {
+            $isEnum = enum_exists($native->getName());
+            if (!$isEnum) {
+                return false;
+            }
         }
         if ($field instanceof ReflectionParameter) {
             return true;

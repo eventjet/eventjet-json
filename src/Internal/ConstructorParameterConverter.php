@@ -31,8 +31,11 @@ final class ConstructorParameterConverter
             if ($type->isBuiltin() && $type->getName() === 'array') {
                 return false;
             }
-            if (!$type->isBuiltin() && !enum_exists($type->getName())) {
-                return false;
+            if (!$type->isBuiltin()) {
+                $isEnum = enum_exists($type->getName());
+                if (!$isEnum) {
+                    return false;
+                }
             }
         }
         if ($type instanceof ReflectionUnionType) {
