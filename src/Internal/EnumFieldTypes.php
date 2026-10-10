@@ -37,6 +37,17 @@ final class EnumFieldTypes
         );
     }
 
+    public static function hasEnum(ReflectionUnionType $type): bool
+    {
+        foreach ($type->getTypes() as $member) {
+            if ($member instanceof ReflectionNamedType && enum_exists($member->getName())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** @return ReflectionNamedType|array<array-key, string>|false */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): ReflectionNamedType|array|false
     {

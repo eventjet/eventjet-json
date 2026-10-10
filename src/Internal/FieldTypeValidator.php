@@ -17,8 +17,8 @@ use ReflectionProperty;
 use ReflectionUnionType;
 use stdClass;
 
-use function in_array;
 use function enum_exists;
+use function in_array;
 use function is_a;
 
 /** @internal */
@@ -38,9 +38,11 @@ final class FieldTypeValidator
         ReflectionMethod|null $constructor,
     ): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null {
         $type = $parameter->getType();
-        $docComment = $type instanceof ReflectionUnionType && FieldCollectionUnionResolver::hasCollection($type)
-            ? PhpDocParameterMarkerCache::constructorDocComment($class, $constructor)
-            : false;
+        $docComment =
+            $type instanceof ReflectionUnionType
+            && (FieldCollectionUnionResolver::hasCollection($type) || EnumFieldTypes::hasEnum($type))
+                ? PhpDocParameterMarkerCache::constructorDocComment($class, $constructor)
+                : false;
         return new ConstructorParameter($parameter, $reflection, $docComment, $docComment)->resolveType($class);
     }
 
@@ -108,5 +110,4 @@ final class FieldTypeValidator
         }
         return ClassFieldTypeValidator::validateNamed($class, $fieldName, $typeName, $type);
     }
-
 }
