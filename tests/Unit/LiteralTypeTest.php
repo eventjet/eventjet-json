@@ -26,11 +26,14 @@ use Eventjet\Json\Internal\PhpDocItemTypeResolver;
 use Eventjet\Json\Internal\PhpDocLiteral;
 use Eventjet\Json\Internal\PhpDocLiteralField;
 use Eventjet\Json\Internal\PhpDocLiteralFieldCache;
+use Eventjet\Json\Internal\PhpDocLiteralFieldMarker;
 use Eventjet\Json\Internal\PhpDocLiteralFieldValidator;
 use Eventjet\Json\Internal\PhpDocLiteralFieldValueConverter;
+use Eventjet\Json\Internal\PhpDocLiteralMarkerFilter;
 use Eventjet\Json\Internal\PhpDocLiteralNumber;
 use Eventjet\Json\Internal\PhpDocLiteralString;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
+use Eventjet\Json\Internal\PhpDocParameterMarkerCache;
 use Eventjet\Json\Internal\PhpDocStringEscape;
 use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocType;
@@ -44,7 +47,9 @@ use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 use ReflectionNamedType;
+use ReflectionParameter;
 use ReflectionProperty;
 
 use const INF;
@@ -309,6 +314,112 @@ final class LiteralTypeTest extends TestCase
         $enumProperty = new ReflectionProperty($enum, 'status');
         static::assertTrue(PhpDocLiteralFieldCache::mayContainLiteral($enumProperty));
         static::assertSame([StringBackedStatus::class . '::Ready'], PhpDocLiteralField::resolve($enumProperty));
+    }
+
+    /** @throws \ReflectionException */
+    public function testPhpDocLiteralMarkerFastPathsAndConstructorCache(): void
+    {
+        $properties = new class {
+            /** @var 'ready' */
+            public string $literal = 'ready';
+
+            /** @var positive-int */
+            public int $refined = 1;
+
+            /** @var \stdClass */
+            public \stdClass $object;
+
+            public int $undocumented = 1;
+
+            public function __construct()
+            {
+                $this->object = new \stdClass();
+            }
+        };
+
+        static::assertTrue(PhpDocLiteralFieldMarker::mayContainLiteral(new ReflectionProperty($properties, 'literal')));
+        static::assertFalse(PhpDocLiteralFieldMarker::mayContainLiteral(new ReflectionProperty(
+            $properties,
+            'refined',
+        )));
+        static::assertFalse(PhpDocLiteralFieldMarker::mayContainLiteral(new ReflectionProperty($properties, 'object')));
+        static::assertFalse(PhpDocLiteralFieldMarker::mayContainLiteral(new ReflectionProperty(
+            $properties,
+            'undocumented',
+        )));
+        static::assertFalse(PhpDocLiteralFieldMarker::mayContainLiteral(
+            new ReflectionProperty($properties, 'literal'),
+            false,
+        ));
+
+        foreach (["'ready'", '42', 'State::Ready', 'true', 'false', 'null'] as $literal) {
+            static::assertTrue(PhpDocLiteralFieldMarker::isLiteralMarker($literal));
+        }
+        foreach (['string', 'positive-int', 'int|null'] as $refinement) {
+            static::assertFalse(PhpDocLiteralFieldMarker::isLiteralMarker($refinement));
+        }
+        static::assertTrue(PhpDocLiteralMarkerFilter::mayContain("/** @var 'ready' */"));
+        static::assertTrue(PhpDocLiteralMarkerFilter::mayContain('/** @param State::Ready $value */'));
+        static::assertFalse(PhpDocLiteralMarkerFilter::mayContain('/** @param positive-int $value */'));
+        $subject = new class {
+            /**
+             * @param 'ready' $string
+             * @param 42 $integer
+             * @param State::Ready $constant
+             * @param true $boolean
+             * @param null $nullable
+             */
+            public function __construct(
+                string $string,
+                int $integer,
+                string $constant,
+                bool $boolean,
+                string|null $nullable,
+            ) {}
+
+            public function plain(int $refined): void {}
+        };
+        $constructor = new ReflectionMethod($subject, '__construct');
+        $parameters = $constructor->getParameters();
+        $docComment = $constructor->getDocComment();
+        $expected = [
+            'string' => true,
+            'integer' => true,
+            'constant' => true,
+            'boolean' => true,
+            'nullable' => true,
+        ];
+
+        static::assertSame($expected, PhpDocLiteralFieldMarker::parameterMarkers($constructor, $docComment));
+        foreach ($parameters as $parameter) {
+            static::assertSame($expected[$parameter->getName()], PhpDocParameterMarkerCache::hasMarker(
+                $parameter,
+                $docComment,
+            ));
+            static::assertSame($expected[$parameter->getName()], PhpDocParameterMarkerCache::hasMarker(
+                $parameter,
+                $docComment,
+            ));
+        }
+        static::assertSame($docComment, PhpDocParameterMarkerCache::constructorDocComment(
+            $subject::class,
+            $constructor,
+        ));
+        static::assertFalse(PhpDocParameterMarkerCache::constructorDocComment(\stdClass::class, null));
+
+        $closure = static function (string $value): void {};
+        $closureParameter = new ReflectionParameter($closure, 'value');
+        static::assertTrue(PhpDocParameterMarkerCache::hasMarker($closureParameter, "/** @param 'x' \$value */"));
+        $refinedParameter = new ReflectionParameter([$subject::class, 'plain'], 'refined');
+        static::assertFalse(PhpDocLiteralFieldMarker::mayContainLiteral($refinedParameter));
+        static::assertFalse(PhpDocParameterMarkerCache::hasMarker($refinedParameter, false));
+        static::assertFalse(PhpDocLiteralFieldCache::hasLiteral($refinedParameter, false));
+        static::assertFalse(FieldTypeNameResolver::literalMarkerDocComment(false));
+        static::assertFalse(ConstructorParameterConverter::hasLiteralMarker(
+            $refinedParameter,
+            $refinedParameter->getType(),
+            false,
+        ));
     }
 
     public function testIntegerBoundariesAndNotation(): void
