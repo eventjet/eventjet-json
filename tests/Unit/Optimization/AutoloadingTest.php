@@ -93,6 +93,7 @@ use function spl_autoload_unregister;
 #[UsesClass(CollectionUnionType::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionTypeValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionUnionShapeValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\EnumFieldTypes::class)]
 #[UsesClass(FieldNames::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]

@@ -38,11 +38,14 @@ final class FieldTypeValidator
         ReflectionMethod|null $constructor,
     ): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null {
         $type = $parameter->getType();
-        $docComment =
-            $type instanceof ReflectionUnionType
-            && (FieldCollectionUnionResolver::hasCollection($type) || EnumFieldTypes::hasEnum($type))
-                ? PhpDocParameterMarkerCache::constructorDocComment($class, $constructor)
-                : false;
+        $needsPhpDoc = false;
+        if ($type instanceof ReflectionUnionType) {
+            $needsPhpDoc = FieldCollectionUnionResolver::hasCollection($type);
+            if (!$needsPhpDoc) {
+                $needsPhpDoc = EnumFieldTypes::hasEnum($type);
+            }
+        }
+        $docComment = $needsPhpDoc ? PhpDocParameterMarkerCache::constructorDocComment($class, $constructor) : false;
         return new ConstructorParameter($parameter, $reflection, $docComment, $docComment)->resolveType($class);
     }
 

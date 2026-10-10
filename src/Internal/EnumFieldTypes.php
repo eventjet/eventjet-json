@@ -40,7 +40,8 @@ final class EnumFieldTypes
     public static function hasEnum(ReflectionUnionType $type): bool
     {
         foreach ($type->getTypes() as $member) {
-            if ($member instanceof ReflectionNamedType && enum_exists($member->getName())) {
+            $isEnum = $member instanceof ReflectionNamedType && enum_exists($member->getName());
+            if ($isEnum) {
                 return true;
             }
         }
