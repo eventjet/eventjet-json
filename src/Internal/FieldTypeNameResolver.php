@@ -11,12 +11,16 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 
+use function array_key_exists;
 use function str_contains;
 use function strcasecmp;
 
 /** @internal */
 final class FieldTypeNameResolver
 {
+    /** @var array<string, string|false> */
+    private static array $literalMarkerDocComments = [];
+
     private const array PRIMITIVE_PHPDOC = [
         'non-empty-string' => 'string',
         'numeric-string' => 'string',
@@ -37,12 +41,15 @@ final class FieldTypeNameResolver
         if ($docComment === false) {
             return false;
         }
+        if (array_key_exists($docComment, self::$literalMarkerDocComments)) {
+            return self::$literalMarkerDocComments[$docComment];
+        }
         $hasParameterTag = str_contains($docComment, '@param');
         if (!$hasParameterTag) {
-            return false;
+            return self::$literalMarkerDocComments[$docComment] = false;
         }
         $mayContainLiteralMarker = self::mayContainLiteralMarker($docComment);
-        return $mayContainLiteralMarker ? $docComment : false;
+        return self::$literalMarkerDocComments[$docComment] = $mayContainLiteralMarker ? $docComment : false;
     }
 
     /** @throws ReflectionException */

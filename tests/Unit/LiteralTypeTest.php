@@ -366,6 +366,10 @@ final class LiteralTypeTest extends TestCase
             "/** @param 'ready' \$value */",
             FieldTypeNameResolver::literalMarkerDocComment("/** @param 'ready' \$value */"),
         );
+        static::assertSame(
+            "/** @param 'ready' \$value */",
+            FieldTypeNameResolver::literalMarkerDocComment("/** @param 'ready' \$value */"),
+        );
         $subject = new class('ready', 42, StringBackedStatus::Ready, true, null) {
             /**
              * @param 'ready' $_string
