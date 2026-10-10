@@ -26,7 +26,8 @@ final class PhpDocLiteralFieldMarker
         string|false|null $docComment = null,
     ): bool {
         if ($field instanceof ReflectionParameter) {
-            if (!PhpDocParameterMarkerCache::hasMarker($field, $docComment)) {
+            $hasMarker = PhpDocParameterMarkerCache::hasMarker($field, $docComment);
+            if (!$hasMarker) {
                 return false;
             }
         }

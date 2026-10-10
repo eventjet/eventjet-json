@@ -24,7 +24,8 @@ final class ConstructorParameterConverter
         if ($docComment === false) {
             return false;
         }
-        if (!PhpDocParameterMarkerCache::hasMarker($field, $docComment)) {
+        $hasMarker = PhpDocParameterMarkerCache::hasMarker($field, $docComment);
+        if (!$hasMarker) {
             return false;
         }
         if ($type instanceof ReflectionNamedType) {
