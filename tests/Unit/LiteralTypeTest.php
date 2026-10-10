@@ -92,6 +92,7 @@ use const PHP_INT_MIN;
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[UsesClass(EnumFieldTypes::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarkerFilter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\DecodeError::class)]
