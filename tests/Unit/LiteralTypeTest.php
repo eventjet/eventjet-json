@@ -361,7 +361,7 @@ final class LiteralTypeTest extends TestCase
         static::assertTrue(PhpDocLiteralMarkerFilter::mayContain("/** @var 'ready' */"));
         static::assertTrue(PhpDocLiteralMarkerFilter::mayContain('/** @param State::Ready $value */'));
         static::assertFalse(PhpDocLiteralMarkerFilter::mayContain('/** @param positive-int $value */'));
-        $subject = new class('ready', 42, 'Ready', true, null) {
+        $subject = new class('ready', 42, StringBackedStatus::Ready, true, null) {
             /**
              * @param 'ready' $_string
              * @param 42 $_integer
