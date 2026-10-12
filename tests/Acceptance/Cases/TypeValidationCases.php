@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\JsonType;
+use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use JsonException;
@@ -137,6 +138,37 @@ final class TypeValidationCases
                 '/** @var array{int|string, ValidationInvalidChild} */ public array $children;',
             ],
             ['ValidationCycleError', 'public ?self $next = null; public ValidationInvalidChild $child;'],
+            [
+                'ValidationFirstConstructorClass',
+                'public function __construct(public ?ValidationInvalidChild $first = null, public ?\\'
+                    . Coordinates::class
+                    . ' $second = null) {}',
+            ],
+            [
+                'ValidationConstructorAndPropertyClass',
+                'public function __construct(public ?ValidationInvalidChild $first = null) {} public ?\\'
+                    . Coordinates::class
+                    . ' $second = null;',
+            ],
+            [
+                'ValidationSecondConstructorClass',
+                'public function __construct(public ?\\'
+                    . Coordinates::class
+                    . ' $first = null, public ?ValidationInvalidChild $second = null) {}',
+            ],
+            ['ValidationEarlierTupleClass', '/** @var array{ValidationInvalidChild, int} */ public array $children;'],
+            [
+                'ValidationSecondTupleClass',
+                '/** @var array{\\' . Coordinates::class . ', ValidationInvalidChild} */ public array $children;',
+            ],
+            [
+                'ValidationSecondUnionClass',
+                '/** @var list<\\' . Coordinates::class . '|list<ValidationInvalidChild>> */ public array $children;',
+            ],
+            [
+                'ValidationNullableNestedList',
+                '/** @var list<list<ValidationInvalidChild>|null> */ public array $children;',
+            ],
         ] as [$name, $body]) {
             yield $name => [CollectionNameSource::load($name, 'final class ' . $name . ' { ' . $body . ' }'), $message];
         }

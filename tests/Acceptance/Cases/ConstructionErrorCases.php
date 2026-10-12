@@ -38,6 +38,14 @@ final class ConstructionErrorCases
                 3,
             ];
         }
+        yield 'unloaded class parameter rejects null' => [
+            '{"value":null}',
+            CollectionDeclarationFixture::create('UnloadedRequiredClass', '', 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('UnloadedRequiredClass', '', 'param')
+                . ' from the JSON object: Field value must be of type UnloadedRequiredClass, null given.',
+            3,
+        ];
         yield 'constructor throws an exception' => [
             '{"value":"rejected"}',
             new ThrowingConstructor('accepted')::class,

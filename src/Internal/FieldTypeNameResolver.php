@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use ArrayObject;
-use BackedEnum;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -16,7 +15,6 @@ use function class_exists;
 use function enum_exists;
 use function in_array;
 use function interface_exists;
-use function is_a;
 use function strcasecmp;
 use function strpbrk;
 use function strtr;
@@ -59,31 +57,40 @@ final class FieldTypeNameResolver
         return $parent === false ? $name : $parent->getName();
     }
 
+    /** Returns the doc comment that declares a field: the constructor's for a parameter. */
+    public static function docComment(ReflectionParameter|ReflectionProperty $field): string
+    {
+        $doc = $field instanceof ReflectionParameter
+            ? $field->getDeclaringFunction()->getDocComment()
+            : $field->getDocComment();
+        return (string) $doc;
+    }
+
+    /**
+     * Whether the native type check is the whole check of a field: a scalar type without a PHPDoc literal. Skipping the
+     * type compiler for such fields keeps it unloaded for classes with only scalar fields.
+     */
+    public static function isPlainType(ReflectionParameter|ReflectionProperty $field, ReflectionType|null $type): bool
+    {
+        return (
+            $type instanceof ReflectionNamedType
+            && $type->isBuiltin()
+            && !in_array($type->getName(), ['array', 'mixed', 'object'], strict: true)
+            && !self::mayDeclareLiteral(self::docComment($field))
+        );
+    }
+
+    /** Whether a doc comment may declare a literal type. False means it certainly does not. */
     public static function mayDeclareLiteral(string $docComment): bool
     {
         $markers = strtr($docComment, ['true' => '"', 'false' => '"', ' null' => '"', "\tnull" => '"']);
         return strpbrk($markers, characters: "'\"0123456789:") !== false;
     }
 
-    /**
-     * Scalar and backed enum declarations need no further type validation, which keeps the validators unloaded.
-     */
-    public static function isPlainType(ReflectionType|null $type): bool
+    /** Returns the type that errors report for a nullable declaration of a type. */
+    public static function withNull(string $name): string
     {
-        if (!$type instanceof ReflectionNamedType) {
-            return false;
-        }
-        $name = $type->getName();
-        return (
-            $type->isBuiltin()
-                ? !in_array($name, ['array', 'mixed', 'object'], strict: true)
-                : enum_exists($name) && is_a($name, BackedEnum::class, allow_string: true)
-        );
-    }
-
-    public static function expected(ReflectionNamedType $type, string $name): string
-    {
-        return $type->allowsNull() && $name !== 'null' ? $name . '|null' : $name;
+        return $name === 'null' ? $name : $name . '|null';
     }
 
     /** @return 'bool'|'float'|'int'|'string'|class-string|null */

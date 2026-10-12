@@ -5,56 +5,90 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Node\Node;
 use JsonException;
-use ReflectionException;
 use stdClass;
 
 use function array_all;
+use function array_filter;
 use function array_intersect_key;
 use function array_key_exists;
+use function array_map;
 use function is_array;
 use function is_bool;
 use function is_float;
 use function is_int;
 use function is_string;
 
-/** @internal */
+/**
+ * Turns the members of a JSON object into constructor arguments.
+ *
+ * @internal
+ */
 final readonly class ConstructorPlan
 {
-    public bool $scalarOnly;
+    private bool $scalarOnly;
+
+    private bool $renamed;
+
+    /** @var array<array-key, string> Native type names of the arguments that need a type check. */
+    private array $types;
+
+    /** @var array<array-key, string> The type that errors report for each checked argument that accepts null. */
+    private array $nullable;
 
     /**
      * @param class-string $class
-     * @param array<array-key, ConstructorValueValidator> $fields
-     * @param array<array-key, FieldValueConverter|null> $converters
+     * @param array<array-key, array{string, string|null}> $checks Native type checks, keyed by JSON name: type name,
+     *     and the type that errors report if the argument accepts null.
+     * @param array<array-key, Node|null> $converters Converter of each argument, keyed by JSON name. The converter is
+     *     null if the argument needs only its native type check.
+     * @param array<string, Node|null> $nodes The same converters, keyed by parameter name.
+     * @param array<string, string> $names JSON names of renamed fields, keyed by property name.
      */
     public function __construct(
         private string $class,
-        private array $fields,
+        array $checks,
         private array $converters,
+        public array $nodes,
+        private array $names,
     ) {
-        $this->scalarOnly = array_all(
-            $converters,
-            static fn(FieldValueConverter|null $converter): bool => $converter === null,
+        $this->types = array_map(
+            /** @param array{string, string|null} $check */
+            static fn(array $check): string => $check[0],
+            $checks,
         );
+        $this->nullable = array_filter(
+            array_map(
+                /** @param array{string, string|null} $check */
+                static fn(array $check): string|null => $check[1],
+                $checks,
+            ),
+            static fn(string|null $type): bool => $type !== null,
+        );
+        $this->renamed = $names !== [];
+        $this->scalarOnly =
+            $names === [] && array_all($nodes, static fn(Node|null $converter): bool => $converter === null);
     }
 
     /**
+     * Checks the native types of all present members before converting any of them.
+     *
      * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
      * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
      * @throws JsonException
-     * @throws ReflectionException
      */
     public function decode(array $values, string $path): array|DecodeError
     {
-        foreach ($this->fields as $name => $field) {
+        foreach ($this->types as $name => $typeName) {
             if (!array_key_exists($name, $values)) {
                 continue;
             }
             $value = $values[$name];
+            // Inline checks, because a call per argument slows down hydration measurably.
             $matches = $value === null
-                ? $field->nullable
-                : match ($field->typeName) {
+                ? array_key_exists($name, $this->nullable)
+                : match ($typeName) {
                     'array' => is_array($value) || $value instanceof stdClass,
                     'bool' => is_bool($value),
                     'false' => $value === false,
@@ -68,24 +102,23 @@ final readonly class ConstructorPlan
             if (!$matches) {
                 return DecodeError::fieldTypeMismatch(
                     $this->class,
-                    $path === '' ? (string) $name : FieldPath::field($path, (string) $name),
-                    $field->expected,
+                    FieldPath::field($path, (string) $name),
+                    $this->nullable[$name] ?? $typeName,
                     $value,
                 );
             }
         }
-        return $this->scalarOnly ? array_intersect_key($values, $this->fields) : $this->convert($values, $path);
+        return $this->scalarOnly ? array_intersect_key($values, $this->types) : $this->convert($values, $path);
     }
 
     /**
      * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
      * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
      * @throws JsonException
-     * @throws ReflectionException
      */
-    public function convert(array $values, string $path): array|DecodeError
+    private function convert(array $values, string $path): array|DecodeError
     {
-        $converted = [];
+        $arguments = [];
         foreach ($this->converters as $name => $converter) {
             if (!array_key_exists($name, $values)) {
                 continue;
@@ -93,13 +126,16 @@ final readonly class ConstructorPlan
             $value = $values[$name];
             if ($converter !== null) {
                 $fieldPath = $path === '' ? (string) $name : FieldPath::field($path, (string) $name);
-                $value = $converter->convert($this->class, $value, $fieldPath);
+                $value = $converter->decode($value, $fieldPath);
                 if ($value instanceof DecodeError) {
                     return $value;
                 }
             }
-            $converted[$name] = $value;
+            $arguments[$name] = $value;
         }
-        return $converted;
+        if ($this->renamed) {
+            return FieldNames::toProperties($arguments, $this->names);
+        }
+        return $arguments;
     }
 }

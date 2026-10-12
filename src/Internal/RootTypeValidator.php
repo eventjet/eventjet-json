@@ -11,7 +11,6 @@ use ReflectionClass;
 use ReflectionEnum;
 use ReflectionProperty;
 
-use function array_column;
 use function array_push;
 use function enum_exists;
 use function sprintf;
@@ -19,20 +18,6 @@ use function sprintf;
 /** @internal */
 final class RootTypeValidator
 {
-    /** @var array<class-string, array<array-key, ReflectionProperty>> */
-    private static array $declarations = [];
-
-    /**
-     * @template T of object
-     * @param ReflectionClass<T> $class
-     * @return array<array-key, ReflectionProperty>
-     * @phpstan-impure
-     */
-    public static function declarations(ReflectionClass $class): array
-    {
-        return self::$declarations[$class->getName()] ??= array_column($class->getProperties(), null, 'name');
-    }
-
     /** @var array<class-string, array<string, string>> */
     private static array $names = [];
 
@@ -124,7 +109,7 @@ final class RootTypeValidator
      */
     private static function mappedFields(ReflectionClass $class): array
     {
-        $properties = self::declarations($class);
+        $properties = $class->getProperties();
         // Reflection omits private ancestor properties from the effective child declarations.
         $parent = $class->getParentClass();
         while ($parent !== false) {

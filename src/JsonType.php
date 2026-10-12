@@ -8,7 +8,7 @@ use ArrayObject;
 use Eventjet\Json\Internal\ArrayJsonType;
 use Eventjet\Json\Internal\ClassJsonType;
 use Eventjet\Json\Internal\MapJsonType;
-use Eventjet\Json\Internal\NestedCollectionType;
+use Eventjet\Json\Internal\Node\Node;
 use JsonException;
 use ReflectionException;
 
@@ -57,18 +57,27 @@ abstract readonly class JsonType
     }
 
     /**
+     * Compiles this descriptor. Errors name $class, the item class of the root descriptor.
+     *
+     * @internal
+     * @param class-string $class
+     * @throws ReflectionException
+     */
+    abstract public function node(string $class): Node;
+
+    /**
      * @internal
      * @return T|DecodeError
      * @throws JsonException
      * @throws ReflectionException
      */
-    abstract public function decodeValue(mixed $value, string $path = ''): mixed;
+    abstract public function decode(mixed $value): mixed;
 
     /**
      * @internal
-     * @return class-string|NestedCollectionType
+     * @return 'array'|'object'
      */
-    abstract public function collectionItem(): string|NestedCollectionType;
+    abstract public function rootShape(): string;
 
     /**
      * @internal

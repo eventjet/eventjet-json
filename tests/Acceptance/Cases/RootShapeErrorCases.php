@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
+use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 
 /** @internal */
@@ -18,6 +19,18 @@ final class RootShapeErrorCases
      */
     public static function errors(): iterable
     {
+        yield 'root map rejects a null object' => [
+            '{"author":null}',
+            JsonType::map(Person::class),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Field [author] must be of type Eventjet\Json\Test\Acceptance\Fixtures\Person, null given.',
+            3,
+        ];
+        yield 'root enum list rejects null' => [
+            '[null]',
+            JsonType::array(IntBackedStatus::class),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus from the JSON object: Field [0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus, which expects a int backing value; null given.',
+            3,
+        ];
         yield 'nested root list rejects null' => [
             '[null]',
             JsonType::array(JsonType::array(Person::class)),

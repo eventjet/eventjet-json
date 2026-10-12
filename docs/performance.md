@@ -2,8 +2,8 @@
 
 [Back to the README](../README.md) · [Development setup](../CONTRIBUTING.md)
 
-The decoder reuses validated field declarations, public-property metadata, resolved
-collection declarations, and PHPDoc imports within the current PHP process. Every
+The decoder compiles each class once per PHP process and reuses the compiled
+decoder, `#[Field]` names, and PHPDoc imports. Every
 incoming value is still checked, including collection shapes, item types, enum values, and nested error paths. Decoded
 objects and errors are not cached.
 

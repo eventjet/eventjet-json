@@ -6,10 +6,9 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\JsonType;
-use JsonException;
 use Override;
-use ReflectionException;
 
 /**
  * @internal
@@ -18,31 +17,29 @@ use ReflectionException;
  */
 final readonly class MapJsonType extends JsonType
 {
-    private MapType $collection;
-
     /** @param JsonType<T> $valueType */
     public function __construct(
         private JsonType $valueType,
-    ) {
-        $this->collection = new MapType($valueType->collectionItem(), true);
+    ) {}
+
+    #[Override]
+    public function node(string $class): MapNode
+    {
+        return new MapNode($class, $this->valueType->node($class), arrayObject: true);
     }
 
-    /**
-     * @return ArrayObject<string, T>|DecodeError
-     * @throws JsonException
-     * @throws ReflectionException
-     */
+    /** @return ArrayObject<string, T>|DecodeError */
     #[Override]
-    public function decodeValue(mixed $value, string $path = ''): ArrayObject|DecodeError
+    public function decode(mixed $value): ArrayObject|DecodeError
     {
         /** @var ArrayObject<string, T>|DecodeError */
-        return CollectionValueConverter::convert($this->itemClass(), $path, $this->collection, $value);
+        return $this->node($this->itemClass())->decode($value, '');
     }
 
     #[Override]
-    public function collectionItem(): NestedCollectionType
+    public function rootShape(): string
     {
-        return new NestedCollectionType($this->collection, false);
+        return 'object';
     }
 
     /** @return class-string */
