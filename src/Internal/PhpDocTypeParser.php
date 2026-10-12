@@ -7,7 +7,6 @@ namespace Eventjet\Json\Internal;
 use UnexpectedValueException;
 
 use function count;
-use function in_array;
 use function strpbrk;
 use function trim;
 
@@ -28,9 +27,9 @@ readonly class PhpDocTypeParser
     /** @return array{PhpDocType, string}|null */
     public static function prefix(string $source): array|null
     {
-        $parser = strpbrk($source, characters: "'\"(:0123456789") === false
+        $parser = strpbrk($source, characters: "'\"(:{0123456789") === false
             ? new self(new PhpDocTypeTokens($source))
-            : new PhpDocLiteralTypeParser(new PhpDocLiteralTypeTokens($source));
+            : new PhpDocExtendedTypeParser(new PhpDocExtendedTypeTokens($source));
         try {
             return [$parser->type(0), $parser->tokens->remainder()];
         } catch (UnexpectedValueException) {
@@ -67,24 +66,16 @@ readonly class PhpDocTypeParser
     protected function namedType(int $depth): PhpDocType
     {
         $name = $this->tokens->token();
+        $hasArguments = $this->tokens->consume('<');
 
-        $delimiter = $this->tokens->peek();
-
-        if (!in_array($delimiter, ['<', '{'], strict: true)) {
-            return new PhpDocType($name);
-        }
-
-        $this->tokens->consume($delimiter);
-        return $delimiter === '{'
-            ? new PhpDocType($name . '{}', entries: $this->entries($depth + 1))
-            : new PhpDocType($name, $this->arguments($depth + 1));
+        return $hasArguments ? new PhpDocType($name, $this->arguments($depth + 1)) : new PhpDocType($name);
     }
 
     /**
      * @return list<PhpDocType>
      * @throws UnexpectedValueException
      */
-    private function arguments(int $depth): array
+    protected function arguments(int $depth): array
     {
         $arguments = [];
         do {
@@ -97,29 +88,5 @@ readonly class PhpDocTypeParser
         } while ($hasNext);
 
         throw new UnexpectedValueException('Expected a PHPDoc argument separator or closing delimiter.');
-    }
-
-    /**
-     * @return list<PhpDocTupleEntry>
-     * @throws UnexpectedValueException
-     */
-    private function entries(int $depth): array
-    {
-        $entries = [];
-        do {
-            $closed = $this->tokens->consume('}');
-            if ($closed) {
-                return $entries;
-            }
-            [$key, $optional] = $this->tokens->tupleKey();
-            $entries[] = new PhpDocTupleEntry($this->type($depth), $key, $optional);
-            $closed = $this->tokens->consume('}');
-            if ($closed) {
-                return $entries;
-            }
-            $hasNext = $this->tokens->consume(',');
-        } while ($hasNext);
-
-        throw new UnexpectedValueException('Expected a PHPDoc tuple separator or closing delimiter.');
     }
 }

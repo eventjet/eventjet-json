@@ -25,26 +25,6 @@ class PhpDocTypeTokens
         return substr($this->source, $this->offset);
     }
 
-    /**
-     * @return array{string|null, bool}
-     * @throws UnexpectedValueException
-     */
-    public function tupleKey(): array
-    {
-        $start = $this->offset;
-        $key = $this->token();
-        $optional = $this->consume('?');
-
-        $hasKey = $this->consume(':');
-
-        if ($hasKey) {
-            return [$key, $optional];
-        }
-
-        $this->offset = $start;
-        return [null, false];
-    }
-
     /** @throws UnexpectedValueException */
     public function token(): string
     {
@@ -68,7 +48,7 @@ class PhpDocTypeTokens
         return $token;
     }
 
-    public function peek(): string|null
+    private function peek(): string|null
     {
         $offset = $this->offset + strspn($this->source, characters: " \t\r\n\v\f", offset: $this->offset);
         return $this->source[$offset] ?? null;

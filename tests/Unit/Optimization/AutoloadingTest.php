@@ -83,8 +83,8 @@ use function spl_autoload_unregister;
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\NestedCollectionType::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTags::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTypeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTypeTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralParameter::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
 #[UsesClass(FieldTypeResolver::class)]
@@ -217,7 +217,7 @@ final class AutoloadingTest extends TestCase
         static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteral::class, autoload: false));
         static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralTags::class, autoload: false));
         static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralParameter::class, autoload: false));
-        static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralTypeParser::class, autoload: false));
+        static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class, autoload: false));
         $ordinary = new class(new EmptyObject()) {
             /** @param \Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject $object */
             public function __construct(

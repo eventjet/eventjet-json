@@ -61,8 +61,8 @@ use function class_alias;
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldType::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTags::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTypeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTypeTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(FieldTypeResolver::class)]
@@ -91,6 +91,7 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocImports::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocImportScanner::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocImportStatement::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantImportStatement::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTokenStream::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocNamespaceDeclaration::class)]
 final class ConstructorValidationPlanTest extends TestCase

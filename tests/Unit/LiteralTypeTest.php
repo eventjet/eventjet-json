@@ -81,8 +81,8 @@ use const PHP_INT_MIN;
 #[CoversClass(FieldTypeValidator::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralFieldType::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralTags::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralTypeParser::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralTypeTokens::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralParameter::class)]
 #[CoversClass(ClassUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassFieldTypeValidator::class)]
@@ -99,6 +99,7 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocImports::class)]
 #[UsesClass(PhpDocImportScanner::class)]
 #[CoversClass(PhpDocImportStatement::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocConstantImportStatement::class)]
 #[UsesClass(MetadataCache::class)]
 #[UsesClass(\Eventjet\Json\Internal\NestedCollectionType::class)]
 #[UsesClass(ConstructorParameter::class)]
@@ -356,6 +357,12 @@ final class LiteralTypeTest extends TestCase
             PhpDocImportStatement::parse('Foo\\{Bar, const BAZ, const QUX as Q}'),
         );
         static::assertSame([], PhpDocImportStatement::parse('function Foo\\bar'));
+        static::assertSame([], PhpDocImportStatement::parse('function Foo\\{bar, baz}'));
+        static::assertSame(['const:BAR' => 'Foo\\BAR'], PhpDocImportStatement::parse('const \\Foo\\BAR'));
+        static::assertSame(
+            ['const:BAR' => 'Foo\\BAR', 'const:BAZ' => 'Foo\\BAZ'],
+            PhpDocImportStatement::parse('const Foo\\ {BAR, BAZ}'),
+        );
         static::assertSame(
             ['const:BAR' => 'Foo\\BAR', 'const:BAZ' => 'Foo\\BAZ'],
             PhpDocImportStatement::parse('CONST Foo\\{BAR, BAZ}'),

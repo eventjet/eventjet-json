@@ -41,6 +41,18 @@ final class ParserSyntaxCases
             str_repeat('(', times: 64) . 'int' . str_repeat(')', times: 64),
             null,
         ];
+        $nested = new PhpDocType("'a'");
+        for ($level = 0; $level < 63; ++$level) {
+            $nested = new PhpDocType('list', [$nested]);
+        }
+        yield '63 nested lists around a literal fit within the depth limit' => [
+            str_repeat('list<', times: 63) . "'a'" . str_repeat('>', times: 63),
+            $nested,
+        ];
+        yield '64 nested lists around a literal exceed the depth limit' => [
+            str_repeat('list<', times: 64) . "'a'" . str_repeat('>', times: 64),
+            null,
+        ];
         yield 'list declaration permits surrounding whitespace' => [
             ' list < int > ',
             new PhpDocType('list', [new PhpDocType('int')]),
