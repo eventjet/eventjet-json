@@ -20,25 +20,30 @@ use Throwable;
 use function array_reverse;
 use function assert;
 use function enum_exists;
+use function implode;
 use function is_array;
 
 /**
  * What a JsonType describes: a JSON array or object at the root, possibly nested in further arrays and objects, around
- * items of one class.
+ * items of one class. Equivalent descriptors share one node. Descriptors that fail validation are compiled again on the
+ * next use.
  *
  * @internal
  * @template-covariant T
  */
-final readonly class RootDescriptor
+final class RootDescriptor
 {
+    /** @var array<string, Node> */
+    private static array $nodes = [];
+
     /**
      * @template TItem of object
      * @param non-empty-list<'array'|'object'> $shapes The JSON shape of each collection, the root first.
      * @param class-string<TItem> $itemClass
      */
     public function __construct(
-        public array $shapes,
-        public string $itemClass,
+        public readonly array $shapes,
+        public readonly string $itemClass,
     ) {}
 
     /**
@@ -78,12 +83,18 @@ final readonly class RootDescriptor
     }
 
     /**
-     * Returns the node that decodes the root value, or why the item class cannot be decoded.
+     * Returns the node that decodes the root value, or why the item class cannot be decoded. Unlike a class decoder, a
+     * compiled node never needs to be compiled again: it refers only to the item class, which validation loads.
      *
      * @throws ReflectionException
      */
-    private function node(): Node|DecodeError
+    public function node(): Node|DecodeError
     {
+        $key = implode(' ', [...$this->shapes, $this->itemClass]);
+        $node = self::$nodes[$key] ?? null;
+        if ($node !== null) {
+            return $node;
+        }
         $class = $this->itemClass;
         $error = self::validateItem(new ReflectionClass($class));
         if ($error !== null) {
@@ -97,7 +108,7 @@ final readonly class RootDescriptor
                 ? new ListNode($class, $node, nonEmpty: false)
                 : new MapNode($class, $node, arrayObject: true);
         }
-        return $node;
+        return self::$nodes[$key] = $node;
     }
 
     /**

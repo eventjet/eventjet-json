@@ -50,10 +50,13 @@ use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyValues;
+use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
+use Eventjet\Json\Json;
+use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
@@ -74,6 +77,7 @@ use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Exception;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\UnknownClassOrInterfaceException;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
@@ -130,6 +134,9 @@ use function class_alias;
 #[UsesClass(DecodeErrorKind::class)]
 #[UsesClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
+#[CoversClass(RootDescriptor::class)]
+#[UsesClass(Json::class)]
+#[UsesClass(JsonType::class)]
 final class MetadataCacheTest extends TestCase
 {
     /**
@@ -220,6 +227,38 @@ final class MetadataCacheTest extends TestCase
             ClassDecoders::hydrate(DistinctEnumScalarUnionField::class, JsonObject::of(['value' => 0])),
         );
         static::assertSame($union, ClassDecoders::get(DistinctEnumScalarUnionField::class));
+    }
+
+    /**
+     * @throws Exception
+     * @throws ReflectionException
+     * @throws UnknownClassOrInterfaceException
+     */
+    public function testRootDescriptorNodesAreReusedAcrossEquivalentDescriptors(): void
+    {
+        $node = new RootDescriptor(['array'], ScalarFields::class)->node();
+        static::assertInstanceOf(ListNode::class, $node);
+        static::assertSame($node, new RootDescriptor(['array'], ScalarFields::class)->node());
+        foreach ([
+            [['object'], ScalarFields::class],
+            [['array', 'array'], ScalarFields::class],
+            [['array'], PublicPropertiesWithConstructor::class],
+        ] as [$shapes, $class]) {
+            static::assertNotSame($node, new RootDescriptor($shapes, $class)->node());
+        }
+    }
+
+    /**
+     * @param class-string $dependency
+     * @throws Exception
+     * @throws UnknownClassOrInterfaceException
+     */
+    #[TestWith(['MetadataCacheDeferredRootItem'])]
+    public function testRootDescriptorsAreCompiledAgainAfterTheItemClassLoads(string $dependency): void
+    {
+        static::assertInstanceOf(DecodeError::class, Json::decode('[]', JsonType::array($dependency)));
+        static::assertTrue(class_alias(ScalarFields::class, $dependency));
+        static::assertSame([], Json::decode('[]', JsonType::array($dependency)));
     }
 
     /**
