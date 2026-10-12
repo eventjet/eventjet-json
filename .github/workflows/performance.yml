@@ -4,7 +4,7 @@ run-name: "Performance (${{ inputs.opcache || 'both' }}): ${{ inputs.candidate |
 on:
   pull_request:
   push:
-    branches: [master, tabula-rasa]
+    branches: [master]
   workflow_dispatch:
     inputs:
       base:
@@ -37,7 +37,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  COMPOSER_ROOT_VERSION: dev-tabula-rasa
+  COMPOSER_ROOT_VERSION: dev-master
 
 jobs:
   tooling:

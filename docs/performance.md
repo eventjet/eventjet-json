@@ -270,9 +270,8 @@ Git metadata. Move or remove `.perf/` before another comparison.
 
 To prevent merging failed checks, require both `Compare decoder performance (OPcache on)` and
 `Compare decoder performance (OPcache off)` in the
-repository's branch rules for `tabula-rasa`, and later for `master`. The workflow
-already compares against each PR's target branch. An absent benchmark suite is
-reported without a verdict, allowing the initial rewrite to merge into `master`.
+repository's branch rules for `master`. The workflow already compares against
+each PR's target branch.
 
 Compare the same workloads, PHP settings, and dependencies on the same host;
 review measurement variation along with percentage changes. PHPUnit retains
