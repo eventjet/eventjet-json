@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use ArrayObject;
+use BackedEnum;
 use ReflectionClass;
-use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
+use ReflectionType;
 
 use function class_exists;
 use function enum_exists;
+use function in_array;
 use function interface_exists;
+use function is_a;
 use function strcasecmp;
 use function strpbrk;
 use function strtr;
@@ -56,18 +59,26 @@ final class FieldTypeNameResolver
         return $parent === false ? $name : $parent->getName();
     }
 
-    /** @return array<string, class-string<ConstructorParameter>> */
-    public static function parameterClasses(ReflectionMethod|null $constructor): array
-    {
-        $docComment = (string) $constructor?->getDocComment();
-        $mayDeclareLiteral = self::mayDeclareLiteral($docComment);
-        return $mayDeclareLiteral ? PhpDocLiteralTags::parameters($docComment) : [];
-    }
-
     public static function mayDeclareLiteral(string $docComment): bool
     {
         $markers = strtr($docComment, ['true' => '"', 'false' => '"', ' null' => '"', "\tnull" => '"']);
         return strpbrk($markers, characters: "'\"0123456789:") !== false;
+    }
+
+    /**
+     * Scalar and backed enum declarations need no further type validation, which keeps the validators unloaded.
+     */
+    public static function isPlainType(ReflectionType|null $type): bool
+    {
+        if (!$type instanceof ReflectionNamedType) {
+            return false;
+        }
+        $name = $type->getName();
+        return (
+            $type->isBuiltin()
+                ? !in_array($name, ['array', 'mixed', 'object'], strict: true)
+                : enum_exists($name) && is_a($name, BackedEnum::class, allow_string: true)
+        );
     }
 
     public static function expected(ReflectionNamedType $type, string $name): string

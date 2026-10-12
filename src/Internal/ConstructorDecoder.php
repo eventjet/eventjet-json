@@ -53,7 +53,7 @@ final class ConstructorDecoder
         $converters = [];
 
         $constructor = $class->getConstructor();
-        $classes = FieldTypeNameResolver::parameterClasses($constructor);
+        $classes = $constructor === null ? [] : ConstructorParameter::parameterClasses($constructor);
         foreach ($constructor?->getParameters() ?? [] as $reflection) {
             $parameter = ($classes[$reflection->getName()] ?? ConstructorParameter::class)::create($reflection, $class);
             $name = $names[$parameter->name] ?? $parameter->name;

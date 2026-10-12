@@ -74,7 +74,7 @@ use function spl_autoload_unregister;
 #[CoversClass(BackedEnumValueConverter::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
-#[UsesClass(ConstructorParameter::class)]
+#[CoversClass(ConstructorParameter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldType::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionUnionValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
@@ -87,7 +87,7 @@ use function spl_autoload_unregister;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralParameter::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
-#[UsesClass(FieldTypeResolver::class)]
+#[CoversClass(FieldTypeResolver::class)]
 #[UsesClass(FieldTypeValidator::class)]
 #[UsesClass(MetadataCache::class)]
 #[CoversClass(RootTypeValidator::class)]
@@ -135,6 +135,11 @@ final class AutoloadingTest extends TestCase
         };
 
         static::assertFalse(FieldTypeResolver::literal(new \ReflectionProperty($object, 'undocumented')));
+        static::assertNull(FieldTypeResolver::resolve(
+            $object::class,
+            new \ReflectionProperty($object, 'undocumented'),
+        ));
+        static::assertFalse(class_exists(\Eventjet\Json\Internal\FieldTypeValidator::class, autoload: false));
         static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralTags::class, autoload: false));
         static::assertFalse(FieldTypeResolver::literal(new \ReflectionProperty($object, 'value')));
         static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralTags::class, autoload: false));
@@ -180,12 +185,22 @@ final class AutoloadingTest extends TestCase
             static::assertEquals($target, ObjectHydrator::hydrate($target::class, $input));
             static::assertFalse(class_exists(PublicPropertyHydrator::class, autoload: false));
             static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralTags::class, autoload: false));
+            static::assertFalse(class_exists(\Eventjet\Json\Internal\FieldTypeValidator::class, autoload: false));
             static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralField::class, autoload: false));
             static::assertFalse(class_exists(
                 \Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class,
                 autoload: false,
             ));
         }
+        $status = new class(StringBackedStatus::Ready) {
+            public function __construct(
+                public StringBackedStatus $status,
+            ) {}
+        };
+        $statusInput = new stdClass();
+        $statusInput->status = 'ready';
+        static::assertEquals($status, ObjectHydrator::hydrate($status::class, $statusInput));
+        static::assertFalse(class_exists(\Eventjet\Json\Internal\FieldTypeValidator::class, autoload: false));
         $collection = new class([42]) {
             /** @param list<int> $values The name has a native scalar type. */
             public function __construct(

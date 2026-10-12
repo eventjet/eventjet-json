@@ -53,7 +53,7 @@ final class ClassGraphValidator
         }
 
         $constructor = $reflection->getConstructor();
-        $classes = FieldTypeNameResolver::parameterClasses($constructor);
+        $classes = ConstructorParameter::parameterClasses($constructor);
         foreach ($constructor?->getParameters() ?? [] as $parameter) {
             $constructorParameter = ($classes[$parameter->getName()] ?? ConstructorParameter::class)::create(
                 $parameter,

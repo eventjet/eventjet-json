@@ -40,9 +40,12 @@ final class FieldTypeResolver
         }
 
         $literal = $field instanceof ReflectionProperty && self::literal($field);
-        $resolved = $literal
-            ? PhpDocLiteralFieldType::resolve($class, $field)
-            : FieldTypeValidator::validate($class, $field);
+        $plainType = FieldTypeNameResolver::isPlainType($field->getType());
+        $resolved = match (true) {
+            $literal => PhpDocLiteralFieldType::resolve($class, $field),
+            $plainType => false,
+            default => FieldTypeValidator::validate($class, $field),
+        };
         if ($resolved !== null && !$resolved instanceof DecodeError) {
             self::$collections[$class][$kind][$name] = $resolved;
         }

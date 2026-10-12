@@ -7,6 +7,7 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
@@ -44,6 +45,14 @@ readonly class ConstructorParameter
         $this->variadic = $reflection->isVariadic();
         $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
         $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
+    }
+
+    /** @return array<string, class-string<ConstructorParameter>> */
+    public static function parameterClasses(ReflectionMethod|null $constructor): array
+    {
+        $docComment = (string) $constructor?->getDocComment();
+        $mayDeclareLiteral = FieldTypeNameResolver::mayDeclareLiteral($docComment);
+        return $mayDeclareLiteral ? PhpDocLiteralTags::parameters($docComment) : [];
     }
 
     /**
@@ -103,6 +112,10 @@ readonly class ConstructorParameter
      */
     protected function declaration(string $class): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null
     {
+        $plainType = FieldTypeNameResolver::isPlainType($this->type);
+        if ($plainType) {
+            return false;
+        }
         return $this->type instanceof ReflectionNamedType
             ? FieldTypeValidator::validateNamedType($class, $this->reflection, $this->type)
             : FieldTypeValidator::validate($class, $this->reflection);
