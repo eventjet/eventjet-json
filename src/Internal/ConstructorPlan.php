@@ -7,7 +7,6 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Node\Node;
 use JsonException;
-use ReflectionException;
 use stdClass;
 
 use function array_all;
@@ -21,10 +20,16 @@ use function is_float;
 use function is_int;
 use function is_string;
 
-/** @internal */
+/**
+ * Turns the members of a JSON object into constructor arguments.
+ *
+ * @internal
+ */
 final readonly class ConstructorPlan
 {
-    public bool $scalarOnly;
+    private bool $scalarOnly;
+
+    private bool $renamed;
 
     /** @var array<array-key, string> Native type names of the arguments that need a type check. */
     private array $types;
@@ -34,14 +39,19 @@ final readonly class ConstructorPlan
 
     /**
      * @param class-string $class
-     * @param array<array-key, array{string, string|null}> $checks Native type checks: type name, and the type that
-     *     errors report if the argument accepts null.
-     * @param array<array-key, Node|null> $converters
+     * @param array<array-key, array{string, string|null}> $checks Native type checks, keyed by JSON name: type name,
+     *     and the type that errors report if the argument accepts null.
+     * @param array<array-key, Node|null> $converters Converter of each argument, keyed by JSON name. The converter is
+     *     null if the argument needs only its native type check.
+     * @param array<string, Node|null> $nodes The same converters, keyed by parameter name.
+     * @param array<string, string> $names JSON names of renamed fields, keyed by property name.
      */
     public function __construct(
         private string $class,
         array $checks,
         private array $converters,
+        public array $nodes,
+        private array $names,
     ) {
         $this->types = array_map(
             /** @param array{string, string|null} $check */
@@ -56,14 +66,17 @@ final readonly class ConstructorPlan
             ),
             static fn(string|null $type): bool => $type !== null,
         );
-        $this->scalarOnly = array_all($converters, static fn(Node|null $converter): bool => $converter === null);
+        $this->renamed = $names !== [];
+        $this->scalarOnly =
+            $names === [] && array_all($nodes, static fn(Node|null $converter): bool => $converter === null);
     }
 
     /**
+     * Checks the native types of all present members before converting any of them.
+     *
      * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
      * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
      * @throws JsonException
-     * @throws ReflectionException
      */
     public function decode(array $values, string $path): array|DecodeError
     {
@@ -89,7 +102,7 @@ final readonly class ConstructorPlan
             if (!$matches) {
                 return DecodeError::fieldTypeMismatch(
                     $this->class,
-                    $path === '' ? (string) $name : FieldPath::field($path, (string) $name),
+                    FieldPath::field($path, (string) $name),
                     $this->nullable[$name] ?? $typeName,
                     $value,
                 );
@@ -105,7 +118,7 @@ final readonly class ConstructorPlan
      */
     private function convert(array $values, string $path): array|DecodeError
     {
-        $converted = [];
+        $arguments = [];
         foreach ($this->converters as $name => $converter) {
             if (!array_key_exists($name, $values)) {
                 continue;
@@ -118,8 +131,11 @@ final readonly class ConstructorPlan
                     return $value;
                 }
             }
-            $converted[$name] = $value;
+            $arguments[$name] = $value;
         }
-        return $converted;
+        if ($this->renamed) {
+            return FieldNames::toProperties($arguments, $this->names);
+        }
+        return $arguments;
     }
 }
