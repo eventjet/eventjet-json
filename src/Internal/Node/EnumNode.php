@@ -14,6 +14,9 @@ use UnitEnum;
 
 use function assert;
 use function get_debug_type;
+use function in_array;
+use function is_int;
+use function is_string;
 use function sprintf;
 
 /** @internal */
@@ -59,20 +62,42 @@ final readonly class EnumNode implements Node
         return new self($class, $enum, $backingType, $nullable);
     }
 
+    /**
+     * Rejects the enum as a union member if JSON cannot tell its values apart from the values of other members.
+     *
+     * @param class-string $class
+     * @param list<string> $valueTypes The JSON value types of the other union members.
+     */
+    public function conflict(string $class, string $path, array $valueTypes): DecodeError|null
+    {
+        $ambiguous = match (true) {
+            $this->backingType === 'int' && in_array('float', $valueTypes, strict: true)
+                => ' together with float. Whole-valued floats encode as JSON integers, so JSON cannot distinguish an enum case from a float value.',
+            in_array($this->backingType, $valueTypes, strict: true) => sprintf(
+                ' together with its backing type %s. JSON cannot distinguish an enum case from the scalar value.',
+                $this->backingType,
+            ),
+            default => null,
+        };
+        return $ambiguous === null
+            ? null
+            : DecodeError::nonInstantiableField($class, $path, 'backed enum', $this->enum, $ambiguous);
+    }
+
     #[Override]
     public function decode(mixed $value, string $path): BackedEnum|DecodeError|null
     {
         if ($value === null && $this->nullable) {
             return null;
         }
-        $type = get_debug_type($value);
-        if ($type !== $this->backingType) {
+        $matches = $this->backingType === 'int' ? is_int($value) : is_string($value);
+        if (!$matches) {
             return DecodeError::nonInstantiableField(
                 $this->class,
                 $path,
                 'backed enum',
                 $this->enum,
-                sprintf(', which expects a %s backing value; %s given.', $this->backingType, $type),
+                sprintf(', which expects a %s backing value; %s given.', $this->backingType, get_debug_type($value)),
             );
         }
         /** @var int|string $value */

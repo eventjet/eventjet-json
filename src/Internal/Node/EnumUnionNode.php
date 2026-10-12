@@ -24,26 +24,49 @@ use function var_export;
  */
 final readonly class EnumUnionNode implements Node
 {
-    /** @var array<array-key, BackedEnum> */
-    private array $cases;
-
     /**
      * @param class-string $class
      * @param non-empty-list<class-string<BackedEnum>> $enums
+     * @param array<array-key, BackedEnum> $cases Keyed by backing value.
      */
-    public function __construct(
+    private function __construct(
         private string $class,
         private array $enums,
-    ) {
+        private array $cases,
+    ) {}
+
+    /**
+     * Combines several enums of a union that share a backing type, rejecting enums with overlapping backing values.
+     *
+     * @param class-string $class
+     * @param non-empty-list<class-string<BackedEnum>> $enums
+     */
+    public static function of(string $class, string $path, array $enums): self|DecodeError
+    {
+        $sorted = $enums;
+        sort($sorted);
         $cases = [];
-        foreach ($enums as $enum) {
+        foreach ($sorted as $enum) {
             /** @var callable(): list<BackedEnum> $enumCases */
             $enumCases = [$enum, 'cases'];
             foreach ($enumCases() as $case) {
+                $owner = $cases[$case->value] ?? null;
+                if ($owner !== null) {
+                    return DecodeError::nonInstantiableField(
+                        $class,
+                        $path,
+                        'multiple backed enums',
+                        $owner::class . ' and ' . $enum,
+                        sprintf(' with overlapping backing value %s. JSON cannot identify which enum case to instantiate.', var_export(
+                            $case->value,
+                            return: true,
+                        )),
+                    );
+                }
                 $cases[$case->value] = $case;
             }
         }
-        $this->cases = $cases;
+        return new self($class, $enums, $cases);
     }
 
     /**

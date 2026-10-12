@@ -12,7 +12,6 @@ use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\EnumUnionRules;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
@@ -94,7 +93,6 @@ use function class_alias;
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]
 #[UsesClass(EnumNode::class)]
-#[UsesClass(EnumUnionRules::class)]
 #[UsesClass(ListNode::class)]
 #[UsesClass(MapNode::class)]
 #[UsesClass(NativeUnionCompiler::class)]

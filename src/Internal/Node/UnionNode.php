@@ -8,6 +8,9 @@ use Eventjet\Json\DecodeError;
 use Override;
 
 use function array_key_exists;
+use function array_keys;
+use function array_map;
+use function count;
 use function get_debug_type;
 
 /**
@@ -31,13 +34,14 @@ final readonly class UnionNode implements Node
     ) {}
 
     /**
-     * Indexes valid union members by the JSON value types they accept. A `callable` member accepts every other value,
+     * Indexes valid union members by the JSON value types they accept, rejecting enums that JSON cannot tell apart from
+     * other members. Enums that share a backing type are combined. A `callable` member accepts every other value,
      * because PHP checks callable arguments itself.
      *
      * @param class-string $class
      * @param list<Node> $members
      */
-    public static function of(string $class, string $type, array $members): self
+    public static function of(string $class, string $path, string $type, array $members): self|DecodeError
     {
         /** @var array<string, Node> $indexed */
         $indexed = [];
@@ -47,11 +51,27 @@ final readonly class UnionNode implements Node
                 $indexed[$valueType] = $member;
             }
             if ($member instanceof EnumNode) {
-                $enums[$member->backingType][] = $member->enum;
+                $enums[$member->backingType][] = $member;
             }
         }
-        foreach ($enums as $backingType => $names) {
-            $indexed[$backingType] = new EnumUnionNode($class, $names);
+        $valueTypes = array_keys($indexed);
+        foreach ($enums as $backingType => $nodes) {
+            $first = $nodes[0];
+            $node =
+                $first->conflict($class, $path, $valueTypes)
+                ?? (
+                    count($nodes) === 1
+                        ? $first
+                        : EnumUnionNode::of(
+                            $class,
+                            $path,
+                            array_map(static fn(EnumNode $enum): string => $enum->enum, $nodes),
+                        )
+                );
+            if ($node instanceof DecodeError) {
+                return $node;
+            }
+            $indexed[$backingType] = $node;
         }
         if (array_key_exists('float', $indexed) && !array_key_exists('int', $indexed)) {
             $indexed['int'] = $indexed['float'];

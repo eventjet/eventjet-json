@@ -12,7 +12,6 @@ use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\EnumUnionRules;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
@@ -92,7 +91,6 @@ use stdClass;
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]
 #[UsesClass(EnumNode::class)]
-#[UsesClass(EnumUnionRules::class)]
 #[UsesClass(ListNode::class)]
 #[UsesClass(MapNode::class)]
 #[UsesClass(NativeUnionCompiler::class)]
@@ -135,12 +133,13 @@ final class ConstructorHydrationPlanTest extends TestCase
         $int = EnumNode::of(ScalarFields::class, IntBackedStatus::class, nullable: false);
         static::assertNotNull($string);
         static::assertNotNull($int);
-        $union = UnionNode::of(ScalarFields::class, 'StringBackedStatus|IntBackedStatus|bool|null', [
+        $union = UnionNode::of(ScalarFields::class, 'value', 'StringBackedStatus|IntBackedStatus|bool|null', [
             $string,
             $int,
             new ScalarNode(ScalarFields::class, 'bool', false),
             new ScalarNode(ScalarFields::class, 'null', true),
         ]);
+        static::assertInstanceOf(UnionNode::class, $union);
         static::assertSame(StringBackedStatus::Ready, $union->decode(StringBackedStatus::Ready->value, 'value'));
         static::assertSame(StringBackedStatus::Pending, $union->decode(StringBackedStatus::Pending->value, 'value'));
         static::assertSame(IntBackedStatus::Ready, $union->decode(IntBackedStatus::Ready->value, 'value'));
@@ -155,16 +154,18 @@ final class ConstructorHydrationPlanTest extends TestCase
             static::assertInstanceOf(DecodeError::class, $union->decode($value, 'value'));
         }
 
-        $numbers = UnionNode::of(ScalarFields::class, 'int|float', [
+        $numbers = UnionNode::of(ScalarFields::class, 'value', 'int|float', [
             new ScalarNode(ScalarFields::class, 'int', false),
             new ScalarNode(ScalarFields::class, 'float', false),
         ]);
+        static::assertInstanceOf(UnionNode::class, $numbers);
         static::assertSame(1, $numbers->decode(1, 'value'));
         static::assertSame(1.5, $numbers->decode(1.5, 'value'));
-        $floats = UnionNode::of(ScalarFields::class, 'float|string', [
+        $floats = UnionNode::of(ScalarFields::class, 'value', 'float|string', [
             new ScalarNode(ScalarFields::class, 'float', false),
             new ScalarNode(ScalarFields::class, 'string', false),
         ]);
+        static::assertInstanceOf(UnionNode::class, $floats);
         static::assertSame(1.0, $floats->decode(1, 'value'));
     }
 

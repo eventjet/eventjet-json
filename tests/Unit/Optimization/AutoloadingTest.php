@@ -12,7 +12,6 @@ use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\EnumUnionRules;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
@@ -99,7 +98,6 @@ use function spl_autoload_unregister;
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]
 #[UsesClass(EnumNode::class)]
-#[UsesClass(EnumUnionRules::class)]
 #[UsesClass(ListNode::class)]
 #[UsesClass(MapNode::class)]
 #[UsesClass(MappedConstructorPlan::class)]
@@ -128,7 +126,7 @@ use function spl_autoload_unregister;
 #[UsesClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
-#[UsesClass(UnionNode::class)]
+#[CoversClass(UnionNode::class)]
 #[UsesClass(EnumUnionNode::class)]
 final class AutoloadingTest extends TestCase
 {
@@ -272,6 +270,12 @@ final class AutoloadingTest extends TestCase
             $enum = EnumNode::of(DeferredValueEnum::class, DeferredValueEnum::class, nullable: false);
             static::assertNotNull($enum);
             static::assertInstanceOf(DecodeError::class, $enum->decode(1, 'value'));
+            $union = UnionNode::of(DeferredValueEnum::class, 'value', 'DeferredValueEnum|int', [
+                $enum,
+                new ScalarNode(DeferredValueEnum::class, 'int', false),
+            ]);
+            static::assertInstanceOf(UnionNode::class, $union);
+            static::assertSame(1, $union->decode(1, 'value'));
             static::assertNotContains(DeferredEnumBacking::class, $requests->names);
             static::assertSame(DeferredValueEnum::Ready, $enum->decode('ready', 'value'));
             static::assertContains(DeferredEnumBacking::class, $requests->names);

@@ -56,12 +56,8 @@ final class UnionBuilder
             assert($this->rejected !== null, description: 'A union with no members rejected at least one.');
             return $this->rejected;
         }
-        return (
-            $this->classes()
-            ?? EnumUnionRules::check($this->class, $this->path, $this->members)
-            ?? $this->shapes()
-            ?? UnionNode::of($this->class, $type, $this->members)
-        );
+        $union = $this->classes() ?? UnionNode::of($this->class, $this->path, $type, $this->members);
+        return $union instanceof DecodeError ? $union : $this->shapes() ?? $union;
     }
 
     private function classes(): DecodeError|null

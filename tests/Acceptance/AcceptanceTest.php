@@ -16,7 +16,6 @@ use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\DecodeErrorKind;
-use Eventjet\Json\Internal\EnumUnionRules;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
@@ -140,7 +139,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(FieldNames::class)]
 #[CoversClass(CollectionUnionCompiler::class)]
 #[CoversClass(DecodeErrorKind::class)]
-#[CoversClass(EnumUnionRules::class)]
 #[CoversClass(NativeUnionCompiler::class)]
 #[CoversClass(PhpDocCollectionCompiler::class)]
 #[CoversClass(PhpDocItemCompiler::class)]
