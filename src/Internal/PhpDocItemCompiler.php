@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Node\ItemNode;
+use Eventjet\Json\Internal\Node\EnumNode;
+use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionException;
 use ReflectionParameter;
@@ -47,7 +48,7 @@ final readonly class PhpDocItemCompiler
     }
 
     /** @throws ReflectionException */
-    public function item(PhpDocType $type, string $path): ItemNode|DecodeError|null
+    public function item(PhpDocType $type, string $path): Node|DecodeError|null
     {
         $nested = $this->collections->nested($type, $path);
         if ($nested !== null) {
@@ -75,7 +76,7 @@ final readonly class PhpDocItemCompiler
     }
 
     /** @throws ReflectionException */
-    public function named(string $name, string $path): ItemNode|DecodeError
+    public function named(string $name, string $path): Node|DecodeError
     {
         if (in_array($name, ['bool', 'float', 'int', 'string'], strict: true)) {
             return new ScalarNode($this->class, $name, false);
@@ -85,7 +86,7 @@ final readonly class PhpDocItemCompiler
             assert($object !== null, description: 'PHPDoc names resolve only to loaded classes.');
             return $object;
         }
-        $node = EnumCompiler::node($this->class, $name, nullable: false);
+        $node = EnumNode::of($this->class, $name, nullable: false);
         if ($node === null) {
             return DecodeError::nonBackedEnum($this->class, $name, $path);
         }

@@ -14,13 +14,13 @@ use function is_array;
 use function sprintf;
 
 /** @internal */
-final readonly class TupleNode implements ItemNode
+final readonly class TupleNode implements Node
 {
     private string $expected;
 
     /**
      * @param class-string $class
-     * @param list<ItemNode> $items
+     * @param list<Node> $items
      */
     public function __construct(
         private string $class,
@@ -72,6 +72,12 @@ final readonly class TupleNode implements ItemNode
             $decoded[] = $item;
         }
         return $decoded;
+    }
+
+    #[Override]
+    public function valueTypes(): array
+    {
+        return ['array'];
     }
 
     #[Override]

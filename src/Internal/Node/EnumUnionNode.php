@@ -70,8 +70,20 @@ final readonly class EnumUnionNode implements Node
     }
 
     #[Override]
+    public function valueTypes(): array
+    {
+        return [];
+    }
+
+    #[Override]
     public function dependencies(): array
     {
         return [];
+    }
+
+    #[Override]
+    public function __toString(): string
+    {
+        return implode('|', $this->enums);
     }
 }

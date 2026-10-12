@@ -15,9 +15,7 @@ use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\DecodeErrorKind;
-use Eventjet\Json\Internal\EnumCompiler;
 use Eventjet\Json\Internal\EnumUnionRules;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
@@ -61,8 +59,6 @@ use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
-use Eventjet\Json\Internal\UnionIndex;
-use Eventjet\Json\Internal\UnionRules;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
 use Eventjet\Json\JsonType;
@@ -116,7 +112,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(MetadataCache::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
-#[CoversClass(ConstructorValueValidator::class)]
 #[CoversClass(ObjectHydrator::class)]
 #[CoversClass(PublicPropertyHydrator::class)]
 #[CoversClass(PublicProperties::class)]
@@ -125,7 +120,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(TypeCompiler::class)]
 #[CoversClass(CollectionCompiler::class)]
-#[CoversClass(UnionRules::class)]
 #[CoversClass(EnumNode::class)]
 #[CoversClass(EnumUnionNode::class)]
 #[CoversClass(ListNode::class)]
@@ -146,14 +140,12 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(FieldNames::class)]
 #[CoversClass(CollectionUnionCompiler::class)]
 #[CoversClass(DecodeErrorKind::class)]
-#[CoversClass(EnumCompiler::class)]
 #[CoversClass(EnumUnionRules::class)]
 #[CoversClass(NativeUnionCompiler::class)]
 #[CoversClass(PhpDocCollectionCompiler::class)]
 #[CoversClass(PhpDocItemCompiler::class)]
 #[CoversClass(PhpDocUnionCompiler::class)]
 #[CoversClass(UnionBuilder::class)]
-#[CoversClass(UnionIndex::class)]
 final class AcceptanceTest extends TestCase
 {
     #[DataProviderExternal(ParserSyntaxCases::class, 'types')]

@@ -7,6 +7,8 @@ namespace Eventjet\Json\Internal;
 use ArrayObject;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Node\Node;
+use JsonSerializable;
+use ReflectionEnum;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -15,6 +17,7 @@ use ReflectionType;
 use ReflectionUnionType;
 
 use function array_any;
+use function enum_exists;
 use function in_array;
 use function strtolower;
 
@@ -62,9 +65,9 @@ final class NativeUnionCompiler
                 return DecodeError::unsupportedIntersection($types->class, $path, (string) $member);
             }
             $name = FieldTypeNameResolver::resolve($field, $member);
-            $nonEncodable = EnumCompiler::isNonEncodable($name);
+            $nonEncodable = self::isNonEncodable($name);
             if ($nonEncodable) {
-                $union->reject(EnumCompiler::nonEncodable($types->class, $name, $path));
+                $union->reject(self::nonEncodable($types->class, $name, $path));
                 continue;
             }
             if ($name === 'array' || $name === ArrayObject::class) {
@@ -77,5 +80,40 @@ final class NativeUnionCompiler
             $union->add($node);
         }
         return null;
+    }
+
+    /**
+     * Whether values of a type have no JSON representation. Unions skip such members if others remain.
+     *
+     * @throws ReflectionException
+     */
+    public static function isNonEncodable(string $type): bool
+    {
+        if (in_array($type, ['resource', 'open-resource', 'closed-resource'], strict: true)) {
+            return true;
+        }
+        if (!enum_exists($type)) {
+            return false;
+        }
+        $enum = new ReflectionEnum($type);
+        return !$enum->isBacked() && !$enum->implementsInterface(JsonSerializable::class);
+    }
+
+    /**
+     * @param class-string $class
+     * @throws ReflectionException
+     */
+    public static function nonEncodable(string $class, string $type, string $path): DecodeError
+    {
+        if (enum_exists($type)) {
+            return DecodeError::nonBackedEnum($class, $type, $path);
+        }
+        return DecodeError::nonInstantiableField(
+            $class,
+            $path,
+            'non-JSON-encodable type',
+            $type,
+            ', which has no JSON representation.',
+        );
     }
 }

@@ -26,8 +26,20 @@ final readonly class UncheckedNode implements Node
     }
 
     #[Override]
+    public function valueTypes(): array
+    {
+        return [];
+    }
+
+    #[Override]
     public function dependencies(): array
     {
         return [];
+    }
+
+    #[Override]
+    public function __toString(): string
+    {
+        return $this->name;
     }
 }

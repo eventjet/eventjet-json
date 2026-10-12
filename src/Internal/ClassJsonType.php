@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Node\ItemNode;
+use Eventjet\Json\Internal\Node\EnumNode;
+use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\JsonType;
 use Override;
@@ -26,11 +27,11 @@ final readonly class ClassJsonType extends JsonType
     ) {}
 
     #[Override]
-    public function node(string $class): ItemNode
+    public function node(string $class): Node
     {
         $enum = $this->class;
         if (enum_exists($enum)) {
-            $node = EnumCompiler::node($class, $enum, nullable: false);
+            $node = EnumNode::of($class, $enum, nullable: false);
             assert($node !== null, description: 'Root validation rejects non-backed enums.');
             return $node;
         }

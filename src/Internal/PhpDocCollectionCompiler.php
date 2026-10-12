@@ -6,9 +6,9 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Node\ItemNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
+use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\TupleNode;
 use ReflectionException;
@@ -39,18 +39,18 @@ final readonly class PhpDocCollectionCompiler
      *
      * @throws ReflectionException
      */
-    public function nested(PhpDocType $type, string $path): ItemNode|DecodeError|null
+    public function nested(PhpDocType $type, string $path): Node|DecodeError|null
     {
         if ($type->name !== '|') {
             return $this->collection($type, $path);
         }
         $inner = $type->withoutNull();
         $collection = $inner === null ? null : $this->collection($inner, $path);
-        return $collection instanceof ItemNode ? new NullableNode($collection) : $collection;
+        return $collection instanceof Node ? new NullableNode($collection) : $collection;
     }
 
     /** @throws ReflectionException */
-    public function collection(PhpDocType $type, string $path): ItemNode|DecodeError|null
+    public function collection(PhpDocType $type, string $path): Node|DecodeError|null
     {
         if ($type->name === 'array{}') {
             return $this->tuple($type, $path);
@@ -58,9 +58,7 @@ final readonly class PhpDocCollectionCompiler
         $arguments = $type->arguments;
         if (in_array($type->name, ['list', 'non-empty-list'], strict: true) && count($arguments) === 1) {
             $item = $this->items->item($arguments[0], $path);
-            return $item instanceof ItemNode
-                ? new ListNode($this->class, $item, $type->name === 'non-empty-list')
-                : $item;
+            return $item instanceof Node ? new ListNode($this->class, $item, $type->name === 'non-empty-list') : $item;
         }
         $value = $type->stringKeyedValue();
         if ($value === null) {
@@ -78,15 +76,15 @@ final readonly class PhpDocCollectionCompiler
      *
      * @throws ReflectionException
      */
-    public function map(string $container, PhpDocType $value, string $path): ItemNode|DecodeError|null
+    public function map(string $container, PhpDocType $value, string $path): Node|DecodeError|null
     {
         $node = $this->items->item($value, $path);
         $arrayObject = strcasecmp($container, ArrayObject::class) === 0;
-        return $node instanceof ItemNode ? new MapNode($this->class, $node, $arrayObject) : $node;
+        return $node instanceof Node ? new MapNode($this->class, $node, $arrayObject) : $node;
     }
 
     /** @throws ReflectionException */
-    private function tuple(PhpDocType $type, string $path): ItemNode|DecodeError|null
+    private function tuple(PhpDocType $type, string $path): Node|DecodeError|null
     {
         $required = PhpDocTupleEntry::required($type->entries);
         if ($required === null) {
@@ -95,7 +93,7 @@ final readonly class PhpDocCollectionCompiler
         $items = [];
         foreach ($type->entries as $index => $entry) {
             $item = $this->items->item($entry->type, sprintf('%s[%d]', $path, $index));
-            if (!$item instanceof ItemNode) {
+            if (!$item instanceof Node) {
                 return $item;
             }
             $items[] = $item;

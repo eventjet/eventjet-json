@@ -9,10 +9,10 @@ use Override;
 use function sprintf;
 
 /** @internal */
-final readonly class NullableNode implements ItemNode
+final readonly class NullableNode implements Node
 {
     public function __construct(
-        private ItemNode $inner,
+        private Node $inner,
     ) {}
 
     /** @return array<array-key, mixed>|bool|float|int|object|string|null */
@@ -20,6 +20,12 @@ final readonly class NullableNode implements ItemNode
     public function decode(mixed $value, string $path): array|bool|float|int|object|string|null
     {
         return $value === null ? null : $this->inner->decode($value, $path);
+    }
+
+    #[Override]
+    public function valueTypes(): array
+    {
+        return [];
     }
 
     #[Override]

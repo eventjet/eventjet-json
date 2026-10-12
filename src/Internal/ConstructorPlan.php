@@ -26,7 +26,8 @@ final readonly class ConstructorPlan
 
     /**
      * @param class-string $class
-     * @param array<array-key, ConstructorValueValidator> $fields
+     * @param array<array-key, array{string, bool, string}> $fields Native type checks: type name, nullability,
+     *     and the type that errors report.
      * @param array<array-key, Node|null> $converters
      */
     public function __construct(
@@ -45,15 +46,15 @@ final readonly class ConstructorPlan
      */
     public function decode(array $values, string $path): array|DecodeError
     {
-        foreach ($this->fields as $name => $field) {
+        foreach ($this->fields as $name => [$typeName, $nullable, $expected]) {
             if (!array_key_exists($name, $values)) {
                 continue;
             }
             $value = $values[$name];
             // Inline checks, because a call per argument slows down hydration measurably.
             $matches = $value === null
-                ? $field->nullable
-                : match ($field->typeName) {
+                ? $nullable
+                : match ($typeName) {
                     'array' => is_array($value) || $value instanceof stdClass,
                     'bool' => is_bool($value),
                     'false' => $value === false,
@@ -68,7 +69,7 @@ final readonly class ConstructorPlan
                 return DecodeError::fieldTypeMismatch(
                     $this->class,
                     $path === '' ? (string) $name : FieldPath::field($path, (string) $name),
-                    $field->expected,
+                    $expected,
                     $value,
                 );
             }

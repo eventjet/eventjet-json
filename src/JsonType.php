@@ -8,7 +8,7 @@ use ArrayObject;
 use Eventjet\Json\Internal\ArrayJsonType;
 use Eventjet\Json\Internal\ClassJsonType;
 use Eventjet\Json\Internal\MapJsonType;
-use Eventjet\Json\Internal\Node\ItemNode;
+use Eventjet\Json\Internal\Node\Node;
 use JsonException;
 use ReflectionException;
 
@@ -63,7 +63,7 @@ abstract readonly class JsonType
      * @param class-string $class
      * @throws ReflectionException
      */
-    abstract public function node(string $class): ItemNode;
+    abstract public function node(string $class): Node;
 
     /**
      * @internal

@@ -12,8 +12,6 @@ use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\ConstructorValueValidator;
-use Eventjet\Json\Internal\EnumCompiler;
 use Eventjet\Json\Internal\EnumUnionRules;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
@@ -55,8 +53,6 @@ use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
-use Eventjet\Json\Internal\UnionIndex;
-use Eventjet\Json\Internal\UnionRules;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedReference;
@@ -87,7 +83,6 @@ use function spl_autoload_unregister;
 #[CoversClass(PhpDocClassNameResolver::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
-#[CoversClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
@@ -103,7 +98,6 @@ use function spl_autoload_unregister;
 #[UsesClass(FieldNames::class)]
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]
-#[UsesClass(EnumCompiler::class)]
 #[UsesClass(EnumNode::class)]
 #[UsesClass(EnumUnionRules::class)]
 #[UsesClass(ListNode::class)]
@@ -134,9 +128,7 @@ use function spl_autoload_unregister;
 #[UsesClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
-#[UsesClass(UnionIndex::class)]
 #[UsesClass(UnionNode::class)]
-#[UsesClass(UnionRules::class)]
 #[UsesClass(EnumUnionNode::class)]
 final class AutoloadingTest extends TestCase
 {
@@ -239,10 +231,7 @@ final class AutoloadingTest extends TestCase
                 $parameter = new ReflectionParameter([$class->getName(), '__construct'], $name);
                 $type = $parameter->getType();
                 static::assertInstanceOf(ReflectionNamedType::class, $type);
-                static::assertNotNull(ConstructorValueValidator::forParameter(new ConstructorParameter(
-                    $parameter,
-                    $class,
-                )));
+                static::assertNotNull(new ConstructorParameter($parameter, $class)->nativeCheck());
                 $compiler = new TypeCompiler($class->getName());
                 $property = $class->getProperty($name);
                 foreach ([$parameter, $property] as $field) {
@@ -280,7 +269,7 @@ final class AutoloadingTest extends TestCase
         spl_autoload_register($autoload, prepend: true);
 
         try {
-            $enum = EnumCompiler::node(DeferredValueEnum::class, DeferredValueEnum::class, nullable: false);
+            $enum = EnumNode::of(DeferredValueEnum::class, DeferredValueEnum::class, nullable: false);
             static::assertNotNull($enum);
             static::assertInstanceOf(DecodeError::class, $enum->decode(1, 'value'));
             static::assertNotContains(DeferredEnumBacking::class, $requests->names);

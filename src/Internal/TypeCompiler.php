@@ -6,10 +6,13 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\Node;
+use Eventjet\Json\Internal\Node\NullOnlyNode;
 use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
+use JsonSerializable;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -21,6 +24,7 @@ use stdClass;
 use function class_exists;
 use function enum_exists;
 use function in_array;
+use function is_a;
 
 /**
  * Compiles native field declarations of one class into decoder nodes, rejecting declarations that cannot round-trip.
@@ -75,7 +79,7 @@ final class TypeCompiler
             return new ScalarNode($this->class, $name, $type->allowsNull());
         }
         if (enum_exists($name)) {
-            return EnumCompiler::field($this->class, $field->getName(), $name, $type);
+            return $this->enum($field->getName(), $name, $type);
         }
         $object = $this->object($field->getName(), $name, $type->allowsNull());
         if ($object !== null) {
@@ -97,5 +101,22 @@ final class TypeCompiler
             return $error;
         }
         return class_exists($name) ? new ObjectNode($this->class, $name, $nullable) : null;
+    }
+
+    /**
+     * Compiles a field declared as an enum. A nullable field of a non-backed enum can only hold null.
+     *
+     * @throws ReflectionException
+     */
+    private function enum(string $field, string $enum, ReflectionNamedType $type): Node|DecodeError
+    {
+        $nullable = $type->allowsNull();
+        $node = EnumNode::of($this->class, $enum, $nullable);
+        if ($node !== null) {
+            return $node;
+        }
+        return $nullable && !is_a($enum, JsonSerializable::class, allow_string: true)
+            ? new NullOnlyNode($this->class, (string) $type)
+            : DecodeError::nonBackedEnum($this->class, $enum, $field);
     }
 }

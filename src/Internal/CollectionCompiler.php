@@ -6,7 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Node\ItemNode;
+use Eventjet\Json\Internal\Node\Node;
 use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
@@ -36,7 +36,7 @@ final readonly class CollectionCompiler
     }
 
     /** @throws ReflectionException */
-    public function compile(string $native): ItemNode|DecodeError
+    public function compile(string $native): Node|DecodeError
     {
         $doc = PhpDocFieldType::resolve($this->field);
         $node = $native === ArrayObject::class ? $this->arrayObject($doc) : $this->array($doc);
@@ -44,7 +44,7 @@ final readonly class CollectionCompiler
     }
 
     /** @throws ReflectionException */
-    private function array(PhpDocType|null $doc): ItemNode|DecodeError|null
+    private function array(PhpDocType|null $doc): Node|DecodeError|null
     {
         if ($doc === null) {
             return null;
@@ -73,7 +73,7 @@ final readonly class CollectionCompiler
     }
 
     /** @throws ReflectionException */
-    private function arrayObject(PhpDocType|null $doc): ItemNode|DecodeError|null
+    private function arrayObject(PhpDocType|null $doc): Node|DecodeError|null
     {
         $arguments = $doc->arguments ?? [];
         if ($doc === null || count($arguments) < 2) {
@@ -91,7 +91,7 @@ final readonly class CollectionCompiler
      *
      * @throws ReflectionException
      */
-    private function stringKeyedMap(PhpDocType $doc, string $container): ItemNode|DecodeError|null
+    private function stringKeyedMap(PhpDocType $doc, string $container): Node|DecodeError|null
     {
         $arguments = $doc->arguments;
         $hasStringKey = ($arguments[0] ?? null)?->isPlainName('string') === true;

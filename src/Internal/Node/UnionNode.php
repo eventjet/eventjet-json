@@ -7,6 +7,7 @@ namespace Eventjet\Json\Internal\Node;
 use Eventjet\Json\DecodeError;
 use Override;
 
+use function array_key_exists;
 use function get_debug_type;
 
 /**
@@ -14,7 +15,7 @@ use function get_debug_type;
  *
  * @internal
  */
-final readonly class UnionNode implements ItemNode
+final readonly class UnionNode implements Node
 {
     /**
      * @param class-string $class
@@ -29,6 +30,35 @@ final readonly class UnionNode implements ItemNode
         private Node|null $fallback,
     ) {}
 
+    /**
+     * Indexes valid union members by the JSON value types they accept. A `callable` member accepts every other value,
+     * because PHP checks callable arguments itself.
+     *
+     * @param class-string $class
+     * @param list<Node> $members
+     */
+    public static function of(string $class, string $type, array $members): self
+    {
+        /** @var array<string, Node> $indexed */
+        $indexed = [];
+        $enums = [];
+        foreach ($members as $member) {
+            foreach ($member->valueTypes() as $valueType) {
+                $indexed[$valueType] = $member;
+            }
+            if ($member instanceof EnumNode) {
+                $enums[$member->backingType][] = $member->enum;
+            }
+        }
+        foreach ($enums as $backingType => $names) {
+            $indexed[$backingType] = new EnumUnionNode($class, $names);
+        }
+        if (array_key_exists('float', $indexed) && !array_key_exists('int', $indexed)) {
+            $indexed['int'] = $indexed['float'];
+        }
+        return new self($class, $type, $indexed, $indexed['callable'] ?? null);
+    }
+
     #[Override]
     public function decode(mixed $value, string $path): mixed
     {
@@ -41,6 +71,12 @@ final readonly class UnionNode implements ItemNode
         return $member === null
             ? DecodeError::fieldTypeMismatch($this->class, $path, $this->type, $value)
             : $member->decode($value, $path);
+    }
+
+    #[Override]
+    public function valueTypes(): array
+    {
+        return [];
     }
 
     #[Override]

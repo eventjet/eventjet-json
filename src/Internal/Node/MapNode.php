@@ -16,12 +16,12 @@ use function is_int;
 use function sprintf;
 
 /** @internal */
-final readonly class MapNode implements ItemNode
+final readonly class MapNode implements Node
 {
     /** @param class-string $class */
     public function __construct(
         private string $class,
-        private ItemNode $value,
+        private Node $value,
         public bool $arrayObject,
     ) {}
 
@@ -82,6 +82,12 @@ final readonly class MapNode implements ItemNode
             $decoded[$key] = $value;
         }
         return $decoded;
+    }
+
+    #[Override]
+    public function valueTypes(): array
+    {
+        return ['stdClass'];
     }
 
     #[Override]

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Node\ItemNode;
+use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionException;
 
@@ -32,7 +32,7 @@ final readonly class PhpDocUnionCompiler
      * Returns null if a member is not recognized.
      *
      * @param list<PhpDocType> $types
-     * @return array<string, ItemNode|string>|DecodeError|null
+     * @return array<string, Node|string>|DecodeError|null
      * @throws ReflectionException
      */
     public function members(array $types, string $path): array|DecodeError|null
@@ -51,7 +51,7 @@ final readonly class PhpDocUnionCompiler
             if ($member === null || $member instanceof DecodeError) {
                 return $member;
             }
-            $member = $member instanceof ItemNode ? $member : PhpDocClassNameResolver::canonical($member);
+            $member = $member instanceof Node ? $member : PhpDocClassNameResolver::canonical($member);
             $members[(string) $member] = $member;
         }
         return $members;
@@ -61,7 +61,7 @@ final readonly class PhpDocUnionCompiler
      * @param list<PhpDocType> $types
      * @throws ReflectionException
      */
-    public function compile(array $types, string $path): ItemNode|DecodeError|null
+    public function compile(array $types, string $path): Node|DecodeError|null
     {
         $members = $this->members($types, $path);
         if (!is_array($members)) {
@@ -69,13 +69,13 @@ final readonly class PhpDocUnionCompiler
         }
         $union = new UnionBuilder($this->class, $path);
         foreach ($members as $member) {
-            $nonEncodable = is_string($member) && EnumCompiler::isNonEncodable($member);
+            $nonEncodable = is_string($member) && NativeUnionCompiler::isNonEncodable($member);
             if ($nonEncodable) {
-                $union->reject(EnumCompiler::nonEncodable($this->class, $member, $path));
+                $union->reject(NativeUnionCompiler::nonEncodable($this->class, $member, $path));
                 continue;
             }
             $node = match (true) {
-                $member instanceof ItemNode => $member,
+                $member instanceof Node => $member,
                 in_array($member, ['null', 'true', 'false'], strict: true) => new ScalarNode(
                     $this->class,
                     $member,

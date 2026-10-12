@@ -6,8 +6,8 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Node\ItemNode;
 use Eventjet\Json\Internal\Node\MapNode;
+use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use ReflectionException;
@@ -69,7 +69,7 @@ final readonly class CollectionUnionCompiler
         }
         foreach ($members as $member) {
             $node = match (true) {
-                $member instanceof ItemNode => $member,
+                $member instanceof Node => $member,
                 $member === 'null' => new ScalarNode($this->class, 'null', nullable: true),
                 default => null,
             };
@@ -102,7 +102,7 @@ final readonly class CollectionUnionCompiler
     }
 
     /**
-     * @param array<string, ItemNode|string> $members
+     * @param array<string, Node|string> $members
      * @param list<string> $nativeNames
      */
     private static function declaresSameTypes(array $members, array $nativeNames): bool
@@ -110,9 +110,9 @@ final readonly class CollectionUnionCompiler
         if (in_array(ArrayObject::class, $members, strict: true)) {
             return false;
         }
-        $declared = array_unique(array_map(static fn(ItemNode|string $member): string => match (true) {
+        $declared = array_unique(array_map(static fn(Node|string $member): string => match (true) {
             $member instanceof MapNode && $member->arrayObject => ArrayObject::class,
-            $member instanceof ItemNode => 'array',
+            $member instanceof Node => 'array',
             default => $member,
         }, $members));
         sort($declared);

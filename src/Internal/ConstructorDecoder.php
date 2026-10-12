@@ -60,7 +60,7 @@ final class ConstructorDecoder
                 return $node;
             }
             $converters[$name] = $parameter->converter($node);
-            $field = ConstructorValueValidator::forParameter($parameter);
+            $field = $parameter->nativeCheck();
             if ($field !== null) {
                 $fields[$name] = $field;
             }

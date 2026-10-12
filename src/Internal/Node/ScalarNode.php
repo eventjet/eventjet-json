@@ -15,7 +15,7 @@ use function is_float;
 use function is_int;
 
 /** @internal */
-final readonly class ScalarNode implements ItemNode
+final readonly class ScalarNode implements Node
 {
     private string $expected;
 
@@ -78,6 +78,12 @@ final readonly class ScalarNode implements ItemNode
             $values[$key] = (float) $value;
         }
         return $values;
+    }
+
+    #[Override]
+    public function valueTypes(): array
+    {
+        return $this->name === 'bool' ? ['true', 'false'] : [$this->name];
     }
 
     #[Override]

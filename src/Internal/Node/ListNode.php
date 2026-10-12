@@ -13,14 +13,14 @@ use function is_array;
 use function sprintf;
 
 /** @internal */
-final readonly class ListNode implements ItemNode
+final readonly class ListNode implements Node
 {
     private string $type;
 
     /** @param class-string $class */
     public function __construct(
         private string $class,
-        private ItemNode $item,
+        private Node $item,
         private bool $nonEmpty,
     ) {
         $this->type = sprintf('%s<%s>', $nonEmpty ? 'non-empty-list' : 'list', $item);
@@ -74,6 +74,12 @@ final readonly class ListNode implements ItemNode
             $decoded[] = $item;
         }
         return $decoded;
+    }
+
+    #[Override]
+    public function valueTypes(): array
+    {
+        return ['array'];
     }
 
     #[Override]

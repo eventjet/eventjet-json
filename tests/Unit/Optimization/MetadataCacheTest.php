@@ -12,8 +12,6 @@ use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\ConstructorValueValidator;
-use Eventjet\Json\Internal\EnumCompiler;
 use Eventjet\Json\Internal\EnumUnionRules;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
@@ -24,7 +22,6 @@ use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\EnumUnionNode;
-use Eventjet\Json\Internal\Node\ItemNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\Node;
@@ -57,8 +54,6 @@ use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
-use Eventjet\Json\Internal\UnionIndex;
-use Eventjet\Json\Internal\UnionRules;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField;
@@ -89,7 +84,6 @@ use function class_alias;
 #[CoversClass(MetadataCache::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(ConstructorPlan::class)]
-#[UsesClass(ConstructorValueValidator::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ClassJsonType::class)]
 #[UsesClass(ObjectHydrator::class)]
@@ -110,7 +104,6 @@ use function class_alias;
 #[UsesClass(FieldNames::class)]
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]
-#[UsesClass(EnumCompiler::class)]
 #[UsesClass(EnumNode::class)]
 #[UsesClass(EnumUnionRules::class)]
 #[UsesClass(ListNode::class)]
@@ -136,9 +129,7 @@ use function class_alias;
 #[UsesClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
-#[UsesClass(UnionIndex::class)]
 #[UsesClass(UnionNode::class)]
-#[UsesClass(UnionRules::class)]
 #[UsesClass(EnumUnionNode::class)]
 final class MetadataCacheTest extends TestCase
 {
@@ -220,7 +211,7 @@ final class MetadataCacheTest extends TestCase
      */
     public function testEnumConversionsPreserveBackingTypesAndRejectUnknownValues(): void
     {
-        static::assertNull(EnumCompiler::node(ScalarFields::class, NonBackedStatus::class, nullable: false));
+        static::assertNull(EnumNode::of(ScalarFields::class, NonBackedStatus::class, nullable: false));
         for ($lookup = 0; $lookup < 2; ++$lookup) {
             foreach ([
                 [IntBackedStatus::class, 1, IntBackedStatus::Ready],
@@ -233,7 +224,7 @@ final class MetadataCacheTest extends TestCase
                 [StringBackedStatus::class, StringBackedStatus::Pending->value, StringBackedStatus::Pending],
                 [StringBackedStatus::class, 'unknown', null],
             ] as [$enum, $value, $expected]) {
-                $node = EnumCompiler::node(ScalarFields::class, $enum, nullable: false);
+                $node = EnumNode::of(ScalarFields::class, $enum, nullable: false);
                 static::assertNotNull($node);
                 $converted = $node->decode($value, 'value');
                 if ($expected === null) {
@@ -388,7 +379,7 @@ final class MetadataCacheTest extends TestCase
             [$second::class, 'list<string>'],
         ] as [$class, $expected]) {
             $node = self::compileValue($class)[0];
-            static::assertInstanceOf(ItemNode::class, $node);
+            static::assertInstanceOf(Node::class, $node);
             static::assertSame($expected, (string) $node);
         }
     }

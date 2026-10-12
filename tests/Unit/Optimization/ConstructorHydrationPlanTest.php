@@ -12,8 +12,6 @@ use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\ConstructorValueValidator;
-use Eventjet\Json\Internal\EnumCompiler;
 use Eventjet\Json\Internal\EnumUnionRules;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
@@ -56,8 +54,6 @@ use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
-use Eventjet\Json\Internal\UnionIndex;
-use Eventjet\Json\Internal\UnionRules;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
@@ -76,7 +72,6 @@ use stdClass;
 
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
-#[CoversClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
@@ -96,7 +91,6 @@ use stdClass;
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]
-#[UsesClass(EnumCompiler::class)]
 #[UsesClass(EnumNode::class)]
 #[UsesClass(EnumUnionRules::class)]
 #[UsesClass(ListNode::class)]
@@ -125,9 +119,7 @@ use stdClass;
 #[UsesClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
-#[UsesClass(UnionIndex::class)]
 #[UsesClass(UnionNode::class)]
-#[UsesClass(UnionRules::class)]
 #[UsesClass(EnumUnionNode::class)]
 final class ConstructorHydrationPlanTest extends TestCase
 {
@@ -139,11 +131,11 @@ final class ConstructorHydrationPlanTest extends TestCase
      */
     public function testUnionsPreserveJsonValueTypes(): void
     {
-        $string = EnumCompiler::node(ScalarFields::class, StringBackedStatus::class, nullable: false);
-        $int = EnumCompiler::node(ScalarFields::class, IntBackedStatus::class, nullable: false);
+        $string = EnumNode::of(ScalarFields::class, StringBackedStatus::class, nullable: false);
+        $int = EnumNode::of(ScalarFields::class, IntBackedStatus::class, nullable: false);
         static::assertNotNull($string);
         static::assertNotNull($int);
-        $union = UnionIndex::node(ScalarFields::class, 'StringBackedStatus|IntBackedStatus|bool|null', [
+        $union = UnionNode::of(ScalarFields::class, 'StringBackedStatus|IntBackedStatus|bool|null', [
             $string,
             $int,
             new ScalarNode(ScalarFields::class, 'bool', false),
@@ -163,13 +155,13 @@ final class ConstructorHydrationPlanTest extends TestCase
             static::assertInstanceOf(DecodeError::class, $union->decode($value, 'value'));
         }
 
-        $numbers = UnionIndex::node(ScalarFields::class, 'int|float', [
+        $numbers = UnionNode::of(ScalarFields::class, 'int|float', [
             new ScalarNode(ScalarFields::class, 'int', false),
             new ScalarNode(ScalarFields::class, 'float', false),
         ]);
         static::assertSame(1, $numbers->decode(1, 'value'));
         static::assertSame(1.5, $numbers->decode(1.5, 'value'));
-        $floats = UnionIndex::node(ScalarFields::class, 'float|string', [
+        $floats = UnionNode::of(ScalarFields::class, 'float|string', [
             new ScalarNode(ScalarFields::class, 'float', false),
             new ScalarNode(ScalarFields::class, 'string', false),
         ]);

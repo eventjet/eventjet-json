@@ -13,7 +13,7 @@ use stdClass;
 use function sprintf;
 
 /** @internal */
-final readonly class ObjectNode implements ItemNode
+final readonly class ObjectNode implements Node
 {
     /**
      * @param class-string $class
@@ -60,6 +60,12 @@ final readonly class ObjectNode implements ItemNode
             $decoded[] = $object;
         }
         return $decoded;
+    }
+
+    #[Override]
+    public function valueTypes(): array
+    {
+        return ['stdClass'];
     }
 
     #[Override]

@@ -13,6 +13,7 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
 
+use function enum_exists;
 use function sprintf;
 
 /** @internal */
@@ -83,5 +84,25 @@ final readonly class ConstructorParameter
             ));
         }
         return $node;
+    }
+
+    /**
+     * Returns the native type check of the argument as type name, nullability, and the type that errors report.
+     * Unions and enums have none, because their nodes check the value.
+     *
+     * @return array{string, bool, string}|null
+     */
+    public function nativeCheck(): array|null
+    {
+        $type = $this->type;
+        if (!$type instanceof ReflectionNamedType || !$this->builtin && enum_exists($this->typeName)) {
+            return null;
+        }
+        $nullable = $type->allowsNull();
+        return [
+            $type->getName(),
+            $nullable,
+            $nullable ? FieldTypeNameResolver::withNull($this->typeName) : $this->typeName,
+        ];
     }
 }
