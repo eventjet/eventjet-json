@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use ArrayObject;
+use BackedEnum;
 use Eventjet\Json\DecodeError;
+use JsonSerializable;
+use ReflectionEnum;
 use ReflectionException;
 use ReflectionIntersectionType;
 use ReflectionNamedType;
@@ -14,7 +17,9 @@ use ReflectionProperty;
 use ReflectionUnionType;
 use stdClass;
 
+use function enum_exists;
 use function in_array;
+use function is_a;
 
 /** @internal */
 final class FieldTypeValidator
@@ -40,7 +45,7 @@ final class FieldTypeValidator
         }
 
         if ($type instanceof ReflectionUnionType) {
-            return self::validateUnionType($class, $field, $type);
+            return ClassUnionValidator::resolve($class, $field, $type);
         }
 
         return null;
@@ -71,59 +76,22 @@ final class FieldTypeValidator
             );
         }
 
+        if ($type->isBuiltin() || enum_exists($typeName) && is_a($typeName, BackedEnum::class, allow_string: true)) {
+            return false;
+        }
         return ClassFieldTypeValidator::validateNamed($class, $fieldName, $typeName, $type);
     }
 
-    /**
-     * @param class-string $class
-     * @throws ReflectionException
-     */
-    private static function validateUnionType(
-        string $class,
-        ReflectionParameter|ReflectionProperty $field,
-        ReflectionUnionType $type,
-    ): CollectionUnionType|DecodeError|false|null {
-        $hasCollection = FieldCollectionUnionResolver::hasCollection($type);
-        if ($hasCollection) {
-            return FieldCollectionUnionResolver::resolve($class, $field, $type);
-        }
-        $fieldName = $field->getName();
-        $classUnionError = ClassUnionValidator::validate($class, $field, $type);
-
-        if ($classUnionError !== null) {
-            return $classUnionError;
+    public static function isNonEncodable(string $type): bool
+    {
+        if (in_array($type, ['resource', 'open-resource', 'closed-resource'], strict: true)) {
+            return true;
         }
 
-        $enumUnionError = EnumUnionValidator::validate($class, $fieldName, $type);
-
-        if ($enumUnionError !== null) {
-            return $enumUnionError;
-        }
-
-        $memberResults = [];
-        $nonEncodableError = null;
-        foreach ($type->getTypes() as $member) {
-            if ($member instanceof ReflectionIntersectionType) {
-                return DecodeError::unsupportedIntersection($class, $fieldName, (string) $member);
-            }
-
-            $name = FieldTypeNameResolver::resolve($field, $member);
-            $isNonEncodable = ClassFieldTypeValidator::isNonEncodable($name);
-            if ($isNonEncodable) {
-                $nonEncodableError ??= DecodeError::nonBackedEnum($class, $name, $fieldName);
-                continue;
-            }
-            $error = self::validateNamedType($class, $field, $member);
-
-            if ($error instanceof DecodeError) {
-                return $error;
-            }
-            $memberResults[] = $error;
-        }
-
-        if ($memberResults === []) {
-            return $nonEncodableError;
-        }
-        return in_array(null, $memberResults, strict: true) ? null : false;
+        return (
+            enum_exists($type)
+            && !new ReflectionEnum($type)->isBacked()
+            && !is_a($type, JsonSerializable::class, allow_string: true)
+        );
     }
 }

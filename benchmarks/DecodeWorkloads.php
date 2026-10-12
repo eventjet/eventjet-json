@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Eventjet\Json\Benchmark;
 
 use ArrayObject;
+use Eventjet\Json\Benchmark\Fixtures\ImportedConstants;
+use Eventjet\Json\Benchmark\Fixtures\LiteralRecord;
 use Eventjet\Json\Benchmark\Fixtures\ScalarLists;
+use Eventjet\Json\Benchmark\Fixtures\ShapeRecord;
 use Eventjet\Json\Benchmark\Fixtures\StringMap;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\CombinedCollectionFields;
@@ -19,6 +22,8 @@ use Eventjet\Json\Test\Acceptance\Fixtures\NestedSelfCollections;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use InvalidArgumentException;
+use ReflectionException;
+use RuntimeException;
 
 use function array_fill;
 
@@ -28,6 +33,8 @@ final class DecodeWorkloads
     /**
      * @return list<CombinedCollectionFields>|object
      * @throws InvalidArgumentException
+     * @throws ReflectionException
+     * @throws RuntimeException
      */
     public static function create(string $scenario): array|object
     {
@@ -40,6 +47,15 @@ final class DecodeWorkloads
                 IntBackedStatus::Ready,
             ),
             'enum union' => new DistinctEnumScalarUnionField(IntBackedStatus::Ready),
+            'literal fields' => new LiteralRecord(
+                'published',
+                2,
+                LiteralRecord::KIND_VIDEO,
+                StringBackedStatus::Pending,
+                ['red', 'blue'],
+            ),
+            'array shapes' => new ShapeRecord([7, 'header', true], [[1.5, 2.5], [3.0, 4.0]], ['series', [1, 2, 3]]),
+            'imported constants' => ImportedConstants::record(),
             'enum union collections' => self::enumUnions(),
             'scalar lists' => self::scalarLists(2),
             'long scalar lists' => self::scalarLists(1000),
@@ -118,6 +134,9 @@ final class DecodeWorkloads
             'scalar lists',
             'named enums',
             'enum union',
+            'literal fields',
+            'array shapes',
+            'imported constants',
         ] as $scenario) {
             yield $scenario => ['scenario' => $scenario];
         }

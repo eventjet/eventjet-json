@@ -15,6 +15,8 @@ final class ObjectRoundTripCases
      */
     public static function objects(): iterable
     {
+        yield from LiteralTypeCases::objects();
+        yield from FieldMappingCases::objects();
         yield from ObjectHydrationRoundTripCases::objects();
         yield from StringValueRoundTripCases::objects();
         yield from NumericBoundaryRoundTripCases::objects();

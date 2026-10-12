@@ -20,8 +20,9 @@ final class JsonFormattingRoundTripCases
             new Person('Ada', 'Lovelace', 'Byron', 36),
             '{"age":36,"middleName":"Byron","lastName":"Lovelace","firstName":"Ada"}',
         ];
-        yield 'object root whitespace: all' => [new Person('Ada', 'Lovelace'), ' 	
-{"firstName":"Ada","lastName":"Lovelace","middleName":null,"age":null} 	
-'];
+        yield 'object root whitespace: all' => [
+            new Person('Ada', 'Lovelace'),
+            " \t\n" . '{"firstName":"Ada","lastName":"Lovelace","middleName":null,"age":null}' . " \t\n",
+        ];
     }
 }

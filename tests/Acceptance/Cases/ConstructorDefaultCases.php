@@ -19,6 +19,7 @@ final class ConstructorDefaultCases
      */
     public static function objects(): iterable
     {
+        yield from FieldMappingCases::decoded();
         yield 'omitted collection union uses constructor default' => ['{}', new CollectionUnionDefaults()];
         yield 'null collection union overrides constructor default' => [
             '{"value":null}',

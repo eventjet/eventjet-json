@@ -9,6 +9,7 @@ use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
+use Eventjet\Json\Test\Acceptance\Fixtures\MappedReference;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 
@@ -17,12 +18,23 @@ final class RootCollectionRoundTripCases
 {
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{list<mixed>|object, callable(): \Eventjet\Json\JsonType<list<mixed>|object>}>
+     * @return iterable<string, array{list<mixed>|object, callable(): JsonType<list<mixed>|object>}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
     public static function objects(): iterable
     {
+        yield 'root list of mapped references' => [
+            [
+                new MappedReference('#/first'),
+                new MappedReference('#/second'),
+            ],
+            static fn(): JsonType => JsonType::array(MappedReference::class),
+        ];
+        yield 'root map of mapped references' => [
+            new ArrayObject(['first' => new MappedReference('#/first')]),
+            static fn(): JsonType => JsonType::map(MappedReference::class),
+        ];
         yield from self::objectLists();
         yield from self::enumLists();
         yield from self::nestedCollections();
@@ -30,7 +42,7 @@ final class RootCollectionRoundTripCases
     }
 
     /**
-     * @return iterable<string, array{list<mixed>|object, callable(): \Eventjet\Json\JsonType<list<mixed>|object>}>
+     * @return iterable<string, array{list<mixed>|object, callable(): JsonType<list<mixed>|object>}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -87,7 +99,7 @@ final class RootCollectionRoundTripCases
     }
 
     /**
-     * @return iterable<string, array{list<mixed>|object, callable(): \Eventjet\Json\JsonType<list<mixed>|object>}>
+     * @return iterable<string, array{list<mixed>|object, callable(): JsonType<list<mixed>|object>}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -104,7 +116,7 @@ final class RootCollectionRoundTripCases
     }
 
     /**
-     * @return iterable<string, array{list<mixed>|object, callable(): \Eventjet\Json\JsonType<list<mixed>|object>}>
+     * @return iterable<string, array{list<mixed>|object, callable(): JsonType<list<mixed>|object>}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -152,7 +164,7 @@ key' => new EmptyObject(),
     }
 
     /**
-     * @return iterable<string, array{list<mixed>|object, callable(): \Eventjet\Json\JsonType<list<mixed>|object>}>
+     * @return iterable<string, array{list<mixed>|object, callable(): JsonType<list<mixed>|object>}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */

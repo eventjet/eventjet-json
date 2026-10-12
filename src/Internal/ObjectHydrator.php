@@ -27,20 +27,15 @@ final class ObjectHydrator
         try {
             /** @var ReflectionClass<T>|ConstructorPlan|null $reflection */
             $reflection = self::$validatedClasses[$class] ?? null;
-            if (
-                $reflection instanceof ConstructorPlan
-                && $reflection->scalarOnly
-                && ($hydrate = $reflection->hydrate) !== null
-            ) {
-                $result = $hydrate($object);
+            if ($reflection instanceof ConstructorPlan) {
+                $result = $reflection->hydrateCompiled($object);
                 if ($result !== null) {
                     /** @var T $result */
                     return $result;
                 }
             }
-            /** @var array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values */
+            /** @var array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values */
             $values = get_object_vars($object);
-            $uncached = $reflection === null;
             if ($reflection === null) {
                 $reflection = new ReflectionClass($class);
                 $targetError = RootTypeValidator::validate($reflection);
@@ -57,12 +52,16 @@ final class ObjectHydrator
             }
             $assignments = [];
             if ($reflection instanceof ReflectionClass) {
-                $assignments = PublicPropertyHydrator::prepare($reflection, $values, $path);
+                $properties = PublicProperties::resolve($reflection);
+                $assignments =
+                    $properties === [] || $properties instanceof DecodeError
+                        ? $properties
+                        : PublicPropertyHydrator::prepare($class, $properties, $values, $path);
                 if ($assignments instanceof DecodeError) {
                     return $assignments;
                 }
-                if ($uncached) {
-                    self::rememberConstructorPlan($class, $reflection);
+                if ($properties === []) {
+                    self::cacheConstructorPlan($class);
                 }
             }
             /**
@@ -70,7 +69,9 @@ final class ObjectHydrator
              * @psalm-suppress MixedMethodCall PHP validates the intentionally dynamic constructor at runtime.
              */
             $object = new $class(...$convertedValues);
-            PublicPropertyHydrator::assign($object, $assignments);
+            if ($assignments !== []) {
+                PublicPropertyHydrator::assign($object, $assignments);
+            }
 
             return $object;
         } catch (Throwable $error) {
@@ -78,16 +79,11 @@ final class ObjectHydrator
         }
     }
 
-    /**
-     * @param class-string $class
-     * @param ReflectionClass<object> $reflection
-     * @throws \ReflectionException
-     */
-    private static function rememberConstructorPlan(string $class, ReflectionClass $reflection): void
+    /** @param class-string $class */
+    private static function cacheConstructorPlan(string $class): void
     {
-        $properties = PublicProperties::resolve($reflection);
         $plan = ConstructorDecoder::cachedPlan($class);
-        if ($properties === [] && $plan !== null) {
+        if ($plan !== null) {
             self::$validatedClasses[$class] = $plan;
         }
     }

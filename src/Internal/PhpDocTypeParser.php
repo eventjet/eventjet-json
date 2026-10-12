@@ -7,14 +7,14 @@ namespace Eventjet\Json\Internal;
 use UnexpectedValueException;
 
 use function count;
-use function in_array;
+use function strpbrk;
 use function trim;
 
 /** @internal */
-final readonly class PhpDocTypeParser
+readonly class PhpDocTypeParser
 {
-    private function __construct(
-        private PhpDocTypeTokens $tokens,
+    final protected function __construct(
+        protected PhpDocTypeTokens $tokens,
     ) {}
 
     public static function parse(string $source): PhpDocType|null
@@ -27,17 +27,23 @@ final readonly class PhpDocTypeParser
     /** @return array{PhpDocType, string}|null */
     public static function prefix(string $source): array|null
     {
-        $tokens = new PhpDocTypeTokens($source);
+        $parser = strpbrk($source, characters: "'\"(:{0123456789") === false
+            ? new self(new PhpDocTypeTokens($source))
+            : new PhpDocExtendedTypeParser(new PhpDocExtendedTypeTokens($source));
         try {
-            return [new self($tokens)->type(0), $tokens->remainder()];
+            return [$parser->type(0), $parser->tokens->remainder()];
         } catch (UnexpectedValueException) {
             return null;
         }
     }
 
     /** @throws UnexpectedValueException */
-    private function type(int $depth): PhpDocType
+    protected function type(int $depth): PhpDocType
     {
+        if ($depth >= 64) {
+            throw new UnexpectedValueException('PHPDoc nesting exceeds 64 type levels.');
+        }
+
         return $this->compound($depth, '|');
     }
 
@@ -57,31 +63,19 @@ final readonly class PhpDocTypeParser
     }
 
     /** @throws UnexpectedValueException */
-    private function namedType(int $depth): PhpDocType
+    protected function namedType(int $depth): PhpDocType
     {
-        if ($depth >= 64) {
-            throw new UnexpectedValueException('PHPDoc nesting exceeds 64 type levels.');
-        }
-
         $name = $this->tokens->token();
+        $hasArguments = $this->tokens->consume('<');
 
-        $delimiter = $this->tokens->peek();
-
-        if (!in_array($delimiter, ['<', '{'], strict: true)) {
-            return new PhpDocType($name);
-        }
-
-        $this->tokens->consume($delimiter);
-        return $delimiter === '{'
-            ? new PhpDocType($name . '{}', entries: $this->entries($depth + 1))
-            : new PhpDocType($name, $this->arguments($depth + 1));
+        return $hasArguments ? new PhpDocType($name, $this->arguments($depth + 1)) : new PhpDocType($name);
     }
 
     /**
      * @return list<PhpDocType>
      * @throws UnexpectedValueException
      */
-    private function arguments(int $depth): array
+    protected function arguments(int $depth): array
     {
         $arguments = [];
         do {
@@ -94,29 +88,5 @@ final readonly class PhpDocTypeParser
         } while ($hasNext);
 
         throw new UnexpectedValueException('Expected a PHPDoc argument separator or closing delimiter.');
-    }
-
-    /**
-     * @return list<PhpDocTupleEntry>
-     * @throws UnexpectedValueException
-     */
-    private function entries(int $depth): array
-    {
-        $entries = [];
-        do {
-            $closed = $this->tokens->consume('}');
-            if ($closed) {
-                return $entries;
-            }
-            [$key, $optional] = $this->tokens->tupleKey();
-            $entries[] = new PhpDocTupleEntry($this->type($depth), $key, $optional);
-            $closed = $this->tokens->consume('}');
-            if ($closed) {
-                return $entries;
-            }
-            $hasNext = $this->tokens->consume(',');
-        } while ($hasNext);
-
-        throw new UnexpectedValueException('Expected a PHPDoc tuple separator or closing delimiter.');
     }
 }

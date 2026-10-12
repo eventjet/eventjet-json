@@ -6,7 +6,8 @@ collections. Use native type declarations and PHPDoc to describe your data;
 
 The library pairs with PHP's `json_encode()`: supported PHP values can be
 encoded and decoded without losing their types or JSON object/array shapes.
-Your data classes need no package-specific attributes or interfaces.
+Ordinary data classes need no package-specific attributes or interfaces.
+Optional field-name mapping uses `#[Field]` with PHP's `JsonSerializable`.
 
 ## Installation
 
@@ -141,6 +142,42 @@ empty PHP array encodes as `[]`.
 See the [type reference](docs/types.md#collection-declarations) for nullable
 collections, optional tuple positions, unions, and PHPDoc name resolution.
 
+## Literal types and constants
+
+PHPDoc literal types restrict a field to specific values. Strings, integers,
+floats, `true`, and `false` work, and so do class constants, including
+wildcards such as `self::STATE_*`:
+
+```php
+final readonly class Task
+{
+    public const string STATE_OPEN = 'open';
+    public const string STATE_DONE = 'done';
+
+    /**
+     * @param self::STATE_* $state
+     * @param 1|2|3 $priority
+     */
+    public function __construct(
+        public string $state,
+        public int $priority,
+    ) {}
+}
+```
+
+Decoding `{"state":"closed","priority":1}` returns a `DecodeError`, because
+`closed` is not one of the declared values. Literals also work inside
+collections, such as `list<'red'|'green'>`.
+
+Prefer backed enums when you control the class. PHP itself enforces an enum
+type everywhere the value is used, while a literal type is only a PHPDoc
+comment: PHP still sees a plain `string` or `int`, and only decoding and static
+analysis check the narrower values. Use literals for existing classes you can't
+change to enums, or for one-off values that don't deserve an enum.
+
+See the [type reference](docs/types.md#literal-types) for the supported syntax
+and limits.
+
 ## Root arrays and maps
 
 Use `JsonType::array()` for a JSON array or `JsonType::map()` for a JSON object
@@ -182,9 +219,9 @@ is rejected because PHP converts it to an integer key.
 
 ## Decoding rules
 
-- JSON member names must match constructor parameter or public property names.
-  Unknown members are ignored. Use classes that match the JSON format, then
-  explicitly map their data to your domain objects if needed.
+- JSON member names match constructor parameter or public property names by
+  default. For names PHP cannot use, see [the example below](#when-json-names-dont-work-as-php-property-names).
+  Unknown members are ignored.
 - Missing required constructor arguments produce an error. Missing optional
   arguments use their defaults. A present `null` requires a nullable type.
   Omitted public properties retain their state after construction.
@@ -193,7 +230,8 @@ is rejected because PHP converts it to an integer key.
   restored as PHP floats.
 - Constructor parameters need same-named public instance properties.
   Nested classes and collection item classes must be final. Interfaces,
-  abstract classes, and classes implementing `JsonSerializable` are unsupported.
+  and abstract classes are unsupported. `JsonSerializable` classes require at
+  least one `#[Field]` annotation and a matching serializer.
 - Unions must identify a type unambiguously. For example, `Person|string|null`
   is supported; `Person|Team` is not, because either class represents a JSON
   object.
@@ -203,6 +241,46 @@ Unknown fields are discarded, and re-encoding may include default-valued
 properties omitted from the input. PHPDoc refinements such as `positive-int`
 and `non-empty-string` validate the underlying scalar type, not the narrower
 constraint.
+
+## When JSON names don't work as PHP property names
+
+Give your PHP properties the same names as the JSON fields whenever possible.
+For example, use `$first_name` for a JSON field named `first_name`. No extra
+setup is needed.
+
+Some formats use names such as `$ref` or `@type` that you can't use as ordinary
+PHP property names. For these cases, `#[Field]` lets you choose a PHP name while
+keeping the original name in JSON:
+
+```php
+use Eventjet\Json\DecodeError;
+use Eventjet\Json\Field;
+use Eventjet\Json\Json;
+use Eventjet\Json\MappedJsonFields;
+
+final readonly class Reference implements JsonSerializable
+{
+    use MappedJsonFields;
+
+    public function __construct(#[Field('$ref')] public string $ref) {}
+}
+
+$reference = Json::decode('{"$ref":"#/$defs/person"}', Reference::class);
+if ($reference instanceof DecodeError) {
+    throw $reference;
+}
+echo json_encode($reference, JSON_THROW_ON_ERROR);
+// {"$ref":"#/$defs/person"}
+```
+
+`#[Field('$ref')]` tells the decoder to read the JSON field named `$ref`.
+The class must also implement `JsonSerializable`. The `MappedJsonFields` trait
+handles that part for you, so `json_encode()` writes `$ref` back to JSON too.
+
+Keep this as an escape hatch for names you can't match directly. It adds some
+overhead, especially when encoding; see the [performance measurements](docs/performance.md#field-name-mapping).
+The [field mapping reference](docs/types.md#field-name-mapping) covers the details
+and how to write your own serializer if needed.
 
 ## Documentation
 

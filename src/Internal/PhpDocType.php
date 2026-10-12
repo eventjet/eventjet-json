@@ -6,6 +6,8 @@ namespace Eventjet\Json\Internal;
 
 use function array_pop;
 use function count;
+use function str_contains;
+use function strspn;
 
 /** @internal */
 final readonly class PhpDocType
@@ -35,5 +37,16 @@ final readonly class PhpDocType
     public function isPlainName(string $name): bool
     {
         return $this->name === $name && $this->arguments === [];
+    }
+
+    /** @pure */
+    public static function literalSyntax(string $name): bool
+    {
+        return (
+            $name === 'true'
+            || $name === 'false'
+            || strspn($name, characters: "'\"0123456789.+-", length: 1) === 1
+            || str_contains($name, '::')
+        );
     }
 }

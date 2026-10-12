@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Field;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ConstructorDecoder;
@@ -13,24 +14,24 @@ use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
 use Eventjet\Json\Internal\EnumUnionLookup;
+use Eventjet\Json\Internal\FieldNameCollisions;
+use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\FieldTypeResolver;
 use Eventjet\Json\Internal\FieldTypeValidator;
 use Eventjet\Json\Internal\FieldValueConverter;
+use Eventjet\Json\Internal\MappedConstructorPlan;
+use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\ObjectHydrator;
+use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\RootTypeValidator;
-use Eventjet\Json\Internal\ScalarHydratorCompiler;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
-use Eventjet\Json\Test\Acceptance\Fixtures\DefaultedConstructorFields;
-use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
-use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
+use Eventjet\Json\Test\Acceptance\Cases\CollectionNameSource;
+use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
-use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
-use Eventjet\Json\Test\Acceptance\Fixtures\ScalarConstructorGuard;
-use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -40,16 +41,13 @@ use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\UnknownClassOrInterfaceException;
 use ReflectionClass;
 use ReflectionException;
-use ReflectionProperty;
 use RuntimeException;
-use stdClass;
 
 use function class_alias;
 
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
-#[CoversClass(ScalarHydratorCompiler::class)]
 #[CoversClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(EnumFieldTypes::class)]
@@ -61,282 +59,43 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[CoversClass(ConstructorParameter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTags::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(FieldTypeResolver::class)]
 #[UsesClass(FieldTypeValidator::class)]
 #[UsesClass(MetadataCache::class)]
-#[UsesClass(RootTypeValidator::class)]
+#[CoversClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
+#[CoversClass(MappedObjectSerializer::class)]
+#[UsesClass(Field::class)]
+#[CoversClass(PublicProperties::class)]
+#[CoversClass(MappedConstructorPlan::class)]
+#[CoversClass(FieldNameCollisions::class)]
 #[CoversClass(ObjectHydrator::class)]
-#[UsesClass(\Eventjet\Json\Internal\PublicProperties::class)]
 #[UsesClass(\Eventjet\Json\Internal\PublicPropertyHydrator::class)]
 #[UsesClass(\Eventjet\Json\Internal\PublicPropertyTypeValidator::class)]
+#[CoversClass(FieldNames::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocFieldType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantResolver::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocImports::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocImportScanner::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocImportStatement::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantImportStatement::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokenStream::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNamespaceDeclaration::class)]
 final class ConstructorValidationPlanTest extends TestCase
 {
-    /** @param array<array-key, mixed> $values */
-    private static function input(array $values): stdClass
-    {
-        /**
-         * @psalm-var stdClass
-         * @mago-expect analysis:redundant-docblock-type Psalm infers object for an array cast, rather than stdClass.
-         */
-        return (object) $values;
-    }
-
-    /** @throws ReflectionException */
-    public function testCompiledHydratorsValidateScalarsAndCreateFreshObjects(): void
-    {
-        foreach ([
-            new ScalarFields("'); throw new RuntimeException('input is data'); //", -42, 3.5, false),
-            new NullableScalarFields('text', 0, 0.0, true, null),
-            new NullableScalarFields(null, null, null, null, null),
-            new LiteralBooleanFields(true, false),
-        ] as $original) {
-            $hydrate = ScalarHydratorCompiler::compile($original::class);
-            static::assertNotNull($hydrate);
-            $input = self::input(\get_object_vars($original));
-            $first = $hydrate($input);
-            static::assertEquals($original, $first);
-            $second = $hydrate($input);
-            static::assertEquals($original, $second);
-            static::assertNotSame($first, $second);
-            foreach (\array_keys(\get_object_vars($original)) as $field) {
-                $missing = \get_object_vars($original);
-                unset($missing[$field]);
-                static::assertNull($hydrate(self::input($missing)));
-                $invalid = \get_object_vars($original);
-                $invalid[$field] = [];
-                static::assertNull($hydrate(self::input($invalid)));
-                $invalid[$field] = [true];
-                static::assertNull($hydrate(self::input($invalid)));
-            }
-        }
-        $hydrate = ScalarHydratorCompiler::compile(ScalarFields::class);
-        static::assertNotNull($hydrate);
-        static::assertEquals(
-            new ScalarFields('value', 1, 3.0, true),
-            $hydrate(self::input([
-                'string' => 'value',
-                'integer' => 1,
-                'float' => 3,
-                'boolean' => true,
-            ])),
-        );
-        static::assertNull($hydrate(self::input([
-            'string' => null,
-            'integer' => 1,
-            'float' => 3,
-            'boolean' => true,
-        ])));
-        $literals = ScalarHydratorCompiler::compile(LiteralBooleanFields::class);
-        static::assertNotNull($literals);
-        static::assertNull($literals(self::input(['true' => false, 'false' => false])));
-        static::assertNull($literals(self::input(['true' => true, 'false' => true])));
-
-        $anonymous = new class {
-            public function __construct(
-                public int $value = 0,
-            ) {}
-        };
-        static::assertNull(ScalarHydratorCompiler::compile($anonymous::class));
-        static::assertNull(ScalarHydratorCompiler::compile(
-            \Eventjet\Json\Test\Acceptance\Fixtures\DistinctEnumScalarUnionField::class,
-        ));
-        static::assertNull(ScalarHydratorCompiler::compile(
-            \Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields::class,
-        ));
-        static::assertNull(ScalarHydratorCompiler::compile(
-            \Eventjet\Json\Test\Acceptance\Fixtures\ScalarListFields::class,
-        ));
-        $empty = ScalarHydratorCompiler::compile(stdClass::class);
-        static::assertNotNull($empty);
-        static::assertEquals(new stdClass(), $empty(new stdClass()));
-    }
-
-    /**
-     * @throws ReflectionException
-     * @throws Exception
-     * @throws UnknownClassOrInterfaceException
-     * @throws RuntimeException
-     */
-    public function testCompiledHydrationFallsBackForDefaultsAndErrors(): void
-    {
-        $class = DefaultedConstructorFields::class;
-        $original = new DefaultedConstructorFields('required', 'explicit', null);
-        $input = self::input(\get_object_vars($original));
-        for ($index = 0; $index < 129; ++$index) {
-            static::assertEquals($original, ObjectHydrator::hydrate($class, $input));
-        }
-        static::assertEquals($original, ObjectHydrator::hydrate($class, $input));
-        $plan = ConstructorDecoder::cachedPlan($class);
-        static::assertNotNull($plan);
-        static::assertNotNull($plan->hydrate);
-        static::assertEquals(
-            new DefaultedConstructorFields('required'),
-            ObjectHydrator::hydrate($class, self::input([
-                'required' => 'required',
-                'ignored' => 'not a constructor argument',
-            ])),
-        );
-        static::assertEquals(
-            DecodeError::fieldTypeMismatch($class, 'nested.required', 'string', false),
-            ObjectHydrator::hydrate(
-                $class,
-                self::input(['required' => false, 'label' => 'explicit', 'nullableCount' => null]),
-                'nested',
-            ),
-        );
-        static::assertInstanceOf(DecodeError::class, ObjectHydrator::hydrate($class, new stdClass()));
-
-        $class = ScalarConstructorGuard::class;
-        $expected = new ScalarConstructorGuard(0);
-        for ($index = 0; $index < 129; ++$index) {
-            static::assertEquals($expected, ObjectHydrator::hydrate($class, self::input(['value' => 0])));
-        }
-        $before = ScalarConstructorGuard::$calls;
-        static::assertEquals($expected, ObjectHydrator::hydrate($class, self::input([
-            'value' => 0,
-        ])));
-        $expected->value = 1;
-        static::assertEquals($expected, ObjectHydrator::hydrate($class, self::input([
-            'value' => 1,
-        ])));
-        $error = ObjectHydrator::hydrate($class, self::input(['value' => -1]));
-        static::assertInstanceOf(DecodeError::class, $error);
-        static::assertSame(ScalarConstructorGuard::exception(), $error->getPrevious());
-        static::assertSame($before + 3, ScalarConstructorGuard::$calls);
-    }
-
-    /** @throws ReflectionException */
-    public function testEnumUnionLookupPreservesBackingTypesAndLeavesOtherValuesUnmatched(): void
-    {
-        $target = new class {
-            public \stdClass|NonBackedStatus|StringBackedStatus|IntBackedStatus|bool|null $value = null;
-        };
-        $lookup = new EnumUnionLookup(new ReflectionProperty($target, 'value')->getType());
-        static::assertSame(StringBackedStatus::Ready, $lookup->find(StringBackedStatus::Ready->value));
-        static::assertSame(StringBackedStatus::Pending, $lookup->find(StringBackedStatus::Pending->value));
-        static::assertSame(IntBackedStatus::Ready, $lookup->find(IntBackedStatus::Ready->value));
-        static::assertNull($lookup->find((string) IntBackedStatus::Ready->value));
-        static::assertNull($lookup->find((float) IntBackedStatus::Ready->value));
-        static::assertNull($lookup->find('unknown'));
-        static::assertNull($lookup->find(true));
-        static::assertNull($lookup->find(null));
-        static::assertNull($lookup->find([]));
-        static::assertNull(new EnumUnionLookup(null)->find('ready'));
-        static::assertNull(new EnumUnionLookup(new ReflectionProperty(ScalarFields::class, 'string')->getType())->find(
-            'ready',
-        ));
-    }
-
-    /**
-     * @throws ReflectionException
-     * @throws Exception
-     * @throws UnknownClassOrInterfaceException
-     */
-    public function testScalarHydrationReusesPlansButRechecksValuesAndDefaults(): void
-    {
-        $target = new class {
-            public function __construct(
-                public int $value = 1,
-            ) {}
-        };
-        $class = $target::class;
-        static::assertNull(ConstructorDecoder::cachedPlan($class));
-        $input = new stdClass();
-        $input->value = 2;
-        $target->value = 2;
-        $first = ObjectHydrator::hydrate($class, $input);
-        static::assertEquals($target, $first);
-        $plan = ConstructorDecoder::cachedPlan($class);
-        static::assertInstanceOf(ConstructorPlan::class, $plan);
-        static::assertTrue($plan->scalarOnly);
-        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
-        static::assertIsArray($cache->getValue());
-        static::assertSame($plan, $cache->getValue()[$class] ?? null);
-        $input->value = 3;
-        $target->value = 3;
-        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
-        $target->value = 1;
-        static::assertEquals($target, ObjectHydrator::hydrate($class, new stdClass()));
-        $input->value = null;
-        static::assertEquals(
-            DecodeError::fieldTypeMismatch($class, 'nested.value', 'int', null),
-            ObjectHydrator::hydrate($class, $input, 'nested'),
-        );
-        static::assertSame($plan, ConstructorDecoder::cachedPlan($class));
-    }
-
-    /**
-     * @throws ReflectionException
-     * @throws Exception
-     */
-    public function testPublicPropertiesKeepTheirValidationAfterWarming(): void
-    {
-        $target = new class {
-            public string $label = '';
-
-            public function __construct(
-                public int $value = 1,
-            ) {}
-        };
-        $class = $target::class;
-        $input = new stdClass();
-        $input->label = 'first';
-        $target->label = 'first';
-        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
-        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
-        static::assertIsArray($cache->getValue());
-        static::assertInstanceOf(ReflectionClass::class, $cache->getValue()[$class] ?? null);
-        $target->label = 'second';
-        $input->label = 'second';
-        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
-        $input->label = false;
-        static::assertEquals(
-            DecodeError::fieldTypeMismatch($class, 'nested.label', 'string', false),
-            ObjectHydrator::hydrate($class, $input, 'nested'),
-        );
-    }
-
-    /**
-     * @throws ReflectionException
-     * @throws Exception
-     * @throws UnknownClassOrInterfaceException
-     */
-    public function testNonScalarHydrationReusesPlansAndRechecksValues(): void
-    {
-        $target = new class {
-            public function __construct(
-                public StringBackedStatus|bool|null $value = null,
-            ) {}
-        };
-        $class = $target::class;
-        static::assertNull(ConstructorDecoder::cachedPlan($class));
-        $input = new stdClass();
-        $input->value = StringBackedStatus::Ready->value;
-        $target->value = StringBackedStatus::Ready;
-        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
-        $plan = ConstructorDecoder::cachedPlan($class);
-        static::assertInstanceOf(ConstructorPlan::class, $plan);
-        static::assertFalse($plan->scalarOnly);
-        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
-        static::assertIsArray($cache->getValue());
-        static::assertSame($plan, $cache->getValue()[$class] ?? null);
-
-        foreach ([false, null, StringBackedStatus::Pending] as $value) {
-            $target->value = $value;
-            $input->value = $value instanceof StringBackedStatus ? $value->value : $value;
-            static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
-        }
-        $target->value = null;
-        static::assertEquals($target, ObjectHydrator::hydrate($class, new stdClass()));
-        $input->value = [];
-        $error = ObjectHydrator::hydrate($class, $input, 'nested');
-        static::assertInstanceOf(DecodeError::class, $error);
-        static::assertStringContainsString('Field nested.value must be of type', $error->getMessage());
-        static::assertSame($plan, ConstructorDecoder::cachedPlan($class));
-    }
-
     /**
      * @throws ReflectionException
      * @throws JsonException
@@ -450,5 +209,174 @@ final class ConstructorValidationPlanTest extends TestCase
         static::assertSame([], ConstructorDecoder::convert($class, [], ''));
         static::assertTrue(class_alias(NonBackedStatus::class, $dependency));
         static::assertInstanceOf(DecodeError::class, ConstructorDecoder::convert($class, [], ''));
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws JsonException
+     */
+    public function testMappedPlansKeepInputNamesAndArgumentsSeparate(): void
+    {
+        $class = new ReflectionClass(MappedDefaults::class);
+        for ($lookup = 0; $lookup < 3; ++$lookup) {
+            static::assertSame(
+                ['ref' => 'next', 'count' => 9],
+                ConstructorDecoder::convert($class, ['$ref' => 'next', 'count' => 9], ''),
+            );
+            static::assertSame(['ref' => null], ConstructorDecoder::convert($class, ['$ref' => null], ''));
+            static::assertSame([], ConstructorDecoder::convert($class, ['ref' => 'ignored'], ''));
+            static::assertNull(ConstructorDecoder::cachedPlan($class->getName()));
+            static::assertEquals(
+                DecodeError::fieldTypeMismatch($class->getName(), 'nested.$ref', 'string|null', 42),
+                ConstructorDecoder::convert($class, ['$ref' => 42], 'nested'),
+            );
+        }
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws JsonException
+     * @throws Exception
+     */
+    public function testMappedConversionErrorsSurviveColdAndCachedPlans(): void
+    {
+        $target = new class implements \JsonSerializable {
+            public function __construct(
+                #[Field('0')]
+                public StringBackedStatus $value = StringBackedStatus::Ready,
+            ) {}
+
+            #[\Override]
+            public function jsonSerialize(): object
+            {
+                return (object) ['0' => $this->value];
+            }
+        };
+        $class = new ReflectionClass($target);
+        for ($lookup = 0; $lookup < 2; ++$lookup) {
+            $error = ConstructorDecoder::convert($class, ['0' => 'unknown'], 'nested');
+            static::assertInstanceOf(DecodeError::class, $error);
+            static::assertStringContainsString('nested.0', $error->getMessage());
+            static::assertSame(
+                ['value' => StringBackedStatus::Ready],
+                ConstructorDecoder::convert($class, ['0' => StringBackedStatus::Ready->value], ''),
+            );
+        }
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws DecodeError
+     * @throws RuntimeException
+     */
+    public function testMappedSerializationDoesNotExposeNonPublicState(): void
+    {
+        $class = CollectionNameSource::load(
+            'MappedPrivateState',
+            'use Eventjet\\Json\\Field; final class MappedPrivateState implements JsonSerializable { use Eventjet\\Json\\MappedJsonFields; private string $secret = "private"; protected string $hidden = "protected"; public static string $shared = "static"; #[Field("wire")] public string $value = "public"; }',
+        );
+        $object = new ReflectionClass($class)->newInstance();
+        static::assertEquals((object) ['wire' => 'public'], MappedObjectSerializer::serialize($object));
+        static::assertEquals((object) ['wire' => 'public'], MappedObjectSerializer::serialize($object));
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws JsonException
+     * @throws RuntimeException
+     */
+    public function testInvalidMappingsAreRejectedBeforeSerializationOrHydration(): void
+    {
+        $class = CollectionNameSource::load(
+            'InvalidMappedSerializer',
+            'use Eventjet\\Json\\Field; final class InvalidMappedSerializer implements JsonSerializable { use Eventjet\\Json\\MappedJsonFields; public static string $shared = ""; #[Field("ref")] public string $value = ""; public string $ref = ""; }',
+        );
+        $reflection = new ReflectionClass($class);
+        $error = DecodeError::nonInstantiableTarget(
+            $class,
+            'Properties value and ref use the same JSON field name "ref".',
+        );
+        for ($attempt = 0; $attempt < 2; ++$attempt) {
+            static::assertEquals($error, RootTypeValidator::validate($reflection));
+            static::assertEquals($error, ConstructorDecoder::convert($reflection, [], ''));
+            static::assertEquals($error, PublicProperties::resolve($reflection));
+            try {
+                MappedObjectSerializer::serialize($reflection->newInstance());
+                static::fail('Invalid mappings must not serialize.');
+            } catch (DecodeError $caught) {
+                static::assertSame($error->getMessage(), $caught->getMessage());
+            }
+        }
+    }
+
+    /**
+     * @throws RuntimeException
+     * @throws ReflectionException
+     * @throws JsonException
+     */
+    public function testPrivateAncestorMappingsAreRejected(): void
+    {
+        foreach (['', 'static '] as $modifier) {
+            foreach ([1, 2] as $depth) {
+                $name = 'PrivateAncestorMapping' . ($modifier === '' ? 'Instance' : 'Static') . $depth;
+                $parent = $name . 'Base';
+                $source =
+                    'use Eventjet\\Json\\Field; class '
+                    . $parent
+                    . ' { #[Field("hidden")] private '
+                    . $modifier
+                    . 'string $value = "secret"; }';
+                if ($depth === 2) {
+                    $source .= ' class ' . $name . 'Middle extends ' . $parent . ' {}';
+                    $parent = $name . 'Middle';
+                }
+                $class = CollectionNameSource::load(
+                    $name,
+                    $source
+                    . ' final class '
+                    . $name
+                    . ' extends '
+                    . $parent
+                    . ' implements JsonSerializable { use Eventjet\\Json\\MappedJsonFields; #[Field("wire")] public string $value = "public"; }',
+                );
+                $reflection = new ReflectionClass($class);
+                $error = DecodeError::nonInstantiableTarget(
+                    $class,
+                    '#[Field] requires a public instance property; value is not one.',
+                );
+                for ($attempt = 0; $attempt < 2; ++$attempt) {
+                    static::assertEquals($error, RootTypeValidator::validate($reflection));
+                    static::assertEquals($error, ConstructorDecoder::convert($reflection, [], ''));
+                    static::assertEquals($error, PublicProperties::resolve($reflection));
+                    try {
+                        MappedObjectSerializer::serialize($reflection->newInstance());
+                        static::fail('Private ancestor mappings must not serialize.');
+                    } catch (DecodeError $caught) {
+                        static::assertSame($error->getMessage(), $caught->getMessage());
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * @throws RuntimeException
+     * @throws ReflectionException
+     * @throws DecodeError
+     */
+    public function testAncestorDiscoveryPreservesEffectivePublicMappings(): void
+    {
+        $class = CollectionNameSource::load(
+            'EffectiveMappedChild',
+            'use Eventjet\\Json\\Field; class EffectiveMappedParent { private string $secret = "hidden"; #[Field("old")] public string $value = "parent"; #[Field("inherited")] public string $other = "kept"; } final class EffectiveMappedChild extends EffectiveMappedParent implements JsonSerializable { use Eventjet\\Json\\MappedJsonFields; #[Field("wire")] public string $value = "child"; public string $old = "ordinary"; }',
+        );
+        $reflection = new ReflectionClass($class);
+        for ($attempt = 0; $attempt < 2; ++$attempt) {
+            static::assertSame(['value' => 'wire', 'other' => 'inherited'], RootTypeValidator::fieldNames($reflection));
+            static::assertEquals(
+                (object) ['wire' => 'child', 'inherited' => 'kept', 'old' => 'ordinary'],
+                MappedObjectSerializer::serialize($reflection->newInstance()),
+            );
+        }
     }
 }

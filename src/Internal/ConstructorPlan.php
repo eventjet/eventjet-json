@@ -49,8 +49,8 @@ final class ConstructorPlan
 
     /**
      * @param class-string $class
-     * @param array<string, ConstructorValueValidator> $fields
-     * @param array<string, FieldValueConverter|null> $converters
+     * @param array<array-key, ConstructorValueValidator> $fields
+     * @param array<array-key, FieldValueConverter|null> $converters
      * @throws ReflectionException
      */
     public function __construct(
@@ -64,9 +64,16 @@ final class ConstructorPlan
         );
     }
 
+    /** @throws ReflectionException */
+    public function hydrateCompiled(stdClass $object): object|null
+    {
+        $hydrate = $this->scalarOnly ? $this->hydrate : null;
+        return $hydrate === null ? null : $hydrate($object);
+    }
+
     /**
-     * @param array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values
-     * @return array<string, mixed>|DecodeError
+     * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
+     * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
      * @throws JsonException
      * @throws ReflectionException
      */
@@ -93,7 +100,7 @@ final class ConstructorPlan
             if (!$matches) {
                 return DecodeError::fieldTypeMismatch(
                     $this->class,
-                    FieldPath::field($path, $name),
+                    $path === '' ? (string) $name : FieldPath::field($path, (string) $name),
                     $field->expected,
                     $value,
                 );
@@ -103,8 +110,8 @@ final class ConstructorPlan
     }
 
     /**
-     * @param array<string, array<array-key, mixed>|bool|float|int|object|string|null> $values
-     * @return array<string, mixed>|DecodeError
+     * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
+     * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
      * @throws JsonException
      * @throws ReflectionException
      */
@@ -117,7 +124,8 @@ final class ConstructorPlan
             }
             $value = $values[$name];
             if ($converter !== null) {
-                $value = $converter->convert($this->class, $value, FieldPath::field($path, $name));
+                $fieldPath = $path === '' ? (string) $name : FieldPath::field($path, (string) $name);
+                $value = $converter->convert($this->class, $value, $fieldPath);
                 if ($value instanceof DecodeError) {
                     return $value;
                 }

@@ -54,7 +54,7 @@ final class CollectionTypeValidator
         if ($isNonBackedEnum) {
             return DecodeError::nonBackedEnum($class, $type, $path);
         }
-        $isNonEncodable = ClassFieldTypeValidator::isNonEncodable($type);
+        $isNonEncodable = FieldTypeValidator::isNonEncodable($type);
         if ($isNonEncodable) {
             return DecodeError::nonInstantiableField(
                 $class,
