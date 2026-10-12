@@ -51,6 +51,15 @@ final class UnsupportedFieldClass
         ));
     }
 
+    public static function jsonSerializableEnum(string $field, string $enum): DecodeError
+    {
+        return self::error(sprintf(
+            'Field %s uses enum %s, which implements JsonSerializable. Its custom JSON representation may not match its cases, so it cannot satisfy the round-trip contract.',
+            $field,
+            $enum,
+        ));
+    }
+
     private static function error(string $message): DecodeError
     {
         return new DecodeError(DecodeErrorKind::UnsupportedDeclaration, $message);

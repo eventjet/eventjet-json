@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
+use JsonSerializable;
 use ReflectionClass;
 use ReflectionException;
 
@@ -39,6 +40,12 @@ final class ClassFieldTypeValidator
 
         if (!$typeReflection->isFinal()) {
             return UnsupportedFieldClass::nonFinal($field, $type);
+        }
+
+        if ($typeReflection->isEnum()) {
+            return $typeReflection->implementsInterface(JsonSerializable::class)
+                ? UnsupportedFieldClass::jsonSerializableEnum($field, $type)
+                : null;
         }
 
         $names = RootTypeValidator::fieldNames($typeReflection);

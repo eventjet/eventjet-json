@@ -7,6 +7,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
+use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassField;
@@ -77,6 +78,25 @@ final class UnsupportedTargetErrorCases
             '[]',
             JsonType::array(JsonSerializableTarget::class),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget from the JSON object: Target type implements JsonSerializable. Its custom JSON representation may not match its constructor parameters, so it cannot satisfy the round-trip contract.',
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
+        $enumList = CollectionDeclarationFixture::create(
+            'array',
+            PhpType::list(JsonSerializableStatus::class),
+            'param',
+        );
+        yield 'list item enum cannot implement JsonSerializable' => [
+            '{"value":["ready"]}',
+            $enumList,
+            'Could not create '
+                . $enumList
+                . ' from the JSON object: Field value uses enum Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus, which implements JsonSerializable. Its custom JSON representation may not match its cases, so it cannot satisfy the round-trip contract.',
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
+        yield 'root list enum cannot implement JsonSerializable' => [
+            '[]',
+            JsonType::array(JsonSerializableStatus::class),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus from the JSON object: Field [] uses enum Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus, which implements JsonSerializable. Its custom JSON representation may not match its cases, so it cannot satisfy the round-trip contract.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'list item type cannot be an interface' => [
