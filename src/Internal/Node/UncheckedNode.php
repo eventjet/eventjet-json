@@ -8,6 +8,7 @@ use Override;
 
 /**
  * A constructor parameter whose declared class is not loaded yet. PHP checks the value when the constructor runs.
+ * The class remains a dependency, so the decoder is compiled again once the class is loaded.
  *
  * @internal
  */
@@ -34,7 +35,7 @@ final readonly class UncheckedNode implements Node
     #[Override]
     public function dependencies(): array
     {
-        return [];
+        return [$this->name];
     }
 
     #[Override]

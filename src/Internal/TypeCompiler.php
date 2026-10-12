@@ -33,13 +33,6 @@ use function is_a;
  */
 final class TypeCompiler
 {
-    /**
-     * Declared classes that are not loaded. Decoders that depend on them must be compiled again later.
-     *
-     * @var list<string>
-     */
-    public private(set) array $unresolved = [];
-
     /** @param class-string $class */
     public function __construct(
         public readonly string $class,
@@ -85,7 +78,6 @@ final class TypeCompiler
         if ($object !== null) {
             return $object;
         }
-        $this->unresolved[] = $name;
         return new UncheckedNode($name);
     }
 

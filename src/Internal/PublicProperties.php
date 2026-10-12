@@ -13,42 +13,30 @@ use ReflectionProperty;
 /** @internal */
 final class PublicProperties
 {
-    /** @var array<class-string, array<array-key, array{property: ReflectionProperty, node: Node}>> */
-    private static array $properties = [];
-
     /**
+     * Compiles the public instance properties that are not constructor parameters, keyed by JSON name.
+     *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array<array-key, array{property: ReflectionProperty, node: Node}>|DecodeError
-     * @phpstan-impure
+     * @param array<string, string> $names JSON names of renamed properties, keyed by property name.
+     * @return array<string, array{property: ReflectionProperty, node: Node}>|DecodeError
      * @throws ReflectionException
      */
-    public static function resolve(ReflectionClass $class): array|DecodeError
+    public static function compile(ReflectionClass $class, array $names): array|DecodeError
     {
-        $name = $class->getName();
-        $cached = self::$properties[$name] ?? null;
-        if ($cached !== null) {
-            return $cached;
-        }
-
-        $names = RootTypeValidator::fieldNames($class);
-        if ($names instanceof DecodeError) {
-            return $names;
-        }
         $constructorFields = [];
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $constructorFields[$parameter->getName()] = true;
         }
-
         $properties = [];
-        foreach (RootTypeValidator::declarations($class) as $property) {
+        foreach ($class->getProperties() as $property) {
             $publicInstance =
                 ($property->getModifiers() & (ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_STATIC))
                 === ReflectionProperty::IS_PUBLIC;
             if (!$publicInstance || ($constructorFields[$property->getName()] ?? false)) {
                 continue;
             }
-            $node = PublicPropertyTypeValidator::validate($name, $property);
+            $node = PublicPropertyTypeValidator::validate($class->getName(), $property);
             if ($node instanceof DecodeError) {
                 return $node;
             }
@@ -57,7 +45,6 @@ final class PublicProperties
                 'node' => $node,
             ];
         }
-
-        return self::$properties[$name] = $properties;
+        return $properties;
     }
 }
