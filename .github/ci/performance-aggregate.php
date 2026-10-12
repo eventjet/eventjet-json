@@ -19,7 +19,7 @@ if (
     );
 }
 $comparison = PerformanceShards::collect($options['artifacts'], $options['opcache']);
-$comment = performanceSummary($comparison['comparisons'], $comparison['status']);
+$comment = performanceSummary($comparison['comparisons'], $comparison['status'], $options['opcache']);
 if (!is_dir($options['output'])) {
     mkdir($options['output'], 0777, true);
 }

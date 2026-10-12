@@ -151,10 +151,10 @@ jobs:
           path: .perf/results
           retention-days: 90
       - name: Save PR summary
-        if: always() && github.event_name == 'pull_request' && matrix.opcache == 'on' && hashFiles('.perf/results/comment.md') != ''
+        if: always() && github.event_name == 'pull_request' && hashFiles('.perf/results/comment.md') != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: performance-comment-${{ github.run_attempt }}
+          name: performance-comment-${{ github.run_attempt }}-${{ matrix.opcache }}
           path: .perf/results/comment.md
           retention-days: 7
       - name: Require measurements and tooling validation
@@ -185,13 +185,14 @@ jobs:
             const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
               ...context.repo, run_id: context.runId, per_page: 100,
             });
+            const names = ['on', 'off'].map(mode => `performance-comment-${process.env.GITHUB_RUN_ATTEMPT}-${mode}`);
             core.setOutput('available', artifacts.some(artifact =>
-              artifact.name === `performance-comment-${process.env.GITHUB_RUN_ATTEMPT}` && !artifact.expired));
-      - name: Download PR summary
+              names.includes(artifact.name) && !artifact.expired));
+      - name: Download PR summaries
         if: steps.summary.outputs.available == 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: performance-comment-${{ github.run_attempt }}
+          pattern: performance-comment-${{ github.run_attempt }}-*
           path: report
       - name: Create or update comment
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
@@ -211,10 +212,16 @@ jobs:
             let summary = '## ⚠️ Performance comparison unavailable\n\nThe benchmark run did not produce a complete comparison.';
             if (process.env.SUMMARY_AVAILABLE === 'true') {
               const fs = require('node:fs');
-              if (fs.statSync('report/comment.md').size > 50000) {
+              const paths = ['on', 'off'].map(mode =>
+                [mode, `report/performance-comment-${process.env.GITHUB_RUN_ATTEMPT}-${mode}/comment.md`]);
+              const size = paths.reduce((total, [, path]) => total + (fs.existsSync(path) ? fs.statSync(path).size : 0), 0);
+              if (size > 50000) {
                 throw new Error('Performance summary exceeds the comment size limit');
               }
-              summary = fs.readFileSync('report/comment.md', 'utf8');
+              summary = paths.map(([mode, path]) => fs.existsSync(path)
+                ? fs.readFileSync(path, 'utf8').trimEnd()
+                : `## ⚠️ Performance comparison unavailable (OPcache ${mode})\n\nThe benchmark run did not produce a complete comparison.`,
+              ).join('\n\n');
               if (process.env.COMPARISON_RESULT !== 'success') {
                 summary += '\n\n**The performance job failed.** See the run for assertion failures or benchmark errors.';
               }
