@@ -99,7 +99,7 @@ final readonly class PhpDocItemCompiler
             assert($object !== null, description: 'PHPDoc names resolve only to loaded classes.');
             return $object;
         }
-        $node = EnumNode::of($this->class, $name, nullable: false);
+        $node = EnumNode::of($this->class, $name);
         if ($node === null) {
             return DecodeError::nonBackedEnum($this->class, $name, $path);
         }

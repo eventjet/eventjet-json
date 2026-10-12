@@ -25,7 +25,6 @@ use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
-use Eventjet\Json\Internal\Node\EnumUnionNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\Node;
@@ -130,7 +129,6 @@ use function class_alias;
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
 #[UsesClass(UnionNode::class)]
-#[UsesClass(EnumUnionNode::class)]
 #[UsesClass(ArrayJsonType::class)]
 #[CoversClass(ClassDecoder::class)]
 #[CoversClass(ClassDecoders::class)]
@@ -246,7 +244,7 @@ final class MetadataCacheTest extends TestCase
      */
     public function testEnumConversionsPreserveBackingTypesAndRejectUnknownValues(): void
     {
-        static::assertNull(EnumNode::of(ScalarFields::class, NonBackedStatus::class, nullable: false));
+        static::assertNull(EnumNode::of(ScalarFields::class, NonBackedStatus::class));
         for ($lookup = 0; $lookup < 2; ++$lookup) {
             foreach ([
                 [IntBackedStatus::class, 1, IntBackedStatus::Ready],
@@ -259,7 +257,7 @@ final class MetadataCacheTest extends TestCase
                 [StringBackedStatus::class, StringBackedStatus::Pending->value, StringBackedStatus::Pending],
                 [StringBackedStatus::class, 'unknown', null],
             ] as [$enum, $value, $expected]) {
-                $node = EnumNode::of(ScalarFields::class, $enum, nullable: false);
+                $node = EnumNode::of(ScalarFields::class, $enum);
                 static::assertNotNull($node);
                 $converted = $node->decode($value, 'value');
                 if ($expected === null) {

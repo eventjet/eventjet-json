@@ -25,7 +25,6 @@ use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
-use Eventjet\Json\Internal\Node\EnumUnionNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\NullableNode;
@@ -118,7 +117,6 @@ use stdClass;
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
 #[UsesClass(UnionNode::class)]
-#[UsesClass(EnumUnionNode::class)]
 #[UsesClass(ArrayJsonType::class)]
 #[CoversClass(ClassDecoder::class)]
 #[CoversClass(ClassDecoders::class)]
@@ -136,8 +134,8 @@ final class ConstructorHydrationPlanTest extends TestCase
      */
     public function testUnionsPreserveJsonValueTypes(): void
     {
-        $string = EnumNode::of(ScalarFields::class, StringBackedStatus::class, nullable: false);
-        $int = EnumNode::of(ScalarFields::class, IntBackedStatus::class, nullable: false);
+        $string = EnumNode::of(ScalarFields::class, StringBackedStatus::class);
+        $int = EnumNode::of(ScalarFields::class, IntBackedStatus::class);
         static::assertNotNull($string);
         static::assertNotNull($int);
         $union = UnionNode::of(ScalarFields::class, 'value', 'StringBackedStatus|IntBackedStatus|bool|null', [

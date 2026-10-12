@@ -27,7 +27,6 @@ use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
-use Eventjet\Json\Internal\Node\EnumUnionNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\MapNode;
@@ -130,7 +129,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(TypeCompiler::class)]
 #[CoversClass(CollectionCompiler::class)]
 #[CoversClass(EnumNode::class)]
-#[CoversClass(EnumUnionNode::class)]
 #[CoversClass(ListNode::class)]
 #[CoversClass(MapNode::class)]
 #[CoversClass(NullableNode::class)]

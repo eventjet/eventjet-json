@@ -25,7 +25,6 @@ use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
-use Eventjet\Json\Internal\Node\EnumUnionNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\NullableNode;
@@ -122,7 +121,6 @@ use function class_alias;
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
 #[UsesClass(UnionNode::class)]
-#[UsesClass(EnumUnionNode::class)]
 #[UsesClass(ArrayJsonType::class)]
 #[CoversClass(ClassDecoder::class)]
 #[CoversClass(ClassDecoders::class)]

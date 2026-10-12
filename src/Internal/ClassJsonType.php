@@ -31,7 +31,7 @@ final readonly class ClassJsonType extends JsonType
     {
         $enum = $this->class;
         if (enum_exists($enum)) {
-            $node = EnumNode::of($class, $enum, nullable: false);
+            $node = EnumNode::of($class, $enum);
             assert($node !== null, description: 'Root validation rejects non-backed enums.');
             return $node;
         }

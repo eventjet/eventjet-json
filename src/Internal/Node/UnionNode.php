@@ -9,8 +9,6 @@ use Override;
 
 use function array_key_exists;
 use function array_keys;
-use function array_map;
-use function count;
 use function get_debug_type;
 
 /**
@@ -60,23 +58,12 @@ final readonly class UnionNode implements Node
                 $indexed[$valueType] = $member;
             }
             if ($member instanceof EnumNode) {
-                $enums[$member->backingType][] = $member;
+                $enums[$member->backingType][] = $member->enums[0];
             }
         }
         $valueTypes = array_keys($indexed);
-        foreach ($enums as $backingType => $nodes) {
-            $first = $nodes[0];
-            $node =
-                $first->conflict($class, $path, $valueTypes)
-                ?? (
-                    count($nodes) === 1
-                        ? $first
-                        : EnumUnionNode::of(
-                            $class,
-                            $path,
-                            array_map(static fn(EnumNode $enum): string => $enum->enum, $nodes),
-                        )
-                );
+        foreach ($enums as $backingType => $names) {
+            $node = EnumNode::union($class, $path, $backingType, $names, $valueTypes);
             if ($node instanceof DecodeError) {
                 return $node;
             }

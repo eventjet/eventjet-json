@@ -27,7 +27,6 @@ use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
-use Eventjet\Json\Internal\Node\EnumUnionNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\NullableNode;
@@ -136,7 +135,6 @@ use function spl_autoload_unregister;
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
 #[CoversClass(UnionNode::class)]
-#[UsesClass(EnumUnionNode::class)]
 #[UsesClass(ArrayJsonType::class)]
 #[UsesClass(ClassDecoder::class)]
 #[UsesClass(ClassDecoders::class)]
@@ -322,15 +320,9 @@ final class AutoloadingTest extends TestCase
         spl_autoload_register($autoload, prepend: true);
 
         try {
-            $enum = EnumNode::of(DeferredValueEnum::class, DeferredValueEnum::class, nullable: false);
+            $enum = EnumNode::of(DeferredValueEnum::class, DeferredValueEnum::class);
             static::assertNotNull($enum);
             static::assertInstanceOf(DecodeError::class, $enum->decode(1, 'value'));
-            $union = UnionNode::of(DeferredValueEnum::class, 'value', 'DeferredValueEnum|int', [
-                $enum,
-                new ScalarNode(DeferredValueEnum::class, 'int', false),
-            ]);
-            static::assertInstanceOf(UnionNode::class, $union);
-            static::assertSame(1, $union->decode(1, 'value'));
             static::assertNotContains(DeferredEnumBacking::class, $requests->names);
             static::assertSame(DeferredValueEnum::Ready, $enum->decode('ready', 'value'));
             static::assertContains(DeferredEnumBacking::class, $requests->names);

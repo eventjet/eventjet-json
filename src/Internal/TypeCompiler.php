@@ -8,6 +8,7 @@ use ArrayObject;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\Node;
+use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
 use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\ScalarNode;
@@ -67,7 +68,7 @@ final class TypeCompiler
     public function named(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): Node|DecodeError
     {
         $name = FieldTypeNameResolver::resolve($field, $type);
-        if ($name === 'array' || $name === ArrayObject::class) {
+        if (in_array($name, ['array', ArrayObject::class], strict: true)) {
             return $type->allowsNull()
                 ? new CollectionUnionCompiler($this, $field)->compile($type)
                 : new CollectionCompiler($this, $field)->compile($name);
@@ -116,9 +117,9 @@ final class TypeCompiler
     private function enum(string $field, string $enum, ReflectionNamedType $type): Node|DecodeError
     {
         $nullable = $type->allowsNull();
-        $node = EnumNode::of($this->class, $enum, $nullable);
+        $node = EnumNode::of($this->class, $enum);
         if ($node !== null) {
-            return $node;
+            return $nullable ? new NullableNode($node) : $node;
         }
         return $nullable && !is_a($enum, JsonSerializable::class, allow_string: true)
             ? new NullOnlyNode($this->class, (string) $type)
