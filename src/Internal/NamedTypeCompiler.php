@@ -46,7 +46,7 @@ final readonly class NamedTypeCompiler
                 false,
             ),
             $name === 'null' => new NullOnlyNode($this->class, 'null'),
-            PhpDocType::literalSyntax($name) => LiteralNode::of($this->class, $name),
+            PhpDocType::literalSyntax($name) => $this->literal($name, $path),
             in_array($name, ['mixed', 'object', stdClass::class], strict: true) => DecodeError::nonInstantiableField(
                 $this->class,
                 $path,
@@ -95,15 +95,29 @@ final readonly class NamedTypeCompiler
         $node = EnumNode::of($this->class, $enum);
         return match (true) {
             $node === null => DecodeError::nonBackedEnum($this->class, $enum, $path),
-            is_a($enum, JsonSerializable::class, allow_string: true) => DecodeError::nonInstantiableField(
-                $this->class,
-                $path,
-                'backed enum',
-                $enum,
-                ', which implements JsonSerializable. Its custom JSON representation may not match its backing values, so it cannot satisfy the round-trip contract.',
-            ),
+            is_a($enum, JsonSerializable::class, allow_string: true) => $this->serializedEnum($enum, $path),
             default => $node,
         };
+    }
+
+    /** A literal enum case is subject to the rules of its enum. */
+    private function literal(string $name, string $path): Node|DecodeError
+    {
+        $value = PhpDocLiteral::value($name);
+        return $value instanceof JsonSerializable
+            ? $this->serializedEnum($value::class, $path)
+            : LiteralNode::of($this->class, $name);
+    }
+
+    private function serializedEnum(string $enum, string $path): DecodeError
+    {
+        return DecodeError::nonInstantiableField(
+            $this->class,
+            $path,
+            'backed enum',
+            $enum,
+            ', which implements JsonSerializable. Its custom JSON representation may not match its backing values, so it cannot satisfy the round-trip contract.',
+        );
     }
 
     /**

@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
+use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassField;
@@ -25,6 +26,7 @@ final class UnsupportedTargetErrorCases
     {
         yield from self::rootTypes();
         yield from self::nestedTypes();
+        yield from self::serializedEnums();
     }
 
     /**
@@ -109,5 +111,40 @@ final class Target_d2d5fe3230fd08878644563a847934cf61283e8a {/** @param list<Ite
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ParentClassField from the JSON object: Field value uses non-final class Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase. Values may be subclasses, whose runtime class JSON does not identify.',
             3,
         ];
+    }
+
+    /**
+     * @return iterable<string, array{string, class-string, string, int}>
+     * @throws \RuntimeException
+     */
+    private static function serializedEnums(): iterable
+    {
+        $enum = JsonSerializableStatus::class;
+        foreach ([
+            'field' => ['\\' . $enum, '', 'value'],
+            'nullable field' => ['?\\' . $enum, '', 'value'],
+            'native union member' => ['\\' . $enum . '|int', '', 'value'],
+            'PHPDoc union member' => ['array', PhpType::list(PhpType::union($enum, PhpType::Int)), 'value'],
+            'list item' => ['array', PhpType::list($enum), 'value'],
+            'map value' => ['\\ArrayObject', PhpType::arrayObject($enum), 'value'],
+            'tuple position' => ['array', PhpType::tuple($enum), 'value[0]'],
+            'literal case' => ['\\' . $enum, '\\' . $enum . '::Ready', 'value'],
+        ] as $position => [$native, $declaration, $path]) {
+            foreach (['param', 'var'] as $tag) {
+                $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
+                yield 'backed enum with custom serialization is rejected as ' . $position . ' in ' . $tag => [
+                    '{}',
+                    $class,
+                    'Could not create '
+                        . $class
+                        . ' from the JSON object: Field '
+                        . $path
+                        . ' uses backed enum '
+                        . $enum
+                        . ', which implements JsonSerializable. Its custom JSON representation may not match its backing values, so it cannot satisfy the round-trip contract.',
+                    3,
+                ];
+            }
+        }
     }
 }
