@@ -93,6 +93,27 @@ final class ScalarValidationErrorCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties from the JSON object: Field integer must be of type int, float given.',
             3,
         ];
+        yield 'public property float rejects a numeric string' => [
+            '{"string":"value","integer":42,"float":"3.25","boolean":true}',
+            ConstructorlessPublicProperties::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties from the JSON object: Field float must be of type float, string given.',
+            3,
+        ];
+        foreach (['true' => 'false', 'false' => 'true', 'null' => '1'] as $type => $json) {
+            $class = CollectionDeclarationFixture::create($type, '', 'var');
+            yield 'public ' . $type . ' property rejects ' . $json => [
+                '{"value":' . $json . '}',
+                $class,
+                'Could not create '
+                    . $class
+                    . ' from the JSON object: Field value must be of type '
+                    . $type
+                    . ', '
+                    . ($type === 'null' ? 'int' : 'bool')
+                    . ' given.',
+                3,
+            ];
+        }
         yield 'nullable string property rejects an integer' => [
             '{"string":"value","integer":42,"float":3.25,"boolean":true,"nullable":42}',
             ConstructorlessPublicProperties::class,

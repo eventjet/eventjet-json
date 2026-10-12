@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Node\Node;
+use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionProperty;
 use ReflectionUnionType;
 use stdClass;
 
+use function assert;
 use function class_exists;
 use function enum_exists;
 use function in_array;
@@ -23,7 +26,7 @@ final class PublicPropertyTypeValidator
      * @param class-string $class
      * @throws ReflectionException
      */
-    public static function validate(string $class, ReflectionProperty $property): FieldValueConverter|DecodeError
+    public static function validate(string $class, ReflectionProperty $property): Node|DecodeError
     {
         $field = $property->getName();
         $type = $property->getType();
@@ -45,16 +48,12 @@ final class PublicPropertyTypeValidator
             }
         }
 
-        $collection = FieldTypeResolver::resolve($class, $property);
-
-        if ($collection instanceof DecodeError) {
-            return $collection;
+        $plain = FieldTypeNameResolver::isPlainType($property, $type);
+        if (!$plain) {
+            return new TypeCompiler($class)->field($property, $type);
         }
-
-        $literal = FieldTypeResolver::literal($property);
-        return $literal
-            ? PhpDocLiteralFieldType::converter($property, $collection)
-            : new FieldValueConverter($property, $collection);
+        assert($type instanceof ReflectionNamedType, description: 'Plain types are named types.');
+        return new ScalarNode($class, $type->getName(), $type->allowsNull());
     }
 
     /** @param class-string $class */

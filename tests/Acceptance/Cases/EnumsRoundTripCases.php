@@ -31,5 +31,10 @@ final class EnumsRoundTripCases
             StringBackedStatus::Ready,
             IntBackedStatus::Pending,
         )];
+        yield 'nullable backed enum field accepts null' => [new BackedEnumFields(
+            StringBackedStatus::Pending,
+            null,
+            IntBackedStatus::Ready,
+        )];
     }
 }

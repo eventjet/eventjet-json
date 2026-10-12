@@ -5,37 +5,41 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Node\Node;
+use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionClass;
 use ReflectionException;
-use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
 
+use function enum_exists;
 use function sprintf;
 
 /** @internal */
-readonly class ConstructorParameter
+final readonly class ConstructorParameter
 {
-    /** @var class-string */
-    public string $class;
     public string $name;
     public ReflectionType|null $type;
     public string $typeName;
     public bool $builtin;
     private bool $variadic;
     private bool $recoverable;
+    /** @var class-string */
+    private string $class;
+
+    /** Whether the native type check is the whole check. Such parameters need no compiler. */
+    public bool $plain;
 
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
      * @throws ReflectionException
      */
-    final public function __construct(
+    public function __construct(
         public ReflectionParameter $reflection,
         ReflectionClass $class,
     ) {
-        $this->class = $class->getName();
         $this->name = $reflection->getName();
         $this->type = $reflection->getType();
         $this->typeName = $this->type instanceof ReflectionNamedType
@@ -43,41 +47,21 @@ readonly class ConstructorParameter
             : (string) $this->type;
         $this->builtin = $this->type instanceof ReflectionNamedType && $this->type->isBuiltin();
         $this->variadic = $reflection->isVariadic();
-        $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
+        $property = $class->hasProperty($this->name) ? $class->getProperty($this->name) : null;
         $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
-    }
-
-    /** @return array<string, class-string<ConstructorParameter>> */
-    public static function parameterClasses(ReflectionMethod|null $constructor): array
-    {
-        $docComment = (string) $constructor?->getDocComment();
-        $mayDeclareLiteral = FieldTypeNameResolver::mayDeclareLiteral($docComment);
-        return $mayDeclareLiteral ? PhpDocLiteralTags::parameters($docComment) : [];
+        $this->class = $class->getName();
+        $this->plain = FieldTypeNameResolver::isPlainType($reflection, $this->type);
     }
 
     /**
-     * @template T of object
-     * @param ReflectionClass<T> $class
+     * Returns the node that converts the argument, or null if the argument needs only its native type check. Without a
+     * compiler, the argument gets only its native type check.
+     *
      * @throws ReflectionException
      */
-    public static function create(ReflectionParameter $reflection, ReflectionClass $class): static
+    public function resolveType(TypeCompiler|null $compiler): Node|DecodeError|null
     {
-        return new static($reflection, $class);
-    }
-
-    /** @throws ReflectionException */
-    public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
-    {
-        $collection = $resolved === false ? null : $resolved;
-        return $this->builtin && $collection === null ? null : new FieldValueConverter($this->reflection, $collection);
-    }
-
-    /**
-     * @param class-string $class
-     * @throws ReflectionException
-     */
-    public function resolveType(string $class): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null
-    {
+        $class = $this->class;
         if ($this->variadic) {
             return DecodeError::nonInstantiableTarget($class, sprintf(
                 'Constructor parameter %s is variadic. JSON members bind to individual named arguments, not variadic argument lists.',
@@ -93,9 +77,9 @@ readonly class ConstructorParameter
                 '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
             );
         }
-        $resolved = $this->declaration($class);
-        if ($resolved instanceof DecodeError) {
-            return $resolved;
+        $node = $compiler?->field($this->reflection, $this->type);
+        if ($node instanceof DecodeError) {
+            return $node;
         }
         if (!$this->recoverable) {
             return DecodeError::nonInstantiableTarget($class, sprintf(
@@ -103,21 +87,21 @@ readonly class ConstructorParameter
                 $this->name,
             ));
         }
-        return $resolved;
+        return $node instanceof ScalarNode ? null : $node;
     }
 
     /**
-     * @param class-string $class
-     * @throws ReflectionException
+     * Returns the native type check of the argument as type name, and the type that errors report if the argument
+     * accepts null. Unions and enums have none, because their nodes check the value.
+     *
+     * @return array{string, string|null}|null
      */
-    protected function declaration(string $class): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null
+    public function nativeCheck(): array|null
     {
-        $plainType = FieldTypeNameResolver::isPlainType($this->type);
-        if ($plainType) {
-            return false;
+        $type = $this->type;
+        if (!$type instanceof ReflectionNamedType || !$this->builtin && enum_exists($this->typeName)) {
+            return null;
         }
-        return $this->type instanceof ReflectionNamedType
-            ? FieldTypeValidator::validateNamedType($class, $this->reflection, $this->type)
-            : FieldTypeValidator::validate($class, $this->reflection);
+        return [$this->typeName, $type->allowsNull() ? FieldTypeNameResolver::withNull($this->typeName) : null];
     }
 }

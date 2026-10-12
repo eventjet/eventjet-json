@@ -5,17 +5,14 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\CompiledHydrators;
-use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ScalarHydratorCompiler;
-use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\DefaultedConstructorFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
@@ -37,18 +34,17 @@ use stdClass;
 
 #[CoversClass(CompiledHydrators::class)]
 #[CoversClass(ConstructorPlan::class)]
-#[CoversClass(ObjectHydrator::class)]
+#[CoversClass(ClassDecoders::class)]
 #[CoversClass(ScalarHydratorCompiler::class)]
-#[UsesClass(\Eventjet\Json\Internal\BackedEnumValueConverter::class)]
-#[UsesClass(ConstructorDecoder::class)]
-#[UsesClass(\Eventjet\Json\Internal\FieldValueConverter::class)]
-#[UsesClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
+#[UsesClass(\Eventjet\Json\Internal\Node\EnumNode::class)]
+#[UsesClass(\Eventjet\Json\Internal\Node\NullableNode::class)]
+#[UsesClass(\Eventjet\Json\Internal\TypeCompiler::class)]
+#[UsesClass(\Eventjet\Json\Internal\ClassDecoder::class)]
+#[UsesClass(\Eventjet\Json\Internal\ConstructorParameter::class)]
 #[UsesClass(DecodeError::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(RootTypeValidator::class)]
-#[UsesClass(ValueTypeMatcher::class)]
 #[UsesClass(PublicProperties::class)]
 final class ScalarHydratorCompilerTest extends TestCase
 {
@@ -144,41 +140,41 @@ final class ScalarHydratorCompilerTest extends TestCase
         $original = new DefaultedConstructorFields('required', 'explicit', null);
         $input = self::input(\get_object_vars($original));
         for ($index = 0; $index < 129; ++$index) {
-            static::assertEquals($original, ObjectHydrator::hydrate($class, $input));
+            static::assertEquals($original, ClassDecoders::hydrate($class, $input));
         }
-        static::assertEquals($original, ObjectHydrator::hydrate($class, $input));
+        static::assertEquals($original, ClassDecoders::hydrate($class, $input));
         static::assertEquals($original, CompiledHydrators::hydrate($class, $input));
         static::assertEquals(
             new DefaultedConstructorFields('required'),
-            ObjectHydrator::hydrate($class, self::input([
+            ClassDecoders::hydrate($class, self::input([
                 'required' => 'required',
                 'ignored' => 'not a constructor argument',
             ])),
         );
         static::assertEquals(
             DecodeError::fieldTypeMismatch($class, 'nested.required', 'string', false),
-            ObjectHydrator::hydrate(
+            ClassDecoders::hydrate(
                 $class,
                 self::input(['required' => false, 'label' => 'explicit', 'nullableCount' => null]),
                 'nested',
             ),
         );
-        static::assertInstanceOf(DecodeError::class, ObjectHydrator::hydrate($class, new stdClass()));
+        static::assertInstanceOf(DecodeError::class, ClassDecoders::hydrate($class, new stdClass()));
 
         $class = ScalarConstructorGuard::class;
         $expected = new ScalarConstructorGuard(0);
         for ($index = 0; $index < 129; ++$index) {
-            static::assertEquals($expected, ObjectHydrator::hydrate($class, self::input(['value' => 0])));
+            static::assertEquals($expected, ClassDecoders::hydrate($class, self::input(['value' => 0])));
         }
         $before = ScalarConstructorGuard::$calls;
-        static::assertEquals($expected, ObjectHydrator::hydrate($class, self::input([
+        static::assertEquals($expected, ClassDecoders::hydrate($class, self::input([
             'value' => 0,
         ])));
         $expected->value = 1;
-        static::assertEquals($expected, ObjectHydrator::hydrate($class, self::input([
+        static::assertEquals($expected, ClassDecoders::hydrate($class, self::input([
             'value' => 1,
         ])));
-        $error = ObjectHydrator::hydrate($class, self::input(['value' => -1]));
+        $error = ClassDecoders::hydrate($class, self::input(['value' => -1]));
         static::assertInstanceOf(DecodeError::class, $error);
         static::assertSame(ScalarConstructorGuard::exception(), $error->getPrevious());
         static::assertSame($before + 3, ScalarConstructorGuard::$calls);
@@ -216,18 +212,18 @@ final class ScalarHydratorCompilerTest extends TestCase
         $scalar = new ScalarFields('value', 1, 1.5, true);
         $nullable = new NullableScalarFields(null, null, null, null, null);
         $enums = new BackedEnumFields(StringBackedStatus::Ready, StringBackedStatus::Pending, IntBackedStatus::Ready);
-        static::assertEquals($scalar, ObjectHydrator::hydrate($scalar::class, self::input(\get_object_vars($scalar))));
-        static::assertEquals($nullable, ObjectHydrator::hydrate(
+        static::assertEquals($scalar, ClassDecoders::hydrate($scalar::class, self::input(\get_object_vars($scalar))));
+        static::assertEquals($nullable, ClassDecoders::hydrate(
             $nullable::class,
             self::input(\get_object_vars($nullable)),
         ));
         $enumInput = self::input(['stringStatus' => 'ready', 'nullableStatus' => 'pending', 'intStatus' => 1]);
-        static::assertEquals($enums, ObjectHydrator::hydrate($enums::class, $enumInput));
+        static::assertEquals($enums, ClassDecoders::hydrate($enums::class, $enumInput));
 
-        /** @var array<class-string, true> $scalarPlans */
-        $scalarPlans = new ReflectionProperty(ObjectHydrator::class, 'scalarPlans')->getValue();
-        static::assertArrayHasKey($scalar::class, $scalarPlans);
-        static::assertArrayHasKey($nullable::class, $scalarPlans);
-        static::assertArrayNotHasKey($enums::class, $scalarPlans);
+        /** @var array<class-string, true> $scalarClasses */
+        $scalarClasses = new ReflectionProperty(ClassDecoders::class, 'scalarClasses')->getValue();
+        static::assertArrayHasKey($scalar::class, $scalarClasses);
+        static::assertArrayHasKey($nullable::class, $scalarClasses);
+        static::assertArrayNotHasKey($enums::class, $scalarClasses);
     }
 }

@@ -19,21 +19,21 @@ use function strtolower;
 /** @internal */
 final class PhpDocConstantResolver
 {
-    /** @throws ReflectionException */
-    public static function itemType(
-        ReflectionParameter|ReflectionProperty $field,
-        string $name,
-    ): string|CollectionUnionType|null {
+    /**
+     * Returns the literal names that a PHPDoc name stands for: itself if it is a literal, or the values of the
+     * constants it refers to. Returns null if it is neither.
+     *
+     * @return non-empty-list<string>|null
+     * @throws ReflectionException
+     */
+    public static function literals(ReflectionParameter|ReflectionProperty $field, string $name): array|null
+    {
         $literal = in_array($name, ['null', 'true', 'false'], strict: true) || PhpDocLiteral::value($name) !== null;
-        if ($literal) {
-            return $name;
-        }
-        $constants = self::resolve($field, $name);
-        return $constants === null ? null : new CollectionUnionType($constants);
+        return $literal ? [$name] : self::resolve($field, $name);
     }
 
     /**
-     * @return list<string>|null
+     * @return non-empty-list<string>|null
      * @throws ReflectionException
      */
     private static function resolve(ReflectionParameter|ReflectionProperty $field, string $name): array|null

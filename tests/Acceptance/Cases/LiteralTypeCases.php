@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\ExtendedLiteralFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralConstantFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralProperties;
+use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\SingleLiteralFields;
 
 /** @internal */
@@ -30,6 +32,20 @@ final class LiteralTypeCases
         yield 'PHPDoc true field' => [new LiteralFields(true)];
         yield 'PHPDoc false field' => [new LiteralFields(false)];
         yield 'nullable literal field' => [new LiteralFields(null)];
+        foreach (['param', 'var'] as $tag) {
+            yield 'literal collection union keeps other native members ' . $tag => [
+                CollectionDeclarationFixture::object('array|string|int', "list<42>|'foo'|int", $tag, 7),
+            ];
+            yield 'collection union keeps every named native member ' . $tag => [
+                CollectionDeclarationFixture::object('array|string|int', 'list<42>|string|int', $tag, 7),
+            ];
+            yield 'ordinary PHPDoc does not narrow a native union ' . $tag => [
+                CollectionDeclarationFixture::object('int|string|null', 'null|int', $tag, 'abc'),
+            ];
+            yield 'unknown names leave a literal declaration unchecked ' . $tag => [
+                CollectionDeclarationFixture::object('string', "UnknownLiteralClass|'x'", $tag, 'y'),
+            ];
+        }
         $properties = new LiteralProperties();
         $properties->value = 42;
         $properties->items = ['foo', 42, true, false, null];
@@ -67,6 +83,7 @@ final class LiteralTypeCases
                 ];
             }
         }
+        yield from self::collectionUnionErrors();
         yield 'null constant rejects non-null value' => [
             '{"nothing":true}',
             LiteralConstantFields::class,
@@ -155,5 +172,37 @@ final class LiteralTypeCases
                 . ' from the JSON object: Field tuple[0] must be of type true, bool given.',
             3,
         ];
+    }
+
+    /**
+     * @return iterable<string, array{string, class-string, string, int}>
+     * @throws \RuntimeException
+     */
+    private static function collectionUnionErrors(): iterable
+    {
+        foreach (['param', 'var'] as $tag) {
+            $class = CollectionDeclarationFixture::create('array|string', "list<42>|'foo'", $tag);
+            yield 'literal collection union member rejects other strings ' . $tag => [
+                '{"value":"bar"}',
+                $class,
+                'Could not create '
+                    . $class
+                    . " from the JSON object: Field value must be of type list<42>|'foo', string given.",
+                3,
+            ];
+            $class = CollectionDeclarationFixture::create(
+                'array',
+                'list<\\' . Coordinates::class . '|\\' . Person::class . '|1|1.0>',
+                $tag,
+            );
+            yield 'literal overlap errors precede class union errors ' . $tag => [
+                '{}',
+                $class,
+                'Could not create '
+                    . $class
+                    . ' from the JSON object: Field value has overlapping literal union members. JSON cannot identify which PHP type to restore.',
+                3,
+            ];
+        }
     }
 }
