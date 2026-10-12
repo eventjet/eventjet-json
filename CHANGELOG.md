@@ -17,6 +17,9 @@ PHP types and JSON object/array shapes intact. See the [type reference](docs/typ
   and `false` fields, and public properties outside the constructor, including inherited ones.
 - PHPDoc collection declarations: `list<T>`, `non-empty-list<T>`, positional tuples such as `array{int, string}`, and
   maps declared as `non-empty-array<string, T>` or `ArrayObject<string, T>`. Collections can nest in any combination.
+- PHPDoc literal types restrict a field to specific values, such as `@param 'open'|'done' $state` or
+  `@param 1|2|3 $priority`. Strings, integers, floats, `true`, `false`, constants, class-constant wildcards such as
+  `self::STATE_*`, and backed enum cases work, also inside collections such as `list<'red'|'green'>`.
 - `JsonType::array()` and `JsonType::map()` describe JSON arrays and objects at the root:
   `Json::decode($json, JsonType::array(Person::class))`.
 - `Json::validateType()` checks a class and every class reachable from it without JSON input, so unit tests can catch
@@ -38,6 +41,8 @@ PHP types and JSON object/array shapes intact. See the [type reference](docs/typ
 - **BREAKING**: `#[Field]` now requires the class to implement `JsonSerializable` and serialize the mapped names, for
   example with `MappedJsonFields`. Without that, `json_encode()` would write the PHP names and the result could not be
   decoded again.
+- **BREAKING**: `Json::decode()` enforces PHPDoc literal types. 0.2.0 ignored PHPDoc, so `@param 'open'|'done' $state`
+  accepted any string.
 - **BREAKING**: Declarations that cannot round-trip are rejected with a `DecodeError`, even when the member is missing
   from the JSON:
   - `mixed`, untyped, `object`, and `stdClass` fields. In 0.2.0, `mixed` accepted any value.
@@ -47,6 +52,8 @@ PHP types and JSON object/array shapes intact. See the [type reference](docs/typ
   - Nested classes that are not final, interfaces, abstract classes, and intersection types.
   - Constructor parameters without a public instance property of the same name.
   - Unions that JSON cannot tell apart, such as two classes, or an enum with its own backing type.
+  - Literal unions that cannot restore the original PHP type, such as `1|1.0`, or an enum case with its own backing
+    value.
 
 ### Removed
 
@@ -80,6 +87,9 @@ public array $members;
 
 Classes that keep `#[Field]` need to implement `JsonSerializable`; adding `use MappedJsonFields;` is enough. Where you
 can, rename the property to match the JSON name instead.
+
+If your classes already declare PHPDoc literal types, check that producers only send the declared values. Any other
+value now returns a `DecodeError`.
 
 Add a `Json::validateType()` assertion for each class you decode into. It reports declarations this release rejects
 without waiting for a payload to reach them.
