@@ -47,13 +47,13 @@ final readonly class NodeCompiler
      */
     public function field(PhpDocType $type, string $path, string|null $label = null): Node|DecodeError|null
     {
-        $union = $type->name === '|' ? $this->members($type->arguments, $path) : $this->compile($type, $path);
-        $nullable = $union instanceof UnionBuilder ? $union->nullable() : null;
+        $inner = $type->withoutNull();
+        $node = $inner === null ? null : $this->compile($inner, $path);
         return match (true) {
-            !$union instanceof UnionBuilder => $union,
-            $nullable instanceof ObjectNode => new ObjectNode($this->class, $nullable->target, nullable: true),
-            $nullable instanceof UncheckedNode => $nullable,
-            default => $this->union($union, $label),
+            $node instanceof ObjectNode => new ObjectNode($this->class, $node->target, nullable: true),
+            $node instanceof UncheckedNode => $node,
+            $type->name === '|' => self::nullable($node) ?? $this->union($type->arguments, $path, $label),
+            default => $this->compile($type, $path),
         };
     }
 
@@ -62,7 +62,7 @@ final readonly class NodeCompiler
     {
         $arguments = $type->arguments;
         return match ($type->name) {
-            '|' => $this->nested($arguments, $path),
+            '|' => $this->nested($type, $path),
             '&' => DecodeError::unsupportedIntersection(
                 $this->class,
                 $path,
@@ -76,11 +76,20 @@ final readonly class NodeCompiler
         };
     }
 
+    /** @throws ReflectionException */
+    private function nested(PhpDocType $type, string $path): Node|DecodeError|null
+    {
+        $inner = $type->withoutNull();
+        $nullable = self::nullable($inner === null ? null : $this->compile($inner, $path));
+        return $nullable ?? $this->union($type->arguments, $path, null);
+    }
+
     /**
      * @param list<PhpDocType> $members
+     * @param string|null $label The type that errors report, if it differs from the member types.
      * @throws ReflectionException
      */
-    private function members(array $members, string $path): UnionBuilder|DecodeError|null
+    private function union(array $members, string $path, string|null $label): Node|DecodeError|null
     {
         $union = new UnionBuilder($this->class, $path);
         foreach ($members as $member) {
@@ -95,34 +104,19 @@ final readonly class NodeCompiler
             }
             $union->add($node);
         }
-        return $union;
+        return $union->build($label);
     }
 
-    /**
-     * @param list<PhpDocType> $members
-     * @throws ReflectionException
-     */
-    private function nested(array $members, string $path): Node|DecodeError|null
+    /** A collection or enum that may be null checks for null before its own checks. */
+    private static function nullable(Node|DecodeError|null $node): NullableNode|null
     {
-        $union = $this->members($members, $path);
-        return $union instanceof UnionBuilder ? $this->union($union, null) : $union;
-    }
-
-    /**
-     * A collection or enum that may be null checks for null before its own checks.
-     *
-     * @throws ReflectionException
-     */
-    private function union(UnionBuilder $union, string|null $label): Node|DecodeError
-    {
-        $nullable = $union->nullable();
         return match (true) {
-            $nullable instanceof EnumNode,
-            $nullable instanceof ListNode,
-            $nullable instanceof MapNode,
-            $nullable instanceof TupleNode,
-                => new NullableNode($nullable),
-            default => $union->build($label),
+            $node instanceof EnumNode,
+            $node instanceof ListNode,
+            $node instanceof MapNode,
+            $node instanceof TupleNode,
+                => new NullableNode($node),
+            default => null,
         };
     }
 

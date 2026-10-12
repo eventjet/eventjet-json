@@ -38,13 +38,14 @@ final readonly class TypeCompiler
     {
         $native = self::tree($field, $type);
         $declared = self::declared($field, $native);
-        $resolved = $declared === null ? null : new PhpDocTypeResolver($field)->resolve($declared);
-        $doc = PhpDocNarrowing::narrowing($resolved, $native);
+        $doc = $declared === null
+            ? null
+            : PhpDocNarrowing::narrowing(new PhpDocTypeResolver($field)->resolve($declared), $native);
         $node = $doc === null
             ? $this->native($field, $type, $native)
             : new NodeCompiler($this->class)->field($doc, $field->getName());
         $literal =
-            $node instanceof Node && $declared !== null && $resolved === null
+            $node instanceof Node && $declared !== null && $doc === null
                 ? new PhpDocTypeResolver($field)->unresolvedLiteral($declared)
                 : null;
         return match (true) {

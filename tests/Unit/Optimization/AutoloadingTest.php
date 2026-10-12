@@ -44,7 +44,7 @@ use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
 use Eventjet\Json\Internal\PhpDocImportStatement;
 use Eventjet\Json\Internal\PhpDocLiteral;
-use Eventjet\Json\Internal\PhpDocLiteralString;
+use Eventjet\Json\Internal\PhpDocLiteralNumber;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
 use Eventjet\Json\Internal\PhpDocNarrowing;
 use Eventjet\Json\Internal\PhpDocTokenStream;
@@ -135,7 +135,7 @@ use function spl_autoload_unregister;
 #[UsesClass(PhpDocExtendedTypeParser::class)]
 #[UsesClass(PhpDocExtendedTypeTokens::class)]
 #[UsesClass(PhpDocLiteral::class)]
-#[UsesClass(PhpDocLiteralString::class)]
+#[UsesClass(PhpDocLiteralNumber::class)]
 #[CoversClass(UnionNode::class)]
 #[UsesClass(ArrayJsonType::class)]
 #[UsesClass(ClassDecoder::class)]
@@ -172,10 +172,13 @@ final class AutoloadingTest extends TestCase
         $status = new class(StringBackedStatus::Ready) {
             public function __construct(
                 public StringBackedStatus $status,
+                public StringBackedStatus|null $previous = null,
             ) {}
         };
         static::assertEquals($status, ClassDecoders::hydrate($status::class, JsonObject::of(['status' => 'ready'])));
         static::assertFalse(class_exists(PhpDocTypeResolver::class, autoload: false));
+        static::assertFalse(class_exists(PhpDocNarrowing::class, autoload: false));
+        static::assertFalse(class_exists(UnionBuilder::class, autoload: false));
         $ordinary = new class(new EmptyObject()) {
             /** @param \Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject $object */
             public function __construct(
@@ -196,6 +199,7 @@ final class AutoloadingTest extends TestCase
         $collectionInput = new stdClass();
         $collectionInput->values = [42];
         static::assertEquals($collection, ClassDecoders::hydrate($collection::class, $collectionInput));
+        static::assertFalse(class_exists(PhpDocClassNameResolver::class, autoload: false));
         static::assertFalse(class_exists(PhpDocConstantResolver::class, autoload: false));
         static::assertFalse(class_exists(LiteralNode::class, autoload: false));
         static::assertFalse(class_exists(PhpDocLiteral::class, autoload: false));

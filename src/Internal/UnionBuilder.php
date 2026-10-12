@@ -7,7 +7,6 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
-use Eventjet\Json\Internal\Node\NullOnlyNode;
 use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
@@ -57,17 +56,6 @@ final class UnionBuilder
     {
         $this->types[$type] = null;
         $this->rejected ??= $error;
-    }
-
-    /** Returns the member other than null, if the union consists of exactly one such member and null. */
-    public function nullable(): Node|null
-    {
-        $members = $this->members();
-        $others = array_values(array_filter(
-            $members,
-            static fn(Node $member): bool => !$member instanceof NullOnlyNode,
-        ));
-        return count($members) === 2 && count($others) === 1 && $this->rejected === null ? $others[0] : null;
     }
 
     /**
