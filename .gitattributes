@@ -1,13 +1,19 @@
 * text=auto eol=lf
 
-/.github/ export-ignore
+/.dockerignore export-ignore
 /.gitattributes export-ignore
+/.github/ export-ignore
 /.gitignore export-ignore
 /AGENTS.md export-ignore
-/mago.toml export-ignore
+/benchmarks/ export-ignore
+/compose.yaml export-ignore
+/CONTRIBUTING.md export-ignore
+/Dockerfile export-ignore
+/docs/research/ export-ignore
 /infection.json export-ignore
-/tests/ export-ignore
-/phpcs.xml export-ignore
+/mago.toml export-ignore
+/phpbench.json export-ignore
 /phpstan.neon export-ignore
 /phpunit.xml export-ignore
 /psalm.xml export-ignore
+/tests/ export-ignore
