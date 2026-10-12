@@ -7,7 +7,7 @@ make this package responsible for maintaining JSON syntax and numeric behavior.
 This decision is separate from the internal parser for PHPDoc types.
 
 The current [decode entry point](../../src/Json.php) validates the complete document
-before [hydration](../../src/Internal/ObjectHydrator.php) invokes any target constructor.
+before [hydration](../../src/Internal/ClassDecoders.php) invokes any target constructor.
 Malformed content in an ignored member or after the root therefore returns an
 invalid-JSON error before construction or field validation. A container probe
 confirmed zero child constructor calls for both cases, including a document with
