@@ -9,44 +9,36 @@ use Eventjet\Json\Field;
 use JsonSerializable;
 use ReflectionClass;
 use ReflectionProperty;
-use Throwable;
 
 use function array_combine;
+use function array_filter;
 use function array_flip;
 use function array_keys;
 use function array_map;
-use function count;
-use function sprintf;
+use function array_push;
 
-/** @internal */
+/**
+ * Resolves the JSON names that #[Field] gives to the properties of a class, once per class.
+ *
+ * @internal
+ */
 final class FieldNames
 {
+    /** @var array<class-string, array<string, string>> */
+    private static array $names = [];
+
     /**
+     * Returns the JSON names of the renamed properties, keyed by property name. All other properties use their own
+     * names in JSON.
+     *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @param list<ReflectionProperty> $properties
      * @return array<string, string>|DecodeError
      * @phpstan-impure
      */
-    public static function resolve(ReflectionClass $class, array $properties): array|DecodeError
+    public static function of(ReflectionClass $class): array|DecodeError
     {
-        $className = $class->getName();
-        try {
-            $names = self::discover($class, $properties);
-        } catch (Throwable $error) {
-            return DecodeError::cannotInstantiate($className, $error);
-        }
-        if ($names instanceof DecodeError) {
-            return $names;
-        }
-        if (!$class->implementsInterface(JsonSerializable::class)) {
-            return DecodeError::nonInstantiableTarget(
-                $className,
-                '#[Field] requires the target class to implement JsonSerializable.',
-            );
-        }
-        $collision = FieldNameCollisions::validate($class, $names);
-        return $collision ?? $names;
+        return self::$names[$class->getName()] ?? self::resolve($class);
     }
 
     /**
@@ -68,29 +60,40 @@ final class FieldNames
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @param list<ReflectionProperty> $properties
      * @return array<string, string>|DecodeError
      */
-    private static function discover(ReflectionClass $class, array $properties): array|DecodeError
+    private static function resolve(ReflectionClass $class): array|DecodeError
     {
-        $names = [];
-        foreach ($properties as $property) {
-            $attributes = $property->getAttributes(Field::class);
-            $name = $property->getName();
-            if (($property->getModifiers() & ReflectionProperty::IS_PUBLIC) === 0 || $property->isStatic()) {
-                return DecodeError::nonInstantiableTarget($class->getName(), sprintf(
-                    '#[Field] requires a public instance property; %s is not one.',
-                    $name,
-                ));
-            }
-            if (count($attributes) !== 1) {
-                return DecodeError::nonInstantiableTarget($class->getName(), sprintf(
-                    'Property %s must not repeat #[Field].',
-                    $name,
-                ));
-            }
-            $names[$name] = $attributes[0]->newInstance()->name;
+        $className = $class->getName();
+        $properties = $class->getProperties();
+        $annotated = array_filter(
+            [...$properties, ...self::privateAncestorProperties($class)],
+            static fn(ReflectionProperty $property): bool => $property->getAttributes(Field::class) !== [],
+        );
+        if ($annotated === []) {
+            return $class->implementsInterface(JsonSerializable::class)
+                ? DecodeError::jsonSerializableTarget($className)
+                : (self::$names[$className] = []);
         }
-        return $names;
+        $names = FieldNameRules::resolve($class, $properties, $annotated);
+        return $names instanceof DecodeError ? $names : (self::$names[$className] = $names);
+    }
+
+    /**
+     * Returns the private properties of all ancestors, which reflection leaves out of the properties of the class.
+     *
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @return list<ReflectionProperty>
+     */
+    private static function privateAncestorProperties(ReflectionClass $class): array
+    {
+        $properties = [];
+        $parent = $class->getParentClass();
+        while ($parent !== false) {
+            array_push($properties, ...$parent->getProperties(ReflectionProperty::IS_PRIVATE));
+            $parent = $parent->getParentClass();
+        }
+        return $properties;
     }
 }

@@ -18,7 +18,7 @@ use Eventjet\Json\Internal\CollectionUnionNatives;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\DecodeErrorKind;
-use Eventjet\Json\Internal\FieldNameCollisions;
+use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
@@ -142,8 +142,8 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(Field::class)]
 #[CoversMethod(MappedJsonFields::class, 'jsonSerialize')]
 #[CoversClass(MappedObjectSerializer::class)]
-#[CoversClass(FieldNameCollisions::class)]
 #[CoversClass(FieldNames::class)]
+#[CoversClass(FieldNameRules::class)]
 #[CoversClass(CollectionUnionCompiler::class)]
 #[CoversClass(CollectionUnionNatives::class)]
 #[CoversClass(DecodeErrorKind::class)]

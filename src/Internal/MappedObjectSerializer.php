@@ -19,7 +19,7 @@ final class MappedObjectSerializer
      */
     public static function serialize(object $object): object
     {
-        $names = RootTypeValidator::fieldNames(new ReflectionClass($object));
+        $names = FieldNames::of(new ReflectionClass($object));
         if ($names instanceof DecodeError) {
             throw $names;
         }

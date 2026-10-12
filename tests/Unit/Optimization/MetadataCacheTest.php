@@ -17,7 +17,7 @@ use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\DecodeErrorKind;
-use Eventjet\Json\Internal\FieldNameCollisions;
+use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
@@ -101,8 +101,8 @@ use function class_alias;
 #[UsesClass(PhpDocTypeTokens::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
-#[UsesClass(FieldNameCollisions::class)]
 #[UsesClass(FieldNames::class)]
+#[UsesClass(FieldNameRules::class)]
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]
 #[UsesClass(EnumNode::class)]

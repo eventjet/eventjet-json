@@ -10,6 +10,7 @@ use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\CollectionCompiler;
 use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\CollectionUnionNatives;
+use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\LiteralFieldCompiler;
 use Eventjet\Json\Internal\NativeUnionCompiler;
@@ -103,6 +104,7 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocTypeTokens::class)]
 #[UsesClass(PhpDocUnionCompiler::class)]
 #[UsesClass(RootTypeValidator::class)]
+#[UsesClass(FieldNames::class)]
 #[UsesClass(ScalarItems::class)]
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(TypeCompiler::class)]

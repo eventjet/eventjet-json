@@ -17,7 +17,7 @@ use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\DecodeErrorKind;
-use Eventjet\Json\Internal\FieldNameCollisions;
+use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
@@ -81,11 +81,11 @@ use stdClass;
 #[CoversClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(FieldNames::class)]
+#[CoversClass(FieldNameRules::class)]
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(PublicProperties::class)]
 #[CoversClass(PublicPropertyValues::class)]
-#[CoversClass(FieldNameCollisions::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]

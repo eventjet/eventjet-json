@@ -53,7 +53,7 @@ final readonly class ClassDecoder
         if ($error !== null) {
             return $error;
         }
-        $names = RootTypeValidator::fieldNames($class);
+        $names = FieldNames::of($class);
         assert(is_array($names), description: 'The target validation rejects invalid field names.');
         $constructor = self::constructor($class, $names);
         if ($constructor instanceof DecodeError) {

@@ -18,7 +18,7 @@ use Eventjet\Json\Internal\CollectionUnionNatives;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\DecodeErrorKind;
-use Eventjet\Json\Internal\FieldNameCollisions;
+use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
@@ -102,8 +102,8 @@ use function spl_autoload_unregister;
 #[CoversClass(PublicPropertyValues::class)]
 #[UsesClass(Field::class)]
 #[UsesClass(ValueTypeMatcher::class)]
-#[UsesClass(FieldNameCollisions::class)]
 #[CoversClass(FieldNames::class)]
+#[CoversClass(FieldNameRules::class)]
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]
 #[UsesClass(CollectionUnionNatives::class)]
@@ -369,8 +369,8 @@ final class AutoloadingTest extends TestCase
             [EmptyObject::class, []],
         ] as [$name, $expected]) {
             $class = new PropertyCountingReflection($name);
-            static::assertSame($expected, RootTypeValidator::fieldNames($class));
-            static::assertSame($expected, RootTypeValidator::fieldNames($class));
+            static::assertSame($expected, FieldNames::of($class));
+            static::assertSame($expected, FieldNames::of($class));
             static::assertSame(1, $class->propertyLookups);
             static::assertSame(1, $class->parentLookups);
         }
