@@ -56,7 +56,6 @@ use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\PublicPropertyValues;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
@@ -99,7 +98,6 @@ use function spl_autoload_unregister;
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[CoversClass(PublicProperties::class)]
-#[CoversClass(PublicPropertyValues::class)]
 #[UsesClass(Field::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[UsesClass(FieldNameCollisions::class)]
@@ -162,7 +160,6 @@ final class AutoloadingTest extends TestCase
             static::assertEquals($target, ClassDecoders::hydrate($target::class, JsonObject::of([
                 'value' => 'expected',
             ])));
-            static::assertFalse(class_exists(PublicPropertyValues::class, autoload: false));
             static::assertFalse(class_exists(LiteralFieldCompiler::class, autoload: false));
             static::assertFalse(class_exists(PhpDocLiteral::class, autoload: false));
             static::assertFalse(class_exists(TypeCompiler::class, autoload: false));

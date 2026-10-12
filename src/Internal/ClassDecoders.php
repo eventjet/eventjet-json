@@ -64,7 +64,7 @@ final class ClassDecoders
             }
             $assignments = $decoder->properties === []
                 ? []
-                : PublicPropertyValues::decode($decoder->properties, $values, $path);
+                : PublicProperties::decode($decoder->properties, $values, $path);
             if ($assignments instanceof DecodeError) {
                 return $assignments;
             }

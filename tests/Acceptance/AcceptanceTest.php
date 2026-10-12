@@ -54,7 +54,6 @@ use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\PublicPropertyValues;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
@@ -122,7 +121,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(PhpDocNamespaceDeclaration::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[CoversClass(PublicProperties::class)]
-#[CoversClass(PublicPropertyValues::class)]
 #[CoversClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]
