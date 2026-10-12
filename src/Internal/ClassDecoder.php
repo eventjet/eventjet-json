@@ -76,10 +76,11 @@ final readonly class ClassDecoder
         $checks = [];
         $converters = [];
         $nodes = [];
+        $compiler = new TypeCompiler($class->getName());
         foreach ($class->getConstructor()?->getParameters() ?? [] as $reflection) {
             $parameter = new ConstructorParameter($reflection, $class);
             $name = $names[$parameter->name] ?? $parameter->name;
-            $converter = $parameter->resolveType($parameter->plain ? null : new TypeCompiler($class->getName()));
+            $converter = $parameter->resolveType($compiler);
             if ($converter instanceof DecodeError) {
                 return $converter;
             }

@@ -9,11 +9,9 @@ use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
-use ReflectionType;
 
 use function class_exists;
 use function enum_exists;
-use function in_array;
 use function interface_exists;
 use function strcasecmp;
 use function strpbrk;
@@ -64,20 +62,6 @@ final class FieldTypeNameResolver
             ? $field->getDeclaringFunction()->getDocComment()
             : $field->getDocComment();
         return (string) $doc;
-    }
-
-    /**
-     * Whether the native type check is the whole check of a field: a scalar type without a PHPDoc literal. Skipping the
-     * type compiler for such fields keeps it unloaded for classes with only scalar fields.
-     */
-    public static function isPlainType(ReflectionParameter|ReflectionProperty $field, ReflectionType|null $type): bool
-    {
-        return (
-            $type instanceof ReflectionNamedType
-            && $type->isBuiltin()
-            && !in_array($type->getName(), ['array', 'mixed', 'object'], strict: true)
-            && !self::mayDeclareLiteral(self::docComment($field))
-        );
     }
 
     /** Whether a doc comment may declare a literal type. False means it certainly does not. */

@@ -28,9 +28,6 @@ final readonly class ConstructorParameter
     /** @var class-string */
     private string $class;
 
-    /** Whether the native type check is the whole check. Such parameters need no compiler. */
-    public bool $plain;
-
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
@@ -50,16 +47,14 @@ final readonly class ConstructorParameter
         $property = $class->hasProperty($this->name) ? $class->getProperty($this->name) : null;
         $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
         $this->class = $class->getName();
-        $this->plain = FieldTypeNameResolver::isPlainType($reflection, $this->type);
     }
 
     /**
-     * Returns the node that converts the argument, or null if the argument needs only its native type check. Without a
-     * compiler, the argument gets only its native type check.
+     * Returns the node that converts the argument, or null if the argument needs only its native type check.
      *
      * @throws ReflectionException
      */
-    public function resolveType(TypeCompiler|null $compiler): Node|DecodeError|null
+    public function resolveType(TypeCompiler $compiler): Node|DecodeError|null
     {
         $class = $this->class;
         if ($this->variadic) {
@@ -77,7 +72,7 @@ final readonly class ConstructorParameter
                 '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
             );
         }
-        $node = $compiler?->field($this->reflection, $this->type);
+        $node = $compiler->field($this->reflection, $this->type);
         if ($node instanceof DecodeError) {
             return $node;
         }

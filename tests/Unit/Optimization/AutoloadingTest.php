@@ -162,7 +162,6 @@ final class AutoloadingTest extends TestCase
             ])));
             static::assertFalse(class_exists(LiteralFieldCompiler::class, autoload: false));
             static::assertFalse(class_exists(PhpDocLiteral::class, autoload: false));
-            static::assertFalse(class_exists(TypeCompiler::class, autoload: false));
         }
         $status = new class(StringBackedStatus::Ready) {
             public function __construct(
@@ -349,7 +348,6 @@ final class AutoloadingTest extends TestCase
                 $property,
             ));
         }
-        static::assertFalse(class_exists(TypeCompiler::class, autoload: false));
         static::assertFalse(class_exists(LiteralFieldCompiler::class, autoload: false));
         static::assertFalse(class_exists(PhpDocLiteral::class, autoload: false));
     }
