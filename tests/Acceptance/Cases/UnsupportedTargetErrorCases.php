@@ -83,16 +83,16 @@ final class UnsupportedTargetErrorCases
         yield 'list item type cannot be an interface' => [
             '[]',
             JsonType::array(RootTargetInterface::class),
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface from the JSON object: Field [] uses interface Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface from the JSON object: Target type is an interface. JSON does not identify a concrete implementation to instantiate.',
             3,
         ];
         yield 'list item type cannot be an abstract class' => [
             '[]',
             JsonType::array(AbstractRootTarget::class),
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget from the JSON object: Field [] uses abstract class Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget from the JSON object: Target type is an abstract class. JSON does not identify a concrete subclass to instantiate.',
             3,
         ];
-        $nonFinal = 'Could not create Eventjet\Json\Test\Acceptance\Fixtures\InheritedPublicProperty from the JSON object: Field [] uses non-final class Eventjet\Json\Test\Acceptance\Fixtures\InheritedPublicProperty. Values may be subclasses, whose runtime class JSON does not identify.';
+        $nonFinal = 'Could not create Eventjet\Json\Test\Acceptance\Fixtures\InheritedPublicProperty from the JSON object: Target type is a non-final class. Collection items may be subclasses, whose runtime class JSON does not identify.';
         yield 'list item type cannot be a non-final class' => [
             '[]',
             JsonType::array(InheritedPublicProperty::class),

@@ -69,14 +69,35 @@ final readonly class RootDescriptor
 
     public function validate(): DecodeError|null
     {
-        $class = $this->itemClass;
         try {
-            return (
-                ClassFieldTypeValidator::validate($class, '[]', $class) ?? new ClassGraphValidator()->validate($class)
-            );
+            $node = $this->node();
+            return $node instanceof DecodeError ? $node : new ClassGraphValidator()->validate($this->itemClass);
         } catch (Throwable $error) {
-            return DecodeError::cannotInstantiate($class, $error);
+            return DecodeError::cannotInstantiate($this->itemClass, $error);
         }
+    }
+
+    /**
+     * Returns the node that decodes the root value, or why the item class cannot be decoded.
+     *
+     * @throws ReflectionException
+     */
+    private function node(): Node|DecodeError
+    {
+        $class = $this->itemClass;
+        $error = self::validateItem(new ReflectionClass($class));
+        if ($error !== null) {
+            return $error;
+        }
+        $enum = $class;
+        $node = enum_exists($enum) ? EnumNode::of($class, $enum) : new ObjectNode($class, $class, nullable: false);
+        assert($node !== null, description: 'Root validation rejects non-backed enums.');
+        foreach (array_reverse($this->shapes) as $shape) {
+            $node = $shape === 'array'
+                ? new ListNode($class, $node, nonEmpty: false)
+                : new MapNode($class, $node, arrayObject: true);
+        }
+        return $node;
     }
 
     /**
@@ -90,29 +111,28 @@ final readonly class RootDescriptor
         if (!$matches) {
             return DecodeError::unexpectedRootValue($value, $shape);
         }
-        $class = $this->itemClass;
         try {
-            $error = ClassFieldTypeValidator::validate($class, '[]', $class) ?? RootTypeValidator::validate(
-                new ReflectionClass($class),
-            );
-            return $error ?? $this->node()->decode($value, '');
+            $node = $this->node();
+            return $node instanceof DecodeError ? $node : $node->decode($value, '');
         } catch (Throwable $error) {
-            return DecodeError::cannotInstantiate($class, $error);
+            return DecodeError::cannotInstantiate($this->itemClass, $error);
         }
     }
 
-    /** @throws ReflectionException */
-    private function node(): Node
+    /**
+     * Unlike a root object, a collection may hold instances of subclasses, so a concrete item class must be final.
+     *
+     * @template TClass of object
+     * @param ReflectionClass<TClass> $class
+     */
+    private static function validateItem(ReflectionClass $class): DecodeError|null
     {
-        $class = $this->itemClass;
-        $enum = $class;
-        $node = enum_exists($enum) ? EnumNode::of($class, $enum) : new ObjectNode($class, $class, nullable: false);
-        assert($node !== null, description: 'Root validation rejects non-backed enums.');
-        foreach (array_reverse($this->shapes) as $shape) {
-            $node = $shape === 'array'
-                ? new ListNode($class, $node, nonEmpty: false)
-                : new MapNode($class, $node, arrayObject: true);
-        }
-        return $node;
+        $concrete = !$class->isInterface() && !$class->isAbstract();
+        return $concrete && !$class->isFinal()
+            ? DecodeError::nonInstantiableTarget(
+                $class->getName(),
+                'Target type is a non-final class. Collection items may be subclasses, whose runtime class JSON does not identify.',
+            )
+            : RootTypeValidator::validate($class);
     }
 }
