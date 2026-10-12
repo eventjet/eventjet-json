@@ -68,6 +68,14 @@ final class MapsErrorCases
                 . ' from the JSON object: Field value uses unsupported map declaration ArrayObject. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
             3,
         ];
+        yield 'ArrayObject field rejects a non-empty-array declaration' => [
+            '{}',
+            CollectionDeclarationFixture::create('\ArrayObject', 'non-empty-array<string, int>', 'var'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('\ArrayObject', 'non-empty-array<string, int>', 'var')
+                . ' from the JSON object: Field value uses unsupported map declaration ArrayObject. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
+            3,
+        ];
         yield 'non-empty map declaration rejects a third type argument' => [
             '{}',
             CollectionDeclarationFixture::create('array', 'non-empty-map<string, int, bool>', 'var'),

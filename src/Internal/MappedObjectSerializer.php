@@ -13,23 +13,15 @@ use function get_object_vars;
 /** @internal */
 final class MappedObjectSerializer
 {
-    /** @var array<class-string, array<string, string>> */
-    private static array $names = [];
-
     /**
      * @throws DecodeError
      * @throws ReflectionException
      */
     public static function serialize(object $object): object
     {
-        $class = $object::class;
-        $names = self::$names[$class] ?? null;
-        if ($names === null) {
-            $names = RootTypeValidator::fieldNames(new ReflectionClass($object));
-            if ($names instanceof DecodeError) {
-                throw $names;
-            }
-            self::$names[$class] = $names;
+        $names = RootTypeValidator::fieldNames(new ReflectionClass($object));
+        if ($names instanceof DecodeError) {
+            throw $names;
         }
         $result = [];
         /** @var array<string, array<array-key, mixed>|object|bool|int|float|string|resource|null> $properties */

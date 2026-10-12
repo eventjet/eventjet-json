@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\JsonType;
-use JsonException;
 use Override;
-use ReflectionException;
 
 /**
  * @internal
@@ -17,31 +16,28 @@ use ReflectionException;
  */
 final readonly class ArrayJsonType extends JsonType
 {
-    private ListType $collection;
-
     /** @param JsonType<T> $itemType */
     public function __construct(
         private JsonType $itemType,
-    ) {
-        $this->collection = new ListType($itemType->collectionItem(), false);
-    }
-
-    /**
-     * @return list<T>|DecodeError
-     * @throws JsonException
-     * @throws ReflectionException
-     */
-    #[Override]
-    public function decodeValue(mixed $value, string $path = ''): array|DecodeError
-    {
-        /** @var list<T>|DecodeError */
-        return CollectionValueConverter::convert($this->itemClass(), $path, $this->collection, $value);
-    }
+    ) {}
 
     #[Override]
-    public function collectionItem(): NestedCollectionType
+    public function node(string $class): ListNode
     {
-        return new NestedCollectionType($this->collection, false);
+        return new ListNode($class, $this->itemType->node($class), nonEmpty: false);
+    }
+
+    /** @return list<T>|DecodeError */
+    #[Override]
+    public function decode(mixed $value): array|DecodeError
+    {
+        return $this->node($this->itemClass())->decode($value, '');
+    }
+
+    #[Override]
+    public function rootShape(): string
+    {
+        return 'array';
     }
 
     /** @return class-string */

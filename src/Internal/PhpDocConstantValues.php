@@ -44,7 +44,7 @@ final class PhpDocConstantValues
     }
 
     /**
-     * @return list<string>|null
+     * @return non-empty-list<string>|null
      * @throws ReflectionException
      */
     public static function resolve(string $class, string $member): array|null

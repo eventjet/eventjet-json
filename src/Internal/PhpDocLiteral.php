@@ -9,8 +9,6 @@ use BackedEnum;
 use function constant;
 use function defined;
 use function enum_exists;
-use function is_float;
-use function is_int;
 use function preg_match;
 use function strstr;
 
@@ -34,21 +32,5 @@ final class PhpDocLiteral
         }
         $quoted = preg_match('/\A[\x27"]/', $name) === 1;
         return $quoted ? PhpDocLiteralString::parse($name) : PhpDocLiteralNumber::parse($name);
-    }
-
-    public static function matches(string $name, mixed $value): bool
-    {
-        $literal = self::value($name);
-        return (
-            $literal !== null
-            && (
-                $literal === $value
-                || is_float($literal)
-                && is_int($value)
-                && $literal === (float) $value
-                || $literal instanceof BackedEnum
-                && $literal->value === $value
-            )
-        );
     }
 }
