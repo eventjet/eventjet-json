@@ -39,7 +39,6 @@ use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocCollectionCompiler;
-use Eventjet\Json\Internal\PhpDocExtendedTypeParser;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
@@ -185,7 +184,6 @@ final class AutoloadingTest extends TestCase
         $collectionInput = new stdClass();
         $collectionInput->values = [42];
         static::assertEquals($collection, ClassDecoders::hydrate($collection::class, $collectionInput));
-        static::assertFalse(class_exists(PhpDocExtendedTypeParser::class, autoload: false));
     }
 
     /**

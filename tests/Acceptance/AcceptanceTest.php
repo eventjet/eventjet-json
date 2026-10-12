@@ -87,8 +87,6 @@ use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(ClassGraphValidator::class)]
 #[CoversClass(ConstructorParameter::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[CoversClass(Json::class)]
 #[CoversClass(JsonType::class)]
 #[CoversClass(ArrayJsonType::class)]

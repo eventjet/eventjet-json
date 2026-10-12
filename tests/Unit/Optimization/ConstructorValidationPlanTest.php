@@ -79,8 +79,6 @@ use function class_alias;
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ConstructorParameter::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]

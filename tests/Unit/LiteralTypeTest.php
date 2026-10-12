@@ -27,8 +27,6 @@ use Eventjet\Json\Internal\PhpDocCollectionCompiler;
 use Eventjet\Json\Internal\PhpDocConstantImportStatement;
 use Eventjet\Json\Internal\PhpDocConstantResolver;
 use Eventjet\Json\Internal\PhpDocConstantValues;
-use Eventjet\Json\Internal\PhpDocExtendedTypeParser;
-use Eventjet\Json\Internal\PhpDocExtendedTypeTokens;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
@@ -72,8 +70,6 @@ use const PHP_INT_MIN;
 #[CoversClass(PhpDocFieldType::class)]
 #[CoversClass(PhpDocType::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
-#[CoversClass(PhpDocExtendedTypeParser::class)]
-#[CoversClass(PhpDocExtendedTypeTokens::class)]
 #[CoversClass(PhpDocImportStatement::class)]
 #[CoversClass(PhpDocConstantImportStatement::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
@@ -95,8 +91,8 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocLiteral::class)]
 #[UsesClass(PhpDocNamespaceDeclaration::class)]
 #[UsesClass(PhpDocTokenStream::class)]
-#[UsesClass(PhpDocTypeParser::class)]
-#[UsesClass(PhpDocTypeTokens::class)]
+#[CoversClass(PhpDocTypeParser::class)]
+#[CoversClass(PhpDocTypeTokens::class)]
 #[UsesClass(PhpDocUnionCompiler::class)]
 #[UsesClass(RootTypeValidator::class)]
 #[UsesClass(ScalarItems::class)]

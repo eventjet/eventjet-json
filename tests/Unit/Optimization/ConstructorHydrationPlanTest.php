@@ -75,8 +75,6 @@ use stdClass;
 #[UsesClass(DecodeError::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ConstructorParameter::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
