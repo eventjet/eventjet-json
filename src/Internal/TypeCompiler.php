@@ -42,10 +42,7 @@ final class TypeCompiler
     /** @throws ReflectionException */
     public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|DecodeError
     {
-        $mayDeclareLiteral = FieldTypeNameResolver::mayDeclareLiteral(FieldTypeNameResolver::docComment($field));
-        return $mayDeclareLiteral
-            ? LiteralFieldCompiler::compile($this, $field, $type)
-            : $this->declared($field, $type);
+        return LiteralFieldCompiler::compile($this, $field, $type);
     }
 
     /**

@@ -14,8 +14,6 @@ use function class_exists;
 use function enum_exists;
 use function interface_exists;
 use function strcasecmp;
-use function strpbrk;
-use function strtr;
 
 /** @internal */
 final class FieldTypeNameResolver
@@ -62,13 +60,6 @@ final class FieldTypeNameResolver
             ? $field->getDeclaringFunction()->getDocComment()
             : $field->getDocComment();
         return (string) $doc;
-    }
-
-    /** Whether a doc comment may declare a literal type. False means it certainly does not. */
-    public static function mayDeclareLiteral(string $docComment): bool
-    {
-        $markers = strtr($docComment, ['true' => '"', 'false' => '"', ' null' => '"', "\tnull" => '"']);
-        return strpbrk($markers, characters: "'\"0123456789:") !== false;
     }
 
     /** Returns the type that errors report for a nullable declaration of a type. */
