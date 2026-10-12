@@ -57,6 +57,7 @@ use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyValues;
+use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
@@ -166,6 +167,8 @@ final class AutoloadingTest extends TestCase
             static::assertFalse(class_exists(LiteralFieldCompiler::class, autoload: false));
             static::assertFalse(class_exists(PhpDocLiteral::class, autoload: false));
             static::assertFalse(class_exists(TypeCompiler::class, autoload: false));
+            static::assertFalse(class_exists(FieldNameRules::class, autoload: false));
+            static::assertFalse(class_exists(RenamedArguments::class, autoload: false));
         }
         $status = new class(StringBackedStatus::Ready) {
             public function __construct(
