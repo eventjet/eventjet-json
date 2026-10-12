@@ -6,34 +6,64 @@ namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Field;
-use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\CollectionCompiler;
+use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
-use Eventjet\Json\Internal\EnumFieldTypes;
-use Eventjet\Json\Internal\EnumUnionLookup;
+use Eventjet\Json\Internal\EnumCompiler;
+use Eventjet\Json\Internal\EnumUnionRules;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\FieldTypeResolver;
-use Eventjet\Json\Internal\FieldTypeValidator;
-use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\MappedConstructorPlan;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\MetadataCache;
+use Eventjet\Json\Internal\NativeUnionCompiler;
+use Eventjet\Json\Internal\Node\EnumNode;
+use Eventjet\Json\Internal\Node\EnumUnionNode;
+use Eventjet\Json\Internal\Node\ListNode;
+use Eventjet\Json\Internal\Node\MapNode;
+use Eventjet\Json\Internal\Node\NullableNode;
+use Eventjet\Json\Internal\Node\NullOnlyNode;
+use Eventjet\Json\Internal\Node\ObjectNode;
+use Eventjet\Json\Internal\Node\ScalarItems;
+use Eventjet\Json\Internal\Node\ScalarNode;
+use Eventjet\Json\Internal\Node\TupleNode;
+use Eventjet\Json\Internal\Node\UncheckedNode;
+use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\ObjectHydrator;
+use Eventjet\Json\Internal\PhpDocClassNameResolver;
+use Eventjet\Json\Internal\PhpDocCollectionCompiler;
+use Eventjet\Json\Internal\PhpDocFieldType;
+use Eventjet\Json\Internal\PhpDocImports;
+use Eventjet\Json\Internal\PhpDocImportScanner;
+use Eventjet\Json\Internal\PhpDocImportStatement;
+use Eventjet\Json\Internal\PhpDocItemCompiler;
+use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
+use Eventjet\Json\Internal\PhpDocTokenStream;
+use Eventjet\Json\Internal\PhpDocTupleEntry;
+use Eventjet\Json\Internal\PhpDocType;
+use Eventjet\Json\Internal\PhpDocTypeParser;
+use Eventjet\Json\Internal\PhpDocTypeTokens;
+use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
+use Eventjet\Json\Internal\PublicPropertyHydrator;
+use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\TypeCompiler;
+use Eventjet\Json\Internal\UnionBuilder;
+use Eventjet\Json\Internal\UnionIndex;
+use Eventjet\Json\Internal\UnionRules;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
-use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
-use JsonSerializable;
+use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Exception;
@@ -44,25 +74,14 @@ use ReflectionException;
 use ReflectionProperty;
 use stdClass;
 
-use function class_alias;
-
-#[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[CoversClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
-#[UsesClass(EnumFieldTypes::class)]
-#[CoversClass(EnumUnionLookup::class)]
-#[CoversClass(BackedEnumValueConverter::class)]
 #[UsesClass(DecodeError::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
-#[UsesClass(\Eventjet\Json\Internal\ClassUnionValidator::class)]
-#[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
-#[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[UsesClass(FieldTypeResolver::class)]
-#[UsesClass(FieldTypeValidator::class)]
 #[UsesClass(MetadataCache::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
@@ -73,66 +92,88 @@ use function class_alias;
 #[CoversClass(MappedConstructorPlan::class)]
 #[CoversClass(FieldNameCollisions::class)]
 #[CoversClass(ObjectHydrator::class)]
-#[UsesClass(\Eventjet\Json\Internal\PublicPropertyHydrator::class)]
-#[UsesClass(\Eventjet\Json\Internal\PublicPropertyTypeValidator::class)]
+#[UsesClass(PublicPropertyHydrator::class)]
+#[UsesClass(PublicPropertyTypeValidator::class)]
+#[UsesClass(CollectionCompiler::class)]
+#[UsesClass(CollectionUnionCompiler::class)]
+#[UsesClass(EnumCompiler::class)]
+#[UsesClass(EnumNode::class)]
+#[UsesClass(EnumUnionRules::class)]
+#[UsesClass(ListNode::class)]
+#[UsesClass(MapNode::class)]
+#[UsesClass(NativeUnionCompiler::class)]
+#[UsesClass(NullOnlyNode::class)]
+#[UsesClass(NullableNode::class)]
+#[UsesClass(ObjectNode::class)]
+#[UsesClass(PhpDocClassNameResolver::class)]
+#[UsesClass(PhpDocCollectionCompiler::class)]
+#[UsesClass(PhpDocFieldType::class)]
+#[UsesClass(PhpDocImportScanner::class)]
+#[UsesClass(PhpDocImportStatement::class)]
+#[UsesClass(PhpDocImports::class)]
+#[UsesClass(PhpDocItemCompiler::class)]
+#[UsesClass(PhpDocNamespaceDeclaration::class)]
+#[UsesClass(PhpDocTokenStream::class)]
+#[UsesClass(PhpDocTupleEntry::class)]
+#[UsesClass(PhpDocType::class)]
+#[UsesClass(PhpDocTypeParser::class)]
+#[UsesClass(PhpDocTypeTokens::class)]
+#[UsesClass(PhpDocUnionCompiler::class)]
+#[UsesClass(ScalarNode::class)]
+#[UsesClass(ScalarItems::class)]
+#[UsesClass(TupleNode::class)]
+#[UsesClass(TypeCompiler::class)]
+#[UsesClass(UncheckedNode::class)]
+#[UsesClass(UnionBuilder::class)]
+#[UsesClass(UnionIndex::class)]
+#[UsesClass(UnionNode::class)]
+#[UsesClass(UnionRules::class)]
+#[UsesClass(EnumUnionNode::class)]
 final class ConstructorHydrationPlanTest extends TestCase
 {
     /**
-     * @throws ReflectionException
      * @throws Exception
+     * @throws JsonException
+     * @throws ReflectionException
+     * @throws UnknownClassOrInterfaceException
      */
-    public function testClassFieldValidationCachesOnlySupportedLoadedTypes(): void
+    public function testUnionsPreserveJsonValueTypes(): void
     {
-        $class = ScalarFields::class;
-        $cache = new ReflectionProperty(ClassFieldTypeValidator::class, 'validated');
-        static::assertNull(ClassFieldTypeValidator::validate($class, 'first', $class));
-        /** @var array<string, null> $validated */
-        $validated = $cache->getValue();
-        static::assertArrayHasKey($class, $validated);
-        static::assertNull(ClassFieldTypeValidator::validate($class, 'second', $class));
-
-        $dependency = __NAMESPACE__ . '\\LateClassFieldValidationTarget';
-        static::assertNull(ClassFieldTypeValidator::validate($class, 'first', $dependency));
-        /** @var array<string, null> $validated */
-        $validated = $cache->getValue();
-        static::assertArrayNotHasKey($dependency, $validated);
-        static::assertTrue(class_alias(ScalarFields::class, $dependency));
-        static::assertNull(ClassFieldTypeValidator::validate($class, 'second', $dependency));
-        /** @var array<string, null> $validated */
-        $validated = $cache->getValue();
-        static::assertArrayHasKey($dependency, $validated);
-
-        foreach (['first', 'second'] as $field) {
-            static::assertEquals(
-                DecodeError::nonInstantiableField($class, $field, 'interface', JsonSerializable::class),
-                ClassFieldTypeValidator::validate($class, $field, JsonSerializable::class),
-            );
+        $string = EnumCompiler::node(ScalarFields::class, StringBackedStatus::class, nullable: false);
+        $int = EnumCompiler::node(ScalarFields::class, IntBackedStatus::class, nullable: false);
+        static::assertNotNull($string);
+        static::assertNotNull($int);
+        $union = UnionIndex::node(ScalarFields::class, 'StringBackedStatus|IntBackedStatus|bool|null', [
+            $string,
+            $int,
+            new ScalarNode(ScalarFields::class, 'bool', false),
+            new ScalarNode(ScalarFields::class, 'null', true),
+        ]);
+        static::assertSame(StringBackedStatus::Ready, $union->decode(StringBackedStatus::Ready->value, 'value'));
+        static::assertSame(StringBackedStatus::Pending, $union->decode(StringBackedStatus::Pending->value, 'value'));
+        static::assertSame(IntBackedStatus::Ready, $union->decode(IntBackedStatus::Ready->value, 'value'));
+        static::assertTrue($union->decode(true, 'value'));
+        static::assertNull($union->decode(null, 'value'));
+        foreach ([
+            (string) IntBackedStatus::Ready->value,
+            (float) IntBackedStatus::Ready->value,
+            'unknown',
+            [],
+        ] as $value) {
+            static::assertInstanceOf(DecodeError::class, $union->decode($value, 'value'));
         }
-        /** @var array<string, null> $validated */
-        $validated = $cache->getValue();
-        static::assertArrayNotHasKey(JsonSerializable::class, $validated);
-    }
 
-    /** @throws ReflectionException */
-    public function testEnumUnionLookupPreservesBackingTypesAndLeavesOtherValuesUnmatched(): void
-    {
-        $target = new class {
-            public \stdClass|NonBackedStatus|StringBackedStatus|IntBackedStatus|bool|null $value = null;
-        };
-        $lookup = new EnumUnionLookup(new ReflectionProperty($target, 'value')->getType());
-        static::assertSame(StringBackedStatus::Ready, $lookup->find(StringBackedStatus::Ready->value));
-        static::assertSame(StringBackedStatus::Pending, $lookup->find(StringBackedStatus::Pending->value));
-        static::assertSame(IntBackedStatus::Ready, $lookup->find(IntBackedStatus::Ready->value));
-        static::assertNull($lookup->find((string) IntBackedStatus::Ready->value));
-        static::assertNull($lookup->find((float) IntBackedStatus::Ready->value));
-        static::assertNull($lookup->find('unknown'));
-        static::assertNull($lookup->find(true));
-        static::assertNull($lookup->find(null));
-        static::assertNull($lookup->find([]));
-        static::assertNull(new EnumUnionLookup(null)->find('ready'));
-        static::assertNull(new EnumUnionLookup(new ReflectionProperty(ScalarFields::class, 'string')->getType())->find(
-            'ready',
-        ));
+        $numbers = UnionIndex::node(ScalarFields::class, 'int|float', [
+            new ScalarNode(ScalarFields::class, 'int', false),
+            new ScalarNode(ScalarFields::class, 'float', false),
+        ]);
+        static::assertSame(1, $numbers->decode(1, 'value'));
+        static::assertSame(1.5, $numbers->decode(1.5, 'value'));
+        $floats = UnionIndex::node(ScalarFields::class, 'float|string', [
+            new ScalarNode(ScalarFields::class, 'float', false),
+            new ScalarNode(ScalarFields::class, 'string', false),
+        ]);
+        static::assertSame(1.0, $floats->decode(1, 'value'));
     }
 
     /**

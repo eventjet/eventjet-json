@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use ReflectionNamedType;
-use ReflectionUnionType;
 use stdClass;
 
 use function is_array;
@@ -17,28 +15,13 @@ use function is_string;
 /** @internal */
 final class ValueTypeMatcher
 {
-    public static function matchesBuiltinUnion(mixed $value, ReflectionUnionType $type): bool
-    {
-        foreach ($type->getTypes() as $member) {
-            if (!$member instanceof ReflectionNamedType || !$member->isBuiltin()) {
-                continue;
-            }
-            $matches = self::matches($value, $member);
-            if ($matches) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public static function matches(mixed $value, ReflectionNamedType $type): bool
+    public static function matches(mixed $value, string $type, bool $nullable): bool
     {
         if ($value === null) {
-            return $type->allowsNull();
+            return $nullable;
         }
 
-        return match ($type->getName()) {
+        return match ($type) {
             'array' => is_array($value) || $value instanceof stdClass,
             'bool' => is_bool($value),
             'false' => $value === false,

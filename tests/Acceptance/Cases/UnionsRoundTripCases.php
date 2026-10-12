@@ -79,6 +79,24 @@ final class UnionsRoundTripCases
                 )];
             }
         }
+        yield 'tuple-or-string field preserves a tuple' => [CollectionDeclarationFixture::object(
+            'array|string',
+            PhpType::union(PhpType::tuple(PhpType::Int, PhpType::String), PhpType::String),
+            'param',
+            [1, 'one'],
+        )];
+        yield 'integer-or-boolean list preserves both booleans' => [CollectionDeclarationFixture::object(
+            'array',
+            PhpType::list(PhpType::union(PhpType::Int, PhpType::Bool)),
+            'param',
+            [1, true, false],
+        )];
+        yield 'true-or-false list preserves both booleans' => [CollectionDeclarationFixture::object(
+            'array',
+            PhpType::list(PhpType::union(PhpType::True, PhpType::False)),
+            'param',
+            [true, false],
+        )];
         yield 'non-backed-enum-or-true list preserves true' => [CollectionDeclarationFixture::object(
             'array',
             PhpType::list(PhpType::union(NonBackedStatus::class, PhpType::True)),

@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Node\ItemNode;
+use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\JsonType;
-use JsonException;
 use Override;
-use ReflectionException;
+
+use function assert;
+use function enum_exists;
 
 /**
  * @internal
@@ -22,23 +25,30 @@ final readonly class ClassJsonType extends JsonType
         private string $class,
     ) {}
 
-    /**
-     * @return T|DecodeError
-     * @throws JsonException
-     * @throws ReflectionException
-     */
     #[Override]
-    public function decodeValue(mixed $value, string $path = ''): object
+    public function node(string $class): ItemNode
     {
-        /** @var (T&object)|DecodeError */
-        return CollectionItemValueConverter::convert($this->class, $path, $this->class, $value);
+        $enum = $this->class;
+        if (enum_exists($enum)) {
+            $node = EnumCompiler::node($class, $enum, nullable: false);
+            assert($node !== null, description: 'Root validation rejects non-backed enums.');
+            return $node;
+        }
+        return new ObjectNode($class, $this->class, nullable: false);
     }
 
-    /** @return class-string<T> */
+    /** @return T|DecodeError */
     #[Override]
-    public function collectionItem(): string
+    public function decode(mixed $value): object
     {
-        return $this->class;
+        /** @var T|DecodeError */
+        return $this->node($this->class)->decode($value, '');
+    }
+
+    #[Override]
+    public function rootShape(): string
+    {
+        return 'object';
     }
 
     /** @return class-string<T> */

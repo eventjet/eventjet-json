@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\JsonType;
+use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
+use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarListFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields;
@@ -60,9 +62,20 @@ final class CollectionsErrorCases
         ];
     }
 
-    /** @return iterable<string, array{string, class-string, string, int}> */
+    /**
+     * @return iterable<string, array{string, class-string, string, int}>
+     * @throws \RuntimeException
+     */
     private static function scalarItems(): iterable
     {
+        yield 'object list declared in PHPDoc rejects null' => [
+            '{"value":[null]}',
+            CollectionDeclarationFixture::create('array', PhpType::list(Coordinates::class), 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('array', PhpType::list(Coordinates::class), 'param')
+                . ' from the JSON object: Field value[0] must be of type Eventjet\Json\Test\Acceptance\Fixtures\Coordinates, null given.',
+            3,
+        ];
         foreach ([
             ['strings',      'string', '"valid"'],
             ['stringsExtra', 'int',    '1'],
@@ -113,6 +126,14 @@ final class CollectionsErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'list<non-empty-array<int, int>>', 'param')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            3,
+        ];
+        yield 'list items cannot be non-backed enums' => [
+            '{}',
+            CollectionDeclarationFixture::create('array', PhpType::list(NonBackedStatus::class), 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('array', PhpType::list(NonBackedStatus::class), 'param')
+                . ' from the JSON object: Field value uses non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
             3,
         ];
         yield 'list declaration requires an item type' => [

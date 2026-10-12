@@ -50,7 +50,7 @@ final class ObjectHydrator
                 $assignments =
                     $properties === [] || $properties instanceof DecodeError
                         ? $properties
-                        : PublicPropertyHydrator::prepare($class, $properties, $values, $path);
+                        : PublicPropertyHydrator::prepare($properties, $values, $path);
                 if ($assignments instanceof DecodeError) {
                     return $assignments;
                 }

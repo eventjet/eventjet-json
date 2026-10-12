@@ -6,27 +6,58 @@ namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Field;
-use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\CollectionCompiler;
+use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
-use Eventjet\Json\Internal\EnumFieldTypes;
-use Eventjet\Json\Internal\EnumUnionLookup;
+use Eventjet\Json\Internal\EnumCompiler;
+use Eventjet\Json\Internal\EnumUnionRules;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\FieldTypeResolver;
-use Eventjet\Json\Internal\FieldTypeValidator;
-use Eventjet\Json\Internal\FieldValueConverter;
 use Eventjet\Json\Internal\MappedConstructorPlan;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\MetadataCache;
+use Eventjet\Json\Internal\NativeUnionCompiler;
+use Eventjet\Json\Internal\Node\EnumNode;
+use Eventjet\Json\Internal\Node\EnumUnionNode;
+use Eventjet\Json\Internal\Node\ListNode;
+use Eventjet\Json\Internal\Node\MapNode;
+use Eventjet\Json\Internal\Node\NullableNode;
+use Eventjet\Json\Internal\Node\NullOnlyNode;
+use Eventjet\Json\Internal\Node\ObjectNode;
+use Eventjet\Json\Internal\Node\ScalarItems;
+use Eventjet\Json\Internal\Node\ScalarNode;
+use Eventjet\Json\Internal\Node\TupleNode;
+use Eventjet\Json\Internal\Node\UncheckedNode;
+use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\ObjectHydrator;
+use Eventjet\Json\Internal\PhpDocClassNameResolver;
+use Eventjet\Json\Internal\PhpDocCollectionCompiler;
+use Eventjet\Json\Internal\PhpDocFieldType;
+use Eventjet\Json\Internal\PhpDocImports;
+use Eventjet\Json\Internal\PhpDocImportScanner;
+use Eventjet\Json\Internal\PhpDocImportStatement;
+use Eventjet\Json\Internal\PhpDocItemCompiler;
+use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
+use Eventjet\Json\Internal\PhpDocTokenStream;
+use Eventjet\Json\Internal\PhpDocTupleEntry;
+use Eventjet\Json\Internal\PhpDocType;
+use Eventjet\Json\Internal\PhpDocTypeParser;
+use Eventjet\Json\Internal\PhpDocTypeTokens;
+use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
+use Eventjet\Json\Internal\PublicPropertyHydrator;
+use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\TypeCompiler;
+use Eventjet\Json\Internal\UnionBuilder;
+use Eventjet\Json\Internal\UnionIndex;
+use Eventjet\Json\Internal\UnionRules;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionNameSource;
@@ -45,23 +76,14 @@ use RuntimeException;
 
 use function class_alias;
 
-#[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[CoversClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
-#[UsesClass(EnumFieldTypes::class)]
-#[CoversClass(EnumUnionLookup::class)]
-#[CoversClass(BackedEnumValueConverter::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
-#[UsesClass(\Eventjet\Json\Internal\ClassUnionValidator::class)]
-#[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
-#[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[UsesClass(FieldTypeResolver::class)]
-#[UsesClass(FieldTypeValidator::class)]
 #[UsesClass(MetadataCache::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
@@ -71,9 +93,44 @@ use function class_alias;
 #[CoversClass(MappedConstructorPlan::class)]
 #[CoversClass(FieldNameCollisions::class)]
 #[CoversClass(ObjectHydrator::class)]
-#[UsesClass(\Eventjet\Json\Internal\PublicPropertyHydrator::class)]
-#[UsesClass(\Eventjet\Json\Internal\PublicPropertyTypeValidator::class)]
+#[UsesClass(PublicPropertyHydrator::class)]
+#[UsesClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(FieldNames::class)]
+#[UsesClass(CollectionCompiler::class)]
+#[UsesClass(CollectionUnionCompiler::class)]
+#[UsesClass(EnumCompiler::class)]
+#[UsesClass(EnumNode::class)]
+#[UsesClass(EnumUnionRules::class)]
+#[UsesClass(ListNode::class)]
+#[UsesClass(MapNode::class)]
+#[UsesClass(NativeUnionCompiler::class)]
+#[UsesClass(NullOnlyNode::class)]
+#[UsesClass(NullableNode::class)]
+#[UsesClass(ObjectNode::class)]
+#[UsesClass(PhpDocClassNameResolver::class)]
+#[UsesClass(PhpDocCollectionCompiler::class)]
+#[UsesClass(PhpDocFieldType::class)]
+#[UsesClass(PhpDocImportScanner::class)]
+#[UsesClass(PhpDocImportStatement::class)]
+#[UsesClass(PhpDocImports::class)]
+#[UsesClass(PhpDocItemCompiler::class)]
+#[UsesClass(PhpDocNamespaceDeclaration::class)]
+#[UsesClass(PhpDocTokenStream::class)]
+#[UsesClass(PhpDocTupleEntry::class)]
+#[UsesClass(PhpDocType::class)]
+#[UsesClass(PhpDocTypeParser::class)]
+#[UsesClass(PhpDocTypeTokens::class)]
+#[UsesClass(PhpDocUnionCompiler::class)]
+#[UsesClass(ScalarNode::class)]
+#[UsesClass(ScalarItems::class)]
+#[UsesClass(TupleNode::class)]
+#[UsesClass(TypeCompiler::class)]
+#[UsesClass(UncheckedNode::class)]
+#[UsesClass(UnionBuilder::class)]
+#[UsesClass(UnionIndex::class)]
+#[UsesClass(UnionNode::class)]
+#[UsesClass(UnionRules::class)]
+#[UsesClass(EnumUnionNode::class)]
 final class ConstructorValidationPlanTest extends TestCase
 {
     /**
@@ -112,7 +169,7 @@ final class ConstructorValidationPlanTest extends TestCase
      * @throws UnknownClassOrInterfaceException
      * @throws JsonException
      */
-    public function testConstructorErrorsRetainParameterOrder(): void
+    public function testDeclarationErrorsPrecedeValueErrorsInParameterOrder(): void
     {
         $target = new class {
             public function __construct(
@@ -121,12 +178,16 @@ final class ConstructorValidationPlanTest extends TestCase
             ) {}
         };
         $class = new ReflectionClass($target);
+        $declarationError = DecodeError::nonInstantiableField(
+            $class->getName(),
+            'second',
+            'unsupported type',
+            'mixed',
+            '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
+        );
         for ($lookup = 0; $lookup < 2; ++$lookup) {
-            static::assertEquals(
-                DecodeError::fieldTypeMismatch($class->getName(), 'first', 'int', false),
-                ConstructorDecoder::convert($class, ['first' => false], ''),
-            );
-            static::assertInstanceOf(DecodeError::class, ConstructorDecoder::convert($class, ['first' => 1], ''));
+            static::assertEquals($declarationError, ConstructorDecoder::convert($class, ['first' => false], ''));
+            static::assertEquals($declarationError, ConstructorDecoder::convert($class, ['first' => 1], ''));
         }
 
         $invalidTarget = new class {

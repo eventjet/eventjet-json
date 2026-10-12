@@ -9,6 +9,7 @@ use DatePeriod;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionTypeField;
 use Eventjet\Json\Test\Acceptance\Fixtures\MixedField;
+use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 
 /** @internal */
 final class FieldDeclarationErrorCases
@@ -24,6 +25,14 @@ final class FieldDeclarationErrorCases
             '{}',
             DatePeriod::class,
             'Could not create DatePeriod from the JSON object: Field start uses no type declaration. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
+            3,
+        ];
+        yield 'non-nullable non-backed enum field is rejected even when absent' => [
+            '{}',
+            CollectionDeclarationFixture::create('\\' . NonBackedStatus::class, '', 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('\\' . NonBackedStatus::class, '', 'param')
+                . ' from the JSON object: Field value uses non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
             3,
         ];
         yield 'intersection constructor field is rejected even when absent' => [

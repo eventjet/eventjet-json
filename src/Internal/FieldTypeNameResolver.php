@@ -39,9 +39,10 @@ final class FieldTypeNameResolver
         return $parent === false ? $name : $parent->getName();
     }
 
-    public static function expected(ReflectionNamedType $type, string $name): string
+    /** Returns the type that errors report for a nullable declaration of a type. */
+    public static function withNull(string $name): string
     {
-        return $type->allowsNull() && $name !== 'null' ? $name . '|null' : $name;
+        return $name === 'null' ? $name : $name . '|null';
     }
 
     /** @return 'bool'|'float'|'int'|'string'|class-string|null */

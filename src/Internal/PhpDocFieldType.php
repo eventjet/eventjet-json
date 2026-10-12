@@ -4,18 +4,34 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use Eventjet\Json\DecodeError;
 use ReflectionParameter;
 use ReflectionProperty;
 
 use function preg_match;
 use function preg_match_all;
 use function preg_replace;
+use function sprintf;
 use function str_replace;
 use function trim;
 
 /** @internal */
 final class PhpDocFieldType
 {
+    /**
+     * Returns the error for an `array` or `ArrayObject` field without a supported PHPDoc collection declaration.
+     *
+     * @param class-string $class
+     */
+    public static function unrecognized(string $class, ReflectionParameter|ReflectionProperty $field): DecodeError
+    {
+        return DecodeError::nonInstantiableTarget($class, sprintf(
+            'Field %s has a missing or unrecognized collection declaration. Use @%s with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            $field->getName(),
+            $field instanceof ReflectionParameter ? 'param' : 'var',
+        ));
+    }
+
     public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|null
     {
         $doc = $field instanceof ReflectionParameter

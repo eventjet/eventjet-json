@@ -30,21 +30,6 @@ final readonly class MappedConstructorPlan
     }
 
     /**
-     * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
-     * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
-     * @throws JsonException
-     * @throws ReflectionException
-     */
-    public function convert(array $values, string $path): array|DecodeError
-    {
-        $converted = $this->plan->convert($values, $path);
-        if ($converted instanceof DecodeError) {
-            return $converted;
-        }
-        return $this->arguments($converted);
-    }
-
-    /**
      * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $converted
      * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>
      */

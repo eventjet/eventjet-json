@@ -31,6 +31,12 @@ final class CollectionsRoundTripCases
                 ];
             }
         }
+        yield 'nullable list field preserves null' => [CollectionDeclarationFixture::object(
+            '?array',
+            PhpType::union(PhpType::list(PhpType::Int), PhpType::Null),
+            'param',
+            null,
+        )];
         yield 'scalar lists preserve item types and values' => [new ScalarListFields(
             ['', '42', 'Grüße, 世界, 😀'],
             [0, -42, 42],

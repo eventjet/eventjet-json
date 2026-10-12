@@ -6,8 +6,6 @@ namespace Eventjet\Json;
 
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
-use Eventjet\Json\Internal\MapType;
-use Eventjet\Json\Internal\NestedCollectionType;
 use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\RootTypeValidator;
 use ReflectionClass;
@@ -79,7 +77,7 @@ final class Json
      */
     private static function decodeCollection(JsonType $type, mixed $values): mixed
     {
-        $rootType = self::rootType($type);
+        $rootType = $type->rootShape();
         $matchesRoot = match ($rootType) {
             'object' => $values instanceof stdClass,
             'array' => is_array($values),
@@ -99,21 +97,9 @@ final class Json
                 return $error;
             }
 
-            return $type->decodeValue($values);
+            return $type->decode($values);
         } catch (Throwable $error) {
             return DecodeError::cannotInstantiate($class, $error);
         }
-    }
-
-    /**
-     * @param JsonType<mixed> $type
-     * @return 'array'|'object'
-     */
-    private static function rootType(JsonType $type): string
-    {
-        $collection = $type->collectionItem();
-        return $collection instanceof NestedCollectionType && $collection->collection instanceof MapType
-            ? 'object'
-            : 'array';
     }
 }

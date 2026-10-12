@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Node\Node;
+use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
@@ -46,19 +48,18 @@ final readonly class ConstructorParameter
         $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
     }
 
-    /** @throws ReflectionException */
-    public function converter(ListType|MapType|TupleType|CollectionUnionType|false|null $resolved): FieldValueConverter|null
+    /**
+     * Returns the node that converts the argument, or null if the argument needs only its native type check.
+     */
+    public function converter(Node $node): Node|null
     {
-        $collection = $resolved === false ? null : $resolved;
-        return $this->builtin && $collection === null ? null : new FieldValueConverter($this->reflection, $collection);
+        return $node instanceof ScalarNode ? null : $node;
     }
 
-    /**
-     * @param class-string $class
-     * @throws ReflectionException
-     */
-    public function resolveType(string $class): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null
+    /** @throws ReflectionException */
+    public function resolveType(TypeCompiler $compiler): Node|DecodeError
     {
+        $class = $compiler->class;
         if ($this->variadic) {
             return DecodeError::nonInstantiableTarget($class, sprintf(
                 'Constructor parameter %s is variadic. JSON members bind to individual named arguments, not variadic argument lists.',
@@ -74,11 +75,9 @@ final readonly class ConstructorParameter
                 '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
             );
         }
-        $resolved = $this->type instanceof ReflectionNamedType
-            ? FieldTypeValidator::validateNamedType($class, $this->reflection, $this->type)
-            : FieldTypeValidator::validate($class, $this->reflection);
-        if ($resolved instanceof DecodeError) {
-            return $resolved;
+        $node = $compiler->field($this->reflection, $this->type);
+        if ($node instanceof DecodeError) {
+            return $node;
         }
         if (!$this->recoverable) {
             return DecodeError::nonInstantiableTarget($class, sprintf(
@@ -86,6 +85,6 @@ final readonly class ConstructorParameter
                 $this->name,
             ));
         }
-        return $resolved;
+        return $node;
     }
 }

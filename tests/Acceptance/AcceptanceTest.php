@@ -7,77 +7,62 @@ namespace Eventjet\Json\Test\Acceptance;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ArrayJsonType;
-use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\ClassJsonType;
-use Eventjet\Json\Internal\ClassTypeDependencies;
-use Eventjet\Json\Internal\ClassUnionValidator;
-use Eventjet\Json\Internal\CollectionItemValueConverter;
-use Eventjet\Json\Internal\CollectionTypeResolver;
-use Eventjet\Json\Internal\CollectionTypeValidator;
-use Eventjet\Json\Internal\CollectionUnionShapeValidator;
-use Eventjet\Json\Internal\CollectionUnionType;
-use Eventjet\Json\Internal\CollectionUnionTypeValidator;
-use Eventjet\Json\Internal\CollectionUnionValueConverter;
-use Eventjet\Json\Internal\CollectionValueConverter;
-use Eventjet\Json\Internal\ConcreteClassUnionValueConverter;
-use Eventjet\Json\Internal\ConcreteClassValueConverter;
+use Eventjet\Json\Internal\CollectionCompiler;
+use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
-use Eventjet\Json\Internal\EnumFieldTypes;
-use Eventjet\Json\Internal\EnumUnionValidator;
-use Eventjet\Json\Internal\FieldCollectionUnionMemberResolver;
-use Eventjet\Json\Internal\FieldCollectionUnionResolver;
-use Eventjet\Json\Internal\FieldCollectionUnionValidator;
+use Eventjet\Json\Internal\DecodeErrorKind;
+use Eventjet\Json\Internal\EnumCompiler;
+use Eventjet\Json\Internal\EnumUnionRules;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\FieldTypeResolver;
-use Eventjet\Json\Internal\FieldTypeValidator;
-use Eventjet\Json\Internal\FieldValueConverter;
-use Eventjet\Json\Internal\FloatListValueConverter;
-use Eventjet\Json\Internal\FloatMapValueConverter;
-use Eventjet\Json\Internal\ListInputNormalizer;
-use Eventjet\Json\Internal\ListType;
-use Eventjet\Json\Internal\ListValueConverter;
-use Eventjet\Json\Internal\MapDecodeError;
-use Eventjet\Json\Internal\MapInputNormalizer;
 use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\MappedConstructorPlan;
 use Eventjet\Json\Internal\MappedObjectSerializer;
-use Eventjet\Json\Internal\MapType;
-use Eventjet\Json\Internal\MapTypeResolver;
-use Eventjet\Json\Internal\MapValueConverter;
 use Eventjet\Json\Internal\MetadataCache;
-use Eventjet\Json\Internal\NestedCollectionType;
-use Eventjet\Json\Internal\NestedCollectionTypeResolver;
+use Eventjet\Json\Internal\NativeUnionCompiler;
+use Eventjet\Json\Internal\Node\EnumNode;
+use Eventjet\Json\Internal\Node\EnumUnionNode;
+use Eventjet\Json\Internal\Node\ListNode;
+use Eventjet\Json\Internal\Node\MapNode;
+use Eventjet\Json\Internal\Node\NullableNode;
+use Eventjet\Json\Internal\Node\NullOnlyNode;
+use Eventjet\Json\Internal\Node\ObjectNode;
+use Eventjet\Json\Internal\Node\ScalarItems;
+use Eventjet\Json\Internal\Node\ScalarNode;
+use Eventjet\Json\Internal\Node\TupleNode;
+use Eventjet\Json\Internal\Node\UncheckedNode;
+use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
+use Eventjet\Json\Internal\PhpDocCollectionCompiler;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
 use Eventjet\Json\Internal\PhpDocImportStatement;
-use Eventjet\Json\Internal\PhpDocItemTypeResolver;
+use Eventjet\Json\Internal\PhpDocItemCompiler;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
 use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
-use Eventjet\Json\Internal\PhpDocUnionTypeResolver;
+use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\RootTypeValidator;
-use Eventjet\Json\Internal\ScalarListValueConverter;
-use Eventjet\Json\Internal\ScalarMapValueConverter;
-use Eventjet\Json\Internal\TupleType;
-use Eventjet\Json\Internal\TupleTypeResolver;
-use Eventjet\Json\Internal\TupleValueConverter;
+use Eventjet\Json\Internal\TypeCompiler;
+use Eventjet\Json\Internal\UnionBuilder;
+use Eventjet\Json\Internal\UnionIndex;
+use Eventjet\Json\Internal\UnionRules;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
 use Eventjet\Json\JsonType;
@@ -107,7 +92,6 @@ use function json_encode;
 use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(ClassGraphValidator::class)]
-#[CoversClass(ClassTypeDependencies::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[CoversClass(Json::class)]
 #[CoversClass(JsonType::class)]
@@ -115,61 +99,21 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ClassJsonType::class)]
 #[CoversClass(MapJsonType::class)]
 #[CoversClass(DecodeError::class)]
-#[CoversClass(BackedEnumValueConverter::class)]
-#[CoversClass(EnumFieldTypes::class)]
-#[CoversClass(\Eventjet\Json\Internal\EnumUnionLookup::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
-#[CoversClass(CollectionUnionValueConverter::class)]
-#[CoversClass(CollectionUnionShapeValidator::class)]
-#[CoversClass(CollectionUnionTypeValidator::class)]
-#[CoversClass(PhpDocUnionTypeResolver::class)]
-#[CoversClass(CollectionUnionType::class)]
-#[CoversClass(ClassUnionValidator::class)]
-#[CoversClass(CollectionTypeResolver::class)]
-#[CoversClass(CollectionTypeValidator::class)]
 #[CoversClass(PhpDocTupleEntry::class)]
-#[CoversClass(TupleType::class)]
-#[CoversClass(MapType::class)]
-#[CoversClass(MapTypeResolver::class)]
-#[CoversClass(ListType::class)]
-#[CoversClass(CollectionValueConverter::class)]
-#[CoversClass(CollectionItemValueConverter::class)]
-#[CoversClass(TupleValueConverter::class)]
-#[CoversClass(TupleTypeResolver::class)]
-#[CoversClass(ConcreteClassUnionValueConverter::class)]
-#[CoversClass(ConcreteClassValueConverter::class)]
-#[CoversClass(EnumUnionValidator::class)]
-#[CoversClass(FieldTypeValidator::class)]
-#[CoversClass(FieldCollectionUnionMemberResolver::class)]
-#[CoversClass(FieldCollectionUnionValidator::class)]
-#[CoversClass(FieldCollectionUnionResolver::class)]
 #[CoversClass(FieldPath::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
-#[CoversClass(FieldTypeResolver::class)]
 #[CoversClass(PhpDocImportScanner::class)]
 #[CoversClass(PhpDocImportStatement::class)]
 #[CoversClass(PhpDocClassNameResolver::class)]
 #[CoversClass(PhpDocImports::class)]
 #[CoversClass(PhpDocFieldType::class)]
 #[CoversClass(PhpDocTypeTokens::class)]
-#[CoversClass(PhpDocItemTypeResolver::class)]
 #[CoversClass(PhpDocType::class)]
 #[CoversClass(PhpDocTypeParser::class)]
 #[CoversClass(PhpDocTokenStream::class)]
 #[CoversClass(PhpDocNamespaceDeclaration::class)]
-#[CoversClass(ListInputNormalizer::class)]
-#[CoversClass(ListValueConverter::class)]
-#[CoversClass(ScalarListValueConverter::class)]
-#[CoversClass(FloatListValueConverter::class)]
-#[CoversClass(MapDecodeError::class)]
-#[CoversClass(MapInputNormalizer::class)]
-#[CoversClass(MapValueConverter::class)]
-#[CoversClass(ScalarMapValueConverter::class)]
-#[CoversClass(FloatMapValueConverter::class)]
 #[CoversClass(MetadataCache::class)]
-#[CoversClass(NestedCollectionType::class)]
-#[CoversClass(NestedCollectionTypeResolver::class)]
-#[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[CoversClass(ConstructorValueValidator::class)]
@@ -179,12 +123,37 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]
+#[CoversClass(TypeCompiler::class)]
+#[CoversClass(CollectionCompiler::class)]
+#[CoversClass(UnionRules::class)]
+#[CoversClass(EnumNode::class)]
+#[CoversClass(EnumUnionNode::class)]
+#[CoversClass(ListNode::class)]
+#[CoversClass(MapNode::class)]
+#[CoversClass(NullableNode::class)]
+#[CoversClass(NullOnlyNode::class)]
+#[CoversClass(ObjectNode::class)]
+#[CoversClass(ScalarNode::class)]
+#[CoversClass(ScalarItems::class)]
+#[CoversClass(TupleNode::class)]
+#[CoversClass(UncheckedNode::class)]
+#[CoversClass(UnionNode::class)]
 #[CoversClass(Field::class)]
 #[CoversMethod(MappedJsonFields::class, 'jsonSerialize')]
 #[CoversClass(MappedObjectSerializer::class)]
 #[CoversClass(MappedConstructorPlan::class)]
 #[CoversClass(FieldNameCollisions::class)]
 #[CoversClass(FieldNames::class)]
+#[CoversClass(CollectionUnionCompiler::class)]
+#[CoversClass(DecodeErrorKind::class)]
+#[CoversClass(EnumCompiler::class)]
+#[CoversClass(EnumUnionRules::class)]
+#[CoversClass(NativeUnionCompiler::class)]
+#[CoversClass(PhpDocCollectionCompiler::class)]
+#[CoversClass(PhpDocItemCompiler::class)]
+#[CoversClass(PhpDocUnionCompiler::class)]
+#[CoversClass(UnionBuilder::class)]
+#[CoversClass(UnionIndex::class)]
 final class AcceptanceTest extends TestCase
 {
     #[DataProviderExternal(ParserSyntaxCases::class, 'types')]

@@ -8,8 +8,6 @@ use BackedEnum;
 use Eventjet\Json\DecodeError;
 use ReflectionClass;
 use ReflectionException;
-use ReflectionParameter;
-use ReflectionProperty;
 
 use function class_exists;
 use function is_subclass_of;
@@ -53,8 +51,12 @@ final class ClassGraphValidator
         }
 
         foreach ($reflection->getConstructor()?->getParameters() ?? [] as $parameter) {
-            $resolved = new ConstructorParameter($parameter, $reflection)->resolveType($class);
-            $error = $this->field($class, $parameter, $resolved);
+            $compiler = new TypeCompiler($class);
+            $node = new ConstructorParameter($parameter, $reflection)->resolveType($compiler);
+            $error = $node instanceof DecodeError ? $node : $this->dependencies($class, $parameter->getName(), [
+                    ...$compiler->unresolved,
+                    ...$node->dependencies(),
+                ]);
             if ($error !== null) {
                 return $error;
             }
@@ -65,9 +67,7 @@ final class ClassGraphValidator
             return $properties;
         }
         foreach ($properties as $property) {
-            $field = $property['property'];
-            $resolved = FieldTypeResolver::resolve($class, $field);
-            $error = $this->field($class, $field, $resolved);
+            $error = $this->dependencies($class, $property['property']->getName(), $property['node']->dependencies());
             if ($error !== null) {
                 return $error;
             }
@@ -77,34 +77,19 @@ final class ClassGraphValidator
 
     /**
      * @param class-string $class
+     * @param list<string> $dependencies
      * @throws ReflectionException
      */
-    private function field(
-        string $class,
-        ReflectionParameter|ReflectionProperty $field,
-        ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null $resolved,
-    ): DecodeError|null {
-        if ($resolved instanceof DecodeError) {
-            return $resolved;
-        }
-        foreach (ClassTypeDependencies::field($field, $resolved) as $type) {
-            $error = $this->named($class, $field->getName(), $type);
-            if ($error !== null) {
-                return $error;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * @param class-string $class
-     * @throws ReflectionException
-     */
-    private function named(string $class, string $field, string $type): DecodeError|null
+    private function dependencies(string $class, string $field, array $dependencies): DecodeError|null
     {
-        if (!class_exists($type)) {
-            return DecodeError::nonInstantiableField($class, $field, 'unknown class', $type);
+        foreach ($dependencies as $dependency) {
+            $error = class_exists($dependency)
+                ? $this->validate($dependency)
+                : DecodeError::nonInstantiableField($class, $field, 'unknown class', $dependency);
+            if ($error !== null) {
+                return $error;
+            }
         }
-        return $this->validate($type);
+        return null;
     }
 }

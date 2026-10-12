@@ -111,6 +111,14 @@ final class AmbiguousUnionErrorCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField from the JSON object: Field value uses multiple class types: Eventjet\Json\Test\Acceptance\Fixtures\Person, Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField. JSON does not identify which class to instantiate.',
             3,
         ];
+        yield 'an unloaded class and another class cannot be distinguished' => [
+            '{}',
+            CollectionDeclarationFixture::create('UnloadedUnionClass|\\' . Person::class, '', 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('UnloadedUnionClass|\\' . Person::class, '', 'param')
+                . ' from the JSON object: Field value uses multiple class types: Eventjet\Json\Test\Acceptance\Fixtures\Person, UnloadedUnionClass. JSON does not identify which class to instantiate.',
+            3,
+        ];
         yield 'multiple class alternatives cannot be distinguished' => [
             '{}',
             CollectionDeclarationFixture::create(

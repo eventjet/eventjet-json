@@ -24,6 +24,14 @@ final class EnumsErrorCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus from the JSON object: Field [0][0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus, which expects a int backing value; string given.',
             3,
         ];
+        yield 'enum list declared in PHPDoc rejects null' => [
+            '{"value":[null]}',
+            CollectionDeclarationFixture::create('array', PhpType::list(IntBackedStatus::class), 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('array', PhpType::list(IntBackedStatus::class), 'param')
+                . ' from the JSON object: Field value[0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus, which expects a int backing value; null given.',
+            3,
+        ];
         yield 'nullable non-backed enum rejects a non-null value' => [
             '{"value":1}',
             CollectionDeclarationFixture::create('?\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus', '', 'var'),

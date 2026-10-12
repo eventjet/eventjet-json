@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Node\Node;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionProperty;
@@ -23,7 +24,7 @@ final class PublicPropertyTypeValidator
      * @param class-string $class
      * @throws ReflectionException
      */
-    public static function validate(string $class, ReflectionProperty $property): FieldValueConverter|DecodeError
+    public static function validate(string $class, ReflectionProperty $property): Node|DecodeError
     {
         $field = $property->getName();
         $type = $property->getType();
@@ -45,13 +46,7 @@ final class PublicPropertyTypeValidator
             }
         }
 
-        $collection = FieldTypeResolver::resolve($class, $property);
-
-        if ($collection instanceof DecodeError) {
-            return $collection;
-        }
-
-        return new FieldValueConverter($property, $collection);
+        return new TypeCompiler($class)->field($property, $type);
     }
 
     /** @param class-string $class */

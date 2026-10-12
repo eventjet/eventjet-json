@@ -5,21 +5,21 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Node\Node;
 use ReflectionClass;
 use ReflectionException;
-use ReflectionNamedType;
 use ReflectionProperty;
 
 /** @internal */
 final class PublicProperties
 {
-    /** @var array<class-string, array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>> */
+    /** @var array<class-string, array<array-key, array{property: ReflectionProperty, node: Node}>> */
     private static array $properties = [];
 
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array<array-key, array{property: ReflectionProperty, converter: FieldValueConverter, builtinType: ReflectionNamedType|null}>|DecodeError
+     * @return array<array-key, array{property: ReflectionProperty, node: Node}>|DecodeError
      * @phpstan-impure
      * @throws ReflectionException
      */
@@ -48,21 +48,13 @@ final class PublicProperties
             if (!$publicInstance || ($constructorFields[$property->getName()] ?? false)) {
                 continue;
             }
-            $type = PublicPropertyTypeValidator::validate($name, $property);
-            if ($type instanceof DecodeError) {
-                return $type;
+            $node = PublicPropertyTypeValidator::validate($name, $property);
+            if ($node instanceof DecodeError) {
+                return $node;
             }
-            $declaredType = $property->getType();
-            $builtinType =
-                $declaredType instanceof ReflectionNamedType
-                && $declaredType->isBuiltin()
-                && $declaredType->getName() !== 'array'
-                    ? $declaredType
-                    : null;
             $properties[$names[$property->getName()] ?? $property->getName()] = [
                 'property' => $property,
-                'converter' => $type,
-                'builtinType' => $builtinType,
+                'node' => $node,
             ];
         }
 
