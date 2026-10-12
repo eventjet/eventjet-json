@@ -95,7 +95,7 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocConstantResolver::class)]
 #[UsesClass(PhpDocImports::class)]
 #[UsesClass(PhpDocImportScanner::class)]
-#[UsesClass(PhpDocItemCompiler::class)]
+#[CoversClass(PhpDocItemCompiler::class)]
 #[UsesClass(PhpDocLiteral::class)]
 #[UsesClass(PhpDocNamespaceDeclaration::class)]
 #[UsesClass(PhpDocTokenStream::class)]
