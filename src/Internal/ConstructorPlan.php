@@ -11,8 +11,10 @@ use ReflectionException;
 use stdClass;
 
 use function array_all;
+use function array_filter;
 use function array_intersect_key;
 use function array_key_exists;
+use function array_map;
 use function is_array;
 use function is_bool;
 use function is_float;
@@ -24,17 +26,36 @@ final readonly class ConstructorPlan
 {
     public bool $scalarOnly;
 
+    /** @var array<array-key, string> Native type names of the arguments that need a type check. */
+    private array $types;
+
+    /** @var array<array-key, string> The type that errors report for each checked argument that accepts null. */
+    private array $nullable;
+
     /**
      * @param class-string $class
-     * @param array<array-key, array{string, bool, string}> $fields Native type checks: type name, nullability,
-     *     and the type that errors report.
+     * @param array<array-key, array{string, string|null}> $checks Native type checks: type name, and the type that
+     *     errors report if the argument accepts null.
      * @param array<array-key, Node|null> $converters
      */
     public function __construct(
         private string $class,
-        private array $fields,
+        array $checks,
         private array $converters,
     ) {
+        $this->types = array_map(
+            /** @param array{string, string|null} $check */
+            static fn(array $check): string => $check[0],
+            $checks,
+        );
+        $this->nullable = array_filter(
+            array_map(
+                /** @param array{string, string|null} $check */
+                static fn(array $check): string|null => $check[1],
+                $checks,
+            ),
+            static fn(string|null $type): bool => $type !== null,
+        );
         $this->scalarOnly = array_all($converters, static fn(Node|null $converter): bool => $converter === null);
     }
 
@@ -46,14 +67,14 @@ final readonly class ConstructorPlan
      */
     public function decode(array $values, string $path): array|DecodeError
     {
-        foreach ($this->fields as $name => [$typeName, $nullable, $expected]) {
+        foreach ($this->types as $name => $typeName) {
             if (!array_key_exists($name, $values)) {
                 continue;
             }
             $value = $values[$name];
             // Inline checks, because a call per argument slows down hydration measurably.
             $matches = $value === null
-                ? $nullable
+                ? array_key_exists($name, $this->nullable)
                 : match ($typeName) {
                     'array' => is_array($value) || $value instanceof stdClass,
                     'bool' => is_bool($value),
@@ -69,12 +90,12 @@ final readonly class ConstructorPlan
                 return DecodeError::fieldTypeMismatch(
                     $this->class,
                     $path === '' ? (string) $name : FieldPath::field($path, (string) $name),
-                    $expected,
+                    $this->nullable[$name] ?? $typeName,
                     $value,
                 );
             }
         }
-        return $this->scalarOnly ? array_intersect_key($values, $this->fields) : $this->convert($values, $path);
+        return $this->scalarOnly ? array_intersect_key($values, $this->types) : $this->convert($values, $path);
     }
 
     /**

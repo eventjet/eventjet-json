@@ -49,7 +49,7 @@ final class ConstructorDecoder
             return $names;
         }
         $compiler = new TypeCompiler($className);
-        $fields = [];
+        $checks = [];
         $converters = [];
 
         foreach ($class->getConstructor()?->getParameters() ?? [] as $reflection) {
@@ -60,13 +60,13 @@ final class ConstructorDecoder
                 return $node;
             }
             $converters[$name] = $parameter->converter($node);
-            $field = $parameter->nativeCheck();
-            if ($field !== null) {
-                $fields[$name] = $field;
+            $check = $parameter->nativeCheck();
+            if ($check !== null) {
+                $checks[$name] = $check;
             }
         }
 
-        $plan = new ConstructorPlan($className, $fields, $converters);
+        $plan = new ConstructorPlan($className, $checks, $converters);
         if ($names !== []) {
             $plan = new MappedConstructorPlan($plan, array_flip($names));
         }

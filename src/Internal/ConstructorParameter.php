@@ -87,10 +87,10 @@ final readonly class ConstructorParameter
     }
 
     /**
-     * Returns the native type check of the argument as type name, nullability, and the type that errors report.
-     * Unions and enums have none, because their nodes check the value.
+     * Returns the native type check of the argument as type name, and the type that errors report if the argument
+     * accepts null. Unions and enums have none, because their nodes check the value.
      *
-     * @return array{string, bool, string}|null
+     * @return array{string, string|null}|null
      */
     public function nativeCheck(): array|null
     {
@@ -98,11 +98,6 @@ final readonly class ConstructorParameter
         if (!$type instanceof ReflectionNamedType || !$this->builtin && enum_exists($this->typeName)) {
             return null;
         }
-        $nullable = $type->allowsNull();
-        return [
-            $type->getName(),
-            $nullable,
-            $nullable ? FieldTypeNameResolver::withNull($this->typeName) : $this->typeName,
-        ];
+        return [$this->typeName, $type->allowsNull() ? FieldTypeNameResolver::withNull($this->typeName) : null];
     }
 }
