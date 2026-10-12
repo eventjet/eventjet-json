@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Node;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\ObjectHydrator;
 use Override;
 use stdClass;
 
@@ -35,7 +35,7 @@ final readonly class ObjectNode implements Node
             $expected = $this->nullable ? FieldTypeNameResolver::withNull($this->target) : $this->target;
             return DecodeError::fieldTypeMismatch($this->class, $path, $expected, $value);
         }
-        return ObjectHydrator::hydrate($this->target, $value, $path);
+        return ClassDecoders::hydrate($this->target, $value, $path);
     }
 
     /**
@@ -53,7 +53,7 @@ final readonly class ObjectNode implements Node
             if (!$value instanceof stdClass) {
                 return DecodeError::fieldTypeMismatch($this->class, $itemPath, $this->target, $value);
             }
-            $object = ObjectHydrator::hydrate($this->target, $value, $itemPath);
+            $object = ClassDecoders::hydrate($this->target, $value, $itemPath);
             if ($object instanceof DecodeError) {
                 return $object;
             }

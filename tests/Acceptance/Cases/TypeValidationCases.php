@@ -138,6 +138,24 @@ final class TypeValidationCases
                 '/** @var array{int|string, ValidationInvalidChild} */ public array $children;',
             ],
             ['ValidationCycleError', 'public ?self $next = null; public ValidationInvalidChild $child;'],
+            [
+                'ValidationFirstConstructorClass',
+                'public function __construct(public ?ValidationInvalidChild $first = null, public ?\\'
+                    . Coordinates::class
+                    . ' $second = null) {}',
+            ],
+            [
+                'ValidationConstructorAndPropertyClass',
+                'public function __construct(public ?ValidationInvalidChild $first = null) {} public ?\\'
+                    . Coordinates::class
+                    . ' $second = null;',
+            ],
+            [
+                'ValidationSecondConstructorClass',
+                'public function __construct(public ?\\'
+                    . Coordinates::class
+                    . ' $first = null, public ?ValidationInvalidChild $second = null) {}',
+            ],
             ['ValidationEarlierTupleClass', '/** @var array{ValidationInvalidChild, int} */ public array $children;'],
             [
                 'ValidationSecondTupleClass',

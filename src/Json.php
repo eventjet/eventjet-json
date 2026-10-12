@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json;
 
+use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
-use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\RootTypeValidator;
 use ReflectionClass;
 use stdClass;
@@ -67,7 +67,7 @@ final class Json
             return DecodeError::unexpectedRootValue($values);
         }
 
-        return ObjectHydrator::hydrate($class, $values);
+        return ClassDecoders::hydrate($class, $values);
     }
 
     /**

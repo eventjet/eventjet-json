@@ -12,7 +12,6 @@ use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\CollectionUnionNatives;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\LiteralFieldCompiler;
-use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
@@ -109,7 +108,6 @@ use const PHP_INT_MIN;
 #[UsesClass(TypeCompiler::class)]
 #[CoversClass(UnionBuilder::class)]
 #[UsesClass(UnionNode::class)]
-#[UsesClass(MetadataCache::class)]
 final class LiteralTypeTest extends TestCase
 {
     /**

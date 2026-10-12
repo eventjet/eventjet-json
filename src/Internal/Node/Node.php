@@ -24,7 +24,11 @@ interface Node extends Stringable
      */
     public function decode(mixed $value, string $path): mixed;
 
-    /** @return list<class-string> */
+    /**
+     * Returns the classes that decoded values may be instances of, including declared classes that are not loaded.
+     *
+     * @return list<string>
+     */
     public function dependencies(): array;
 
     /**

@@ -6,24 +6,27 @@ namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Field;
+use Eventjet\Json\Internal\ArrayJsonType;
+use Eventjet\Json\Internal\ClassDecoder;
+use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\ClassGraphValidator;
+use Eventjet\Json\Internal\ClassJsonType;
 use Eventjet\Json\Internal\CollectionCompiler;
 use Eventjet\Json\Internal\CollectionUnionCompiler;
-use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
+use Eventjet\Json\Internal\DecodeErrorKind;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\MappedConstructorPlan;
+use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\MappedObjectSerializer;
-use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\EnumUnionNode;
 use Eventjet\Json\Internal\Node\ListNode;
-use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
@@ -33,7 +36,6 @@ use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\TupleNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
-use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocCollectionCompiler;
 use Eventjet\Json\Internal\PhpDocFieldType;
@@ -49,8 +51,8 @@ use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
-use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
+use Eventjet\Json\Internal\PublicPropertyValues;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
@@ -65,12 +67,10 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Exception;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\UnknownClassOrInterfaceException;
-use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
 use stdClass;
 
-#[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
@@ -79,17 +79,14 @@ use stdClass;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[UsesClass(MetadataCache::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(FieldNames::class)]
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(PublicProperties::class)]
-#[CoversClass(MappedConstructorPlan::class)]
+#[CoversClass(PublicPropertyValues::class)]
 #[CoversClass(FieldNameCollisions::class)]
-#[CoversClass(ObjectHydrator::class)]
-#[UsesClass(PublicPropertyHydrator::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]
@@ -122,7 +119,13 @@ use stdClass;
 #[UsesClass(UnionBuilder::class)]
 #[UsesClass(UnionNode::class)]
 #[UsesClass(EnumUnionNode::class)]
-#[UsesClass(LiteralNode::class)]
+#[UsesClass(ArrayJsonType::class)]
+#[CoversClass(ClassDecoder::class)]
+#[CoversClass(ClassDecoders::class)]
+#[UsesClass(ClassGraphValidator::class)]
+#[UsesClass(ClassJsonType::class)]
+#[UsesClass(DecodeErrorKind::class)]
+#[UsesClass(MapJsonType::class)]
 final class ConstructorHydrationPlanTest extends TestCase
 {
     /**
@@ -186,29 +189,24 @@ final class ConstructorHydrationPlanTest extends TestCase
             ) {}
         };
         $class = $target::class;
-        static::assertNull(ConstructorDecoder::cachedPlan($class));
+        static::assertNull(self::cached($class));
         $input = new stdClass();
         $input->value = 2;
         $target->value = 2;
-        $first = ObjectHydrator::hydrate($class, $input);
-        static::assertEquals($target, $first);
-        $plan = ConstructorDecoder::cachedPlan($class);
-        static::assertInstanceOf(ConstructorPlan::class, $plan);
-        static::assertTrue($plan->scalarOnly);
-        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
-        static::assertIsArray($cache->getValue());
-        static::assertSame($plan, $cache->getValue()[$class] ?? null);
+        static::assertEquals($target, ClassDecoders::hydrate($class, $input));
+        $decoder = self::cached($class);
+        static::assertNotNull($decoder);
         $input->value = 3;
         $target->value = 3;
-        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
+        static::assertEquals($target, ClassDecoders::hydrate($class, $input));
         $target->value = 1;
-        static::assertEquals($target, ObjectHydrator::hydrate($class, new stdClass()));
+        static::assertEquals($target, ClassDecoders::hydrate($class, new stdClass()));
         $input->value = null;
         static::assertEquals(
             DecodeError::fieldTypeMismatch($class, 'nested.value', 'int', null),
-            ObjectHydrator::hydrate($class, $input, 'nested'),
+            ClassDecoders::hydrate($class, $input, 'nested'),
         );
-        static::assertSame($plan, ConstructorDecoder::cachedPlan($class));
+        static::assertSame($decoder, self::cached($class));
     }
 
     /**
@@ -228,18 +226,18 @@ final class ConstructorHydrationPlanTest extends TestCase
         $input = new stdClass();
         $input->label = 'first';
         $target->label = 'first';
-        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
-        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
-        static::assertIsArray($cache->getValue());
-        static::assertInstanceOf(ReflectionClass::class, $cache->getValue()[$class] ?? null);
+        static::assertEquals($target, ClassDecoders::hydrate($class, $input));
+        $decoder = self::cached($class);
+        static::assertNotNull($decoder);
         $target->label = 'second';
         $input->label = 'second';
-        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
+        static::assertEquals($target, ClassDecoders::hydrate($class, $input));
         $input->label = false;
         static::assertEquals(
             DecodeError::fieldTypeMismatch($class, 'nested.label', 'string', false),
-            ObjectHydrator::hydrate($class, $input, 'nested'),
+            ClassDecoders::hydrate($class, $input, 'nested'),
         );
+        static::assertSame($decoder, self::cached($class));
     }
 
     /**
@@ -255,30 +253,26 @@ final class ConstructorHydrationPlanTest extends TestCase
             ) {}
         };
         $class = $target::class;
-        static::assertNull(ConstructorDecoder::cachedPlan($class));
+        static::assertNull(self::cached($class));
         $input = new stdClass();
         $input->value = StringBackedStatus::Ready->value;
         $target->value = StringBackedStatus::Ready;
-        static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
-        $plan = ConstructorDecoder::cachedPlan($class);
-        static::assertInstanceOf(ConstructorPlan::class, $plan);
-        static::assertFalse($plan->scalarOnly);
-        $cache = new ReflectionProperty(ObjectHydrator::class, 'validatedClasses');
-        static::assertIsArray($cache->getValue());
-        static::assertSame($plan, $cache->getValue()[$class] ?? null);
+        static::assertEquals($target, ClassDecoders::hydrate($class, $input));
+        $decoder = self::cached($class);
+        static::assertNotNull($decoder);
 
         foreach ([false, null, StringBackedStatus::Pending] as $value) {
             $target->value = $value;
             $input->value = $value instanceof StringBackedStatus ? $value->value : $value;
-            static::assertEquals($target, ObjectHydrator::hydrate($class, $input));
+            static::assertEquals($target, ClassDecoders::hydrate($class, $input));
         }
         $target->value = null;
-        static::assertEquals($target, ObjectHydrator::hydrate($class, new stdClass()));
+        static::assertEquals($target, ClassDecoders::hydrate($class, new stdClass()));
         $input->value = [];
-        $error = ObjectHydrator::hydrate($class, $input, 'nested');
+        $error = ClassDecoders::hydrate($class, $input, 'nested');
         static::assertInstanceOf(DecodeError::class, $error);
         static::assertStringContainsString('Field nested.value must be of type', $error->getMessage());
-        static::assertSame($plan, ConstructorDecoder::cachedPlan($class));
+        static::assertSame($decoder, self::cached($class));
     }
 
     /** @throws ReflectionException */
@@ -291,13 +285,25 @@ final class ConstructorHydrationPlanTest extends TestCase
         $invalid = new stdClass();
         $invalid->{'$ref'} = 42;
         for ($attempt = 0; $attempt < 3; ++$attempt) {
-            static::assertEquals(new MappedDefaults(ref: 'next', count: 9), ObjectHydrator::hydrate($class, $input));
-            static::assertNull(ConstructorDecoder::cachedPlan($class));
-            static::assertEquals(new MappedDefaults(), ObjectHydrator::hydrate($class, new stdClass()));
+            static::assertEquals(new MappedDefaults(ref: 'next', count: 9), ClassDecoders::hydrate($class, $input));
+            static::assertNotNull(self::cached($class));
+            static::assertEquals(new MappedDefaults(), ClassDecoders::hydrate($class, new stdClass()));
             static::assertEquals(
                 DecodeError::fieldTypeMismatch($class, 'nested.$ref', 'string|null', 42),
-                ObjectHydrator::hydrate($class, $invalid, 'nested'),
+                ClassDecoders::hydrate($class, $invalid, 'nested'),
             );
         }
+    }
+
+    /**
+     * @param class-string $class
+     * @return ClassDecoder|null
+     * @throws ReflectionException
+     */
+    private static function cached(string $class): ClassDecoder|null
+    {
+        /** @var array<class-string, ClassDecoder> $decoders */
+        $decoders = new ReflectionProperty(ClassDecoders::class, 'decoders')->getValue();
+        return $decoders[$class] ?? null;
     }
 }

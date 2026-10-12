@@ -47,7 +47,7 @@ final readonly class ConstructorParameter
             : (string) $this->type;
         $this->builtin = $this->type instanceof ReflectionNamedType && $this->type->isBuiltin();
         $this->variadic = $reflection->isVariadic();
-        $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
+        $property = $class->hasProperty($this->name) ? $class->getProperty($this->name) : null;
         $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
         $this->class = $class->getName();
         $this->plain = FieldTypeNameResolver::isPlainType($reflection, $this->type);

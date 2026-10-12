@@ -25,12 +25,14 @@ final readonly class UnionNode implements Node
      * @param array<string, Node> $members Keyed by the get_debug_type() of the decoded JSON values they accept, or by
      *     true or false for booleans.
      * @param Node|null $fallback Accepts values of every other type, for members that PHP checks itself.
+     * @param list<string> $dependencies The classes of all members, including members that are not indexed.
      */
     public function __construct(
         private string $class,
         private string $type,
         private array $members,
         private Node|null $fallback,
+        private array $dependencies,
     ) {}
 
     /**
@@ -47,7 +49,9 @@ final readonly class UnionNode implements Node
         $indexed = [];
         $enums = [];
         $literals = [];
+        $dependencies = [];
         foreach ($members as $member) {
+            $dependencies = [...$dependencies, ...$member->dependencies()];
             if ($member instanceof LiteralNode) {
                 $literals[] = $member;
                 continue;
@@ -82,7 +86,7 @@ final readonly class UnionNode implements Node
             $indexed['int'] = $indexed['float'];
         }
         $indexed = $literals === [] ? $indexed : LiteralNode::index($class, $type, $literals, $indexed);
-        return new self($class, $type, $indexed, $indexed['callable'] ?? null);
+        return new self($class, $type, $indexed, $indexed['callable'] ?? null, $dependencies);
     }
 
     #[Override]
@@ -108,11 +112,7 @@ final readonly class UnionNode implements Node
     #[Override]
     public function dependencies(): array
     {
-        $dependencies = [];
-        foreach ($this->members as $member) {
-            $dependencies = [...$dependencies, ...$member->dependencies()];
-        }
-        return $dependencies;
+        return $this->dependencies;
     }
 
     #[Override]

@@ -6,25 +6,29 @@ namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Field;
+use Eventjet\Json\Internal\ArrayJsonType;
+use Eventjet\Json\Internal\ClassDecoder;
+use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\ClassGraphValidator;
+use Eventjet\Json\Internal\ClassJsonType;
 use Eventjet\Json\Internal\CollectionCompiler;
 use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\CollectionUnionNatives;
-use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
+use Eventjet\Json\Internal\DecodeErrorKind;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\LiteralFieldCompiler;
-use Eventjet\Json\Internal\MappedConstructorPlan;
-use Eventjet\Json\Internal\MetadataCache;
+use Eventjet\Json\Internal\MapJsonType;
+use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\EnumUnionNode;
 use Eventjet\Json\Internal\Node\ListNode;
-use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
@@ -34,7 +38,6 @@ use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\TupleNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
-use Eventjet\Json\Internal\ObjectHydrator;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocCollectionCompiler;
 use Eventjet\Json\Internal\PhpDocConstantResolver;
@@ -53,8 +56,8 @@ use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
-use Eventjet\Json\Internal\PublicPropertyHydrator;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
+use Eventjet\Json\Internal\PublicPropertyValues;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
@@ -65,6 +68,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredEnumBacking;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredListItem;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredValueEnum;
+use Eventjet\Json\Test\Unit\Fixtures\JsonObject;
 use Eventjet\Json\Test\Unit\Fixtures\PropertyCountingReflection;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -88,28 +92,25 @@ use function spl_autoload_register;
 use function spl_autoload_unregister;
 
 #[CoversClass(PhpDocClassNameResolver::class)]
-#[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
 #[UsesClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[UsesClass(MetadataCache::class)]
 #[CoversClass(RootTypeValidator::class)]
 #[CoversClass(PublicProperties::class)]
-#[CoversClass(ObjectHydrator::class)]
+#[CoversClass(PublicPropertyValues::class)]
 #[UsesClass(Field::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[UsesClass(FieldNameCollisions::class)]
-#[UsesClass(FieldNames::class)]
+#[CoversClass(FieldNames::class)]
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]
 #[UsesClass(CollectionUnionNatives::class)]
 #[UsesClass(EnumNode::class)]
 #[UsesClass(ListNode::class)]
 #[UsesClass(MapNode::class)]
-#[UsesClass(MappedConstructorPlan::class)]
 #[UsesClass(NativeUnionCompiler::class)]
 #[UsesClass(NullOnlyNode::class)]
 #[UsesClass(NullableNode::class)]
@@ -127,8 +128,7 @@ use function spl_autoload_unregister;
 #[UsesClass(PhpDocTypeParser::class)]
 #[UsesClass(PhpDocTypeTokens::class)]
 #[UsesClass(PhpDocUnionCompiler::class)]
-#[UsesClass(PublicPropertyHydrator::class)]
-#[CoversClass(PublicPropertyTypeValidator::class)]
+#[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(ScalarItems::class)]
 #[UsesClass(TupleNode::class)]
@@ -137,23 +137,34 @@ use function spl_autoload_unregister;
 #[UsesClass(UnionBuilder::class)]
 #[CoversClass(UnionNode::class)]
 #[UsesClass(EnumUnionNode::class)]
-#[UsesClass(LiteralNode::class)]
+#[UsesClass(ArrayJsonType::class)]
+#[UsesClass(ClassDecoder::class)]
+#[UsesClass(ClassDecoders::class)]
+#[UsesClass(ClassGraphValidator::class)]
+#[UsesClass(ClassJsonType::class)]
+#[UsesClass(DecodeErrorKind::class)]
+#[UsesClass(MapJsonType::class)]
+#[UsesClass(MappedObjectSerializer::class)]
 final class AutoloadingTest extends TestCase
 {
+    /**
+     * @throws ReflectionException
+     * @throws JsonException
+     */
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
-    public function testConstructorOnlyObjectsDoNotLoadPropertyAssignmentCode(): void
+    public function testScalarAndEnumConstructorsDoNotLoadPropertyOrLiteralCode(): void
     {
         $target = new class('expected') {
             public function __construct(
                 public string $value,
             ) {}
         };
-        $input = new stdClass();
-        $input->value = 'expected';
         for ($lookup = 0; $lookup < 2; ++$lookup) {
-            static::assertEquals($target, ObjectHydrator::hydrate($target::class, $input));
-            static::assertFalse(class_exists(PublicPropertyHydrator::class, autoload: false));
+            static::assertEquals($target, ClassDecoders::hydrate($target::class, JsonObject::of([
+                'value' => 'expected',
+            ])));
+            static::assertFalse(class_exists(PublicPropertyValues::class, autoload: false));
             static::assertFalse(class_exists(LiteralFieldCompiler::class, autoload: false));
             static::assertFalse(class_exists(PhpDocLiteral::class, autoload: false));
             static::assertFalse(class_exists(TypeCompiler::class, autoload: false));
@@ -163,10 +174,18 @@ final class AutoloadingTest extends TestCase
                 public StringBackedStatus $status,
             ) {}
         };
-        $statusInput = new stdClass();
-        $statusInput->status = 'ready';
-        static::assertEquals($status, ObjectHydrator::hydrate($status::class, $statusInput));
+        static::assertEquals($status, ClassDecoders::hydrate($status::class, JsonObject::of(['status' => 'ready'])));
         static::assertFalse(class_exists(LiteralFieldCompiler::class, autoload: false));
+        $ordinary = new class(new EmptyObject()) {
+            /** @param \Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject $object */
+            public function __construct(
+                public EmptyObject $object,
+            ) {}
+        };
+        $ordinaryInput = new stdClass();
+        $ordinaryInput->object = new stdClass();
+        static::assertEquals($ordinary, ClassDecoders::hydrate($ordinary::class, $ordinaryInput));
+        static::assertFalse(class_exists(PhpDocClassNameResolver::class, autoload: false));
         $collection = new class([42]) {
             /** @param list<int> $values The name has a native scalar type. */
             public function __construct(
@@ -176,26 +195,7 @@ final class AutoloadingTest extends TestCase
         };
         $collectionInput = new stdClass();
         $collectionInput->values = [42];
-        static::assertEquals($collection, ObjectHydrator::hydrate($collection::class, $collectionInput));
-        $ordinary = new class(new EmptyObject()) {
-            /** @param \Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject $object */
-            public function __construct(
-                public EmptyObject $object,
-            ) {}
-        };
-        $ordinaryInput = new stdClass();
-        $ordinaryInput->object = new stdClass();
-        static::assertEquals($ordinary, ObjectHydrator::hydrate($ordinary::class, $ordinaryInput));
-        static::assertFalse(class_exists(PhpDocClassNameResolver::class, autoload: false));
-        $nullable = new class(null) {
-            /** @param list<int>|null $values */
-            public function __construct(
-                public array|null $values,
-            ) {}
-        };
-        $nullableInput = new stdClass();
-        $nullableInput->values = null;
-        static::assertEquals($nullable, ObjectHydrator::hydrate($nullable::class, $nullableInput));
+        static::assertEquals($collection, ClassDecoders::hydrate($collection::class, $collectionInput));
         static::assertFalse(class_exists(PhpDocConstantResolver::class, autoload: false));
         static::assertFalse(class_exists(LiteralFieldCompiler::class, autoload: false));
         static::assertFalse(class_exists(PhpDocLiteral::class, autoload: false));
@@ -279,7 +279,7 @@ final class AutoloadingTest extends TestCase
         spl_autoload_register($autoload);
 
         try {
-            static::assertSame($values, ConstructorDecoder::convert($class, $values, ''));
+            static::assertEquals($target, ClassDecoders::hydrate($class->getName(), JsonObject::of($values)));
             foreach ($values as $name => $value) {
                 $parameter = new ReflectionParameter([$class->getName(), '__construct'], $name);
                 $type = $parameter->getType();

@@ -39,55 +39,23 @@ final class ClassGraphValidator
      */
     public function validate(string $class): DecodeError|null
     {
-        $reflection = new ReflectionClass($class);
-        $class = $reflection->getName();
+        $class = new ReflectionClass($class)->getName();
         if ($this->visited[$class] ?? false) {
             return null;
         }
         $this->visited[$class] = true;
-        $error = RootTypeValidator::validate($reflection);
-        if ($error !== null) {
-            return $error;
+        $decoder = ClassDecoders::get($class);
+        if ($decoder instanceof DecodeError) {
+            return $decoder;
         }
-
-        foreach ($reflection->getConstructor()?->getParameters() ?? [] as $parameter) {
-            $compiler = new TypeCompiler($class);
-            $node = new ConstructorParameter($parameter, $reflection)->resolveType($compiler);
-            $error = $node instanceof DecodeError ? $node : $this->dependencies($class, $parameter->getName(), [
-                    ...$compiler->unresolved,
-                    ...($node?->dependencies() ?? []),
-                ]);
-            if ($error !== null) {
-                return $error;
-            }
-        }
-
-        $properties = PublicProperties::resolve($reflection);
-        if ($properties instanceof DecodeError) {
-            return $properties;
-        }
-        foreach ($properties as $property) {
-            $error = $this->dependencies($class, $property['property']->getName(), $property['node']->dependencies());
-            if ($error !== null) {
-                return $error;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * @param class-string $class
-     * @param list<string> $dependencies
-     * @throws ReflectionException
-     */
-    private function dependencies(string $class, string $field, array $dependencies): DecodeError|null
-    {
-        foreach ($dependencies as $dependency) {
-            $error = class_exists($dependency)
-                ? $this->validate($dependency)
-                : DecodeError::nonInstantiableField($class, $field, 'unknown class', $dependency);
-            if ($error !== null) {
-                return $error;
+        foreach ($decoder->fields() as $field => $node) {
+            foreach ($node->dependencies() as $dependency) {
+                $error = class_exists($dependency)
+                    ? $this->validate($dependency)
+                    : DecodeError::nonInstantiableField($class, $field, 'unknown class', $dependency);
+                if ($error !== null) {
+                    return $error;
+                }
             }
         }
         return null;
