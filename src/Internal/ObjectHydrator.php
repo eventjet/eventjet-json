@@ -9,6 +9,8 @@ use ReflectionClass;
 use stdClass;
 use Throwable;
 
+use function array_filter;
+use function array_key_exists;
 use function get_object_vars;
 
 /** @internal */
@@ -16,6 +18,9 @@ final class ObjectHydrator
 {
     /** @var array<class-string, ReflectionClass<object>|ConstructorPlan> */
     private static array $validatedClasses = [];
+
+    /** @var array<class-string, true> */
+    private static array $scalarPlans = [];
 
     /**
      * @template T of object
@@ -27,8 +32,8 @@ final class ObjectHydrator
         try {
             /** @var ReflectionClass<T>|ConstructorPlan|null $reflection */
             $reflection = self::$validatedClasses[$class] ?? null;
-            if ($reflection instanceof ConstructorPlan) {
-                $result = $reflection->hydrateCompiled($object);
+            if (array_key_exists($class, self::$scalarPlans)) {
+                $result = CompiledHydrators::hydrate($class, $object);
                 if ($result !== null) {
                     /** @var T $result */
                     return $result;
@@ -85,6 +90,7 @@ final class ObjectHydrator
         $plan = ConstructorDecoder::cachedPlan($class);
         if ($plan !== null) {
             self::$validatedClasses[$class] = $plan;
+            self::$scalarPlans += array_filter([$class => $plan->scalarOnly]);
         }
     }
 }

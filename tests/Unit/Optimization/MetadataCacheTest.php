@@ -77,6 +77,7 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\MappedConstructorPlan::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[UsesClass(\Eventjet\Json\Internal\ScalarHydratorCompiler::class)]
+#[UsesClass(\Eventjet\Json\Internal\CompiledHydrators::class)]
 #[UsesClass(ConstructorValueValidator::class)]
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]

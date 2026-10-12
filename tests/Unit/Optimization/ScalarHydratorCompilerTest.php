@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\CompiledHydrators;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
@@ -15,24 +16,32 @@ use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\ScalarHydratorCompiler;
 use Eventjet\Json\Internal\ValueTypeMatcher;
+use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\DefaultedConstructorFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarConstructorGuard;
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
+use Eventjet\Json\Test\Unit\Fixtures\CompiledHydrationTarget;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Exception;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\UnknownClassOrInterfaceException;
 use ReflectionException;
+use ReflectionProperty;
 use RuntimeException;
 use stdClass;
 
+#[CoversClass(CompiledHydrators::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[CoversClass(ObjectHydrator::class)]
 #[CoversClass(ScalarHydratorCompiler::class)]
+#[UsesClass(\Eventjet\Json\Internal\BackedEnumValueConverter::class)]
 #[UsesClass(ConstructorDecoder::class)]
+#[UsesClass(\Eventjet\Json\Internal\FieldValueConverter::class)]
 #[UsesClass(ConstructorValueValidator::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
@@ -138,9 +147,7 @@ final class ScalarHydratorCompilerTest extends TestCase
             static::assertEquals($original, ObjectHydrator::hydrate($class, $input));
         }
         static::assertEquals($original, ObjectHydrator::hydrate($class, $input));
-        $plan = ConstructorDecoder::cachedPlan($class);
-        static::assertNotNull($plan);
-        static::assertNotNull($plan->hydrate);
+        static::assertEquals($original, CompiledHydrators::hydrate($class, $input));
         static::assertEquals(
             new DefaultedConstructorFields('required'),
             ObjectHydrator::hydrate($class, self::input([
@@ -175,5 +182,52 @@ final class ScalarHydratorCompilerTest extends TestCase
         static::assertInstanceOf(DecodeError::class, $error);
         static::assertSame(ScalarConstructorGuard::exception(), $error->getPrevious());
         static::assertSame($before + 3, ScalarConstructorGuard::$calls);
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     * @throws UnknownClassOrInterfaceException
+     */
+    public function testScalarPlansCompileAfterTheirHydrationThreshold(): void
+    {
+        $class = CompiledHydrationTarget::class;
+        $input = self::input(['value' => 7]);
+        for ($hydration = 1; $hydration < 128; ++$hydration) {
+            static::assertNull(CompiledHydrators::hydrate($class, $input));
+        }
+        $hydrated = CompiledHydrators::hydrate($class, $input);
+        static::assertInstanceOf(CompiledHydrationTarget::class, $hydrated);
+        static::assertSame(7, $hydrated->value);
+        static::assertEquals(
+            new CompiledHydrationTarget(8),
+            CompiledHydrators::hydrate($class, self::input([
+                'value' => 8,
+            ])),
+        );
+    }
+
+    /**
+     * @throws Exception
+     * @throws ReflectionException
+     */
+    public function testEveryCachedScalarPlanUsesCompiledHydration(): void
+    {
+        $scalar = new ScalarFields('value', 1, 1.5, true);
+        $nullable = new NullableScalarFields(null, null, null, null, null);
+        $enums = new BackedEnumFields(StringBackedStatus::Ready, StringBackedStatus::Pending, IntBackedStatus::Ready);
+        static::assertEquals($scalar, ObjectHydrator::hydrate($scalar::class, self::input(\get_object_vars($scalar))));
+        static::assertEquals($nullable, ObjectHydrator::hydrate(
+            $nullable::class,
+            self::input(\get_object_vars($nullable)),
+        ));
+        $enumInput = self::input(['stringStatus' => 'ready', 'nullableStatus' => 'pending', 'intStatus' => 1]);
+        static::assertEquals($enums, ObjectHydrator::hydrate($enums::class, $enumInput));
+
+        /** @var array<class-string, true> $scalarPlans */
+        $scalarPlans = new ReflectionProperty(ObjectHydrator::class, 'scalarPlans')->getValue();
+        static::assertArrayHasKey($scalar::class, $scalarPlans);
+        static::assertArrayHasKey($nullable::class, $scalarPlans);
+        static::assertArrayNotHasKey($enums::class, $scalarPlans);
     }
 }

@@ -67,6 +67,7 @@ use function spl_autoload_unregister;
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[UsesClass(\Eventjet\Json\Internal\ScalarHydratorCompiler::class)]
+#[UsesClass(\Eventjet\Json\Internal\CompiledHydrators::class)]
 #[CoversClass(\Eventjet\Json\Internal\ListValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\ListInputNormalizer::class)]
 #[UsesClass(\Eventjet\Json\Internal\ListType::class)]
@@ -139,6 +140,7 @@ final class AutoloadingTest extends TestCase
         $input->boolean = true;
         static::assertFalse(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));
         static::assertEquals($original, \Eventjet\Json\Internal\ObjectHydrator::hydrate($class, $input));
+        static::assertFalse(class_exists(\Eventjet\Json\Internal\CompiledHydrators::class, autoload: false));
         static::assertFalse(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));
         for ($index = 0; $index < 127; ++$index) {
             static::assertEquals($original, \Eventjet\Json\Internal\ObjectHydrator::hydrate($class, $input));
@@ -146,9 +148,6 @@ final class AutoloadingTest extends TestCase
         static::assertFalse(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));
         static::assertEquals($original, \Eventjet\Json\Internal\ObjectHydrator::hydrate($class, $input));
         static::assertTrue(class_exists(\Eventjet\Json\Internal\ScalarHydratorCompiler::class, autoload: false));
-        $plan = ConstructorDecoder::cachedPlan($class);
-        static::assertNotNull($plan);
-        static::assertSame($plan->hydrate, $plan->hydrate);
     }
 
     /** @throws ReflectionException */

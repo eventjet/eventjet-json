@@ -193,6 +193,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ConstructorDecoder::class)]
 #[CoversClass(ConstructorPlan::class)]
 #[CoversClass(\Eventjet\Json\Internal\ScalarHydratorCompiler::class)]
+#[CoversClass(\Eventjet\Json\Internal\CompiledHydrators::class)]
 #[CoversClass(ConstructorValueValidator::class)]
 #[CoversClass(ObjectHydrator::class)]
 #[CoversClass(PublicPropertyHydrator::class)]

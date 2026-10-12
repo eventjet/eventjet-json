@@ -78,6 +78,7 @@ use function class_alias;
 #[CoversClass(MappedConstructorPlan::class)]
 #[CoversClass(FieldNameCollisions::class)]
 #[CoversClass(ObjectHydrator::class)]
+#[UsesClass(\Eventjet\Json\Internal\CompiledHydrators::class)]
 #[UsesClass(\Eventjet\Json\Internal\PublicPropertyHydrator::class)]
 #[UsesClass(\Eventjet\Json\Internal\PublicPropertyTypeValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocFieldType::class)]

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use Closure;
 use Eventjet\Json\DecodeError;
 use JsonException;
 use ReflectionException;
@@ -20,55 +19,24 @@ use function is_int;
 use function is_string;
 
 /** @internal */
-final class ConstructorPlan
+final readonly class ConstructorPlan
 {
-    public readonly bool $scalarOnly;
-
-    /**
-     * @var (Closure(stdClass): (object|null))|false|null
-     * @psalm-suppress UnusedProperty Psalm does not track references from the hydrate property hook.
-     */
-    private Closure|false|null $compiledHydrator = false;
-
-    /** @psalm-suppress UnusedProperty Psalm does not track references from the hydrate property hook. */
-    private int $hydrations = 0;
-
-    /** @var (Closure(stdClass): (object|null))|null */
-    public Closure|null $hydrate {
-        get {
-            if ($this->compiledHydrator !== false) {
-                return $this->compiledHydrator;
-            }
-            // Short requests cannot amortize reflection and runtime compilation.
-            if (++$this->hydrations < 128) {
-                return null;
-            }
-            return $this->compiledHydrator = ScalarHydratorCompiler::compile($this->class);
-        }
-    }
+    public bool $scalarOnly;
 
     /**
      * @param class-string $class
      * @param array<array-key, ConstructorValueValidator> $fields
      * @param array<array-key, FieldValueConverter|null> $converters
-     * @throws ReflectionException
      */
     public function __construct(
-        private readonly string $class,
-        private readonly array $fields,
-        private readonly array $converters,
+        private string $class,
+        private array $fields,
+        private array $converters,
     ) {
         $this->scalarOnly = array_all(
             $converters,
             static fn(FieldValueConverter|null $converter): bool => $converter === null,
         );
-    }
-
-    /** @throws ReflectionException */
-    public function hydrateCompiled(stdClass $object): object|null
-    {
-        $hydrate = $this->scalarOnly ? $this->hydrate : null;
-        return $hydrate === null ? null : $hydrate($object);
     }
 
     /**
