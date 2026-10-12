@@ -177,15 +177,32 @@ jobs:
       actions: read
       pull-requests: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/ci
+      - name: Select latest summaries
+        id: summaries
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const select = require('./.github/ci/comment-artifacts.cjs');
+            for (const [mode, id] of Object.entries(await select({github, context}))) {
+              core.setOutput(mode, id);
+            }
       - name: Download OPcache-on summary
+        if: steps.summaries.outputs.on != ''
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          pattern: performance-comment-${{ github.run_attempt }}-on
+          artifact-ids: ${{ steps.summaries.outputs.on }}
+          merge-multiple: true
           path: report/on
       - name: Download OPcache-off summary
+        if: steps.summaries.outputs.off != ''
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          pattern: performance-comment-${{ github.run_attempt }}-off
+          artifact-ids: ${{ steps.summaries.outputs.off }}
+          merge-multiple: true
           path: report/off
       - name: Create or update comment
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8

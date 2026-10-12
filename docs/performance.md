@@ -209,7 +209,9 @@ selected candidate with itself, overriding the `base` input.
 For same-repository PRs, the workflow maintains one GitHub Actions comment and
 updates it after each completed run, including a failed regression gate. It has
 one section per OPcache mode, primary first, with the mode in each heading; a
-mode without a complete comparison is reported as unavailable. Each section shows
+mode without a complete comparison is reported as unavailable. Like aggregation,
+each section uses the summary from its comparison's latest execution, so a partial
+rerun keeps the result of the mode that did not rerun. Each section shows
 the overall percentage change in decode time, counts of faster/unchanged/slower
 workloads, and the lowest and highest changes with target and PR times in
 microseconds. The overall figure is the geometric mean of workload timing ratios;
