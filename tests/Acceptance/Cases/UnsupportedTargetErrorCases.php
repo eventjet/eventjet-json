@@ -78,6 +78,15 @@ final class UnsupportedTargetErrorCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget from the JSON object: Target type implements JsonSerializable. Its custom JSON representation may not match its constructor parameters, so it cannot satisfy the round-trip contract.',
             3,
         ];
+        $objectItems = CollectionDeclarationFixture::create('array', 'list<\\stdClass>', 'var');
+        yield 'stdClass list items are unsupported' => [
+            '{}',
+            $objectItems,
+            'Could not create '
+                . $objectItems
+                . ' from the JSON object: Field value uses unsupported type stdClass. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
+            3,
+        ];
         yield 'list item type cannot be an interface' => [
             '[]',
             JsonType::array(RootTargetInterface::class),

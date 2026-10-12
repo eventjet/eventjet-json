@@ -12,9 +12,6 @@ use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\ClassJsonType;
-use Eventjet\Json\Internal\CollectionCompiler;
-use Eventjet\Json\Internal\CollectionUnionCompiler;
-use Eventjet\Json\Internal\CollectionUnionNatives;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\DecodeErrorKind;
@@ -22,10 +19,9 @@ use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\LiteralFieldCompiler;
 use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\MappedObjectSerializer;
-use Eventjet\Json\Internal\NativeUnionCompiler;
+use Eventjet\Json\Internal\NamedTypeCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\LiteralNode;
@@ -38,20 +34,20 @@ use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\TupleNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
+use Eventjet\Json\Internal\NodeCompiler;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
-use Eventjet\Json\Internal\PhpDocCollectionCompiler;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
 use Eventjet\Json\Internal\PhpDocImportStatement;
-use Eventjet\Json\Internal\PhpDocItemCompiler;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
+use Eventjet\Json\Internal\PhpDocNarrowing;
 use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
+use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
-use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyValues;
@@ -127,7 +123,10 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(RootTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(TypeCompiler::class)]
-#[CoversClass(CollectionCompiler::class)]
+#[CoversClass(NamedTypeCompiler::class)]
+#[CoversClass(NodeCompiler::class)]
+#[CoversClass(PhpDocNarrowing::class)]
+#[CoversClass(PhpDocTypeResolver::class)]
 #[CoversClass(EnumNode::class)]
 #[CoversClass(ListNode::class)]
 #[CoversClass(MapNode::class)]
@@ -144,15 +143,8 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(MappedObjectSerializer::class)]
 #[CoversClass(FieldNameCollisions::class)]
 #[CoversClass(FieldNames::class)]
-#[CoversClass(CollectionUnionCompiler::class)]
-#[CoversClass(CollectionUnionNatives::class)]
 #[CoversClass(DecodeErrorKind::class)]
-#[CoversClass(NativeUnionCompiler::class)]
-#[CoversClass(PhpDocCollectionCompiler::class)]
-#[CoversClass(PhpDocItemCompiler::class)]
-#[CoversClass(PhpDocUnionCompiler::class)]
 #[CoversClass(UnionBuilder::class)]
-#[CoversClass(LiteralFieldCompiler::class)]
 #[CoversClass(LiteralNode::class)]
 #[CoversClass(ClassDecoder::class)]
 #[CoversClass(ClassDecoders::class)]

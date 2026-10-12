@@ -45,6 +45,9 @@ final class LiteralTypeCases
             yield 'unknown names leave a literal declaration unchecked ' . $tag => [
                 CollectionDeclarationFixture::object('string', "UnknownLiteralClass|'x'", $tag, 'y'),
             ];
+            yield 'literals that omit a native member leave the native type in charge ' . $tag => [
+                CollectionDeclarationFixture::object('?string', "'a'|'b'", $tag, 'c'),
+            ];
         }
         $properties = new LiteralProperties();
         $properties->value = 42;

@@ -43,6 +43,15 @@ final class LiteralDeclarationErrorCases
                 ];
             }
         }
+        $class = CollectionDeclarationFixture::create('\\' . Person::class, '\\' . Person::class . '|1e999', 'param');
+        yield 'unsupported literal declaration next to a class' => [
+            '{}',
+            $class,
+            'Could not create '
+                . $class
+                . ' from the JSON object: Field value uses unsupported literal declaration 1e999, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            3,
+        ];
         $classes = '\\' . Coordinates::class . '|\\' . Person::class;
         $enum = '\\' . StringBackedStatus::class;
         $class = CollectionDeclarationFixture::create(

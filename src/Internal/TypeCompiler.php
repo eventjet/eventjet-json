@@ -6,123 +6,111 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\Node;
-use Eventjet\Json\Internal\Node\NullableNode;
-use Eventjet\Json\Internal\Node\NullOnlyNode;
-use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\ScalarNode;
-use Eventjet\Json\Internal\Node\UncheckedNode;
-use JsonSerializable;
 use ReflectionException;
+use ReflectionIntersectionType;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
-use stdClass;
 
-use function class_exists;
-use function enum_exists;
+use function array_any;
+use function assert;
 use function in_array;
-use function is_a;
 
 /**
- * Compiles native field declarations of one class into decoder nodes, rejecting declarations that cannot round-trip.
+ * Compiles field declarations of one class into decoder nodes. A field's PHPDoc type applies if it narrows the native
+ * type; otherwise the native type applies.
  *
  * @internal
  */
-final class TypeCompiler
+final readonly class TypeCompiler
 {
     /** @param class-string $class */
     public function __construct(
-        public readonly string $class,
+        public string $class,
     ) {}
 
     /** @throws ReflectionException */
     public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|DecodeError
     {
-        $mayDeclareLiteral = FieldTypeNameResolver::mayDeclareLiteral(FieldTypeNameResolver::docComment($field));
-        return $mayDeclareLiteral
-            ? LiteralFieldCompiler::compile($this, $field, $type)
-            : $this->declared($field, $type);
-    }
-
-    /**
-     * Compiles the native declaration of a field.
-     *
-     * @throws ReflectionException
-     */
-    public function declared(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|DecodeError
-    {
-        if ($type instanceof ReflectionNamedType) {
-            return $this->named($field, $type);
-        }
-        if ($type instanceof ReflectionUnionType) {
-            return NativeUnionCompiler::compile($this, $field, $type);
-        }
-        return DecodeError::unsupportedIntersection($this->class, $field->getName(), (string) $type);
-    }
-
-    /** @throws ReflectionException */
-    public function named(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): Node|DecodeError
-    {
-        $name = FieldTypeNameResolver::resolve($field, $type);
-        if (in_array($name, ['array', ArrayObject::class], strict: true)) {
-            return $type->allowsNull()
-                ? new CollectionUnionCompiler($this, $field)->compile($type)
-                : new CollectionCompiler($this, $field)->compile($name);
-        }
-        if (in_array($name, ['mixed', 'object', stdClass::class], strict: true)) {
-            return DecodeError::nonInstantiableField(
+        $native = self::tree($field, $type);
+        $declared = self::declared($field, $native);
+        $resolved = $declared === null ? null : new PhpDocTypeResolver($field)->resolve($declared);
+        $doc = PhpDocNarrowing::narrowing($resolved, $native);
+        $node = $doc === null
+            ? $this->native($field, $type, $native)
+            : new NodeCompiler($this->class)->field($doc, $field->getName());
+        $literal =
+            $node instanceof Node && $declared !== null && $resolved === null
+                ? new PhpDocTypeResolver($field)->unresolvedLiteral($declared)
+                : null;
+        return match (true) {
+            $node === null => PhpDocFieldType::unsupported($this->class, $field, $declared, $native),
+            $literal !== null => DecodeError::nonInstantiableField(
                 $this->class,
                 $field->getName(),
-                'unsupported type',
-                $name,
-                '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
-            );
-        }
-        if ($type->isBuiltin()) {
-            return new ScalarNode($this->class, $name, $type->allowsNull());
-        }
-        if (enum_exists($name)) {
-            return $this->enum($field->getName(), $name, $type);
-        }
-        $object = $this->object($field->getName(), $name, $type->allowsNull());
-        if ($object !== null) {
-            return $object;
-        }
-        return new UncheckedNode($name);
+                'unsupported literal declaration',
+                $literal,
+            ),
+            default => $node,
+        };
     }
 
     /**
-     * Compiles a class that JSON represents as an object, or returns null if the class is not loaded.
+     * Compiles the native type of a field. PHP checks builtin scalar types itself.
      *
      * @throws ReflectionException
      */
-    public function object(string $path, string $name, bool $nullable): ObjectNode|DecodeError|null
-    {
-        $error = ClassFieldTypeValidator::validate($this->class, $path, $name);
-        if ($error !== null) {
-            return $error;
-        }
-        return class_exists($name) ? new ObjectNode($this->class, $name, $nullable) : null;
+    private function native(
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionType $type,
+        PhpDocType $native,
+    ): Node|DecodeError|null {
+        $scalar =
+            $type instanceof ReflectionNamedType
+            && $type->isBuiltin()
+            && !in_array($type->getName(), ['array', 'mixed', 'object'], strict: true);
+        return $scalar
+            ? new ScalarNode($this->class, $type->getName(), $type->allowsNull())
+            : new NodeCompiler($this->class)->field($native, $field->getName(), (string) $type);
     }
 
     /**
-     * Compiles a field declared as an enum. A nullable field of a non-backed enum can only hold null.
-     *
-     * @throws ReflectionException
+     * Returns the PHPDoc type of a field if it may declare something that its native type cannot: the items of an
+     * `array` or `ArrayObject` member, or literals.
      */
-    private function enum(string $field, string $enum, ReflectionNamedType $type): Node|DecodeError
+    private static function declared(ReflectionParameter|ReflectionProperty $field, PhpDocType $native): PhpDocType|null
     {
-        $nullable = $type->allowsNull();
-        $node = EnumNode::of($this->class, $enum);
-        if ($node !== null) {
-            return $nullable ? new NullableNode($node) : $node;
+        $collection = array_any($native->members(), static fn(PhpDocType $member): bool => in_array(
+            $member->name,
+            ['array', ArrayObject::class],
+            strict: true,
+        ));
+        $mayDeclare =
+            $collection || FieldTypeNameResolver::mayDeclareLiteral(FieldTypeNameResolver::docComment($field));
+        return $mayDeclare ? PhpDocFieldType::resolve($field) : null;
+    }
+
+    /** Returns a native type as the type tree that PHPDoc types parse into, with `?T` as `T|null`. */
+    private static function tree(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): PhpDocType
+    {
+        if ($type instanceof ReflectionUnionType || $type instanceof ReflectionIntersectionType) {
+            $members = [];
+            foreach ($type->getTypes() as $member) {
+                $members[] = self::tree($field, $member);
+            }
+            $operator = match (true) {
+                $type instanceof ReflectionUnionType => '|',
+                default => '&',
+            };
+            return new PhpDocType($operator, $members);
         }
-        return $nullable && !is_a($enum, JsonSerializable::class, allow_string: true)
-            ? new NullOnlyNode($this->class, (string) $type)
-            : DecodeError::nonBackedEnum($this->class, $enum, $field);
+        assert($type instanceof ReflectionNamedType, description: 'Other types are unions or intersections.');
+        $named = new PhpDocType(FieldTypeNameResolver::resolve($field, $type));
+        $nullable = $type->allowsNull() && !in_array($type->getName(), ['mixed', 'null'], strict: true);
+        return $nullable ? new PhpDocType('|', [$named, new PhpDocType('null')]) : $named;
     }
 }

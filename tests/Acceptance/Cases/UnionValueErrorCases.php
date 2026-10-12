@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\DisjointStringBackedEnumUnionField;
+use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\UnionPublicProperty;
 
 /** @internal */
@@ -37,6 +38,32 @@ final class UnionValueErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array|string', 'non-empty-list<int>|string', 'var')
                 . ' from the JSON object: Field value must be of type non-empty-list<int>, empty list given.',
+            3,
+        ];
+        $withoutValues = CollectionDeclarationFixture::create(
+            'array',
+            PhpType::list(PhpType::union(NonBackedStatus::class, PhpType::Int)),
+            'param',
+        );
+        yield 'union reports members without JSON values in its type' => [
+            '{"value":["ready"]}',
+            $withoutValues,
+            'Could not create '
+                . $withoutValues
+                . ' from the JSON object: Field value[0] must be of type Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|int, string given.',
+            3,
+        ];
+        $repeated = CollectionDeclarationFixture::create(
+            'int|string',
+            '/** @param int|string $value Version 2 */',
+            'param',
+        );
+        yield 'PHPDoc that repeats the native union leaves its type in errors' => [
+            '{"value":true}',
+            $repeated,
+            'Could not create '
+                . $repeated
+                . ' from the JSON object: Field value must be of type string|int, bool given.',
             3,
         ];
         yield 'scalar union property rejects an object' => [

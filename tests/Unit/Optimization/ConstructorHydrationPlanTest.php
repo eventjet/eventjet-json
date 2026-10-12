@@ -12,8 +12,6 @@ use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\ClassJsonType;
-use Eventjet\Json\Internal\CollectionCompiler;
-use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\DecodeErrorKind;
@@ -23,7 +21,7 @@ use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\MappedObjectSerializer;
-use Eventjet\Json\Internal\NativeUnionCompiler;
+use Eventjet\Json\Internal\NamedTypeCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
@@ -35,20 +33,20 @@ use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\TupleNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
+use Eventjet\Json\Internal\NodeCompiler;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
-use Eventjet\Json\Internal\PhpDocCollectionCompiler;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
 use Eventjet\Json\Internal\PhpDocImportStatement;
-use Eventjet\Json\Internal\PhpDocItemCompiler;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
+use Eventjet\Json\Internal\PhpDocNarrowing;
 use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
+use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
-use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyValues;
@@ -87,29 +85,27 @@ use stdClass;
 #[CoversClass(PublicPropertyValues::class)]
 #[CoversClass(FieldNameCollisions::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
-#[UsesClass(CollectionCompiler::class)]
-#[UsesClass(CollectionUnionCompiler::class)]
+#[UsesClass(NamedTypeCompiler::class)]
+#[UsesClass(NodeCompiler::class)]
+#[UsesClass(PhpDocNarrowing::class)]
+#[UsesClass(PhpDocTypeResolver::class)]
 #[UsesClass(EnumNode::class)]
 #[UsesClass(ListNode::class)]
 #[UsesClass(MapNode::class)]
-#[UsesClass(NativeUnionCompiler::class)]
 #[UsesClass(NullOnlyNode::class)]
 #[UsesClass(NullableNode::class)]
 #[UsesClass(ObjectNode::class)]
 #[UsesClass(PhpDocClassNameResolver::class)]
-#[UsesClass(PhpDocCollectionCompiler::class)]
 #[UsesClass(PhpDocFieldType::class)]
 #[UsesClass(PhpDocImportScanner::class)]
 #[UsesClass(PhpDocImportStatement::class)]
 #[UsesClass(PhpDocImports::class)]
-#[UsesClass(PhpDocItemCompiler::class)]
 #[UsesClass(PhpDocNamespaceDeclaration::class)]
 #[UsesClass(PhpDocTokenStream::class)]
 #[UsesClass(PhpDocTupleEntry::class)]
 #[UsesClass(PhpDocType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
 #[UsesClass(PhpDocTypeTokens::class)]
-#[UsesClass(PhpDocUnionCompiler::class)]
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(ScalarItems::class)]
 #[UsesClass(TupleNode::class)]
