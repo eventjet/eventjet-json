@@ -27,6 +27,9 @@ PHP types and JSON object/array shapes intact. See the [type reference](docs/typ
 - `MappedJsonFields`, a trait that implements `jsonSerialize()` for classes that rename fields with `#[Field]`.
 - Conversion errors name the failing field by path, such as `people[1].name`, and keep the constructor's exception as
   the previous exception.
+- `DecodeError::$kind` tells bad input apart from a class that cannot be decoded. The `DecodeErrorKind` enum has the
+  cases `InvalidJson`, `UnexpectedRootValue`, `InvalidValue`, `UnsupportedDeclaration`, and `ConstructorFailure`, and
+  `getCode()` returns the kind's value. An HTTP API can answer the first three with 400 and the others with 500.
 
 ### Changed
 

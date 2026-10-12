@@ -45,8 +45,8 @@ The round-trip contract also has these representation limits:
 - JSON object members without matching constructor parameters or supported
   public properties are ignored and do not appear when the decoded object is
   re-encoded.
-- A missing required constructor-bound member produces a construction error. A
-  missing optional member uses its constructor default. A present `null` is
+- A missing required constructor-bound member produces an `InvalidValue` error.
+  A missing optional member uses its constructor default. A present `null` is
   passed to the constructor and therefore overrides a nullable non-null default.
   An omitted public property outside the constructor keeps its initialized or
   uninitialized state. Re-encoding may include a default-valued public property
@@ -464,6 +464,42 @@ Fully qualified names do not need source-file access.
 Plain `array<TKey, TValue>` declarations are rejected with a `DecodeError`;
 choose one of the two map declarations above to state whether the map may be
 empty.
+
+## Errors
+
+Every `DecodeError` has a `kind`, and `getCode()` returns the kind's value. Use
+the kind to tell errors apart. Messages are meant for people.
+
+- `InvalidJson` (1): `json_decode()` could not parse the input.
+- `UnexpectedRootValue` (2): the JSON root is not the object or array that the
+  target needs.
+- `InvalidValue` (3): the JSON does not match the declarations. This includes
+  values of the wrong type, unknown enum cases, values outside a literal type,
+  an empty array for `non-empty-list<T>`, an empty object for
+  `non-empty-array<string, T>`, member names that PHP converts to integer keys,
+  tuples of the wrong length, and missing required constructor members. For a
+  missing member, the message is PHP's own message about the constructor call.
+- `UnsupportedDeclaration` (4): the class cannot be decoded, whatever the input.
+  This includes everything under [Explicitly unsupported](#explicitly-unsupported),
+  invalid `#[Field]` annotations, classes that do not exist, and failures while
+  reading declarations, such as an attribute that throws. Two cases only show
+  up when the input reaches them: a constructor parameter whose class does not
+  exist, once the JSON gives it a value other than `null`, and a public
+  readonly property that the constructor already set, once the JSON contains
+  it. `json_encode()` writes that property, so decoding its output always
+  fails. `Json::validateType()` returns only errors of this kind.
+- `ConstructorFailure` (5): the target's constructor, or a `set` hook of one of
+  its public properties, threw. `getPrevious()` returns that exception. PHP
+  checks values for `callable` and `iterable` constructor parameters itself,
+  and the decoder cannot tell PHP rejecting such a value from the constructor
+  throwing, so those errors have this kind, too.
+
+Apart from the first two kinds, messages start with `Could not create X from
+the JSON object:`, where `X` is the class whose field could not be decoded or
+whose constructor failed. Errors inside a nested object name
+the nested class, and errors in a root `JsonType` descriptor name its item
+class. Value errors name the path from the JSON root, such as `links[0].$ref`;
+declaration errors name the PHP field.
 
 ## Explicitly unsupported
 
