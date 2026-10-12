@@ -19,7 +19,7 @@ final class PhpDocLiteralTags
     {
         $tags = [];
         preg_match_all(
-            '~@param[ \t]+([^\r\n*]+?)[ \t]+(?:&|\.\.\.)?\$([A-Za-z_][A-Za-z0-9_]*)(?:[ \t]|\r?\n|$)~',
+            '~@param[ \t]+((?:[^\r\n*]|\*(?!/))+?)[ \t]+(?:&|\.\.\.)?\$([A-Za-z_][A-Za-z0-9_]*)(?:[ \t]|\r?\n|$)~',
             $docComment,
             $tags,
             PREG_SET_ORDER,
@@ -36,7 +36,7 @@ final class PhpDocLiteralTags
     public static function property(ReflectionProperty $property, string $docComment): bool
     {
         $var = [];
-        preg_match('~@var[ \t]+([^\r\n*]+)~', $docComment, $var);
+        preg_match('~@var[ \t]+((?:[^\r\n*]|\*(?!/))+)~', $docComment, $var);
         $literal = self::isLiteral($var[1] ?? '');
         return $literal && PhpDocLiteralFieldType::accepts($property->getType());
     }

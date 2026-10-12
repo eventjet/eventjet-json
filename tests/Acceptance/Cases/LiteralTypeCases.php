@@ -45,8 +45,9 @@ final class LiteralTypeCases
         yield from LiteralDeclarationErrorCases::errors();
         foreach ([
             ['array', 'list<null>', '[true]', 'value[0]', 'null', 'bool'],
-            ['array', 'list<42>',   '[null]', 'value[0]', '42',   'null'],
-            ['int',   '42',         '43',     'value',    '42',   'int'],
+            ['array', 'list<42>', '[null]', 'value[0]', '42', 'null'],
+            ['int', '42', '43', 'value', '42', 'int'],
+            ['string', '\\' . ExtendedLiteralFields::class . '::WORD_*', '"baz"', 'value', "'foo'|'bar'", 'string'],
         ] as [$native, $declaration, $value, $path, $expected, $actual]) {
             foreach (['param', 'var'] as $tag) {
                 $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
