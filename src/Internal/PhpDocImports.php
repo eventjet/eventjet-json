@@ -33,10 +33,9 @@ final class PhpDocImports
 
     /**
      * @param ReflectionClass<object> $class
-     * @param class-string<PhpDocImportStatement|PhpDocConstantImportStatement> $statements
      * @return array<string, string>
      */
-    public static function load(ReflectionClass $class, string $statements = PhpDocImportStatement::class): array
+    private static function load(ReflectionClass $class): array
     {
         $file = (string) $class->getFileName();
         $exists = is_file($file);
@@ -51,7 +50,6 @@ final class PhpDocImports
             (int) $class->getStartLine(),
             $class->getShortName(),
             $class->getNamespaceName(),
-            $statements,
         );
     }
 }

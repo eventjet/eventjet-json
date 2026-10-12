@@ -173,7 +173,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralNativeType::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocConstantImportStatement::class)]
 #[CoversClass(PhpDocTypeParser::class)]
 #[CoversClass(PhpDocTokenStream::class)]
 #[CoversClass(PhpDocNamespaceDeclaration::class)]

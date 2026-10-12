@@ -15,7 +15,6 @@ use Eventjet\Json\Internal\ListType;
 use Eventjet\Json\Internal\MetadataCache;
 use Eventjet\Json\Internal\NestedCollectionTypeResolver;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
-use Eventjet\Json\Internal\PhpDocConstantImportStatement;
 use Eventjet\Json\Internal\PhpDocConstantResolver;
 use Eventjet\Json\Internal\PhpDocConstantValues;
 use Eventjet\Json\Internal\PhpDocFieldType;
@@ -98,9 +97,8 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocLiteralFieldValueConverter::class)]
 #[UsesClass(PhpDocClassNameResolver::class)]
 #[UsesClass(PhpDocImports::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocConstantImportStatement::class)]
 #[UsesClass(PhpDocImportScanner::class)]
-#[UsesClass(PhpDocImportStatement::class)]
+#[CoversClass(PhpDocImportStatement::class)]
 #[UsesClass(MetadataCache::class)]
 #[UsesClass(\Eventjet\Json\Internal\NestedCollectionType::class)]
 #[UsesClass(ConstructorParameter::class)]
@@ -350,14 +348,18 @@ final class LiteralTypeTest extends TestCase
         }
         static::assertFalse(FieldTypeNameResolver::mayDeclareLiteral('/** @param list<int>|null $value */'));
         static::assertSame(
-            ['BAR' => 'Foo\\BAR', 'Qux' => 'Foo\\BAZ'],
-            PhpDocConstantImportStatement::parse('const Foo\\{BAR, BAZ as Qux}'),
+            ['const:BAR' => 'Foo\\BAR', 'const:Qux' => 'Foo\\BAZ'],
+            PhpDocImportStatement::parse('const Foo\\{BAR, BAZ as Qux}'),
         );
         static::assertSame(
-            ['BAZ' => 'Foo\\BAZ', 'Q' => 'Foo\\QUX'],
-            PhpDocConstantImportStatement::parse('Foo\\{Bar, const BAZ, const QUX as Q}'),
+            ['bar' => 'Foo\\Bar', 'const:BAZ' => 'Foo\\BAZ', 'const:Q' => 'Foo\\QUX'],
+            PhpDocImportStatement::parse('Foo\\{Bar, const BAZ, const QUX as Q}'),
         );
-        static::assertSame([], PhpDocConstantImportStatement::parse('Foo\\Bar'));
+        static::assertSame([], PhpDocImportStatement::parse('function Foo\\bar'));
+        static::assertSame(
+            ['const:BAR' => 'Foo\\BAR', 'const:BAZ' => 'Foo\\BAZ'],
+            PhpDocImportStatement::parse('CONST Foo\\{BAR, BAZ}'),
+        );
         $subject = new class('ready', 42, StringBackedStatus::Ready, true, null) {
             /**
              * @param 'ready' $_string

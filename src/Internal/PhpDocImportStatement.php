@@ -8,31 +8,29 @@ use function array_pop;
 use function explode;
 use function ltrim;
 use function preg_match;
+use function strlen;
 use function strtolower;
+use function substr;
 use function trim;
 
 /** @internal */
 final class PhpDocImportStatement
 {
-    /** @return array<string, string> */
+    /**
+     * Constant imports use keys prefixed with "const:", which no class alias can collide with.
+     *
+     * @return array<string, string>
+     */
     public static function parse(string $statement): array
     {
-        $isNonClassImport = preg_match('/\A\s*(?:function|const)\s/i', $statement) === 1;
-        if ($isNonClassImport) {
+        $isFunctionImport = preg_match('/\A\s*function\s/i', $statement) === 1;
+        if ($isFunctionImport) {
             return [];
         }
+        $keyword = [];
+        $constants = preg_match('/\A\s*const\s+/i', $statement, $keyword) === 1;
+        $statement = substr($statement, strlen($keyword[0] ?? ''));
 
-        $imports = [];
-        foreach (self::members($statement) as [$alias, $name]) {
-            $imports[strtolower($alias)] = $name;
-        }
-
-        return $imports;
-    }
-
-    /** @return list<array{string, string}> */
-    public static function members(string $statement): array
-    {
         $group = explode('{', $statement);
         $prefix = '';
         $members = $statement;
@@ -43,8 +41,11 @@ final class PhpDocImportStatement
             $members = trim($groupMembers, characters: " }\t\n\r\0\x0B");
         }
 
-        $pairs = [];
+        $imports = [];
         foreach (explode(',', $members) as $member) {
+            $keyword = [];
+            $constant = preg_match('/\A\s*const\s+/i', $member, $keyword) === 1;
+            $member = substr($member, strlen($keyword[0] ?? ''));
             $matches = [];
             $matched = preg_match(
                 '/\A\s*(\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff\\\\]*)(?:\s+as\s+([A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*))?\s*\z/i',
@@ -59,9 +60,9 @@ final class PhpDocImportStatement
             $name = ltrim($prefix . $matches[1], characters: '\\');
             $parts = explode('\\', $name);
             $alias = $matches[2] ?? array_pop($parts);
-            $pairs[] = [$alias, $name];
+            $imports[$constants || $constant ? 'const:' . $alias : strtolower($alias)] = $name;
         }
 
-        return $pairs;
+        return $imports;
     }
 }
