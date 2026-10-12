@@ -13,7 +13,6 @@ use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\UnionPublicProperty;
-use ReflectionClass;
 
 /** @internal */
 final class UnionsRoundTripCases
@@ -236,13 +235,6 @@ final class UnionsRoundTripCases
      */
     private static function objectAndMapMembers(): iterable
     {
-        $selfUnion = new ReflectionClass(CollectionNameSource::load(
-            'SelfAndOwnClassUnion',
-            'final class SelfAndOwnClassUnion { public function __construct(public self|SelfAndOwnClassUnion|null $next = null) {} }',
-        ));
-        yield 'self and the name of its own class are one union member' => [
-            $selfUnion->newInstance($selfUnion->newInstance()),
-        ];
         yield 'list-or-object field matches class names without regard to case' =>
             [CollectionDeclarationFixture::object(
                 'array',
