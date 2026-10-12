@@ -39,12 +39,12 @@ for ($shard = 1; $shard <= 4; $shard++) {
 jsonFile($directory . '/1/fpm.json', ['baseline' => [], 'candidate' => []]);
 file_put_contents($directory . '/1/fpm.md', 'FPM report');
 $result = PerformanceShards::collect($directory, 'on');
-if ($result['status'] !== 0 || count($result['comparisons']) !== 9 || !str_contains(performanceSummary($result['comparisons'], 0), '**9 workloads**')) {
+if ($result['status'] !== 0 || count($result['comparisons']) !== 9 || !str_contains(performanceSummary($result['comparisons'], 0, 'on'), "(OPcache on)\n\n**Overall decode time: +0.00%** · **9 workloads**")) {
     throw new RuntimeException('Complete shards must produce one full comparison');
 }
 $measurementPath = $directory . '/1/candidate-0.xml';
 rename($measurementPath, $measurementPath . '.saved');
-if (!str_contains(performanceSummary($result['comparisons'], 0), '**9 workloads**')) {
+if (!str_contains(performanceSummary($result['comparisons'], 0, 'on'), '**9 workloads**')) {
     throw new RuntimeException('Summary must use validated comparisons without reopening measurement files');
 }
 rename($measurementPath . '.saved', $measurementPath);

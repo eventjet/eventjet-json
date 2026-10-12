@@ -207,13 +207,17 @@ own samples and report for each selected OPcache mode. Calibration compares the
 selected candidate with itself, overriding the `base` input.
 
 For same-repository PRs, the workflow maintains one GitHub Actions comment and
-updates it after each completed run, including a failed regression gate. It shows
+updates it after each completed run, including a failed regression gate. It has
+one section per OPcache mode, primary first, with the mode in each heading; a
+mode without a complete comparison is reported as unavailable. Like aggregation,
+each section uses the summary from its comparison's latest execution, so a partial
+rerun keeps the result of the mode that did not rerun. Each section shows
 the overall percentage change in decode time, counts of faster/unchanged/slower
 workloads, and the lowest and highest changes with target and PR times in
 microseconds. The overall figure is the geometric mean of workload timing ratios;
 each workload has equal weight. Negative percentages mean less time per decode.
 
-The comment has three comparison outcomes:
+Each section has one of three comparison outcomes:
 
 - **Performance regression:** PHPBench's regression assertion failed for any workload.
 - **Performance improvement:** no regression, and at least one workload is more than 5% faster.
@@ -280,8 +284,6 @@ metadata only once.
 Every decode validates incoming values. There is no trusted-input mode that
 skips runtime checks. Reconsidering that tradeoff requires comparing checked
 and trusted-input decoding with the same metadata optimizations.
-
-The PR comment reports the primary OPcache-on comparison. Both modes retain their full reports in the run artifacts.
 
 ## Field-name mapping
 

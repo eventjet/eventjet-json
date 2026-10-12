@@ -266,7 +266,7 @@ foreach (BenchmarkWorkload::REPORT_GROUPS as $group => $title) {
         $report .= "\n### $title\n\n```text\n" . $reports[$group] . "\n```\n";
     }
 }
-$comment = $comparisons === [] ? "No workloads assigned to this shard.\n" : performanceSummary($comparisons, $status);
+$comment = $comparisons === [] ? "No workloads assigned to this shard.\n" : performanceSummary($comparisons, $status, $opcacheOption);
 file_put_contents($results . '/comment.md', $comment);
 publish(
     $results,

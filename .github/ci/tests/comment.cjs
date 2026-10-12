@@ -8,8 +8,14 @@ const script = workflow.split('      - name: Create or update comment\n')[1]
   .split('          script: |\n')[1].replace(/^            /gm, '');
 const marker = '<!-- eventjet-performance -->';
 
-async function publish({comments = [], head = 'head', base = 'base', state = 'open', available = true,
-  result = 'success', size = 100} = {}) {
+const summaries = {
+  on: '## 🟢 Performance improvement (OPcache on)\n',
+  off: '## 🔴 Performance regression (OPcache off)\n',
+};
+
+async function publish({comments = [], head = 'head', base = 'base', state = 'open', result = 'success',
+  reports = summaries} = {}) {
+  const files = Object.fromEntries(Object.entries(reports).map(([mode, text]) => [`report/${mode}/comment.md`, text]));
   const writes = [];
   const context = {
     repo: {owner: 'eventjet', repo: 'eventjet-json'}, serverUrl: 'https://github.com', runId: 42,
@@ -32,10 +38,10 @@ async function publish({comments = [], head = 'head', base = 'base', state = 'op
   };
   await vm.runInNewContext(`(async () => {${script}})()`, {
     github, context, core: {info() {}},
-    process: {env: {SUMMARY_AVAILABLE: String(available), COMPARISON_RESULT: result, GITHUB_RUN_ATTEMPT: '2'}},
+    process: {env: {COMPARISON_RESULT: result, GITHUB_RUN_ATTEMPT: '2'}},
     require: name => {
       assert.equal(name, 'node:fs');
-      return {statSync: () => ({size}), readFileSync: () => '## Performance fixture'};
+      return {existsSync: path => path in files, readFileSync: path => files[path]};
     },
   });
   return writes;
@@ -68,19 +74,32 @@ test('does not publish results after the head, target, or PR state changes', asy
 });
 
 test('replaces an old result with an unavailable notice when no summary exists', async () => {
-  const [write] = await publish({available: false, result: 'failure', comments: [
+  const [write] = await publish({reports: {}, result: 'failure', comments: [
     {id: 3, user: {login: 'github-actions[bot]'}, body: marker},
   ]});
   assert.equal(write.method, 'update');
-  assert.match(write.body, /comparison unavailable/);
+  assert.match(write.body, /comparison unavailable \(OPcache on\)/);
+  assert.match(write.body, /comparison unavailable \(OPcache off\)/);
 });
 
 test('keeps regression results visible even when the gate fails', async () => {
   const [write] = await publish({result: 'failure'});
-  assert.match(write.body, /Performance fixture/);
+  assert.match(write.body, /regression \(OPcache off\)/);
   assert.match(write.body, /performance job failed/);
 });
 
-test('rejects oversized artifacts before writing', async () => {
-  await assert.rejects(publish({size: 50001}), /size limit/);
+test('shows both OPcache modes, primary first', async () => {
+  const [write] = await publish();
+  const on = write.body.indexOf('(OPcache on)');
+  assert.ok(on >= 0 && on < write.body.indexOf('(OPcache off)'));
+});
+
+test('names the mode whose comparison is missing', async () => {
+  const [write] = await publish({result: 'failure', reports: {on: summaries.on}});
+  assert.match(write.body, /improvement \(OPcache on\)/);
+  assert.match(write.body, /comparison unavailable \(OPcache off\)/);
+});
+
+test('rejects an oversized comment before writing', async () => {
+  await assert.rejects(publish({reports: {...summaries, off: 'x'.repeat(50000)}}), /size limit/);
 });

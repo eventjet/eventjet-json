@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Eventjet\Json\Ci\BenchmarkComparison;
 
 /** @param non-empty-list<BenchmarkComparison> $comparisons */
-function performanceSummary(array $comparisons, int $status): string
+function performanceSummary(array $comparisons, int $status, string $mode): string
 {
     $rows = [];
     $slower = 0;
@@ -39,7 +39,9 @@ function performanceSummary(array $comparisons, int $status): string
     $text =
         '## '
         . $verdict
-        . "\n\n"
+        . ' (OPcache '
+        . $mode
+        . ")\n\n"
         . sprintf("**Overall decode time: %+.2f%%** · **%d workloads**\n\n", $overall, count($rows))
         . sprintf(
             "| Faster (>5%%) | Within ±5%% | Slower (>5%%) |\n| ---: | ---: | ---: |\n| %d | %d | %d |\n\n",
