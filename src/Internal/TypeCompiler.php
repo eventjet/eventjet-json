@@ -83,7 +83,7 @@ final class TypeCompiler
         if ($object !== null) {
             return $object;
         }
-        return new UncheckedNode($name);
+        return new UncheckedNode($name, $field->getName());
     }
 
     /**

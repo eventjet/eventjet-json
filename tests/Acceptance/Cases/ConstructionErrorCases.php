@@ -106,9 +106,18 @@ final class ConstructionErrorCases
     /**
      * @return iterable<string, array{0: string, 1: class-string|JsonType<list<mixed>|object>, 2: string, 3: int}>
      * @throws \ReflectionException
+     * @throws \RuntimeException
      */
     public static function declarations(): iterable
     {
+        yield 'unloaded class parameter rejects an object' => [
+            '{"value":{}}',
+            CollectionDeclarationFixture::create('UnloadedRequiredClass', '', 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('UnloadedRequiredClass', '', 'param')
+                . ' from the JSON object: Field value uses unknown class UnloadedRequiredClass, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
         yield 'private constructor cannot be called' => [
             '{}',
             PrivateConstructorTarget::create()::class,
