@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ArrayJsonType;
 use Eventjet\Json\Internal\ClassDecoder;
@@ -16,7 +17,9 @@ use Eventjet\Json\Internal\CollectionCompiler;
 use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\DecodeErrorKind;
+use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedField;
+use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
@@ -134,6 +137,9 @@ use function class_alias;
 #[CoversClass(ClassDecoders::class)]
 #[UsesClass(ClassGraphValidator::class)]
 #[UsesClass(DecodeErrorKind::class)]
+#[UsesClass(InvalidValue::class)]
+#[UsesClass(UnsupportedField::class)]
+#[UsesClass(UnsupportedFieldClass::class)]
 #[UsesClass(MapJsonType::class)]
 #[UsesClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
@@ -191,11 +197,11 @@ final class MetadataCacheTest extends TestCase
             'yes' => true,
         ])));
         static::assertEquals(
-            DecodeError::fieldTypeMismatch($booleans::class, 'no', 'false', true),
+            InvalidValue::typeMismatch('no', 'false', true)->whileCreating($booleans::class),
             ClassDecoders::hydrate($booleans::class, JsonObject::of(['no' => true, 'yes' => true])),
         );
         static::assertEquals(
-            DecodeError::fieldTypeMismatch($booleans::class, 'yes', 'true', false),
+            InvalidValue::typeMismatch('yes', 'true', false)->whileCreating($booleans::class),
             ClassDecoders::hydrate($booleans::class, JsonObject::of(['no' => false, 'yes' => false])),
         );
         $numeric = new class(1) implements JsonSerializable {
@@ -213,7 +219,7 @@ final class MetadataCacheTest extends TestCase
         };
         static::assertEquals($numeric, ClassDecoders::hydrate($numeric::class, JsonObject::of(['1' => 1])));
         static::assertEquals(
-            DecodeError::fieldTypeMismatch($numeric::class, '1', 'int', 'wrong'),
+            InvalidValue::typeMismatch('1', 'int', 'wrong')->whileCreating($numeric::class),
             ClassDecoders::hydrate($numeric::class, JsonObject::of(['1' => 'wrong'])),
         );
 
@@ -244,7 +250,7 @@ final class MetadataCacheTest extends TestCase
      */
     public function testEnumConversionsPreserveBackingTypesAndRejectUnknownValues(): void
     {
-        static::assertNull(EnumNode::of(ScalarFields::class, NonBackedStatus::class));
+        static::assertNull(EnumNode::of(NonBackedStatus::class));
         for ($lookup = 0; $lookup < 2; ++$lookup) {
             foreach ([
                 [IntBackedStatus::class, 1, IntBackedStatus::Ready],
@@ -257,7 +263,7 @@ final class MetadataCacheTest extends TestCase
                 [StringBackedStatus::class, StringBackedStatus::Pending->value, StringBackedStatus::Pending],
                 [StringBackedStatus::class, 'unknown', null],
             ] as [$enum, $value, $expected]) {
-                $node = EnumNode::of(ScalarFields::class, $enum);
+                $node = EnumNode::of($enum);
                 static::assertNotNull($node);
                 $converted = $node->decode($value, 'value');
                 if ($expected === null) {
@@ -374,7 +380,7 @@ final class MetadataCacheTest extends TestCase
         $property = new ReflectionProperty($class, 'value');
         $type = $property->getType();
         static::assertNotNull($type);
-        $node = new TypeCompiler($class)->field($property, $type);
+        $node = new TypeCompiler()->field($property, $type);
         return [$node, $node instanceof DecodeError ? [] : $node->dependencies()];
     }
 }

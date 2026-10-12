@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Node\Node;
 use JsonException;
 use stdClass;
 
 use function array_all;
+use function array_diff;
 use function array_filter;
 use function array_intersect_key;
 use function array_key_exists;
+use function array_keys;
 use function array_map;
 use function is_array;
 use function is_bool;
@@ -38,20 +41,20 @@ final readonly class ConstructorPlan
     private array $nullable;
 
     /**
-     * @param class-string $class
      * @param array<array-key, array{string, string|null}> $checks Native type checks, keyed by JSON name: type name,
      *     and the type that errors report if the argument accepts null.
      * @param array<array-key, Node|null> $converters Converter of each argument, keyed by JSON name. The converter is
      *     null if the argument needs only its native type check.
      * @param array<string, Node|null> $nodes The same converters, keyed by parameter name.
      * @param array<string, string> $names JSON names of renamed fields, keyed by property name.
+     * @param list<string> $required The names of the parameters without a default value.
      */
     public function __construct(
-        private string $class,
         array $checks,
         private array $converters,
         public array $nodes,
         private array $names,
+        private array $required,
     ) {
         $this->types = array_map(
             /** @param array{string, string|null} $check */
@@ -100,8 +103,7 @@ final readonly class ConstructorPlan
                     default => true,
                 };
             if (!$matches) {
-                return DecodeError::fieldTypeMismatch(
-                    $this->class,
+                return InvalidValue::typeMismatch(
                     FieldPath::field($path, (string) $name),
                     $this->nullable[$name] ?? $typeName,
                     $value,
@@ -109,6 +111,17 @@ final readonly class ConstructorPlan
             }
         }
         return $this->scalarOnly ? array_intersect_key($values, $this->types) : $this->convert($values, $path);
+    }
+
+    /**
+     * Whether a parameter without a default value has no argument, so that PHP rejects the call before the constructor
+     * runs.
+     *
+     * @param array<array-key, mixed> $arguments Keyed by parameter name.
+     */
+    public function missesArgument(array $arguments): bool
+    {
+        return array_diff($this->required, array_keys($arguments)) !== [];
     }
 
     /**

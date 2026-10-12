@@ -23,9 +23,9 @@ final readonly class MapJsonType extends JsonType
     ) {}
 
     #[Override]
-    public function node(string $class): MapNode
+    public function node(): MapNode
     {
-        return new MapNode($class, $this->valueType->node($class), arrayObject: true);
+        return new MapNode($this->valueType->node(), arrayObject: true);
     }
 
     /** @return ArrayObject<string, T>|DecodeError */
@@ -33,7 +33,7 @@ final readonly class MapJsonType extends JsonType
     public function decode(mixed $value): ArrayObject|DecodeError
     {
         /** @var ArrayObject<string, T>|DecodeError */
-        return $this->node($this->itemClass())->decode($value, '');
+        return $this->node()->decode($value, '');
     }
 
     #[Override]

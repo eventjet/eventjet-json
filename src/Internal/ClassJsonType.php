@@ -27,15 +27,15 @@ final readonly class ClassJsonType extends JsonType
     ) {}
 
     #[Override]
-    public function node(string $class): Node
+    public function node(): Node
     {
         $enum = $this->class;
         if (enum_exists($enum)) {
-            $node = EnumNode::of($class, $enum);
+            $node = EnumNode::of($enum);
             assert($node !== null, description: 'Root validation rejects non-backed enums.');
             return $node;
         }
-        return new ObjectNode($class, $this->class, nullable: false);
+        return new ObjectNode($this->class, nullable: false);
     }
 
     /** @return T|DecodeError */
@@ -43,7 +43,7 @@ final readonly class ClassJsonType extends JsonType
     public function decode(mixed $value): object
     {
         /** @var T|DecodeError */
-        return $this->node($this->class)->decode($value, '');
+        return $this->node()->decode($value, '');
     }
 
     #[Override]

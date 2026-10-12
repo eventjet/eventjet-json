@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Field;
+use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use JsonSerializable;
 use ReflectionClass;
 use ReflectionEnum;
@@ -13,7 +14,6 @@ use ReflectionProperty;
 
 use function array_push;
 use function enum_exists;
-use function sprintf;
 
 /** @internal */
 final class RootTypeValidator
@@ -43,7 +43,7 @@ final class RootTypeValidator
         $properties = self::mappedFields($class);
         if ($properties === []) {
             return $class->implementsInterface(JsonSerializable::class)
-                ? DecodeError::jsonSerializableTarget($className)
+                ? UnsupportedTarget::jsonSerializable()
                 : (self::$names[$className] = []);
         }
         $names = FieldNames::resolve($class, $properties);
@@ -59,17 +59,11 @@ final class RootTypeValidator
         $className = $class->getName();
 
         if ($class->isInterface()) {
-            return DecodeError::nonInstantiableTarget(
-                $className,
-                'Target type is an interface. JSON does not identify a concrete implementation to instantiate.',
-            );
+            return UnsupportedTarget::interface();
         }
 
         if ($class->isAbstract()) {
-            return DecodeError::nonInstantiableTarget(
-                $className,
-                'Target type is an abstract class. JSON does not identify a concrete subclass to instantiate.',
-            );
+            return UnsupportedTarget::abstractClass();
         }
 
         $names = self::fieldNames($class);
@@ -82,16 +76,13 @@ final class RootTypeValidator
         if ($constructor !== null && !$constructor->isPublic()) {
             $visibility = $constructor->isPrivate() ? 'private' : 'protected';
 
-            return DecodeError::nonInstantiableTarget($className, sprintf(
-                'Target class has a %s constructor, which cannot be called to create the object.',
-                $visibility,
-            ));
+            return UnsupportedTarget::inaccessibleConstructor($visibility);
         }
 
         $classIsNonBackedEnum = self::isNonBackedEnum($className);
 
         if ($classIsNonBackedEnum) {
-            return DecodeError::nonBackedEnum($className, $className);
+            return UnsupportedTarget::nonBackedEnum($className);
         }
 
         return null;

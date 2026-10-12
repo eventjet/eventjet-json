@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ArrayJsonType;
 use Eventjet\Json\Internal\ClassDecoder;
@@ -16,7 +17,7 @@ use Eventjet\Json\Internal\CollectionCompiler;
 use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\DecodeErrorKind;
+use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
@@ -58,7 +59,6 @@ use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
-use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -123,6 +123,7 @@ use stdClass;
 #[UsesClass(ClassGraphValidator::class)]
 #[UsesClass(ClassJsonType::class)]
 #[UsesClass(DecodeErrorKind::class)]
+#[UsesClass(InvalidValue::class)]
 #[UsesClass(MapJsonType::class)]
 final class ConstructorHydrationPlanTest extends TestCase
 {
@@ -134,15 +135,15 @@ final class ConstructorHydrationPlanTest extends TestCase
      */
     public function testUnionsPreserveJsonValueTypes(): void
     {
-        $string = EnumNode::of(ScalarFields::class, StringBackedStatus::class);
-        $int = EnumNode::of(ScalarFields::class, IntBackedStatus::class);
+        $string = EnumNode::of(StringBackedStatus::class);
+        $int = EnumNode::of(IntBackedStatus::class);
         static::assertNotNull($string);
         static::assertNotNull($int);
-        $union = UnionNode::of(ScalarFields::class, 'value', 'StringBackedStatus|IntBackedStatus|bool|null', [
+        $union = UnionNode::of('value', 'StringBackedStatus|IntBackedStatus|bool|null', [
             $string,
             $int,
-            new ScalarNode(ScalarFields::class, 'bool', false),
-            new ScalarNode(ScalarFields::class, 'null', true),
+            new ScalarNode('bool', false),
+            new ScalarNode('null', true),
         ]);
         static::assertInstanceOf(UnionNode::class, $union);
         static::assertSame(StringBackedStatus::Ready, $union->decode(StringBackedStatus::Ready->value, 'value'));
@@ -159,16 +160,16 @@ final class ConstructorHydrationPlanTest extends TestCase
             static::assertInstanceOf(DecodeError::class, $union->decode($value, 'value'));
         }
 
-        $numbers = UnionNode::of(ScalarFields::class, 'value', 'int|float', [
-            new ScalarNode(ScalarFields::class, 'int', false),
-            new ScalarNode(ScalarFields::class, 'float', false),
+        $numbers = UnionNode::of('value', 'int|float', [
+            new ScalarNode('int', false),
+            new ScalarNode('float', false),
         ]);
         static::assertInstanceOf(UnionNode::class, $numbers);
         static::assertSame(1, $numbers->decode(1, 'value'));
         static::assertSame(1.5, $numbers->decode(1.5, 'value'));
-        $floats = UnionNode::of(ScalarFields::class, 'value', 'float|string', [
-            new ScalarNode(ScalarFields::class, 'float', false),
-            new ScalarNode(ScalarFields::class, 'string', false),
+        $floats = UnionNode::of('value', 'float|string', [
+            new ScalarNode('float', false),
+            new ScalarNode('string', false),
         ]);
         static::assertInstanceOf(UnionNode::class, $floats);
         static::assertSame(1.0, $floats->decode(1, 'value'));
@@ -201,7 +202,7 @@ final class ConstructorHydrationPlanTest extends TestCase
         static::assertEquals($target, ClassDecoders::hydrate($class, new stdClass()));
         $input->value = null;
         static::assertEquals(
-            DecodeError::fieldTypeMismatch($class, 'nested.value', 'int', null),
+            InvalidValue::typeMismatch('nested.value', 'int', null)->whileCreating($class),
             ClassDecoders::hydrate($class, $input, 'nested'),
         );
         static::assertSame($decoder, self::cached($class));
@@ -232,7 +233,7 @@ final class ConstructorHydrationPlanTest extends TestCase
         static::assertEquals($target, ClassDecoders::hydrate($class, $input));
         $input->label = false;
         static::assertEquals(
-            DecodeError::fieldTypeMismatch($class, 'nested.label', 'string', false),
+            InvalidValue::typeMismatch('nested.label', 'string', false)->whileCreating($class),
             ClassDecoders::hydrate($class, $input, 'nested'),
         );
         static::assertSame($decoder, self::cached($class));
@@ -287,7 +288,7 @@ final class ConstructorHydrationPlanTest extends TestCase
             static::assertNotNull(self::cached($class));
             static::assertEquals(new MappedDefaults(), ClassDecoders::hydrate($class, new stdClass()));
             static::assertEquals(
-                DecodeError::fieldTypeMismatch($class, 'nested.$ref', 'string|null', 42),
+                InvalidValue::typeMismatch('nested.$ref', 'string|null', 42)->whileCreating($class),
                 ClassDecoders::hydrate($class, $invalid, 'nested'),
             );
         }

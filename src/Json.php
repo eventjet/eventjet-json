@@ -7,6 +7,7 @@ namespace Eventjet\Json;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
+use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\RootTypeValidator;
 use ReflectionClass;
 use stdClass;
@@ -34,11 +35,10 @@ final class Json
             if (is_string($type)) {
                 return new ClassGraphValidator()->validateRoot($class);
             }
-            return (
-                ClassFieldTypeValidator::validate($class, '[]', $class) ?? new ClassGraphValidator()->validate($class)
-            );
+            $error = ClassFieldTypeValidator::validate('[]', $class);
+            return $error?->whileCreating($class) ?? new ClassGraphValidator()->validate($class);
         } catch (Throwable $error) {
-            return DecodeError::cannotInstantiate($class, $error);
+            return UnsupportedTarget::unreadable($error)->whileCreating($class);
         }
     }
 
@@ -89,17 +89,18 @@ final class Json
         $class = $type->itemClass();
 
         try {
-            $error = ClassFieldTypeValidator::validate($class, '[]', $class) ?? RootTypeValidator::validate(
+            $error = ClassFieldTypeValidator::validate('[]', $class) ?? RootTypeValidator::validate(
                 new ReflectionClass($class),
             );
 
             if ($error !== null) {
-                return $error;
+                return $error->whileCreating($class);
             }
 
-            return $type->decode($values);
+            $decoded = $type->decode($values);
+            return $decoded instanceof DecodeError ? $decoded->whileCreating($class) : $decoded;
         } catch (Throwable $error) {
-            return DecodeError::cannotInstantiate($class, $error);
+            return UnsupportedTarget::unreadable($error)->whileCreating($class);
         }
     }
 }

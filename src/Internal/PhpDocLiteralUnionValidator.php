@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use BackedEnum;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\AmbiguousUnion;
 use ReflectionException;
 
 use function get_debug_type;
@@ -17,11 +18,10 @@ use function json_encode;
 final class PhpDocLiteralUnionValidator
 {
     /**
-     * @param class-string $class
      * @param list<string> $names
      * @throws ReflectionException
      */
-    public static function validate(string $class, string $path, array $names): DecodeError|null
+    public static function validate(string $path, array $names): DecodeError|null
     {
         foreach ($names as $name) {
             $literal = PhpDocLiteral::value($name);
@@ -31,12 +31,7 @@ final class PhpDocLiteralUnionValidator
             foreach ($names as $other) {
                 $overlaps = self::overlaps($literal, $other);
                 if ($overlaps) {
-                    return DecodeError::nonInstantiableTarget(
-                        $class,
-                        'Field '
-                        . $path
-                        . ' has overlapping literal union members. JSON cannot identify which PHP type to restore.',
-                    );
+                    return AmbiguousUnion::overlappingLiterals($path);
                 }
             }
         }

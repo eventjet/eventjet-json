@@ -22,16 +22,16 @@ final readonly class ArrayJsonType extends JsonType
     ) {}
 
     #[Override]
-    public function node(string $class): ListNode
+    public function node(): ListNode
     {
-        return new ListNode($class, $this->itemType->node($class), nonEmpty: false);
+        return new ListNode($this->itemType->node(), nonEmpty: false);
     }
 
     /** @return list<T>|DecodeError */
     #[Override]
     public function decode(mixed $value): array|DecodeError
     {
-        return $this->node($this->itemClass())->decode($value, '');
+        return $this->node()->decode($value, '');
     }
 
     #[Override]

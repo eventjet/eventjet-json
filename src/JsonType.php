@@ -57,13 +57,12 @@ abstract readonly class JsonType
     }
 
     /**
-     * Compiles this descriptor. Errors name $class, the item class of the root descriptor.
+     * Compiles this descriptor.
      *
      * @internal
-     * @param class-string $class
      * @throws ReflectionException
      */
-    abstract public function node(string $class): Node;
+    abstract public function node(): Node;
 
     /**
      * @internal

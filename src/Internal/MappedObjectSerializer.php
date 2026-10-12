@@ -19,9 +19,10 @@ final class MappedObjectSerializer
      */
     public static function serialize(object $object): object
     {
-        $names = RootTypeValidator::fieldNames(new ReflectionClass($object));
+        $class = new ReflectionClass($object);
+        $names = RootTypeValidator::fieldNames($class);
         if ($names instanceof DecodeError) {
-            throw $names;
+            throw $names->whileCreating($class->getName());
         }
         $result = [];
         /** @var array<string, array<array-key, mixed>|object|bool|int|float|string|resource|null> $properties */

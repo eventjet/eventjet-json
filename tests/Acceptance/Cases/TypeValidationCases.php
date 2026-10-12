@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
-use Eventjet\Json\DecodeError;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
@@ -89,12 +88,9 @@ final class TypeValidationCases
         );
         yield 'unknown nested class' => [
             $unknown,
-            DecodeError::nonInstantiableField(
-                $unknown,
-                'child',
-                'unknown class',
-                'ValidationMissingChild',
-            )->getMessage(),
+            'Could not create '
+                . $unknown
+                . ' from the JSON object: Field child uses unknown class ValidationMissingChild, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
         ];
         yield from self::nested();
     }
@@ -109,13 +105,10 @@ final class TypeValidationCases
             'ValidationInvalidChild',
             'final class ValidationInvalidChild { public function __construct(public mixed $value) {} }',
         );
-        $message = DecodeError::nonInstantiableField(
-            $invalid,
-            'value',
-            'unsupported type',
-            'mixed',
-            '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
-        )->getMessage();
+        $message =
+            'Could not create '
+            . $invalid
+            . ' from the JSON object: Field value uses unsupported type mixed. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.';
         foreach ([
             ['ValidationNullableChild', 'public function __construct(public ?ValidationInvalidChild $child = null) {}'],
             ['ValidationUnionChild', 'public ValidationInvalidChild|string $child;'],
