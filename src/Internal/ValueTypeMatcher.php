@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use stdClass;
-
-use function is_array;
 use function is_bool;
 use function is_float;
 use function is_int;
@@ -22,7 +19,6 @@ final class ValueTypeMatcher
         }
 
         return match ($type) {
-            'array' => is_array($value) || $value instanceof stdClass,
             'bool' => is_bool($value),
             'false' => $value === false,
             'float' => is_float($value) || is_int($value),

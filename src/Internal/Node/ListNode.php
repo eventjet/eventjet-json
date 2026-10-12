@@ -52,6 +52,18 @@ final readonly class ListNode implements ItemNode
      */
     private function decodeItems(array $values, string $path): array|DecodeError
     {
+        return $this->item instanceof ObjectNode
+            ? $this->item->decodeEach($values, $path)
+            : $this->decodeEachItem($values, $path);
+    }
+
+    /**
+     * @param list<mixed> $values
+     * @return list<mixed>|DecodeError
+     * @throws JsonException
+     */
+    private function decodeEachItem(array $values, string $path): array|DecodeError
+    {
         $decoded = [];
         /** @var mixed $item */
         foreach ($values as $index => $item) {

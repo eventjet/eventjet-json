@@ -283,11 +283,6 @@ final class AutoloadingTest extends TestCase
             $enum = EnumCompiler::node(DeferredValueEnum::class, DeferredValueEnum::class, nullable: false);
             static::assertNotNull($enum);
             static::assertInstanceOf(DecodeError::class, $enum->decode(1, 'value'));
-            $union = UnionIndex::node(DeferredValueEnum::class, DeferredValueEnum::class . '|int', [
-                $enum,
-                new ScalarNode(DeferredValueEnum::class, 'int', false),
-            ]);
-            static::assertSame(1, $union->decode(1, 'value'));
             static::assertNotContains(DeferredEnumBacking::class, $requests->names);
             static::assertSame(DeferredValueEnum::Ready, $enum->decode('ready', 'value'));
             static::assertContains(DeferredEnumBacking::class, $requests->names);

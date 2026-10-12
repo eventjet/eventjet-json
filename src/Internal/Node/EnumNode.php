@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Node;
 
 use BackedEnum;
+use Closure;
 use Eventjet\Json\DecodeError;
 use Override;
 
@@ -14,7 +15,8 @@ use function sprintf;
 /** @internal */
 final readonly class EnumNode implements ItemNode
 {
-    private EnumUnionNode $cases;
+    /** @var Closure(int|string): (BackedEnum|null) */
+    private Closure $find;
 
     /**
      * @param class-string $class
@@ -27,7 +29,11 @@ final readonly class EnumNode implements ItemNode
         public string $backingType,
         private bool $nullable,
     ) {
-        $this->cases = new EnumUnionNode($class, [$enum]);
+        /** @var callable(int|string): (BackedEnum|null) $tryFrom */
+        $tryFrom = [$enum, 'tryFrom'];
+        /** @mago-var Closure(int|string): (BackedEnum|null) $find */
+        $find = Closure::fromCallable($tryFrom);
+        $this->find = $find;
     }
 
     #[Override]
@@ -47,7 +53,7 @@ final readonly class EnumNode implements ItemNode
             );
         }
         /** @var int|string $value */
-        return $this->cases->decode($value, $path);
+        return ($this->find)($value) ?? EnumUnionNode::unknownCase($this->class, $path, [$this->enum], $value);
     }
 
     #[Override]

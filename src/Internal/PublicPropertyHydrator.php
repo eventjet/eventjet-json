@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Node\Node;
+use Eventjet\Json\Internal\Node\ScalarNode;
 use JsonException;
 use ReflectionProperty;
 
@@ -29,7 +30,10 @@ final class PublicPropertyHydrator
                 continue;
             }
 
-            $converted = $field['node']->decode($value, FieldPath::field($path, (string) $inputField));
+            $node = $field['node'];
+            // Scalars skip the node call, because a call per property slows down hydration measurably.
+            $isScalar = $node instanceof ScalarNode && ValueTypeMatcher::matches($value, $node->name, $node->nullable);
+            $converted = $isScalar ? $value : $node->decode($value, FieldPath::field($path, (string) $inputField));
             if ($converted instanceof DecodeError) {
                 return $converted;
             }

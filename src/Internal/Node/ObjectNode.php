@@ -10,6 +10,8 @@ use Eventjet\Json\Internal\ObjectHydrator;
 use Override;
 use stdClass;
 
+use function sprintf;
+
 /** @internal */
 final readonly class ObjectNode implements ItemNode
 {
@@ -34,6 +36,30 @@ final readonly class ObjectNode implements ItemNode
             return DecodeError::fieldTypeMismatch($this->class, $path, $expected, $value);
         }
         return ObjectHydrator::hydrate($this->target, $value, $path);
+    }
+
+    /**
+     * Decodes the items of a list without a node call per item, because lists of objects are common.
+     *
+     * @param list<mixed> $values
+     * @return list<object>|DecodeError
+     */
+    public function decodeEach(array $values, string $path): array|DecodeError
+    {
+        $decoded = [];
+        /** @var mixed $value */
+        foreach ($values as $index => $value) {
+            $itemPath = sprintf('%s[%d]', $path, $index);
+            if (!$value instanceof stdClass) {
+                return DecodeError::fieldTypeMismatch($this->class, $itemPath, $this->target, $value);
+            }
+            $object = ObjectHydrator::hydrate($this->target, $value, $itemPath);
+            if ($object instanceof DecodeError) {
+                return $object;
+            }
+            $decoded[] = $object;
+        }
+        return $decoded;
     }
 
     #[Override]

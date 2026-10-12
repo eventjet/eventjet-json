@@ -23,7 +23,7 @@ final readonly class ScalarNode implements ItemNode
     public function __construct(
         private string $class,
         public string $name,
-        private bool $nullable,
+        public bool $nullable,
     ) {
         $this->expected = $nullable ? FieldTypeNameResolver::withNull($name) : $name;
     }

@@ -8,10 +8,16 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Node\Node;
 use JsonException;
 use ReflectionException;
+use stdClass;
 
 use function array_all;
 use function array_intersect_key;
 use function array_key_exists;
+use function is_array;
+use function is_bool;
+use function is_float;
+use function is_int;
+use function is_string;
 
 /** @internal */
 final readonly class ConstructorPlan
@@ -44,7 +50,20 @@ final readonly class ConstructorPlan
                 continue;
             }
             $value = $values[$name];
-            $matches = ValueTypeMatcher::matches($value, $field->typeName, $field->nullable);
+            // Inline checks, because a call per argument slows down hydration measurably.
+            $matches = $value === null
+                ? $field->nullable
+                : match ($field->typeName) {
+                    'array' => is_array($value) || $value instanceof stdClass,
+                    'bool' => is_bool($value),
+                    'false' => $value === false,
+                    'float' => is_float($value) || is_int($value),
+                    'int' => is_int($value),
+                    'null' => false,
+                    'string' => is_string($value),
+                    'true' => $value === true,
+                    default => true,
+                };
             if (!$matches) {
                 return DecodeError::fieldTypeMismatch(
                     $this->class,

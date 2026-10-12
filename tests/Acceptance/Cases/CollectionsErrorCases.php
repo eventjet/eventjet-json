@@ -68,6 +68,14 @@ final class CollectionsErrorCases
      */
     private static function scalarItems(): iterable
     {
+        yield 'object map declared in PHPDoc rejects null' => [
+            '{"value":{"a":null}}',
+            CollectionDeclarationFixture::create('array', PhpType::nonEmptyArray(Coordinates::class), 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('array', PhpType::nonEmptyArray(Coordinates::class), 'param')
+                . ' from the JSON object: Field value[a] must be of type Eventjet\Json\Test\Acceptance\Fixtures\Coordinates, null given.',
+            3,
+        ];
         yield 'object list declared in PHPDoc rejects null' => [
             '{"value":[null]}',
             CollectionDeclarationFixture::create('array', PhpType::list(Coordinates::class), 'param'),

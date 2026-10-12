@@ -18,7 +18,8 @@ final readonly class UnionNode implements ItemNode
 {
     /**
      * @param class-string $class
-     * @param array<string, Node> $members Keyed by the valueType() of the decoded JSON values they accept.
+     * @param array<string, Node> $members Keyed by the get_debug_type() of the decoded JSON values they accept, or by
+     *     true or false for booleans.
      * @param Node|null $fallback Accepts values of every other type, for members that PHP checks itself.
      */
     public function __construct(
@@ -28,22 +29,15 @@ final readonly class UnionNode implements ItemNode
         private Node|null $fallback,
     ) {}
 
-    /**
-     * Returns the key of the members that accept a decoded JSON value: its get_debug_type(), or true or false for booleans.
-     */
-    private static function valueType(mixed $value): string
+    #[Override]
+    public function decode(mixed $value, string $path): mixed
     {
-        return match ($value) {
+        $valueType = match ($value) {
             true => 'true',
             false => 'false',
             default => get_debug_type($value),
         };
-    }
-
-    #[Override]
-    public function decode(mixed $value, string $path): mixed
-    {
-        $member = $this->members[self::valueType($value)] ?? $this->fallback;
+        $member = $this->members[$valueType] ?? $this->fallback;
         return $member === null
             ? DecodeError::fieldTypeMismatch($this->class, $path, $this->type, $value)
             : $member->decode($value, $path);
