@@ -53,6 +53,7 @@ use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyValues;
+use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\RootTypeValidator;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
@@ -87,6 +88,7 @@ use function class_alias;
 
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(ConstructorPlan::class)]
+#[UsesClass(RenamedArguments::class)]
 #[CoversClass(ClassJsonType::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(RootTypeValidator::class)]

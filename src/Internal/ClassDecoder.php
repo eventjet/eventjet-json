@@ -75,7 +75,7 @@ final readonly class ClassDecoder
     {
         $checks = [];
         $converters = [];
-        $nodes = [];
+        $jsonNames = [];
         foreach ($class->getConstructor()?->getParameters() ?? [] as $reflection) {
             $parameter = new ConstructorParameter($reflection, $class);
             $name = $names[$parameter->name] ?? $parameter->name;
@@ -83,14 +83,16 @@ final readonly class ClassDecoder
             if ($converter instanceof DecodeError) {
                 return $converter;
             }
-            $converters[$name] = $converter;
-            $nodes[$parameter->name] = $converter;
+            $converters[$parameter->name] = $converter;
+            if ($name !== $parameter->name) {
+                $jsonNames[$parameter->name] = $name;
+            }
             $check = $parameter->nativeCheck();
             if ($check !== null) {
                 $checks[$name] = $check;
             }
         }
-        return new ConstructorPlan($class->getName(), $checks, $converters, $nodes, $names);
+        return new ConstructorPlan($class->getName(), $checks, $converters, $jsonNames);
     }
 
     /**
@@ -100,7 +102,7 @@ final readonly class ClassDecoder
      */
     public function fields(): array
     {
-        $fields = array_filter($this->constructor->nodes, static fn(Node|null $node): bool => $node !== null);
+        $fields = array_filter($this->constructor->converters, static fn(Node|null $node): bool => $node !== null);
         foreach ($this->properties as $property) {
             $fields[$property['property']->getName()] = $property['node'];
         }

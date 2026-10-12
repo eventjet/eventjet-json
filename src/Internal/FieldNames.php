@@ -10,11 +10,7 @@ use JsonSerializable;
 use ReflectionClass;
 use ReflectionProperty;
 
-use function array_combine;
 use function array_filter;
-use function array_flip;
-use function array_keys;
-use function array_map;
 use function array_push;
 
 /**
@@ -39,22 +35,6 @@ final class FieldNames
     public static function of(ReflectionClass $class): array|DecodeError
     {
         return self::$names[$class->getName()] ?? self::resolve($class);
-    }
-
-    /**
-     * Re-keys values from JSON names to property names.
-     *
-     * @template V
-     * @param array<array-key, V> $values
-     * @param array<string, string> $names JSON names of renamed properties, keyed by property name.
-     * @return array<array-key, V>
-     */
-    public static function toProperties(array $values, array $names): array
-    {
-        /** @var array<array-key, string> $properties */
-        $properties = array_flip($names);
-        $keys = array_map(static fn(int|string $name): int|string => $properties[$name] ?? $name, array_keys($values));
-        return array_combine($keys, $values);
     }
 
     /**
