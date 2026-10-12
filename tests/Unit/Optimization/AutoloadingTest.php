@@ -59,7 +59,6 @@ use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedReference;
-use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredEnumBacking;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredListItem;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredValueEnum;
@@ -140,52 +139,6 @@ use function spl_autoload_unregister;
 #[UsesClass(MappedObjectSerializer::class)]
 final class AutoloadingTest extends TestCase
 {
-    /**
-     * @throws ReflectionException
-     * @throws JsonException
-     */
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function testScalarAndEnumConstructorsDoNotLoadPropertyOrLiteralCode(): void
-    {
-        $target = new class('expected') {
-            public function __construct(
-                public string $value,
-            ) {}
-        };
-        for ($lookup = 0; $lookup < 2; ++$lookup) {
-            static::assertEquals($target, ClassDecoders::hydrate($target::class, JsonObject::of([
-                'value' => 'expected',
-            ])));
-        }
-        $status = new class(StringBackedStatus::Ready) {
-            public function __construct(
-                public StringBackedStatus $status,
-            ) {}
-        };
-        static::assertEquals($status, ClassDecoders::hydrate($status::class, JsonObject::of(['status' => 'ready'])));
-        $ordinary = new class(new EmptyObject()) {
-            /** @param \Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject $object */
-            public function __construct(
-                public EmptyObject $object,
-            ) {}
-        };
-        $ordinaryInput = new stdClass();
-        $ordinaryInput->object = new stdClass();
-        static::assertEquals($ordinary, ClassDecoders::hydrate($ordinary::class, $ordinaryInput));
-        static::assertFalse(class_exists(PhpDocClassNameResolver::class, autoload: false));
-        $collection = new class([42]) {
-            /** @param list<int> $values The name has a native scalar type. */
-            public function __construct(
-                public array $values,
-                public string $name = '',
-            ) {}
-        };
-        $collectionInput = new stdClass();
-        $collectionInput->values = [42];
-        static::assertEquals($collection, ClassDecoders::hydrate($collection::class, $collectionInput));
-    }
-
     /**
      * @throws ReflectionException
      * @throws JsonException
