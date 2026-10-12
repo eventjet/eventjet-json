@@ -16,6 +16,7 @@ final class DecodeErrorCases
      */
     public static function errors(): iterable
     {
+        yield from LiteralTypeCases::errors();
         yield from FieldMappingErrorCases::errors();
         yield from JsonInputErrorCases::errors();
         yield from RootShapeErrorCases::errors();

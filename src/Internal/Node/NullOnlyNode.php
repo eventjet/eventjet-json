@@ -29,7 +29,7 @@ final readonly class NullOnlyNode implements Node
     #[Override]
     public function valueTypes(): array
     {
-        return [];
+        return ['null'];
     }
 
     #[Override]

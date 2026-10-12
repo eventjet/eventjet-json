@@ -6,7 +6,6 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Node\Node;
-use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionException;
 
 use function implode;
@@ -39,22 +38,40 @@ final readonly class PhpDocUnionCompiler
     {
         $members = [];
         foreach ($types as $type) {
-            $literal =
-                $type->arguments === []
-                && in_array(
-                    $type->name,
-                    ['null', 'true', 'false', 'resource', 'open-resource', 'closed-resource'],
-                    strict: true,
-                );
-            $member = $literal ? $type->name : $this->items->collections()->nested($type, $path);
-            $member ??= $this->items->name($type);
-            if ($member === null || $member instanceof DecodeError) {
-                return $member;
+            $resolved = $this->resolve($type, $path);
+            if (!is_array($resolved)) {
+                return $resolved;
             }
-            $member = $member instanceof Node ? $member : PhpDocClassNameResolver::canonical($member);
-            $members[(string) $member] = $member;
+            foreach ($resolved as $member) {
+                $members[(string) $member] = $member;
+            }
         }
         return $members;
+    }
+
+    /**
+     * Resolves one member: a collection as a node; a name, or the literals that a constant stands for, as names.
+     *
+     * @return non-empty-list<Node|string>|DecodeError|null
+     * @throws ReflectionException
+     */
+    private function resolve(PhpDocType $type, string $path): array|DecodeError|null
+    {
+        $keyword =
+            $type->arguments === []
+            && in_array(
+                $type->name,
+                ['null', 'true', 'false', 'resource', 'open-resource', 'closed-resource'],
+                strict: true,
+            );
+        $member = $keyword ? $type->name : $this->items->collections()->nested($type, $path);
+        $member ??= $this->items->name($type);
+        return match (true) {
+            $member === null => $this->items->literals($type),
+            $member instanceof DecodeError => $member,
+            $member instanceof Node => [$member],
+            default => [PhpDocClassNameResolver::canonical($member)],
+        };
     }
 
     /**
@@ -64,9 +81,17 @@ final readonly class PhpDocUnionCompiler
     public function compile(array $types, string $path): Node|DecodeError|null
     {
         $members = $this->members($types, $path);
-        if (!is_array($members)) {
-            return $members;
-        }
+        return is_array($members) ? $this->build($members, $path) : $members;
+    }
+
+    /**
+     * Compiles the union of resolved members, or the only member if there is one.
+     *
+     * @param array<string, Node|string> $members
+     * @throws ReflectionException
+     */
+    public function build(array $members, string $path): Node|DecodeError
+    {
         $union = new UnionBuilder($this->class, $path);
         foreach ($members as $member) {
             $nonEncodable = is_string($member) && NativeUnionCompiler::isNonEncodable($member);
@@ -74,15 +99,7 @@ final readonly class PhpDocUnionCompiler
                 $union->reject(NativeUnionCompiler::nonEncodable($this->class, $member, $path));
                 continue;
             }
-            $node = match (true) {
-                $member instanceof Node => $member,
-                in_array($member, ['null', 'true', 'false'], strict: true) => new ScalarNode(
-                    $this->class,
-                    $member,
-                    nullable: $member === 'null',
-                ),
-                default => $this->items->named($member, $path),
-            };
+            $node = $member instanceof Node ? $member : $this->items->member($member, $path);
             if ($node instanceof DecodeError) {
                 return $node;
             }

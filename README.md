@@ -142,6 +142,42 @@ empty PHP array encodes as `[]`.
 See the [type reference](docs/types.md#collection-declarations) for nullable
 collections, optional tuple positions, unions, and PHPDoc name resolution.
 
+## Literal types and constants
+
+PHPDoc literal types restrict a field to specific values. Strings, integers,
+floats, `true`, and `false` work, and so do class constants, including
+wildcards such as `self::STATE_*`:
+
+```php
+final readonly class Task
+{
+    public const string STATE_OPEN = 'open';
+    public const string STATE_DONE = 'done';
+
+    /**
+     * @param self::STATE_* $state
+     * @param 1|2|3 $priority
+     */
+    public function __construct(
+        public string $state,
+        public int $priority,
+    ) {}
+}
+```
+
+Decoding `{"state":"closed","priority":1}` returns a `DecodeError`, because
+`closed` is not one of the declared values. Literals also work inside
+collections, such as `list<'red'|'green'>`.
+
+Prefer backed enums when you control the class. PHP itself enforces an enum
+type everywhere the value is used, while a literal type is only a PHPDoc
+comment: PHP still sees a plain `string` or `int`, and only decoding and static
+analysis check the narrower values. Use literals for existing classes you can't
+change to enums, or for one-off values that don't deserve an enum.
+
+See the [type reference](docs/types.md#literal-types) for the supported syntax
+and limits.
+
 ## Root arrays and maps
 
 Use `JsonType::array()` for a JSON array or `JsonType::map()` for a JSON object

@@ -51,29 +51,32 @@ final readonly class ScalarNode implements Node
      */
     public function decodeEach(array $values, Closure $path): array|DecodeError
     {
-        $invalid = ScalarItems::firstInvalid($values, $this->name);
-        if ($invalid !== null) {
-            return DecodeError::fieldTypeMismatch(
-                $this->class,
-                $path($invalid),
-                $this->name,
-                $values[$invalid] ?? null,
-            );
+        if ($this->name === 'float') {
+            return $this->floats($values, $path);
         }
-        /** @var array<TKey, float|int> $values */
-        return $this->name === 'float' ? self::floats($values) : $values;
+        $invalid = ScalarItems::firstInvalid($values, $this->name);
+        return $invalid === null
+            ? $values
+            : DecodeError::fieldTypeMismatch($this->class, $path($invalid), $this->name, $values[$invalid] ?? null);
     }
 
     /**
+     * Checks and converts float items in one pass, because JSON encodes whole floats as integers.
+     *
      * @template TKey of array-key
-     * @param array<TKey, float|int> $values
-     * @return array<TKey, float>
+     * @param array<TKey, mixed> $values
+     * @param Closure(TKey): string $path
+     * @return array<TKey, mixed>|DecodeError
      */
-    private static function floats(array $values): array
+    private function floats(array $values, Closure $path): array|DecodeError
     {
+        /** @var mixed $value */
         foreach ($values as $key => $value) {
             if (is_float($value)) {
                 continue;
+            }
+            if (!is_int($value)) {
+                return DecodeError::fieldTypeMismatch($this->class, $path($key), 'float', $value);
             }
             $values[$key] = (float) $value;
         }

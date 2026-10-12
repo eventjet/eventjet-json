@@ -4,25 +4,17 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use ArrayObject;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\Node;
-use Eventjet\Json\Internal\Node\ScalarNode;
-use Eventjet\Json\Internal\Node\UnionNode;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
-use ReflectionType;
 use ReflectionUnionType;
 
-use function array_map;
-use function array_unique;
 use function implode;
-use function in_array;
 use function is_array;
-use function sort;
+use function is_string;
 
 /**
  * Compiles a field whose native type combines a collection with other types, such as `?array` or `array|string`.
@@ -33,14 +25,14 @@ final readonly class CollectionUnionCompiler
 {
     /** @var class-string */
     private string $class;
-    private PhpDocUnionCompiler $unions;
+    private PhpDocItemCompiler $items;
 
     public function __construct(
         private TypeCompiler $types,
         private ReflectionParameter|ReflectionProperty $field,
     ) {
         $this->class = $types->class;
-        $this->unions = new PhpDocItemCompiler($types, $field)->unions();
+        $this->items = new PhpDocItemCompiler($types, $field);
     }
 
     /**
@@ -48,75 +40,30 @@ final readonly class CollectionUnionCompiler
      *
      * @throws ReflectionException
      */
-    public function compile(ReflectionNamedType|ReflectionUnionType $native): UnionNode|DecodeError
+    public function compile(ReflectionNamedType|ReflectionUnionType $native): Node|DecodeError
     {
         $doc = PhpDocFieldType::resolve($this->field);
         $path = $this->field->getName();
-        $members = $doc?->name === '|' ? $this->unions->members($doc->arguments, $path) : null;
+        $members = $doc?->name === '|' ? $this->items->unions()->members($doc->arguments, $path) : null;
         if (!is_array($members)) {
             return $members ?? PhpDocFieldType::unrecognized($this->class, $this->field);
         }
+        $types = $native instanceof ReflectionUnionType ? $native->getTypes() : [$native];
+        $natives = new CollectionUnionNatives($this->field, $types);
+        $matches = $natives->match($members);
         $union = new UnionBuilder($this->class, $path);
-        $natives = $native instanceof ReflectionUnionType ? $native->getTypes() : [$native];
-        $error = NativeUnionCompiler::addMembers($this->types, $this->field, $natives, $union);
-        if ($error !== null) {
-            return $error;
-        }
-        $nativeNames = $this->nativeNames($natives);
-        $declaresSameTypes = self::declaresSameTypes($members, $nativeNames);
-        if (!$declaresSameTypes) {
-            return PhpDocFieldType::unrecognized($this->class, $this->field);
+        $declared = $matches ? $natives->named($members) : $natives->members();
+        $error = NativeUnionCompiler::addMembers($this->types, $this->field, $declared, $union);
+        if ($error !== null || !$matches) {
+            return $error ?? PhpDocFieldType::unrecognized($this->class, $this->field);
         }
         foreach ($members as $member) {
-            $node = match (true) {
-                $member instanceof Node => $member,
-                $member === 'null' => new ScalarNode($this->class, 'null', nullable: true),
-                default => null,
-            };
-            if ($node !== null) {
-                $union->add($node);
+            $nativeMember = is_string($member) && $member !== 'null' && !PhpDocType::literalSyntax($member);
+            if ($nativeMember) {
+                continue;
             }
+            $union->add($member instanceof Node ? $member : $this->items->literal($member));
         }
         return $union->build(implode('|', $members));
-    }
-
-    /**
-     * Returns the native type names, including null for a nullable type such as `?array`.
-     *
-     * @param array<ReflectionType> $natives
-     * @return list<string>
-     * @throws ReflectionException
-     */
-    private function nativeNames(array $natives): array
-    {
-        $names = [];
-        foreach ($natives as $native) {
-            /** @var ReflectionNamedType $native Intersections were rejected while adding members. */
-            $name = PhpDocClassNameResolver::canonical(FieldTypeNameResolver::resolve($this->field, $native));
-            $names[] = $name;
-            if ($native->allowsNull() && $name !== 'null') {
-                $names[] = 'null';
-            }
-        }
-        return $names;
-    }
-
-    /**
-     * @param array<string, Node|string> $members
-     * @param list<string> $nativeNames
-     */
-    private static function declaresSameTypes(array $members, array $nativeNames): bool
-    {
-        if (in_array(ArrayObject::class, $members, strict: true)) {
-            return false;
-        }
-        $declared = array_unique(array_map(static fn(Node|string $member): string => match (true) {
-            $member instanceof MapNode && $member->arrayObject => ArrayObject::class,
-            $member instanceof Node => 'array',
-            default => $member,
-        }, $members));
-        sort($declared);
-        sort($nativeNames);
-        return $declared === $nativeNames;
     }
 }

@@ -19,7 +19,7 @@ final class PhpDocImportStatement
     {
         $isNonClassImport = preg_match('/\A\s*(?:function|const)\s/i', $statement) === 1;
         if ($isNonClassImport) {
-            return [];
+            return PhpDocConstantImportStatement::parse($statement);
         }
 
         $group = explode('{', $statement);
@@ -41,6 +41,7 @@ final class PhpDocImportStatement
                 $matches,
             );
             if ($matched !== 1) {
+                $imports = [...$imports, ...PhpDocConstantImportStatement::groupMember($prefix, $member)];
                 continue;
             }
 

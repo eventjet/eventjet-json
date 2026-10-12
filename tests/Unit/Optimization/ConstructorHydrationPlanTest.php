@@ -23,6 +23,7 @@ use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\EnumUnionNode;
 use Eventjet\Json\Internal\Node\ListNode;
+use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
@@ -75,6 +76,8 @@ use stdClass;
 #[UsesClass(DecodeError::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ConstructorParameter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(MetadataCache::class)]
 #[CoversClass(RootTypeValidator::class)]
@@ -119,6 +122,7 @@ use stdClass;
 #[UsesClass(UnionBuilder::class)]
 #[UsesClass(UnionNode::class)]
 #[UsesClass(EnumUnionNode::class)]
+#[UsesClass(LiteralNode::class)]
 final class ConstructorHydrationPlanTest extends TestCase
 {
     /**

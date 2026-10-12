@@ -77,6 +77,8 @@ use function class_alias;
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ConstructorParameter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(MetadataCache::class)]
 #[CoversClass(RootTypeValidator::class)]
@@ -239,6 +241,19 @@ final class ConstructorValidationPlanTest extends TestCase
         $class = new ReflectionClass(CollectionDeclarationFixture::create($dependency, '', 'param'));
         static::assertSame([], ConstructorDecoder::convert($class, [], ''));
         static::assertTrue(class_alias(NonBackedStatus::class, $dependency));
+        static::assertInstanceOf(DecodeError::class, ConstructorDecoder::convert($class, [], ''));
+
+        $later = 'ConstructorPlanDeferredEnumBeforeEnum';
+        $class = new ReflectionClass(CollectionNameSource::load(
+            'ConstructorPlanRetry\\Target',
+            'namespace ConstructorPlanRetry; final class Target { public function __construct(public \\'
+            . $later
+            . ' $value, public \\'
+            . StringBackedStatus::class
+            . ' $status) {} }',
+        ));
+        static::assertSame([], ConstructorDecoder::convert($class, [], ''));
+        static::assertTrue(class_alias(NonBackedStatus::class, $later));
         static::assertInstanceOf(DecodeError::class, ConstructorDecoder::convert($class, [], ''));
     }
 

@@ -25,6 +25,11 @@ final readonly class ConstructorParameter
     public bool $builtin;
     private bool $variadic;
     private bool $recoverable;
+    /** @var class-string */
+    private string $class;
+
+    /** Whether the native type check is the whole check. Such parameters need no compiler. */
+    public bool $plain;
 
     /**
      * @template T of object
@@ -44,20 +49,19 @@ final readonly class ConstructorParameter
         $this->variadic = $reflection->isVariadic();
         $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
         $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
+        $this->class = $class->getName();
+        $this->plain = FieldTypeNameResolver::isPlainType($reflection, $this->type);
     }
 
     /**
-     * Returns the node that converts the argument, or null if the argument needs only its native type check.
+     * Returns the node that converts the argument, or null if the argument needs only its native type check. Without a
+     * compiler, the argument gets only its native type check.
+     *
+     * @throws ReflectionException
      */
-    public function converter(Node $node): Node|null
+    public function resolveType(TypeCompiler|null $compiler): Node|DecodeError|null
     {
-        return $node instanceof ScalarNode ? null : $node;
-    }
-
-    /** @throws ReflectionException */
-    public function resolveType(TypeCompiler $compiler): Node|DecodeError
-    {
-        $class = $compiler->class;
+        $class = $this->class;
         if ($this->variadic) {
             return DecodeError::nonInstantiableTarget($class, sprintf(
                 'Constructor parameter %s is variadic. JSON members bind to individual named arguments, not variadic argument lists.',
@@ -73,7 +77,7 @@ final readonly class ConstructorParameter
                 '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
             );
         }
-        $node = $compiler->field($this->reflection, $this->type);
+        $node = $compiler?->field($this->reflection, $this->type);
         if ($node instanceof DecodeError) {
             return $node;
         }
@@ -83,7 +87,7 @@ final readonly class ConstructorParameter
                 $this->name,
             ));
         }
-        return $node;
+        return $node instanceof ScalarNode ? null : $node;
     }
 
     /**

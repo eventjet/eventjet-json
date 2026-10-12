@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use ReflectionException;
 
+use function array_any;
 use function array_intersect;
+use function array_map;
 use function array_unique;
 use function assert;
 use function count;
@@ -49,18 +52,26 @@ final class UnionBuilder
         $this->rejected ??= $error;
     }
 
-    /** @throws ReflectionException */
-    public function build(string $type): UnionNode|DecodeError
+    /**
+     * Returns the union of the members, or the only member if there is one.
+     *
+     * @throws ReflectionException
+     */
+    public function build(string $type): Node|DecodeError
     {
         if ($this->members === []) {
             assert($this->rejected !== null, description: 'A union with no members rejected at least one.');
             return $this->rejected;
         }
-        $union = $this->classes() ?? UnionNode::of($this->class, $this->path, $type, $this->members);
+        if (count($this->members) === 1 && $this->rejected === null) {
+            return $this->members[0];
+        }
+        $union =
+            $this->literals() ?? $this->classes() ?? UnionNode::of($this->class, $this->path, $type, $this->members);
         return $union instanceof DecodeError ? $union : $this->shapes() ?? $union;
     }
 
-    private function classes(): DecodeError|null
+    public function classes(): DecodeError|null
     {
         $classes = [];
         foreach ($this->members as $member) {
@@ -82,6 +93,19 @@ final class UnionBuilder
             implode(', ', $classes),
             '. JSON does not identify which class to instantiate.',
         );
+    }
+
+    /** @throws ReflectionException */
+    private function literals(): DecodeError|null
+    {
+        $literal = array_any($this->members, static fn(Node $member): bool => $member instanceof LiteralNode);
+        return $literal
+            ? PhpDocLiteralUnionValidator::validate(
+                $this->class,
+                $this->path,
+                array_map(static fn(Node $member): string => (string) $member, $this->members),
+            )
+            : null;
     }
 
     private function shapes(): DecodeError|null

@@ -6,7 +6,10 @@ namespace Eventjet\Json\Internal;
 
 use function array_pop;
 use function count;
+use function in_array;
 use function preg_match;
+use function str_contains;
+use function strspn;
 
 /** @internal */
 final readonly class PhpDocType
@@ -77,5 +80,25 @@ final readonly class PhpDocType
     public function isPlainName(string $name): bool
     {
         return $this->name === $name && $this->arguments === [];
+    }
+
+    /**
+     * Returns the members of a union, or the type itself.
+     *
+     * @return list<PhpDocType>
+     */
+    public function members(): array
+    {
+        return $this->name === '|' ? $this->arguments : [$this];
+    }
+
+    /** @pure */
+    public static function literalSyntax(string $name): bool
+    {
+        return (
+            in_array($name, ['true', 'false'], strict: true)
+            || strspn($name, characters: "'\"0123456789.+-", length: 1) === 1
+            || str_contains($name, '::')
+        );
     }
 }

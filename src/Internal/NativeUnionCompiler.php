@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use ArrayObject;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Node\Node;
 use JsonSerializable;
@@ -34,21 +33,40 @@ final class NativeUnionCompiler
         ReflectionParameter|ReflectionProperty $field,
         ReflectionUnionType $type,
     ): Node|DecodeError {
-        $members = $type->getTypes();
-        $hasCollection = array_any(
-            $members,
-            static fn(ReflectionType $member): bool => $member instanceof ReflectionNamedType
-            && in_array(strtolower($member->getName()), ['array', 'arrayobject'], strict: true),
-        );
+        $hasCollection = self::hasCollection($type);
         if ($hasCollection) {
             return new CollectionUnionCompiler($types, $field)->compile($type);
         }
         $union = new UnionBuilder($types->class, $field->getName());
-        return self::addMembers($types, $field, $members, $union) ?? $union->build((string) $type);
+        return self::addMembers($types, $field, $type->getTypes(), $union) ?? $union->build((string) $type);
+    }
+
+    /** Whether a member is a collection, whose items only PHPDoc declares. */
+    public static function hasCollection(ReflectionUnionType $type): bool
+    {
+        return array_any(
+            $type->getTypes(),
+            static fn(ReflectionType $member): bool => $member instanceof ReflectionNamedType
+            && in_array(strtolower($member->getName()), ['array', 'arrayobject'], strict: true),
+        );
     }
 
     /**
-     * Adds the native members of a union, except collections, whose items only PHPDoc declares.
+     * Rejects a native union whose members JSON cannot tell apart by class, for fields whose PHPDoc declares the values.
+     *
+     * @throws ReflectionException
+     */
+    public static function classes(
+        TypeCompiler $types,
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionUnionType $type,
+    ): DecodeError|null {
+        $union = new UnionBuilder($types->class, $field->getName());
+        return self::addMembers($types, $field, $type->getTypes(), $union) ?? $union->classes();
+    }
+
+    /**
+     * Adds native members of a union. Collections are not among them, because only PHPDoc declares their items.
      *
      * @param array<ReflectionType> $members
      * @throws ReflectionException
@@ -68,9 +86,6 @@ final class NativeUnionCompiler
             $nonEncodable = self::isNonEncodable($name);
             if ($nonEncodable) {
                 $union->reject(self::nonEncodable($types->class, $name, $path));
-                continue;
-            }
-            if ($name === 'array' || $name === ArrayObject::class) {
                 continue;
             }
             $node = $types->named($field, $member);

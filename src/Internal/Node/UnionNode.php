@@ -35,8 +35,8 @@ final readonly class UnionNode implements Node
 
     /**
      * Indexes valid union members by the JSON value types they accept, rejecting enums that JSON cannot tell apart from
-     * other members. Enums that share a backing type are combined. A `callable` member accepts every other value,
-     * because PHP checks callable arguments itself.
+     * other members. Enums that share a backing type are combined, and so are literals that share a JSON value type.
+     * A `callable` member accepts every other value, because PHP checks callable arguments itself.
      *
      * @param class-string $class
      * @param list<Node> $members
@@ -46,7 +46,12 @@ final readonly class UnionNode implements Node
         /** @var array<string, Node> $indexed */
         $indexed = [];
         $enums = [];
+        $literals = [];
         foreach ($members as $member) {
+            if ($member instanceof LiteralNode) {
+                $literals[] = $member;
+                continue;
+            }
             foreach ($member->valueTypes() as $valueType) {
                 $indexed[$valueType] = $member;
             }
@@ -76,6 +81,7 @@ final readonly class UnionNode implements Node
         if (array_key_exists('float', $indexed) && !array_key_exists('int', $indexed)) {
             $indexed['int'] = $indexed['float'];
         }
+        $indexed = $literals === [] ? $indexed : LiteralNode::index($class, $type, $literals, $indexed);
         return new self($class, $type, $indexed, $indexed['callable'] ?? null);
     }
 

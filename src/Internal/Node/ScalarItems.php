@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Node;
 
 use function is_bool;
-use function is_float;
 use function is_int;
 use function is_string;
 
@@ -18,7 +17,7 @@ use function is_string;
 final class ScalarItems
 {
     /**
-     * Returns the key of the first item that is not of the given type: bool, int, string, or float.
+     * Returns the key of the first item that is not of the given type: bool, int, or string.
      *
      * @template TKey of array-key
      * @param array<TKey, mixed> $values
@@ -29,8 +28,7 @@ final class ScalarItems
         return match ($type) {
             'bool' => self::firstNonBool($values),
             'int' => self::firstNonInt($values),
-            'string' => self::firstNonString($values),
-            default => self::firstNonNumber($values),
+            default => self::firstNonString($values),
         };
     }
 
@@ -76,22 +74,6 @@ final class ScalarItems
         /** @var mixed $value */
         foreach ($values as $key => $value) {
             if (!is_string($value)) {
-                return $key;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * @template TKey of array-key
-     * @param array<TKey, mixed> $values
-     * @return TKey|null
-     */
-    private static function firstNonNumber(array $values): int|string|null
-    {
-        /** @var mixed $value */
-        foreach ($values as $key => $value) {
-            if (!is_float($value) && !is_int($value)) {
                 return $key;
             }
         }

@@ -6,12 +6,14 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Node\Node;
+use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionProperty;
 use ReflectionUnionType;
 use stdClass;
 
+use function assert;
 use function class_exists;
 use function enum_exists;
 use function in_array;
@@ -46,7 +48,12 @@ final class PublicPropertyTypeValidator
             }
         }
 
-        return new TypeCompiler($class)->field($property, $type);
+        $plain = FieldTypeNameResolver::isPlainType($property, $type);
+        if (!$plain) {
+            return new TypeCompiler($class)->field($property, $type);
+        }
+        assert($type instanceof ReflectionNamedType, description: 'Plain types are named types.');
+        return new ScalarNode($class, $type->getName(), $type->allowsNull());
     }
 
     /** @param class-string $class */

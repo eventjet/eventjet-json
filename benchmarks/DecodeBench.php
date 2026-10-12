@@ -11,6 +11,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\CombinedCollectionFields;
 use InvalidArgumentException;
 use JsonException;
 use PhpBench\Attributes as Bench;
+use ReflectionException;
 use RuntimeException;
 
 use function is_array;
@@ -39,6 +40,8 @@ final class DecodeBench
      * @param array{scenario: string} $parameters
      * @throws InvalidArgumentException
      * @throws JsonException
+     * @throws ReflectionException
+     * @throws RuntimeException
      */
     public function setUp(array $parameters): void
     {

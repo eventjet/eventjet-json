@@ -1,0 +1,36 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Eventjet\Json\Internal;
+
+use BackedEnum;
+
+use function constant;
+use function defined;
+use function enum_exists;
+use function preg_match;
+use function strstr;
+
+/** @internal */
+final class PhpDocLiteral
+{
+    public static function value(string $name): string|int|float|bool|BackedEnum|null
+    {
+        $owner = strstr($name, needle: '::', before_needle: true);
+        $enumCase = $owner !== false && enum_exists($owner);
+        if ($enumCase && defined($name)) {
+            /**
+             * @var mixed $value
+             * @mago-expect analysis:unhandled-thrown-type The complete constant name was checked with defined().
+             */
+            $value = constant($name);
+            return $value instanceof BackedEnum ? $value : null;
+        }
+        if ($name === 'true' || $name === 'false') {
+            return $name === 'true';
+        }
+        $quoted = preg_match('/\A[\x27"]/', $name) === 1;
+        return $quoted ? PhpDocLiteralString::parse($name) : PhpDocLiteralNumber::parse($name);
+    }
+}

@@ -48,18 +48,20 @@ final class ConstructorDecoder
         if ($names instanceof DecodeError) {
             return $names;
         }
-        $compiler = new TypeCompiler($className);
+        $compiler = null;
         $checks = [];
         $converters = [];
 
         foreach ($class->getConstructor()?->getParameters() ?? [] as $reflection) {
             $parameter = new ConstructorParameter($reflection, $class);
             $name = $names[$parameter->name] ?? $parameter->name;
-            $node = $parameter->resolveType($compiler);
-            if ($node instanceof DecodeError) {
-                return $node;
+            $converter = $parameter->resolveType(
+                $parameter->plain ? null : ($compiler ??= new TypeCompiler($className)),
+            );
+            if ($converter instanceof DecodeError) {
+                return $converter;
             }
-            $converters[$name] = $parameter->converter($node);
+            $converters[$name] = $converter;
             $check = $parameter->nativeCheck();
             if ($check !== null) {
                 $checks[$name] = $check;
@@ -70,7 +72,7 @@ final class ConstructorDecoder
         if ($names !== []) {
             $plan = new MappedConstructorPlan($plan, array_flip($names));
         }
-        if ($compiler->unresolved === []) {
+        if (($compiler->unresolved ?? []) === []) {
             self::$plans[$className] = $plan;
         }
         return $plan->decode($values, $path);

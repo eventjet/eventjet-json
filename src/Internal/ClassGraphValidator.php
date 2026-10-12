@@ -55,7 +55,7 @@ final class ClassGraphValidator
             $node = new ConstructorParameter($parameter, $reflection)->resolveType($compiler);
             $error = $node instanceof DecodeError ? $node : $this->dependencies($class, $parameter->getName(), [
                     ...$compiler->unresolved,
-                    ...$node->dependencies(),
+                    ...($node?->dependencies() ?? []),
                 ]);
             if ($error !== null) {
                 return $error;

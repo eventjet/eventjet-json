@@ -6,7 +6,9 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Node\EnumNode;
+use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
+use Eventjet\Json\Internal\Node\NullOnlyNode;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionException;
 use ReflectionParameter;
@@ -58,7 +60,18 @@ final readonly class PhpDocItemCompiler
             return $this->unions->compile($type->arguments, $path);
         }
         $name = $this->name($type);
-        return $name === null ? null : $this->named($name, $path);
+        return $name === null ? $this->unions->compile([$type], $path) : $this->named($name, $path);
+    }
+
+    /**
+     * Returns the literal names that a PHPDoc type stands for, expanding constants, or null if it is no literal.
+     *
+     * @return non-empty-list<string>|null
+     * @throws ReflectionException
+     */
+    public function literals(PhpDocType $type): array|null
+    {
+        return $type->arguments === [] ? PhpDocConstantResolver::literals($this->field, $type->name) : null;
     }
 
     /**
@@ -76,7 +89,7 @@ final readonly class PhpDocItemCompiler
     }
 
     /** @throws ReflectionException */
-    public function named(string $name, string $path): Node|DecodeError
+    private function named(string $name, string $path): Node|DecodeError
     {
         if (in_array($name, ['bool', 'float', 'int', 'string'], strict: true)) {
             return new ScalarNode($this->class, $name, false);
@@ -91,5 +104,25 @@ final readonly class PhpDocItemCompiler
             return DecodeError::nonBackedEnum($this->class, $name, $path);
         }
         return ClassFieldTypeValidator::validate($this->class, $path, $name) ?? $node;
+    }
+
+    /**
+     * Compiles a member that is a name: a literal, a scalar, an enum, or a class.
+     *
+     * @throws ReflectionException
+     */
+    public function member(string $member, string $path): Node|DecodeError
+    {
+        $literal = $member === 'null' || PhpDocType::literalSyntax($member);
+        return $literal ? $this->literal($member) : $this->named($member, $path);
+    }
+
+    /** Compiles null or a literal that resolves to a value. */
+    public function literal(string $name): Node
+    {
+        if ($name === 'null') {
+            return new NullOnlyNode($this->class, 'null');
+        }
+        return LiteralNode::of($this->class, $name);
     }
 }
