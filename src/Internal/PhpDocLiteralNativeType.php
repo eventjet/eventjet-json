@@ -14,10 +14,7 @@ final class PhpDocLiteralNativeType
     /** @param list<string> $expected */
     public static function name(string $name, array $expected): string
     {
-        $literal = PhpDocType::literalSyntax($name) ? PhpDocLiteral::value($name) : null;
-        if ($literal === null) {
-            return $name;
-        }
+        $literal = PhpDocLiteral::value($name);
         if (is_bool($literal) && !in_array('bool', $expected, strict: true)) {
             return $literal ? 'true' : 'false';
         }

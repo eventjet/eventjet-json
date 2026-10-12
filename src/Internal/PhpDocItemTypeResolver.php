@@ -32,26 +32,23 @@ final class PhpDocItemTypeResolver
             return PhpDocUnionTypeResolver::resolve($field, $type->arguments);
         }
 
-        $named = self::named($field, $type);
-        if ($named !== null) {
-            return $named;
-        }
-        $constants = $type->arguments === [] ? PhpDocConstantResolver::resolve($field, $type->name) : null;
-        return $constants === null ? null : new CollectionUnionType($constants);
+        return self::named($field, $type);
     }
 
-    /** @return string|null */
-    private static function named(ReflectionParameter|ReflectionProperty $field, PhpDocType $type): string|null
-    {
+    /** @throws ReflectionException */
+    private static function named(
+        ReflectionParameter|ReflectionProperty $field,
+        PhpDocType $type,
+    ): string|CollectionUnionType|null {
         $arguments = $type->arguments;
 
         if ($arguments === []) {
-            $literalSyntax = PhpDocType::literalSyntax($type->name);
-            $literal = $literalSyntax ? PhpDocLiteral::value($type->name) : null;
-            if ($literal !== null || in_array($type->name, ['null', 'true', 'false'], strict: true)) {
-                return $type->name;
+            $name = $type->name;
+            if (in_array($name, ['null', 'true', 'false'], strict: true)) {
+                return $name;
             }
-            return FieldTypeNameResolver::resolvePhpDoc($field, $type->name);
+            $resolved = PhpDocType::literalSyntax($name) ? null : FieldTypeNameResolver::resolvePhpDoc($field, $name);
+            return $resolved ?? PhpDocLiteral::itemType($field, $name);
         }
 
         if ($type->name !== 'int' || count($arguments) !== 2) {

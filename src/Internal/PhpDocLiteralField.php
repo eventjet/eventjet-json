@@ -22,15 +22,6 @@ final class PhpDocLiteralField
      */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): array|null
     {
-        return PhpDocLiteralFieldCache::resolve($field);
-    }
-
-    /**
-     * @return list<string>|null
-     * @throws ReflectionException
-     */
-    public static function resolveUncached(ReflectionParameter|ReflectionProperty $field): array|null
-    {
         $type = PhpDocFieldType::resolve($field);
         if ($type === null) {
             return null;

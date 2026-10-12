@@ -86,7 +86,7 @@ readonly class FieldValueConverter
                 return DecodeError::fieldTypeMismatch(
                     $class,
                     $path,
-                    ConstructorValueValidator::expected($type, $this->typeName),
+                    FieldTypeNameResolver::expected($type, $this->typeName),
                     $value,
                 );
             }

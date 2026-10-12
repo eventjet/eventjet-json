@@ -22,12 +22,6 @@ final readonly class PhpDocType
         public array $entries = [],
     ) {}
 
-    /** @param non-empty-list<self> $types */
-    public static function compound(string $operator, array $types): self
-    {
-        return count($types) === 1 ? $types[0] : new self($operator, $types);
-    }
-
     /** @return array{self, self}|null */
     public function argumentPair(): array|null
     {
@@ -43,16 +37,6 @@ final readonly class PhpDocType
     public function isPlainName(string $name): bool
     {
         return $this->name === $name && $this->arguments === [];
-    }
-
-    public function containsLiteral(): bool
-    {
-        return (
-            in_array($this->name, ['null', 'true', 'false'], strict: true)
-            || self::literalSyntax($this->name)
-            || $this->name === '|'
-            && array_any($this->arguments, static fn(self $member): bool => $member->containsLiteral())
-        );
     }
 
     /** @pure */

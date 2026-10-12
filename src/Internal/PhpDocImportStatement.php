@@ -8,9 +8,6 @@ use function array_pop;
 use function explode;
 use function ltrim;
 use function preg_match;
-use function preg_replace;
-use function str_contains;
-use function strcasecmp;
 use function strtolower;
 use function trim;
 
@@ -18,21 +15,24 @@ use function trim;
 final class PhpDocImportStatement
 {
     /** @return array<string, string> */
-    public static function parse(string $statement, PhpDocImportKind $kind = PhpDocImportKind::ClassName): array
+    public static function parse(string $statement): array
     {
-        $importPrefix = [];
-        $isNonClassImport = preg_match('/\A\s*(function|const)\s/i', $statement, $importPrefix) === 1;
-        $importPrefix += [1 => ''];
-        /** @var array{0?: string, 1: string} $importPrefix */
-        $isConstantImport = strcasecmp($importPrefix[1], 'const') === 0;
-        $selected = $kind === PhpDocImportKind::Constant ? $isConstantImport : !$isNonClassImport;
-        if (!$selected && ($isNonClassImport || !str_contains($statement, '{'))) {
+        $isNonClassImport = preg_match('/\A\s*(?:function|const)\s/i', $statement) === 1;
+        if ($isNonClassImport) {
             return [];
         }
-        $statement = $kind === PhpDocImportKind::Constant
-            ? preg_replace('/\A\s*const\s+/i', replacement: '', subject: $statement) ?? ''
-            : $statement;
 
+        $imports = [];
+        foreach (self::members($statement) as [$alias, $name]) {
+            $imports[strtolower($alias)] = $name;
+        }
+
+        return $imports;
+    }
+
+    /** @return list<array{string, string}> */
+    public static function members(string $statement): array
+    {
         $group = explode('{', $statement);
         $prefix = '';
         $members = $statement;
@@ -43,17 +43,8 @@ final class PhpDocImportStatement
             $members = trim($groupMembers, characters: " }\t\n\r\0\x0B");
         }
 
-        $imports = [];
+        $pairs = [];
         foreach (explode(',', $members) as $member) {
-            if ($kind === PhpDocImportKind::Constant && !$isConstantImport) {
-                $constant = [];
-                $matchedConstant = preg_match('/\A\s*const\s+([\s\S]*)\z/i', $member, $constant);
-                if ($matchedConstant !== 1) {
-                    continue;
-                }
-                /** @var array{string, string} $constant */
-                $member = $constant[1];
-            }
             $matches = [];
             $matched = preg_match(
                 '/\A\s*(\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff\\\\]*)(?:\s+as\s+([A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*))?\s*\z/i',
@@ -68,9 +59,9 @@ final class PhpDocImportStatement
             $name = ltrim($prefix . $matches[1], characters: '\\');
             $parts = explode('\\', $name);
             $alias = $matches[2] ?? array_pop($parts);
-            $imports[$kind === PhpDocImportKind::Constant ? $alias : strtolower($alias)] = $name;
+            $pairs[] = [$alias, $name];
         }
 
-        return $imports;
+        return $pairs;
     }
 }

@@ -25,7 +25,6 @@ use Eventjet\Json\Internal\ConcreteClassUnionValueConverter;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
-use Eventjet\Json\Internal\ConstructorParameterConverter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
@@ -99,7 +98,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
-use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
@@ -111,7 +109,12 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ClassGraphValidator::class)]
 #[CoversClass(ClassTypeDependencies::class)]
 #[CoversClass(ConstructorParameter::class)]
-#[CoversClass(ConstructorParameterConverter::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralFieldType::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralMarker::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralTags::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralTypeParser::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralTypeTokens::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralParameter::class)]
 #[CoversClass(Json::class)]
 #[CoversClass(JsonType::class)]
 #[CoversClass(ArrayJsonType::class)]
@@ -164,7 +167,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocConstantValues::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValueConverter::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralFieldCache::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralValueConverter::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocStringEscape::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
@@ -172,7 +174,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralNativeType::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocImportKind::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocConstantImportStatement::class)]
 #[CoversClass(PhpDocTypeParser::class)]
 #[CoversClass(PhpDocTokenStream::class)]
 #[CoversClass(PhpDocNamespaceDeclaration::class)]
@@ -204,10 +206,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(MappedConstructorPlan::class)]
 #[CoversClass(FieldNameCollisions::class)]
 #[CoversClass(FieldNames::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldMarker::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarkerFilter::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerCache::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerParser::class)]
 final class AcceptanceTest extends TestCase
 {
     #[DataProviderExternal(ParserSyntaxCases::class, 'types')]

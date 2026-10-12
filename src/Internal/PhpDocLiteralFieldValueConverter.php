@@ -20,10 +20,9 @@ final readonly class PhpDocLiteralFieldValueConverter extends FieldValueConverte
      */
     public function __construct(
         ReflectionParameter|ReflectionProperty $field,
-        ListType|MapType|TupleType|CollectionUnionType|null $collection,
         private array $literals,
     ) {
-        parent::__construct($field, $collection);
+        parent::__construct($field, null);
     }
 
     /**

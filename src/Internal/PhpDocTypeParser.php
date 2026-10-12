@@ -6,14 +6,16 @@ namespace Eventjet\Json\Internal;
 
 use UnexpectedValueException;
 
+use function count;
 use function in_array;
+use function strpbrk;
 use function trim;
 
 /** @internal */
-final readonly class PhpDocTypeParser
+readonly class PhpDocTypeParser
 {
-    private function __construct(
-        private PhpDocTypeTokens $tokens,
+    final protected function __construct(
+        protected PhpDocTypeTokens $tokens,
     ) {}
 
     public static function parse(string $source): PhpDocType|null
@@ -26,17 +28,23 @@ final readonly class PhpDocTypeParser
     /** @return array{PhpDocType, string}|null */
     public static function prefix(string $source): array|null
     {
-        $tokens = new PhpDocTypeTokens($source);
+        $parser = strpbrk($source, characters: "'\"(:0123456789") === false
+            ? new self(new PhpDocTypeTokens($source))
+            : new PhpDocLiteralTypeParser(new PhpDocLiteralTypeTokens($source));
         try {
-            return [new self($tokens)->type(0), $tokens->remainder()];
+            return [$parser->type(0), $parser->tokens->remainder()];
         } catch (UnexpectedValueException) {
             return null;
         }
     }
 
     /** @throws UnexpectedValueException */
-    private function type(int $depth): PhpDocType
+    protected function type(int $depth): PhpDocType
     {
+        if ($depth >= 64) {
+            throw new UnexpectedValueException('PHPDoc nesting exceeds 64 type levels.');
+        }
+
         return $this->compound($depth, '|');
     }
 
@@ -52,26 +60,12 @@ final readonly class PhpDocTypeParser
             $hasNext = $this->tokens->consume($operator);
         } while ($hasNext);
 
-        return PhpDocType::compound($operator, $types);
+        return count($types) === 1 ? $types[0] : new PhpDocType($operator, $types);
     }
 
     /** @throws UnexpectedValueException */
-    private function namedType(int $depth): PhpDocType
+    protected function namedType(int $depth): PhpDocType
     {
-        if ($depth >= 64) {
-            throw new UnexpectedValueException('PHPDoc nesting exceeds 64 type levels.');
-        }
-
-        $parenthesized = $this->tokens->consume('(');
-        if ($parenthesized) {
-            $type = $this->type($depth + 1);
-            $closed = $this->tokens->consume(')');
-            if (!$closed) {
-                throw new UnexpectedValueException('Expected a closing PHPDoc parenthesis.');
-            }
-            return $type;
-        }
-
         $name = $this->tokens->token();
 
         $delimiter = $this->tokens->peek();

@@ -68,4 +68,10 @@ final readonly class CollectionUnionType implements Stringable
         }
         return implode('|', $names);
     }
+
+    /** @param list<string> $expected */
+    public static function nativeName(string $name, array $expected): string
+    {
+        return PhpDocType::literalSyntax($name) ? PhpDocLiteralNativeType::name($name, $expected) : $name;
+    }
 }

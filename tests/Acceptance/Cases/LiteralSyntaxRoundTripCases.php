@@ -39,6 +39,7 @@ final class LiteralSyntaxRoundTripCases
         return [
             ['null', 'null', null],
             ["'foo'|string", 'string', 'other'],
+            ['int<0, 10>|string', 'int|string', 5],
             ['float|3.0', 'float', 4.0],
             ['\\' . ExtendedLiteralFields::class . '::NUMBER|43', 'int', 43],
             ['43|\\' . ExtendedLiteralFields::class . '::NUMBER', 'int', 43],

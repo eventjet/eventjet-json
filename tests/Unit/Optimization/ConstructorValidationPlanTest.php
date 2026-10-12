@@ -10,7 +10,6 @@ use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
-use Eventjet\Json\Internal\ConstructorParameterConverter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
@@ -60,8 +59,12 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[CoversClass(ConstructorParameter::class)]
-#[UsesClass(ConstructorParameterConverter::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarkerFilter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarker::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTags::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTypeTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(FieldTypeResolver::class)]
 #[UsesClass(FieldTypeValidator::class)]
@@ -78,9 +81,6 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PublicPropertyTypeValidator::class)]
 #[CoversClass(FieldNames::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocFieldType::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldCache::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldMarker::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerCache::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralField::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralScalarConverter::class)]

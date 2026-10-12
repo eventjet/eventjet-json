@@ -8,27 +8,17 @@ use UnexpectedValueException;
 
 use function preg_match;
 use function strlen;
-use function strpbrk;
 use function strspn;
 use function substr;
 
 /** @internal */
-final class PhpDocTypeTokens
+class PhpDocTypeTokens
 {
-    private const string SIMPLE_IDENTIFIER_PATTERN = '/\G\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff-]*(?:\\\\[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)*/';
-    private const string IDENTIFIER_PATTERN = '/\G\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff-]*(?:\\\\[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)*(?:::[A-Za-z_*\x80-\xff][A-Za-z0-9_*\x80-\xff]*)?/';
-    private const string NUMBER_PATTERN = '/\G[+-]?(?:0[xX][0-9a-fA-F]+(?:_[0-9a-fA-F]+)*|0[bB][01]+(?:_[01]+)*|0[oO][0-7]+(?:_[0-7]+)*|(?:[0-9]+(?:_[0-9]+)*(?:\.[0-9]*(?:_[0-9]+)*)?|\.[0-9]+(?:_[0-9]+)*)(?:[eE][+-]?[0-9]+(?:_[0-9]+)*)?)/';
-    private const string SINGLE_QUOTED_PATTERN = '/\G\x27(?:[^\x27\\\\]|\\\\[\s\S])*\x27/';
-    private const string DOUBLE_QUOTED_PATTERN = '/\G"(?:[^"\\\\]|\\\\[\s\S])*"/';
-
-    private int $offset = 0;
-    private bool $extendedSyntax;
+    protected int $offset = 0;
 
     public function __construct(
-        private readonly string $source,
-    ) {
-        $this->extendedSyntax = strpbrk($source, characters: "'\"0123456789.+-:") !== false;
-    }
+        protected readonly string $source,
+    ) {}
 
     public function remainder(): string
     {
@@ -103,18 +93,8 @@ final class PhpDocTypeTokens
     }
 
     /** @return non-empty-string */
-    private function pattern(): string
+    protected function pattern(): string
     {
-        if (!$this->extendedSyntax) {
-            return self::SIMPLE_IDENTIFIER_PATTERN;
-        }
-
-        $first = $this->source[$this->offset] ?? '';
-        return match ($first) {
-            "'" => self::SINGLE_QUOTED_PATTERN,
-            '"' => self::DOUBLE_QUOTED_PATTERN,
-            '+', '-', '.' => self::NUMBER_PATTERN,
-            default => $first >= '0' && $first <= '9' ? self::NUMBER_PATTERN : self::IDENTIFIER_PATTERN,
-        };
+        return '/\G(?:-?[0-9]+|\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff-]*(?:\\\\[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)*)/';
     }
 }

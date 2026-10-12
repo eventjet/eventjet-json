@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Field;
 use Eventjet\Json\Internal\BackedEnumValueConverter;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassJsonType;
@@ -15,7 +16,6 @@ use Eventjet\Json\Internal\CollectionTypeValidator;
 use Eventjet\Json\Internal\ConcreteClassValueConverter;
 use Eventjet\Json\Internal\ConstructorDecoder;
 use Eventjet\Json\Internal\ConstructorParameter;
-use Eventjet\Json\Internal\ConstructorParameterConverter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\ConstructorValueValidator;
 use Eventjet\Json\Internal\EnumFieldTypes;
@@ -52,6 +52,8 @@ use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StaticConstructorParameterProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use JsonException;
+use JsonSerializable;
+use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -71,12 +73,18 @@ use function class_alias;
 
 #[CoversClass(MetadataCache::class)]
 #[CoversClass(ConstructorParameter::class)]
-#[UsesClass(ConstructorPlan::class)]
+#[UsesClass(\Eventjet\Json\Field::class)]
+#[UsesClass(\Eventjet\Json\Internal\MappedConstructorPlan::class)]
+#[CoversClass(ConstructorPlan::class)]
 #[UsesClass(ConstructorValueValidator::class)]
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
-#[UsesClass(ConstructorParameterConverter::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarkerFilter::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarker::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTags::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTypeTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralParameter::class)]
 #[CoversClass(ClassJsonType::class)]
 #[UsesClass(CollectionItemValueConverter::class)]
 #[UsesClass(ConcreteClassValueConverter::class)]
@@ -96,9 +104,6 @@ use function class_alias;
 #[UsesClass(ListType::class)]
 #[UsesClass(NestedCollectionTypeResolver::class)]
 #[UsesClass(PhpDocFieldType::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldCache::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldMarker::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocParameterMarkerCache::class)]
 #[UsesClass(PhpDocItemTypeResolver::class)]
 #[UsesClass(PhpDocType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
@@ -174,6 +179,43 @@ final class MetadataCacheTest extends TestCase
         static::assertNotSame($firstPlan, $secondPlan);
         static::assertSame(['value' => 2], ConstructorDecoder::convert($firstClass, ['value' => 2], ''));
         static::assertSame($cachedPlans, $planCache->getValue());
+
+        $booleans = new ReflectionClass(new class(false, true) {
+            public function __construct(
+                public false $no,
+                public true $yes,
+            ) {}
+        });
+        static::assertSame(
+            ['no' => false, 'yes' => true],
+            ConstructorDecoder::convert($booleans, ['no' => false, 'yes' => true], ''),
+        );
+        static::assertEquals(
+            DecodeError::fieldTypeMismatch($booleans->getName(), 'no', 'false', true),
+            ConstructorDecoder::convert($booleans, ['no' => true, 'yes' => true], ''),
+        );
+        static::assertEquals(
+            DecodeError::fieldTypeMismatch($booleans->getName(), 'yes', 'true', false),
+            ConstructorDecoder::convert($booleans, ['no' => false, 'yes' => false], ''),
+        );
+        $numeric = new ReflectionClass(new class(1) implements JsonSerializable {
+            public function __construct(
+                #[Field('1')]
+                public int $value,
+            ) {}
+
+            /** @return array{1: int} */
+            #[Override]
+            public function jsonSerialize(): array
+            {
+                return [1 => $this->value];
+            }
+        });
+        static::assertSame(['value' => 1], ConstructorDecoder::convert($numeric, ['1' => 1], ''));
+        static::assertEquals(
+            DecodeError::fieldTypeMismatch($numeric->getName(), '1', 'int', 'wrong'),
+            ConstructorDecoder::convert($numeric, ['1' => 'wrong'], ''),
+        );
 
         $converters = new ReflectionProperty(ConstructorPlan::class, 'converters');
         static::assertSame(['value' => null], $converters->getValue($firstPlan));

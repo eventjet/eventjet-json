@@ -27,7 +27,7 @@ final class PhpDocConstantResolver
         /** @var ReflectionClass<object> $declaring */
         $declaring = $field->getDeclaringClass();
         if (!str_contains($name, '::')) {
-            $imports = PhpDocImports::forClass($declaring, kind: PhpDocImportKind::Constant);
+            $imports = PhpDocImports::load($declaring, PhpDocConstantImportStatement::class);
             $qualified = $imports[$name] ?? PhpDocClassNameResolver::resolve($declaring, $name);
             $constant = defined($qualified) ? $qualified : $name;
             /** @mago-expect analysis:unhandled-thrown-type Global constants are initialized and checked with defined() before lookup. */

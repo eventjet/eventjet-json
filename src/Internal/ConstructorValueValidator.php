@@ -6,7 +6,6 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionNamedType;
-use ReflectionProperty;
 
 use function array_key_exists;
 use function enum_exists;
@@ -16,16 +15,6 @@ final readonly class ConstructorValueValidator
 {
     public string $typeName;
     public bool $nullable;
-
-    public static function isPublicInstanceProperty(ReflectionProperty|null $property): bool
-    {
-        return $property !== null && $property->isPublic() && !$property->isStatic();
-    }
-
-    public static function expected(ReflectionNamedType $type, string $name): string
-    {
-        return $type->allowsNull() && $name !== 'null' ? $name . '|null' : $name;
-    }
 
     private function __construct(
         private ReflectionNamedType $type,
@@ -51,7 +40,7 @@ final readonly class ConstructorValueValidator
         ) {
             return null;
         }
-        $expected = self::expected($type, $parameter->typeName);
+        $expected = FieldTypeNameResolver::expected($type, $parameter->typeName);
         return new self($type, $expected);
     }
 

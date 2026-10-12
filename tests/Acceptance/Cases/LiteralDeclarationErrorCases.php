@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\ExtendedLiteralFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use RuntimeException;
 
@@ -41,6 +43,40 @@ final class LiteralDeclarationErrorCases
                 ];
             }
         }
+        $classes = '\\' . Coordinates::class . '|\\' . Person::class;
+        $enum = '\\' . StringBackedStatus::class;
+        $class = CollectionDeclarationFixture::create(
+            $classes . '|' . $enum . '|string',
+            $enum . "|'x'|string",
+            'param',
+        );
+        yield 'class union errors precede literal enum union errors' => [
+            '{}',
+            $class,
+            'Could not create '
+                . $class
+                . ' from the JSON object: Field value uses multiple class types: '
+                . Coordinates::class
+                . ', '
+                . Person::class
+                . '. JSON does not identify which class to instantiate.',
+            3,
+        ];
+        $class = CollectionDeclarationFixture::create(
+            $enum . '|string',
+            '\\' . ExtendedLiteralFields::class . '::MISSING|string',
+            'param',
+        );
+        yield 'enum union errors precede unresolved literal errors' => [
+            '{}',
+            $class,
+            'Could not create '
+                . $class
+                . ' from the JSON object: Field value uses backed enum '
+                . StringBackedStatus::class
+                . ' together with its backing type string. JSON cannot distinguish an enum case from the scalar value.',
+            3,
+        ];
         foreach ([
             ['int|float', '1|1.0'],
             ['array|int|float', 'list<int>|1|1.0'],
