@@ -61,7 +61,6 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldType::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarker::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTags::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTypeParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTypeTokens::class)]

@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use BackedEnum;
-use ReflectionException;
-use ReflectionParameter;
-use ReflectionProperty;
 
 use function constant;
 use function defined;
@@ -37,19 +34,6 @@ final class PhpDocLiteral
         }
         $quoted = preg_match('/\A[\x27"]/', $name) === 1;
         return $quoted ? PhpDocLiteralString::parse($name) : PhpDocLiteralNumber::parse($name);
-    }
-
-    /** @throws ReflectionException */
-    public static function itemType(
-        ReflectionParameter|ReflectionProperty $field,
-        string $name,
-    ): string|CollectionUnionType|null {
-        $literal = self::value($name);
-        if ($literal !== null) {
-            return $name;
-        }
-        $constants = PhpDocConstantResolver::resolve($field, $name);
-        return $constants === null ? null : new CollectionUnionType($constants);
     }
 
     public static function matches(string $name, mixed $value): bool

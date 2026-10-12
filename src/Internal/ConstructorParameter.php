@@ -30,7 +30,7 @@ readonly class ConstructorParameter
      * @param ReflectionClass<T> $class
      * @throws ReflectionException
      */
-    public function __construct(
+    final public function __construct(
         public ReflectionParameter $reflection,
         ReflectionClass $class,
     ) {
@@ -49,14 +49,11 @@ readonly class ConstructorParameter
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @param array<string, bool> $literals
      * @throws ReflectionException
      */
-    public static function create(ReflectionParameter $reflection, ReflectionClass $class, array $literals): self
+    public static function create(ReflectionParameter $reflection, ReflectionClass $class): static
     {
-        return $literals[$reflection->getName()] ?? false
-            ? new PhpDocLiteralParameter($reflection, $class)
-            : new self($reflection, $class);
+        return new static($reflection, $class);
     }
 
     /** @throws ReflectionException */

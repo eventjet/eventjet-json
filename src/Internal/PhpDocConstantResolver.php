@@ -12,17 +12,31 @@ use ReflectionProperty;
 use function constant;
 use function defined;
 use function explode;
+use function in_array;
 use function str_contains;
 use function strtolower;
 
 /** @internal */
 final class PhpDocConstantResolver
 {
+    /** @throws ReflectionException */
+    public static function itemType(
+        ReflectionParameter|ReflectionProperty $field,
+        string $name,
+    ): string|CollectionUnionType|null {
+        $literal = in_array($name, ['null', 'true', 'false'], strict: true) || PhpDocLiteral::value($name) !== null;
+        if ($literal) {
+            return $name;
+        }
+        $constants = self::resolve($field, $name);
+        return $constants === null ? null : new CollectionUnionType($constants);
+    }
+
     /**
      * @return list<string>|null
      * @throws ReflectionException
      */
-    public static function resolve(ReflectionParameter|ReflectionProperty $field, string $name): array|null
+    private static function resolve(ReflectionParameter|ReflectionProperty $field, string $name): array|null
     {
         /** @var ReflectionClass<object> $declaring */
         $declaring = $field->getDeclaringClass();

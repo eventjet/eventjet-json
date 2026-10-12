@@ -53,10 +53,9 @@ final class ConstructorDecoder
         $converters = [];
 
         $constructor = $class->getConstructor();
-        $docComment = (string) $constructor?->getDocComment();
-        $literals = $docComment === '' ? [] : PhpDocLiteralMarker::parameters($docComment);
+        $classes = FieldTypeNameResolver::parameterClasses($constructor);
         foreach ($constructor?->getParameters() ?? [] as $reflection) {
-            $parameter = ConstructorParameter::create($reflection, $class, $literals);
+            $parameter = ($classes[$reflection->getName()] ?? ConstructorParameter::class)::create($reflection, $class);
             $name = $names[$parameter->name] ?? $parameter->name;
             $resolved = $parameter->resolveType($className);
             $cacheable = $cacheable && $resolved !== null;

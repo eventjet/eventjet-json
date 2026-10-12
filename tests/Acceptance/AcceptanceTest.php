@@ -110,7 +110,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ClassTypeDependencies::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralFieldType::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralMarker::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralTags::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralTypeParser::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralTypeTokens::class)]

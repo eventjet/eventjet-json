@@ -18,7 +18,8 @@ final class FieldTypeResolver
     public static function literal(ReflectionProperty $property): bool
     {
         $docComment = (string) $property->getDocComment();
-        return $docComment !== '' && PhpDocLiteralMarker::property($property, $docComment);
+        $literal = FieldTypeNameResolver::mayDeclareLiteral($docComment);
+        return $literal && PhpDocLiteralTags::property($property, $docComment);
     }
 
     /**

@@ -28,8 +28,8 @@ use Eventjet\Json\Internal\PhpDocLiteralField;
 use Eventjet\Json\Internal\PhpDocLiteralFieldType;
 use Eventjet\Json\Internal\PhpDocLiteralFieldValidator;
 use Eventjet\Json\Internal\PhpDocLiteralFieldValueConverter;
-use Eventjet\Json\Internal\PhpDocLiteralMarker;
 use Eventjet\Json\Internal\PhpDocLiteralNumber;
+use Eventjet\Json\Internal\PhpDocLiteralParameter;
 use Eventjet\Json\Internal\PhpDocLiteralString;
 use Eventjet\Json\Internal\PhpDocLiteralTags;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
@@ -81,7 +81,6 @@ use const PHP_INT_MIN;
 #[CoversClass(FieldTypeResolver::class)]
 #[CoversClass(FieldTypeValidator::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralFieldType::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralMarker::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralTags::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralTypeParser::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralTypeTokens::class)]
@@ -232,7 +231,7 @@ final class LiteralTypeTest extends TestCase
         static::assertSame(['12'], PhpDocLiteralField::resolve($otherParameter));
         static::assertSame(['13'], PhpDocLiteralField::resolve(new ReflectionProperty($object, 'property')));
         static::assertSame(
-            ['value' => true, 'second' => true],
+            ['value' => PhpDocLiteralParameter::class, 'second' => PhpDocLiteralParameter::class],
             PhpDocLiteralTags::parameters((string) $constructorParameter->getDeclaringFunction()->getDocComment()),
         );
         static::assertSame([], PhpDocLiteralTags::parameters("/**\n * @since 14\n */"));
@@ -333,17 +332,23 @@ final class LiteralTypeTest extends TestCase
             static::assertFalse(PhpDocLiteralTags::isLiteral($refinement));
         }
         static::assertSame([], PhpDocLiteralTags::parameters('/** @var 42 */'));
-        static::assertSame(['value' => true], PhpDocLiteralTags::parameters('/** @param State::Ready $value */'));
-        static::assertSame(['value' => false], PhpDocLiteralTags::parameters('/** @param positive-int $value */'));
         static::assertSame(
-            ['value' => true, 'other' => false],
+            ['value' => PhpDocLiteralParameter::class],
+            PhpDocLiteralTags::parameters('/** @param State::Ready $value */'),
+        );
+        static::assertSame(
+            ['value' => ConstructorParameter::class],
+            PhpDocLiteralTags::parameters('/** @param positive-int $value */'),
+        );
+        static::assertSame(
+            ['value' => PhpDocLiteralParameter::class, 'other' => ConstructorParameter::class],
             PhpDocLiteralTags::parameters("/**\n * @param 'ready' &\$value\n * @param int ...\$other\n */"),
         );
         static::assertSame([], PhpDocLiteralTags::parameters(''));
-        static::assertSame(['value' => true], PhpDocLiteralMarker::parameters("/** @param\tnull \$value */"));
-        static::assertSame([], PhpDocLiteralMarker::parameters('/** @param list<int>|null $value */'));
-        static::assertSame(['value' => true], PhpDocLiteralMarker::parameters('/** @param true $value */'));
-        static::assertSame(['value' => true], PhpDocLiteralMarker::parameters('/** @param false $value */'));
+        foreach (["\tnull", ' null', 'true', 'false', "'", '"', '0', '9', ':'] as $marker) {
+            static::assertTrue(FieldTypeNameResolver::mayDeclareLiteral('/** @param ' . $marker . ' $value */'));
+        }
+        static::assertFalse(FieldTypeNameResolver::mayDeclareLiteral('/** @param list<int>|null $value */'));
         static::assertSame(
             ['BAR' => 'Foo\\BAR', 'Qux' => 'Foo\\BAZ'],
             PhpDocConstantImportStatement::parse('const Foo\\{BAR, BAZ as Qux}'),
@@ -370,11 +375,11 @@ final class LiteralTypeTest extends TestCase
             ) {}
         };
         $expected = [
-            '_string' => true,
-            '_integer' => true,
-            '_constant' => true,
-            '_boolean' => true,
-            '_nullable' => true,
+            '_string' => PhpDocLiteralParameter::class,
+            '_integer' => PhpDocLiteralParameter::class,
+            '_constant' => PhpDocLiteralParameter::class,
+            '_boolean' => PhpDocLiteralParameter::class,
+            '_nullable' => PhpDocLiteralParameter::class,
         ];
 
         static::assertSame(

@@ -29,13 +29,6 @@ readonly class FieldValueConverter
         private ReflectionParameter|ReflectionProperty $field,
         private ListType|MapType|TupleType|CollectionUnionType|null $collection,
     ) {
-        if ($this->collection !== null) {
-            $this->type = null;
-            $this->enumLookup = null;
-            $this->typeName = '';
-            return;
-        }
-
         $this->type = $field->getType();
         $this->enumLookup = $this->type instanceof ReflectionUnionType ? new EnumUnionLookup($this->type) : null;
         $this->typeName = $this->type instanceof ReflectionNamedType

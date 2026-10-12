@@ -12,6 +12,7 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function class_exists;
+use function in_array;
 use function is_string;
 
 /** @internal */
@@ -27,7 +28,8 @@ final class FieldCollectionUnionMemberResolver
         ReflectionParameter|ReflectionProperty $field,
         PhpDocType $type,
     ): string|NestedCollectionType|CollectionUnionType|DecodeError {
-        $resolved = PhpDocItemTypeResolver::resolve($field, $type);
+        $isLiteral = $type->arguments === [] && in_array($type->name, ['null', 'true', 'false'], strict: true);
+        $resolved = $isLiteral ? $type->name : PhpDocItemTypeResolver::resolve($field, $type);
         if ($resolved instanceof CollectionUnionType) {
             return CollectionUnionTypeValidator::validate($class, $field->getName(), $resolved) ?? $resolved;
         }

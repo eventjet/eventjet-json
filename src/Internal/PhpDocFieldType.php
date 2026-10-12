@@ -29,15 +29,9 @@ final class PhpDocFieldType
                 subject: str_replace('*/', replace: '', subject: $doc === false ? '' : $doc),
             ) ?? '';
         $matches = [];
-        // Quoted literals may contain "@", so each source extends to the end and the parser finds its end.
+        $pattern = $field instanceof ReflectionParameter ? '/@param\s+([^@]+)/' : '/@var\s+([^@]+)/';
         $quoted = strpbrk($doc, characters: "'\"") !== false;
-        $parameter = $field instanceof ReflectionParameter;
-        $pattern = match (true) {
-            $parameter && $quoted => '/@param\s+(?=([\s\S]*))/',
-            $parameter => '/@param\s+([^@]+)/',
-            $quoted => '/@var\s+(?=([\s\S]*))/',
-            default => '/@var\s+([^@]+)/',
-        };
+        $pattern = $quoted ? PhpDocLiteralTags::quotedPattern($pattern) : $pattern;
         preg_match_all($pattern, $doc, $matches);
 
         /** @var array{list<string>, list<string>} $matches */

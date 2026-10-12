@@ -76,10 +76,9 @@ use function spl_autoload_unregister;
 #[UsesClass(ClassFieldTypeValidator::class)]
 #[UsesClass(ConstructorParameter::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldType::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarker::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionUnionValueConverter::class)]
 #[UsesClass(\Eventjet\Json\Internal\EnumUnionValidator::class)]
-#[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionMemberResolver::class)]
+#[CoversClass(\Eventjet\Json\Internal\FieldCollectionUnionMemberResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\FieldCollectionUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\NestedCollectionType::class)]
@@ -132,16 +131,12 @@ final class AutoloadingTest extends TestCase
         $object = new class {
             /** @var positive-int */
             public int $value = 42;
-            /** Defaults to 42, never 'null', true, false, or Example::VALUE. */
-            public int $described = 42;
             public int $undocumented = 42;
         };
 
         static::assertFalse(FieldTypeResolver::literal(new \ReflectionProperty($object, 'undocumented')));
-        static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralMarker::class, autoload: false));
-        foreach (['value', 'described'] as $name) {
-            static::assertFalse(FieldTypeResolver::literal(new \ReflectionProperty($object, $name)));
-        }
+        static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralTags::class, autoload: false));
+        static::assertFalse(FieldTypeResolver::literal(new \ReflectionProperty($object, 'value')));
         static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralTags::class, autoload: false));
         static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralFieldType::class, autoload: false));
         static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralField::class, autoload: false));
@@ -184,7 +179,7 @@ final class AutoloadingTest extends TestCase
         for ($lookup = 0; $lookup < 2; ++$lookup) {
             static::assertEquals($target, ObjectHydrator::hydrate($target::class, $input));
             static::assertFalse(class_exists(PublicPropertyHydrator::class, autoload: false));
-            static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralMarker::class, autoload: false));
+            static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralTags::class, autoload: false));
             static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralField::class, autoload: false));
             static::assertFalse(class_exists(
                 \Eventjet\Json\Internal\PhpDocLiteralFieldValidator::class,
@@ -217,13 +212,7 @@ final class AutoloadingTest extends TestCase
         $nullableInput = new stdClass();
         $nullableInput->values = null;
         static::assertEquals($nullable, ObjectHydrator::hydrate($nullable::class, $nullableInput));
-        $described = new class('expected') {
-            /** Accepts 1 value: never 'null', true, false, or Example::VALUE. */
-            public function __construct(
-                public string $value,
-            ) {}
-        };
-        static::assertEquals($described, ObjectHydrator::hydrate($described::class, $input));
+        static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocConstantResolver::class, autoload: false));
         static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralField::class, autoload: false));
         static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteral::class, autoload: false));
         static::assertFalse(class_exists(\Eventjet\Json\Internal\PhpDocLiteralTags::class, autoload: false));

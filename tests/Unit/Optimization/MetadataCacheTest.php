@@ -80,7 +80,6 @@ use function class_alias;
 #[CoversClass(FieldValueConverter::class)]
 #[CoversClass(ConstructorDecoder::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralFieldType::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralMarker::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTags::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTypeParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralTypeTokens::class)]
