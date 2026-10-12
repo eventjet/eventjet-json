@@ -15,7 +15,7 @@ use function preg_match;
 final class PhpDocItemTypeResolver
 {
     /**
-     * @return 'bool'|'float'|'int'|'string'|class-string|CollectionUnionType|NestedCollectionType|null
+     * @return string|CollectionUnionType|NestedCollectionType|null
      * @throws ReflectionException
      */
     public static function resolve(
@@ -34,13 +34,20 @@ final class PhpDocItemTypeResolver
         return self::named($field, $type);
     }
 
-    /** @return 'bool'|'float'|'int'|'string'|class-string|null */
-    public static function named(ReflectionParameter|ReflectionProperty $field, PhpDocType $type): string|null
-    {
+    /** @throws ReflectionException */
+    private static function named(
+        ReflectionParameter|ReflectionProperty $field,
+        PhpDocType $type,
+    ): string|CollectionUnionType|null {
         $arguments = $type->arguments;
 
         if ($arguments === []) {
-            return FieldTypeNameResolver::resolvePhpDoc($field, $type->name);
+            return (
+                FieldTypeNameResolver::resolvePhpDoc($field, $type->name) ?? PhpDocConstantResolver::itemType(
+                    $field,
+                    $type->name,
+                )
+            );
         }
 
         if ($type->name !== 'int' || count($arguments) !== 2) {

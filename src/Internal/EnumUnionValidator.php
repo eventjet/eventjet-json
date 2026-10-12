@@ -26,11 +26,16 @@ final class EnumUnionValidator
 {
     /**
      * @param class-string $class
+     * @param list<string>|null $memberNames
      * @throws ReflectionException
      */
-    public static function validate(string $class, string $field, ReflectionUnionType $type): DecodeError|null
-    {
-        $memberNames = array_map(static fn(ReflectionType $member): string => (string) $member, $type->getTypes());
+    public static function validate(
+        string $class,
+        string $field,
+        ReflectionUnionType $type,
+        array|null $memberNames = null,
+    ): DecodeError|null {
+        $memberNames ??= array_map(static fn(ReflectionType $member): string => (string) $member, $type->getTypes());
         return self::validateNames($class, $field, $memberNames);
     }
 

@@ -18,7 +18,7 @@ use function class_exists;
 use function enum_exists;
 
 /** @internal */
-final readonly class FieldValueConverter
+readonly class FieldValueConverter
 {
     private ReflectionType|null $type;
     private string $typeName;

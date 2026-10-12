@@ -35,6 +35,12 @@ final class CollectionUnionValueConverter
             return CollectionValueConverter::convert($class, $path, $collection, $value);
         }
         $names = $type->names();
+        foreach ($type->literalNames as $name) {
+            $matchesLiteral = PhpDocLiteral::matches($name, $value);
+            if ($matchesLiteral) {
+                return PhpDocLiteral::value($name);
+            }
+        }
         $enum = BackedEnumValueConverter::convertUnion($class, $path, $names, $value);
         if ($enum !== null) {
             return $enum;

@@ -20,22 +20,25 @@ final class FieldCollectionUnionMemberResolver
 {
     /**
      * @param class-string $class
-     * @return string|NestedCollectionType|DecodeError
+     * @return string|NestedCollectionType|CollectionUnionType|DecodeError
      * @throws ReflectionException
      */
     public static function resolve(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         PhpDocType $type,
-    ): string|NestedCollectionType|DecodeError {
-        $resolved = PhpDocItemTypeResolver::resolve($field, $type);
+    ): string|NestedCollectionType|CollectionUnionType|DecodeError {
+        $isLiteral = $type->arguments === [] && in_array($type->name, ['null', 'true', 'false'], strict: true);
+        $resolved = $isLiteral ? $type->name : PhpDocItemTypeResolver::resolve($field, $type);
+        if ($resolved instanceof CollectionUnionType) {
+            return CollectionUnionTypeValidator::validate($class, $field->getName(), $resolved) ?? $resolved;
+        }
         if ($resolved instanceof NestedCollectionType) {
             $collection = $resolved->collection;
             $error = CollectionTypeValidator::validate($class, $field->getName(), $collection);
             return $error ?? $resolved;
         }
-        $isLiteral = $type->arguments === [] && in_array($type->name, ['null', 'true', 'false'], strict: true);
-        $name = $isLiteral ? $type->name : $resolved;
+        $name = $resolved;
         if (!is_string($name)) {
             return CollectionTypeResolver::invalidDeclaration($class, $field);
         }

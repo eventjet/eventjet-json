@@ -51,7 +51,10 @@ final class PublicPropertyTypeValidator
             return $collection;
         }
 
-        return new FieldValueConverter($property, $collection);
+        $literal = FieldTypeResolver::literal($property);
+        return $literal
+            ? PhpDocLiteralFieldType::converter($property, $collection)
+            : new FieldValueConverter($property, $collection);
     }
 
     /** @param class-string $class */

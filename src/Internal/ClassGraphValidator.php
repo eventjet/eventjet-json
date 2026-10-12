@@ -52,8 +52,14 @@ final class ClassGraphValidator
             return $error;
         }
 
-        foreach ($reflection->getConstructor()?->getParameters() ?? [] as $parameter) {
-            $resolved = new ConstructorParameter($parameter, $reflection)->resolveType($class);
+        $constructor = $reflection->getConstructor();
+        $classes = ConstructorParameter::parameterClasses($constructor);
+        foreach ($constructor?->getParameters() ?? [] as $parameter) {
+            $constructorParameter = ($classes[$parameter->getName()] ?? ConstructorParameter::class)::create(
+                $parameter,
+                $reflection,
+            );
+            $resolved = $constructorParameter->resolveType($class);
             $error = $this->field($class, $parameter, $resolved);
             if ($error !== null) {
                 return $error;

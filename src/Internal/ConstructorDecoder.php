@@ -52,8 +52,10 @@ final class ConstructorDecoder
         $cacheable = true;
         $converters = [];
 
-        foreach ($class->getConstructor()?->getParameters() ?? [] as $reflection) {
-            $parameter = new ConstructorParameter($reflection, $class);
+        $constructor = $class->getConstructor();
+        $classes = $constructor === null ? [] : ConstructorParameter::parameterClasses($constructor);
+        foreach ($constructor?->getParameters() ?? [] as $reflection) {
+            $parameter = ($classes[$reflection->getName()] ?? ConstructorParameter::class)::create($reflection, $class);
             $name = $names[$parameter->name] ?? $parameter->name;
             $resolved = $parameter->resolveType($className);
             $cacheable = $cacheable && $resolved !== null;

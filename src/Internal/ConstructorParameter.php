@@ -7,6 +7,7 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
@@ -14,7 +15,7 @@ use ReflectionType;
 use function sprintf;
 
 /** @internal */
-final readonly class ConstructorParameter
+readonly class ConstructorParameter
 {
     /** @var class-string */
     public string $class;
@@ -30,7 +31,7 @@ final readonly class ConstructorParameter
      * @param ReflectionClass<T> $class
      * @throws ReflectionException
      */
-    public function __construct(
+    final public function __construct(
         public ReflectionParameter $reflection,
         ReflectionClass $class,
     ) {
@@ -44,6 +45,24 @@ final readonly class ConstructorParameter
         $this->variadic = $reflection->isVariadic();
         $property = RootTypeValidator::declarations($class)[$this->name] ?? null;
         $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
+    }
+
+    /** @return array<string, class-string<ConstructorParameter>> */
+    public static function parameterClasses(ReflectionMethod|null $constructor): array
+    {
+        $docComment = (string) $constructor?->getDocComment();
+        $mayDeclareLiteral = FieldTypeNameResolver::mayDeclareLiteral($docComment);
+        return $mayDeclareLiteral ? PhpDocLiteralTags::parameters($docComment) : [];
+    }
+
+    /**
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @throws ReflectionException
+     */
+    public static function create(ReflectionParameter $reflection, ReflectionClass $class): static
+    {
+        return new static($reflection, $class);
     }
 
     /** @throws ReflectionException */
@@ -74,9 +93,7 @@ final readonly class ConstructorParameter
                 '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
             );
         }
-        $resolved = $this->type instanceof ReflectionNamedType
-            ? FieldTypeValidator::validateNamedType($class, $this->reflection, $this->type)
-            : FieldTypeValidator::validate($class, $this->reflection);
+        $resolved = $this->declaration($class);
         if ($resolved instanceof DecodeError) {
             return $resolved;
         }
@@ -87,5 +104,20 @@ final readonly class ConstructorParameter
             ));
         }
         return $resolved;
+    }
+
+    /**
+     * @param class-string $class
+     * @throws ReflectionException
+     */
+    protected function declaration(string $class): ListType|MapType|TupleType|CollectionUnionType|DecodeError|false|null
+    {
+        $plainType = FieldTypeNameResolver::isPlainType($this->type);
+        if ($plainType) {
+            return false;
+        }
+        return $this->type instanceof ReflectionNamedType
+            ? FieldTypeValidator::validateNamedType($class, $this->reflection, $this->type)
+            : FieldTypeValidator::validate($class, $this->reflection);
     }
 }

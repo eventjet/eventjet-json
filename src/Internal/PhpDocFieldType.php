@@ -11,6 +11,7 @@ use function preg_match;
 use function preg_match_all;
 use function preg_replace;
 use function str_replace;
+use function strpbrk;
 use function trim;
 
 /** @internal */
@@ -29,6 +30,8 @@ final class PhpDocFieldType
             ) ?? '';
         $matches = [];
         $pattern = $field instanceof ReflectionParameter ? '/@param\s+([^@]+)/' : '/@var\s+([^@]+)/';
+        $quoted = strpbrk($doc, characters: "'\"") !== false;
+        $pattern = $quoted ? PhpDocLiteralTags::quotedPattern($pattern) : $pattern;
         preg_match_all($pattern, $doc, $matches);
 
         /** @var array{list<string>, list<string>} $matches */

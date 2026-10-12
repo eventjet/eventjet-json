@@ -29,7 +29,7 @@ final class ClassUnionValidator
     /**
      * @param class-string $class
      */
-    private static function validate(
+    public static function validate(
         string $class,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionUnionType $type,
@@ -92,6 +92,19 @@ final class ClassUnionValidator
             return $enumUnionError;
         }
 
+        return self::members($class, $field, $type);
+    }
+
+    /**
+     * @param class-string $class
+     * @throws ReflectionException
+     */
+    public static function members(
+        string $class,
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionUnionType $type,
+    ): DecodeError|false|null {
+        $fieldName = $field->getName();
         $memberResults = [];
         $nonEncodableError = null;
         foreach ($type->getTypes() as $member) {
@@ -119,7 +132,7 @@ final class ClassUnionValidator
         return in_array(null, $memberResults, strict: true) ? null : false;
     }
 
-    private static function hasCollection(ReflectionUnionType $type): bool
+    public static function hasCollection(ReflectionUnionType $type): bool
     {
         return array_any(
             $type->getTypes(),
