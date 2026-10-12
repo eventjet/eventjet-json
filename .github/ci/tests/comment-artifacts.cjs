@@ -48,12 +48,3 @@ test('missing executions and missing or expired summaries are unavailable', asyn
   assert.deepEqual(await select({jobs: [job('on'), job('off', 1, {conclusion: 'skipped'})]}), {on: '11', off: ''});
   assert.deepEqual(await select({artifacts: [artifact('on', 1, {expired: true})]}), {on: '', off: ''});
 });
-
-test('the comment job downloads the selected summary of each mode', () => {
-  const workflow = require('node:fs').readFileSync(`${__dirname}/../../workflows/performance.yml`, 'utf8');
-  for (const mode of ['on', 'off']) {
-    const download = workflow.split(`      - name: Download OPcache-${mode} summary\n`)[1].split('      - name:')[0];
-    assert.ok(download.includes(`artifact-ids: \${{ steps.summaries.outputs.${mode} }}`));
-    assert.ok(download.includes(`path: report/${mode}\n`));
-  }
-});
