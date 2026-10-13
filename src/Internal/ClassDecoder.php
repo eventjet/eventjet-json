@@ -76,7 +76,8 @@ final readonly class ClassDecoder
         $checks = [];
         $converters = [];
         $nodes = [];
-        $compiler = new TypeCompiler($class->getName());
+        $required = [];
+        $compiler = new TypeCompiler();
         foreach ($class->getConstructor()?->getParameters() ?? [] as $reflection) {
             $parameter = new ConstructorParameter($reflection, $class);
             $name = $names[$parameter->name] ?? $parameter->name;
@@ -90,8 +91,11 @@ final readonly class ClassDecoder
             if ($check !== null) {
                 $checks[$name] = $check;
             }
+            if (!$reflection->isOptional()) {
+                $required[] = $parameter->name;
+            }
         }
-        return new ConstructorPlan($class->getName(), $checks, $converters, $nodes, $names);
+        return new ConstructorPlan($checks, $converters, $nodes, $names, $required);
     }
 
     /**

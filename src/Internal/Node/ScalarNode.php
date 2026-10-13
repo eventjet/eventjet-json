@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal\Node;
 
 use Closure;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use JsonException;
@@ -19,9 +20,7 @@ final readonly class ScalarNode implements Node
 {
     private string $expected;
 
-    /** @param class-string $class */
     public function __construct(
-        private string $class,
         public string $name,
         public bool $nullable,
     ) {
@@ -34,7 +33,7 @@ final readonly class ScalarNode implements Node
     {
         $matches = ValueTypeMatcher::matches($value, $this->name, $this->nullable);
         if (!$matches) {
-            return DecodeError::fieldTypeMismatch($this->class, $path, $this->expected, $value);
+            return InvalidValue::typeMismatch($path, $this->expected, $value);
         }
         /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
         return $this->name === 'float' && is_int($value) ? (float) $value : $value;
@@ -57,7 +56,7 @@ final readonly class ScalarNode implements Node
         $invalid = ScalarItems::firstInvalid($values, $this->name);
         return $invalid === null
             ? $values
-            : DecodeError::fieldTypeMismatch($this->class, $path($invalid), $this->name, $values[$invalid] ?? null);
+            : InvalidValue::typeMismatch($path($invalid), $this->name, $values[$invalid] ?? null);
     }
 
     /**
@@ -76,7 +75,7 @@ final readonly class ScalarNode implements Node
                 continue;
             }
             if (!is_int($value)) {
-                return DecodeError::fieldTypeMismatch($this->class, $path($key), 'float', $value);
+                return InvalidValue::typeMismatch($path($key), 'float', $value);
             }
             $values[$key] = (float) $value;
         }

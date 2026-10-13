@@ -6,6 +6,8 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedField;
+use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
@@ -28,17 +30,12 @@ use function in_array;
 use function is_a;
 
 /**
- * Compiles native field declarations of one class into decoder nodes, rejecting declarations that cannot round-trip.
+ * Compiles native field declarations into decoder nodes, rejecting declarations that cannot round-trip.
  *
  * @internal
  */
 final class TypeCompiler
 {
-    /** @param class-string $class */
-    public function __construct(
-        public readonly string $class,
-    ) {}
-
     /** @throws ReflectionException */
     public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|DecodeError
     {
@@ -61,7 +58,7 @@ final class TypeCompiler
         if ($type instanceof ReflectionUnionType) {
             return NativeUnionCompiler::compile($this, $field, $type);
         }
-        return DecodeError::unsupportedIntersection($this->class, $field->getName(), (string) $type);
+        return UnsupportedField::intersection($field->getName(), (string) $type);
     }
 
     /** @throws ReflectionException */
@@ -74,16 +71,10 @@ final class TypeCompiler
                 : new CollectionCompiler($this, $field)->compile($name);
         }
         if (in_array($name, ['mixed', 'object', stdClass::class], strict: true)) {
-            return DecodeError::nonInstantiableField(
-                $this->class,
-                $field->getName(),
-                'unsupported type',
-                $name,
-                '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
-            );
+            return UnsupportedField::imprecise($field->getName(), $name);
         }
         if ($type->isBuiltin()) {
-            return new ScalarNode($this->class, $name, $type->allowsNull());
+            return new ScalarNode($name, $type->allowsNull());
         }
         if (enum_exists($name)) {
             return $this->enum($field->getName(), $name, $type);
@@ -92,7 +83,7 @@ final class TypeCompiler
         if ($object !== null) {
             return $object;
         }
-        return new UncheckedNode($name);
+        return new UncheckedNode($name, $field->getName());
     }
 
     /**
@@ -102,11 +93,11 @@ final class TypeCompiler
      */
     public function object(string $path, string $name, bool $nullable): ObjectNode|DecodeError|null
     {
-        $error = ClassFieldTypeValidator::validate($this->class, $path, $name);
+        $error = ClassFieldTypeValidator::validate($path, $name);
         if ($error !== null) {
             return $error;
         }
-        return class_exists($name) ? new ObjectNode($this->class, $name, $nullable) : null;
+        return class_exists($name) ? new ObjectNode($name, $nullable) : null;
     }
 
     /**
@@ -117,12 +108,12 @@ final class TypeCompiler
     private function enum(string $field, string $enum, ReflectionNamedType $type): Node|DecodeError
     {
         $nullable = $type->allowsNull();
-        $node = EnumNode::of($this->class, $enum);
+        $node = EnumNode::of($enum);
         if ($node !== null) {
             return $nullable ? new NullableNode($node) : $node;
         }
         return $nullable && !is_a($enum, JsonSerializable::class, allow_string: true)
-            ? new NullOnlyNode($this->class, (string) $type)
-            : DecodeError::nonBackedEnum($this->class, $enum, $field);
+            ? new NullOnlyNode((string) $type)
+            : UnsupportedFieldClass::nonBackedEnum($field, $enum);
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionClass;
@@ -14,7 +15,6 @@ use ReflectionParameter;
 use ReflectionType;
 
 use function enum_exists;
-use function sprintf;
 
 /** @internal */
 final readonly class ConstructorParameter
@@ -25,8 +25,6 @@ final readonly class ConstructorParameter
     public bool $builtin;
     private bool $variadic;
     private bool $recoverable;
-    /** @var class-string */
-    private string $class;
 
     /**
      * @template T of object
@@ -46,7 +44,6 @@ final readonly class ConstructorParameter
         $this->variadic = $reflection->isVariadic();
         $property = $class->hasProperty($this->name) ? $class->getProperty($this->name) : null;
         $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
-        $this->class = $class->getName();
     }
 
     /**
@@ -56,31 +53,18 @@ final readonly class ConstructorParameter
      */
     public function resolveType(TypeCompiler $compiler): Node|DecodeError|null
     {
-        $class = $this->class;
         if ($this->variadic) {
-            return DecodeError::nonInstantiableTarget($class, sprintf(
-                'Constructor parameter %s is variadic. JSON members bind to individual named arguments, not variadic argument lists.',
-                $this->name,
-            ));
+            return UnsupportedField::variadic($this->name);
         }
         if ($this->type === null) {
-            return DecodeError::nonInstantiableField(
-                $class,
-                $this->name,
-                'no type',
-                'declaration',
-                '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
-            );
+            return UnsupportedField::untyped($this->name);
         }
         $node = $compiler->field($this->reflection, $this->type);
         if ($node instanceof DecodeError) {
             return $node;
         }
         if (!$this->recoverable) {
-            return DecodeError::nonInstantiableTarget($class, sprintf(
-                'Constructor parameter %s has no same-named declared public instance property. The target class does not expose a stable JSON member from which the argument can be recovered.',
-                $this->name,
-            ));
+            return UnsupportedField::withoutProperty($this->name);
         }
         return $node instanceof ScalarNode ? null : $node;
     }

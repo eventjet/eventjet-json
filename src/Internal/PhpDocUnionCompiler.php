@@ -20,10 +20,8 @@ use function is_string;
  */
 final readonly class PhpDocUnionCompiler
 {
-    /** @param class-string $class */
     public function __construct(
         private PhpDocItemCompiler $items,
-        private string $class,
     ) {}
 
     /**
@@ -92,11 +90,11 @@ final readonly class PhpDocUnionCompiler
      */
     public function build(array $members, string $path): Node|DecodeError
     {
-        $union = new UnionBuilder($this->class, $path);
+        $union = new UnionBuilder($path);
         foreach ($members as $member) {
             $nonEncodable = is_string($member) && NativeUnionCompiler::isNonEncodable($member);
             if ($nonEncodable) {
-                $union->reject(NativeUnionCompiler::nonEncodable($this->class, $member, $path));
+                $union->reject(NativeUnionCompiler::nonEncodable($member, $path));
                 continue;
             }
             $node = $member instanceof Node ? $member : $this->items->member($member, $path);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
@@ -48,7 +49,7 @@ final class CollectionsErrorCases
                         . ', '
                         . $type
                         . ' given.',
-                    3,
+                    DecodeErrorKind::InvalidValue->value,
                 ];
             }
         }
@@ -58,7 +59,7 @@ final class CollectionsErrorCases
             'Could not create '
                 . Person::class
                 . ' from the JSON object: Field [1].firstName must be of type string, int given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
     }
 
@@ -74,7 +75,7 @@ final class CollectionsErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', PhpType::nonEmptyArray(Coordinates::class), 'param')
                 . ' from the JSON object: Field value[a] must be of type Eventjet\Json\Test\Acceptance\Fixtures\Coordinates, null given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'object list declared in PHPDoc rejects null' => [
             '{"value":[null]}',
@@ -82,7 +83,7 @@ final class CollectionsErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', PhpType::list(Coordinates::class), 'param')
                 . ' from the JSON object: Field value[0] must be of type Eventjet\Json\Test\Acceptance\Fixtures\Coordinates, null given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         foreach ([
             ['strings',      'string', '"valid"'],
@@ -100,7 +101,7 @@ final class CollectionsErrorCases
                     . '[1] must be of type '
                     . $type
                     . ', null given.',
-                3,
+                DecodeErrorKind::InvalidValue->value,
             ];
         }
     }
@@ -126,7 +127,7 @@ final class CollectionsErrorCases
                     'var',
                 )
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'nested map declaration requires string keys' => [
             '{}',
@@ -134,7 +135,7 @@ final class CollectionsErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'list<non-empty-array<int, int>>', 'param')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'list items cannot be non-backed enums' => [
             '{}',
@@ -142,7 +143,7 @@ final class CollectionsErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', PhpType::list(NonBackedStatus::class), 'param')
                 . ' from the JSON object: Field value uses non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'list declaration requires an item type' => [
             '{}',
@@ -150,7 +151,7 @@ final class CollectionsErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'list<>', 'var')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'nullable array declaration must include null' => [
             '{}',
@@ -158,7 +159,7 @@ final class CollectionsErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('?array', 'list<int>', 'var')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
     }
 
@@ -173,19 +174,19 @@ final class CollectionsErrorCases
             '[{},{},{},{"publicObjectMap":null}]',
             JsonType::array(new StringCollectionValidationFields()::class),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].publicObjectMap must be of type JSON object, null given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'cached list field rejects a boolean after valid objects' => [
             '[{},{},{},{"list":true}]',
             JsonType::array(StringCollectionValidationFields::class),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].list must be of type array, bool given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'cached non-empty-list field rejects null after valid objects' => [
             '[{},{},{},{"nonEmptyList":null}]',
             JsonType::array(StringCollectionValidationFields::class),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].nonEmptyList must be of type array, null given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
     }
 }

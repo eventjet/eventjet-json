@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedCollection;
 use Eventjet\Json\Internal\Node\Node;
 use ReflectionException;
 use ReflectionParameter;
@@ -13,7 +14,6 @@ use ReflectionProperty;
 
 use function count;
 use function in_array;
-use function sprintf;
 use function strcasecmp;
 
 /**
@@ -23,15 +23,12 @@ use function strcasecmp;
  */
 final readonly class CollectionCompiler
 {
-    /** @var class-string */
-    private string $class;
     private PhpDocCollectionCompiler $collections;
 
     public function __construct(
         TypeCompiler $types,
         private ReflectionParameter|ReflectionProperty $field,
     ) {
-        $this->class = $types->class;
         $this->collections = new PhpDocItemCompiler($types, $field)->collections();
     }
 
@@ -40,7 +37,7 @@ final readonly class CollectionCompiler
     {
         $doc = FieldTypeNameResolver::phpDoc($this->field);
         $node = $native === ArrayObject::class ? $this->arrayObject($doc) : $this->array($doc);
-        return $node ?? PhpDocFieldType::unrecognized($this->class, $this->field);
+        return $node ?? PhpDocFieldType::unrecognized($this->field);
     }
 
     /** @throws ReflectionException */
@@ -61,13 +58,7 @@ final readonly class CollectionCompiler
             return null;
         }
         if ($doc->name === 'array') {
-            return DecodeError::nonInstantiableTarget(
-                $this->class,
-                sprintf(
-                    'Field %s uses array<TKey, TValue>, whose empty value encodes as a JSON array and cannot represent an empty JSON object. Use non-empty-array<string, TValue> for a non-empty map or ArrayObject<string, TValue> for a map that may be empty.',
-                    $path,
-                ),
-            );
+            return UnsupportedCollection::genericArrayMap($path);
         }
         return $this->stringKeyedMap($doc, $doc->name);
     }
@@ -104,13 +95,6 @@ final readonly class CollectionCompiler
 
     private function unsupportedMap(string $type): DecodeError
     {
-        return DecodeError::nonInstantiableTarget(
-            $this->class,
-            sprintf(
-                'Field %s uses unsupported map declaration %s. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
-                $this->field->getName(),
-                $type,
-            ),
-        );
+        return UnsupportedCollection::map($this->field->getName(), $type);
     }
 }

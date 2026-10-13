@@ -6,6 +6,7 @@ namespace Eventjet\Json;
 
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassGraphValidator;
+use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\RootDescriptor;
 use stdClass;
 use Throwable;
@@ -32,7 +33,7 @@ final class Json
         try {
             return new ClassGraphValidator()->validateRoot($type);
         } catch (Throwable $error) {
-            return DecodeError::cannotInstantiate($type, $error);
+            return UnsupportedTarget::unreadable($error)->whileCreating($type);
         }
     }
 

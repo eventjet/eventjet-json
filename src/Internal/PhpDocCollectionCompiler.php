@@ -27,10 +27,8 @@ use function strcasecmp;
  */
 final readonly class PhpDocCollectionCompiler
 {
-    /** @param class-string $class */
     public function __construct(
         private PhpDocItemCompiler $items,
-        private string $class,
         private ReflectionParameter|ReflectionProperty $field,
     ) {}
 
@@ -58,7 +56,7 @@ final readonly class PhpDocCollectionCompiler
         $arguments = $type->arguments;
         if (in_array($type->name, ['list', 'non-empty-list'], strict: true) && count($arguments) === 1) {
             $item = $this->items->item($arguments[0], $path);
-            return $item instanceof Node ? new ListNode($this->class, $item, $type->name === 'non-empty-list') : $item;
+            return $item instanceof Node ? new ListNode($item, $type->name === 'non-empty-list') : $item;
         }
         $value = $type->stringKeyedValue();
         if ($value === null) {
@@ -80,7 +78,7 @@ final readonly class PhpDocCollectionCompiler
     {
         $node = $this->items->item($value, $path);
         $arrayObject = strcasecmp($container, ArrayObject::class) === 0;
-        return $node instanceof Node ? new MapNode($this->class, $node, $arrayObject) : $node;
+        return $node instanceof Node ? new MapNode($node, $arrayObject) : $node;
     }
 
     /** @throws ReflectionException */
@@ -98,6 +96,6 @@ final readonly class PhpDocCollectionCompiler
             }
             $items[] = $item;
         }
-        return new TupleNode($this->class, $items, $required);
+        return new TupleNode($items, $required);
     }
 }

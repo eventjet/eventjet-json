@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\ConstructorFailure;
+use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use JsonException;
+use PropertyHookType;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
+use Throwable;
 
 use function array_key_exists;
 
@@ -40,7 +44,7 @@ final class PublicProperties
             if (!$publicInstance || ($constructorFields[$property->getName()] ?? false)) {
                 continue;
             }
-            $node = PublicPropertyTypeValidator::validate($class->getName(), $property);
+            $node = PublicPropertyTypeValidator::validate($property);
             if ($node instanceof DecodeError) {
                 return $node;
             }
@@ -78,5 +82,17 @@ final class PublicProperties
             $assignments[] = [$property['property'], $value];
         }
         return $assignments;
+    }
+
+    /**
+     * Returns the error for an assignment that threw. Values match the declared type, so without a set hook, PHP
+     * refused the assignment itself.
+     */
+    public static function failure(ReflectionProperty $property, Throwable $error): DecodeError
+    {
+        $hooked = $property->hasHook(PropertyHookType::Set);
+        return $hooked
+            ? ConstructorFailure::propertyHookThrew($error)
+            : UnsupportedTarget::unassignableProperty($error);
     }
 }
