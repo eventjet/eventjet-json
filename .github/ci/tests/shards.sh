@@ -42,8 +42,8 @@ for ($shard = 1; $shard <= PerformanceShards::SHARDS; $shard++) {
     }
 }
 function fpmSample(bool $opcache): array {
-    $count = Eventjet\Json\Ci\FpmMeasurements::rounds($opcache) * Eventjet\Json\Ci\FpmMeasurements::REQUESTS;
-    return ['document' => ['time_us' => array_fill(0, $count, 100.0), 'peak_bytes' => 1024]];
+    $rounds = Eventjet\Json\Ci\FpmMeasurements::rounds($opcache);
+    return ['document' => ['rounds' => array_fill(0, $rounds, array_fill(0, Eventjet\Json\Ci\FpmMeasurements::REQUESTS, 100.0)), 'peak_bytes' => 1024]];
 }
 $fpmSample = fpmSample(true);
 jsonFile($directory . '/1/fpm.json', ['baseline' => $fpmSample, 'candidate' => $fpmSample]);
@@ -89,7 +89,7 @@ foreach (['shard' => 1, 'opcache' => 'off', 'fpm' => true, 'baseline' => 'wrong'
 }
 rejects($directory, '2/discovery.xml', measurement(range(0, 7)));
 rejects($directory, '1/fpm.json', json_encode(['baseline' => $fpmSample]));
-rejects($directory, '1/fpm.json', json_encode(['baseline' => $fpmSample, 'candidate' => ['document' => ['time_us' => [100.0], 'peak_bytes' => 1024]]]));
+rejects($directory, '1/fpm.json', json_encode(['baseline' => $fpmSample, 'candidate' => ['document' => ['rounds' => [[100.0]], 'peak_bytes' => 1024]]]));
 rejects($directory, '1/fpm.json', json_encode(['baseline' => fpmSample(false), 'candidate' => fpmSample(false)]));
 $last = '2/candidate-1-' . (BenchmarkComparison::ROUNDS - 1) . '.xml';
 rejects($directory, $last, measurement([0]));

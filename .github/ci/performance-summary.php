@@ -131,7 +131,8 @@ function fpmSection(array $fpm, string $mode): array
     $text = '### First decode in a fresh PHP-FPM request · ' . ($blocks ? 'blocking' : 'advisory') . "\n\n"
         . sectionResult($blocks, fpmSlower($fpm), $faster)
         . sprintf(
-            " · Median of %d requests per revision · Limit ±%s\n\n",
+            " · Median of %d paired rounds, %d requests per revision · Limit ±%s\n\n",
+            FpmMeasurements::rounds($mode === 'on'),
             FpmMeasurements::rounds($mode === 'on') * FpmMeasurements::REQUESTS,
             limitText(FpmMeasurements::LIMIT_PERCENT),
         )
@@ -172,7 +173,8 @@ function performanceSummary(array $comparisons, string $mode, array|null $fpm): 
         . "Only blocking sections decide this result. Advisory sections are shown for information.\n\n"
         . implode('', $sections)
         . 'CLI sections compare median times per decode over alternating rounds; overall is the geometric mean of '
-        . "PR/target ratios, with equal weight per workload. The PHP-FPM section compares median request times. Negative means faster.\n";
+        . "PR/target ratios, with equal weight per workload. The PHP-FPM change is the median of per-round PR/target ratios; "
+        . "its Target and PR columns are median request times. Negative means faster.\n";
 }
 
 /** @param list<BenchmarkComparison> $comparisons */

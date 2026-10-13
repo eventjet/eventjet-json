@@ -289,8 +289,11 @@ for ($shard = 1; $shard <= Eventjet\Json\Ci\PerformanceShards::SHARDS; $shard++)
     }
 }
 $opcache = getenv('MODE') === 'on';
-$count = Eventjet\Json\Ci\FpmMeasurements::rounds($opcache) * Eventjet\Json\Ci\FpmMeasurements::REQUESTS;
-$sample = static fn(float $time): array => ['Stripe invoice' => ['time_us' => array_fill(0, $count, $time), 'peak_bytes' => 1024]];
+$rounds = Eventjet\Json\Ci\FpmMeasurements::rounds($opcache);
+$sample = static fn(float $time): array => ['Stripe invoice' => [
+    'rounds' => array_fill(0, $rounds, array_fill(0, Eventjet\Json\Ci\FpmMeasurements::REQUESTS, $time)),
+    'peak_bytes' => 1024,
+]];
 file_put_contents(getenv('ARTIFACTS') . '/1/fpm.json', json_encode([
     'baseline' => $sample(1000.0),
     'candidate' => $sample((float) getenv('FPM_TIME')),

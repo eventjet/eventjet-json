@@ -67,17 +67,17 @@ for consumers whose runtime does not enable it.
 in a request, with warm bytecode but fresh request-local decoder metadata.
 Compiled decoders live for one request, so every request compiles them again.
 The harness starts an isolated one-worker pool for one revision. One discarded
-request per document warms bytecode; 20 subsequent requests each time exactly
+request per document warms bytecode; 10 subsequent requests each time exactly
 one `Json::decode()` using `hrtime`. It then stops the pool and does the same
-for the other revision. This repeats for 40 rounds per revision, in ABBA order
+for the other revision. This repeats for 80 rounds per revision, in ABBA order
 (target, PR, PR, target, …), so each document has 800 timed requests per
 revision. Request times shift between pool restarts by more than they vary
 within one pool; many short, alternating pools average those shifts and runner
 drift out of the comparison. With OPcache disabled, class compilation
 is included on each request; that mode does not have warm bytecode. Its
 requests take about 50 ms including transport, so the full sample would not fit
-the 15-minute job limit. Because that mode is advisory, it runs 10 rounds of 10
-requests instead. Fixture loading, FastCGI transport, and
+the 15-minute job limit. Because that mode is advisory, it runs 10 rounds
+instead. Fixture loading, FastCGI transport, and
 verification are outside the timer. The harness checks PHP version, OPcache and
 JIT state, worker identity, and zero OPcache misses during measured decodes when
 OPcache is enabled. It stops the pool before replacing any source files. This

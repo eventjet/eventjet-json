@@ -57,13 +57,13 @@ final class FpmMeasurements
     }
 
     /**
-     * Request times shift between pool restarts by more than they vary within one pool. Alternating many short pools
-     * between the revisions averages those shifts and runner drift out of the comparison.
+     * Request times shift between pool restarts, and noisy runners change speed for seconds at a time. Both
+     * revisions run one short pool per round, back to back, so each round yields one paired ratio.
      *
      * @param callable(string, int): array<string, array{time_us: non-empty-list<float>, peak_bytes: int}> $round
      * @return array{
-     *     baseline: array<string, array{time_us: list<float>, peak_bytes: int}>,
-     *     candidate: array<string, array{time_us: list<float>, peak_bytes: int}>,
+     *     baseline: array<string, array{rounds: list<non-empty-list<float>>, peak_bytes: int}>,
+     *     candidate: array<string, array{rounds: list<non-empty-list<float>>, peak_bytes: int}>,
      * }
      */
     public static function measure(callable $round, bool $opcache): array
@@ -72,9 +72,9 @@ final class FpmMeasurements
         for ($index = 0; $index < self::rounds($opcache); ++$index) {
             foreach (BenchmarkComparison::order($index) as $version) {
                 foreach ($round($version, $index) as $name => $measured) {
-                    $previous = $samples[$version][$name] ?? ['time_us' => [], 'peak_bytes' => 0];
+                    $previous = $samples[$version][$name] ?? ['rounds' => [], 'peak_bytes' => 0];
                     $samples[$version][$name] = [
-                        'time_us' => [...$previous['time_us'], ...$measured['time_us']],
+                        'rounds' => [...$previous['rounds'], $measured['time_us']],
                         'peak_bytes' => max($previous['peak_bytes'], $measured['peak_bytes']),
                     ];
                 }
@@ -231,18 +231,22 @@ final class FpmMeasurements
      */
     public static function compare(mixed $baseline, mixed $candidate, bool $opcache): array
     {
-        $count = self::rounds($opcache) * self::REQUESTS;
-        $baseline = self::validated($baseline, $count);
-        $candidate = self::validated($candidate, $count);
+        $baseline = self::validated($baseline, self::rounds($opcache));
+        $candidate = self::validated($candidate, self::rounds($opcache));
         if (array_keys($baseline) !== array_keys($candidate)) {
             throw new RuntimeException('PHP-FPM workload sets differ.');
         }
         $comparisons = [];
         foreach ($baseline as $name => $base) {
+            $ratios = [];
+            foreach ($base['rounds'] as $index => $times) {
+                $ratios[] = Statistics::median($candidate[$name]['rounds'][$index]) / Statistics::median($times);
+            }
             $comparisons[] = new FpmComparison(
                 $name,
-                Statistics::median($base['time_us']),
-                Statistics::median($candidate[$name]['time_us']),
+                Statistics::median(array_merge(...$base['rounds'])),
+                Statistics::median(array_merge(...$candidate[$name]['rounds'])),
+                Statistics::median($ratios),
                 $base['peak_bytes'],
                 $candidate[$name]['peak_bytes'],
             );
@@ -267,6 +271,8 @@ final class FpmMeasurements
                 : 'OPcache is off; compilation is included on every request.',
             'Transport, input setup, and hydration/round-trip verification are outside timing. Peak memory covers the whole request.',
             '',
+            'Change is the median of the per-round PR/target ratios.',
+            '',
             '| Workload | Target median µs | PR median µs | Change | Peak MiB target / PR |',
             '|---|---:|---:|---:|---:|',
         ];
@@ -284,35 +290,44 @@ final class FpmMeasurements
         return implode("\n", $lines) . "\n";
     }
 
-    /** @return non-empty-array<string, array{time_us: non-empty-list<float>, peak_bytes: int}> */
-    private static function validated(mixed $samples, int $count): array
+    /** @return non-empty-array<string, array{rounds: non-empty-list<non-empty-list<float>>, peak_bytes: int}> */
+    private static function validated(mixed $samples, int $rounds): array
     {
         if (!is_array($samples) || $samples === []) {
             throw new RuntimeException('Missing PHP-FPM measurements.');
         }
         $validated = [];
         foreach ($samples as $name => $sample) {
-            $times = is_array($sample) ? $sample['time_us'] ?? null : null;
+            $measured = is_array($sample) ? $sample['rounds'] ?? null : null;
             $peak = is_array($sample) ? $sample['peak_bytes'] ?? null : null;
             if (
                 !is_string($name)
-                || !is_array($times)
-                || !array_is_list($times)
-                || $times === []
-                || count($times) !== $count
+                || !is_array($measured)
+                || !array_is_list($measured)
+                || count($measured) !== $rounds
                 || !is_int($peak)
                 || $peak <= 0
             ) {
                 throw new RuntimeException('Incomplete PHP-FPM measurements.');
             }
-            $floats = [];
-            foreach ($times as $time) {
-                if (!is_int($time) && !is_float($time) || !is_finite((float) $time) || $time <= 0) {
-                    throw new RuntimeException('Invalid PHP-FPM time.');
+            $validatedRounds = [];
+            foreach ($measured as $times) {
+                if (!is_array($times) || !array_is_list($times) || count($times) !== self::REQUESTS) {
+                    throw new RuntimeException('Incomplete PHP-FPM round.');
                 }
-                $floats[] = (float) $time;
+                $floats = [];
+                foreach ($times as $time) {
+                    if (!is_int($time) && !is_float($time) || !is_finite((float) $time) || $time <= 0) {
+                        throw new RuntimeException('Invalid PHP-FPM time.');
+                    }
+                    $floats[] = (float) $time;
+                }
+                $validatedRounds[] = $floats;
             }
-            $validated[$name] = ['time_us' => $floats, 'peak_bytes' => $peak];
+            if ($validatedRounds === []) {
+                throw new RuntimeException('No PHP-FPM rounds.');
+            }
+            $validated[$name] = ['rounds' => $validatedRounds, 'peak_bytes' => $peak];
         }
         return $validated;
     }

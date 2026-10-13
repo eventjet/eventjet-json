@@ -100,19 +100,22 @@ foreach ([true, false] as $opcache) {
         throw new RuntimeException('Revisions must alternate in ABBA order across all rounds');
     }
     foreach ($samples as $sample) {
-        if (count($sample['document']['time_us']) !== $rounds * FpmMeasurements::REQUESTS
+        if (count($sample['document']['rounds']) !== $rounds
+            || $sample['document']['rounds'][1] !== array_fill(0, FpmMeasurements::REQUESTS, 100.0)
             || $sample['document']['peak_bytes'] !== $rounds) {
-            throw new RuntimeException('Rounds must be merged into one complete sample per revision');
+            throw new RuntimeException('Every round must be kept per revision');
         }
     }
 }
 if (FpmMeasurements::rounds(true) * FpmMeasurements::REQUESTS !== 800) {
     throw new RuntimeException('The blocking sample size must match its calibration');
 }
-$complete = static fn(array $times): array => ['document' => ['time_us' => $times, 'peak_bytes' => 1024]];
-$count = 800;
-// An even sample count takes the mean of the two middle values; outliers do not move the median.
-$baseline = $complete([...array_fill(0, $count / 2, 100.0), ...array_fill(0, $count / 2 - 1, 102.0), 1e6]);
+$rounds = FpmMeasurements::rounds(true);
+$sample = static fn(array $rounds): array => ['document' => ['rounds' => $rounds, 'peak_bytes' => 1024]];
+$constant = static fn(float $time): array => $sample(array_fill(0, $rounds, array_fill(0, FpmMeasurements::REQUESTS, $time)));
+// Each round's median ignores single outliers; an even count takes the mean of the two middle values.
+$noisy = [...array_fill(0, FpmMeasurements::REQUESTS / 2, 100.0), ...array_fill(0, FpmMeasurements::REQUESTS / 2 - 1, 102.0), 1e6];
+$baseline = $sample(array_fill(0, $rounds, $noisy));
 $limit = 1 + FpmMeasurements::LIMIT_PERCENT / 100;
 foreach ([
     [101 * $limit, false, false],
@@ -120,17 +123,34 @@ foreach ([
     [101 * (2 - $limit), false, false],
     [101 * (2 - $limit) - 0.01, false, true],
 ] as [$time, $slower, $faster]) {
-    [$comparison] = FpmMeasurements::compare($baseline, $complete(array_fill(0, $count, $time)), true);
+    [$comparison] = FpmMeasurements::compare($baseline, $constant($time), true);
     if ($comparison->baseline !== 101.0 || $comparison->slower() !== $slower || $comparison->faster() !== $faster) {
         throw new RuntimeException('Incorrect FPM limit at ' . $time . ' µs');
     }
 }
+// The runner slows down for some rounds. Pooled medians would differ by a factor of two; paired rounds do not.
+$fast = array_fill(0, FpmMeasurements::REQUESTS, 100.0);
+$slow = array_fill(0, FpmMeasurements::REQUESTS, 200.0);
+$baselineRounds = [...array_fill(0, $rounds / 2 + 1, $fast), ...array_fill(0, $rounds / 2 - 1, $slow)];
+$candidateRounds = $baselineRounds;
+$candidateRounds[0] = $slow;
+$candidateRounds[1] = $slow;
+[$comparison] = FpmMeasurements::compare($sample($baselineRounds), $sample($candidateRounds), true);
+if ($comparison->baseline !== 100.0 || $comparison->candidate !== 200.0 || $comparison->change() !== 0.0) {
+    throw new RuntimeException('Each round must compare the revisions measured next to each other');
+}
+$short = $baseline;
+array_pop($short['document']['rounds']);
+$partial = $baseline;
+$partial['document']['rounds'][3] = [100.0];
 foreach ([
-    [$complete(array_fill(0, $count - 1, 100.0)), $baseline],
+    [$short, $baseline],
+    [$baseline, $partial],
     [$baseline, ['other' => $baseline['document']]],
-    [$baseline, $complete([...array_fill(0, $count - 1, 100.0), 0])],
-    [$baseline, $complete([...array_fill(0, $count - 1, 100.0), 'fast'])],
-    [$baseline, ['document' => ['time_us' => array_fill(0, $count, 100.0), 'peak_bytes' => 0]]],
+    [$baseline, $sample([...array_fill(0, $rounds - 1, $fast), [...array_fill(0, FpmMeasurements::REQUESTS - 1, 100.0), 0]])],
+    [$baseline, $sample([...array_fill(0, $rounds - 1, $fast), [...array_fill(0, FpmMeasurements::REQUESTS - 1, 100.0), 'fast']])],
+    [$baseline, ['document' => ['rounds' => $baseline['document']['rounds'], 'peak_bytes' => 0]]],
+    [$baseline, ['document' => ['time_us' => array_merge(...$baseline['document']['rounds']), 'peak_bytes' => 1024]]],
     [$baseline, null],
     [[], []],
 ] as [$base, $candidate]) {
@@ -144,5 +164,5 @@ foreach ([
 if (!FpmMeasurements::blocks(true) || FpmMeasurements::blocks(false)) {
     throw new RuntimeException('Only PHP-FPM with OPcache on blocks');
 }
-echo "FPM rounds alternate, merge completely, and apply the median limit.\n";
+echo "FPM rounds alternate, stay paired, and apply the limit to the median of per-round ratios.\n";
 PHP
