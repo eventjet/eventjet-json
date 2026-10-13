@@ -51,7 +51,7 @@ final readonly class ConstructorParameter
      *
      * @throws ReflectionException
      */
-    public function resolveType(TypeCompiler $compiler): Node|DecodeError|null
+    public function resolveType(): Node|DecodeError|null
     {
         if ($this->variadic) {
             return UnsupportedField::variadic($this->name);
@@ -59,13 +59,23 @@ final readonly class ConstructorParameter
         if ($this->type === null) {
             return UnsupportedField::untyped($this->name);
         }
-        $node = $compiler->field($this->reflection, $this->type);
+        $node = $this->compile($this->type);
         if ($node instanceof DecodeError) {
             return $node;
         }
-        if (!$this->recoverable) {
-            return UnsupportedField::withoutProperty($this->name);
-        }
+        return $this->recoverable ? $node : UnsupportedField::withoutProperty($this->name);
+    }
+
+    /**
+     * Returns the node of the argument, or null if the native type check is the whole check. A scalar whose PHPDoc
+     * declares no literal compiles to a scalar node, which checks nothing beyond the native check.
+     *
+     * @throws ReflectionException
+     */
+    private function compile(ReflectionType $type): Node|DecodeError|null
+    {
+        $complete = FieldTypeNameResolver::nativeCheckIsComplete($this->reflection, $type);
+        $node = $complete ? null : new TypeCompiler()->field($this->reflection, $type);
         return $node instanceof ScalarNode ? null : $node;
     }
 

@@ -12,6 +12,7 @@ use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
 
+use function in_array;
 use function str_contains;
 use function strcasecmp;
 
@@ -68,6 +69,22 @@ final class FieldTypeNameResolver
             : $type instanceof ReflectionNamedType
             && ($type->isBuiltin() ? $type->getName() !== 'array' : enum_exists($type->getName()));
         return $accepts ? self::phpDoc($field) : null;
+    }
+
+    /**
+     * Whether the native type check is the whole check of a field, so the field needs no compilation: its type is a
+     * builtin that the type compiler treats as a scalar, and no PHPDoc tag declares a type for it.
+     */
+    public static function nativeCheckIsComplete(
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionType $type,
+    ): bool {
+        return (
+            $type instanceof ReflectionNamedType
+            && $type->isBuiltin()
+            && !in_array($type->getName(), ['array', 'mixed', 'object'], strict: true)
+            && self::phpDoc($field) === null
+        );
     }
 
     /** Returns the type that errors report for a nullable declaration of a type. */

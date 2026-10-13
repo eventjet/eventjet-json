@@ -77,11 +77,10 @@ final readonly class ClassDecoder
         $converters = [];
         $jsonNames = [];
         $required = [];
-        $compiler = new TypeCompiler();
         foreach ($class->getConstructor()?->getParameters() ?? [] as $reflection) {
             $parameter = new ConstructorParameter($reflection, $class);
             $name = $names[$parameter->name] ?? $parameter->name;
-            $converter = $parameter->resolveType($compiler);
+            $converter = $parameter->resolveType();
             if ($converter instanceof DecodeError) {
                 return $converter;
             }
