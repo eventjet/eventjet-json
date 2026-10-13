@@ -7,7 +7,6 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Node\Node;
 use ReflectionException;
-use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionType;
@@ -15,7 +14,6 @@ use ReflectionUnionType;
 
 use function array_any;
 use function array_keys;
-use function enum_exists;
 use function implode;
 use function is_array;
 
@@ -27,7 +25,8 @@ use function is_array;
 final class LiteralFieldCompiler
 {
     /**
-     * Compiles the native declaration if the PHPDoc declares no literal.
+     * Compiles a scalar, enum, or union field from its PHPDoc type, or from its native declaration if the PHPDoc
+     * declares no literal.
      *
      * @throws ReflectionException
      */
@@ -35,12 +34,8 @@ final class LiteralFieldCompiler
         TypeCompiler $types,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionType $type,
+        PhpDocType $doc,
     ): Node|DecodeError {
-        $accepts = self::accepts($type);
-        $doc = $accepts ? PhpDocFieldType::resolve($field) : null;
-        if ($doc === null) {
-            return $types->declared($field, $type);
-        }
         $path = $field->getName();
         $declared = $doc->members();
         $items = new PhpDocItemCompiler($types, $field);
@@ -56,20 +51,6 @@ final class LiteralFieldCompiler
             ? NativeUnionCompiler::classes($types, $field, $type)
             : $types->declared($field, $type);
         return $native instanceof DecodeError ? $native : $items->unions()->build($members, $path);
-    }
-
-    /**
-     * Literals restrict scalars and backed enums. Collection items declare their literals in the collection type.
-     */
-    private static function accepts(ReflectionType $type): bool
-    {
-        if ($type instanceof ReflectionUnionType) {
-            return !NativeUnionCompiler::hasCollection($type);
-        }
-        return (
-            $type instanceof ReflectionNamedType
-            && ($type->isBuiltin() ? $type->getName() !== 'array' : enum_exists($type->getName()))
-        );
     }
 
     /** @param array<array-key, Node|string> $members */

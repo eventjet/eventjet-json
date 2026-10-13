@@ -82,7 +82,7 @@ final readonly class PhpDocItemCompiler
     public function name(PhpDocType $type): string|null
     {
         if ($type->arguments === []) {
-            return FieldTypeNameResolver::resolvePhpDoc($this->field, $type->name);
+            return PhpDocFieldType::resolveName($this->field, $type->name);
         }
         $isIntegerRange = $type->isIntegerRange();
         return $isIntegerRange ? 'int' : null;

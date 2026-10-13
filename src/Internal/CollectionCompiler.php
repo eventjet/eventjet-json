@@ -38,7 +38,7 @@ final readonly class CollectionCompiler
     /** @throws ReflectionException */
     public function compile(string $native): Node|DecodeError
     {
-        $doc = PhpDocFieldType::resolve($this->field);
+        $doc = FieldTypeNameResolver::phpDoc($this->field);
         $node = $native === ArrayObject::class ? $this->arrayObject($doc) : $this->array($doc);
         return $node ?? PhpDocFieldType::unrecognized($this->class, $this->field);
     }
@@ -79,7 +79,7 @@ final readonly class CollectionCompiler
         if ($doc === null || count($arguments) < 2) {
             return $this->unsupportedMap(ArrayObject::class);
         }
-        $container = FieldTypeNameResolver::resolvePhpDoc($this->field, $doc->name) ?? $doc->name;
+        $container = PhpDocFieldType::resolveName($this->field, $doc->name) ?? $doc->name;
         if (strcasecmp($container, ArrayObject::class) !== 0) {
             return $this->unsupportedMap(ArrayObject::class);
         }

@@ -249,7 +249,7 @@ final class LiteralTypeTest extends TestCase
              */
             public string $value = 'a@b';
         };
-        static::assertSame("'a@b'", PhpDocFieldType::resolve(new ReflectionProperty($tagged, 'value'))?->name);
+        static::assertSame("'a@b'", FieldTypeNameResolver::phpDoc(new ReflectionProperty($tagged, 'value'))?->name);
 
         $enum = new class {
             /** @var StringBackedStatus::Ready */
@@ -443,6 +443,6 @@ final class LiteralTypeTest extends TestCase
         $class = $field->getDeclaringClass();
         static::assertNotNull($type);
         static::assertNotNull($class);
-        return LiteralFieldCompiler::compile(new TypeCompiler($class->getName()), $field, $type);
+        return new TypeCompiler($class->getName())->field($field, $type);
     }
 }

@@ -64,7 +64,7 @@ final readonly class PhpDocCollectionCompiler
         if ($value === null) {
             return null;
         }
-        $container = FieldTypeNameResolver::resolvePhpDoc($this->field, $type->name) ?? $type->name;
+        $container = PhpDocFieldType::resolveName($this->field, $type->name) ?? $type->name;
         $isMap = in_array($type->name, ['non-empty-array', 'non-empty-map'], strict: true);
         return $isMap || strcasecmp($container, ArrayObject::class) === 0
             ? $this->map($container, $value, $path)

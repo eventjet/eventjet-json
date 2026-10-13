@@ -25,8 +25,7 @@ final class PhpDocTypeTokens
             . ')/';
 
     /** A name with an optional class constant, such as `Foo::BAR`. */
-    private const string NAME =
-        '/\G\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff-]*(?:\\\\[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)*(?:::[A-Za-z_*\x80-\xff][A-Za-z0-9_*\x80-\xff]*)?/';
+    private const string NAME = '/\G\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff-]*(?:\\\\[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)*(?:::[A-Za-z_*\x80-\xff][A-Za-z0-9_*\x80-\xff]*)?/';
 
     private int $offset = 0;
 
