@@ -44,7 +44,7 @@ use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
-use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
@@ -98,7 +98,7 @@ use const PHP_INT_MIN;
 #[CoversClass(PhpDocTypeParser::class)]
 #[CoversClass(PhpDocTypeTokens::class)]
 #[UsesClass(PhpDocUnionCompiler::class)]
-#[UsesClass(RootTypeValidator::class)]
+#[UsesClass(TargetClass::class)]
 #[UsesClass(ScalarItems::class)]
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(TypeCompiler::class)]

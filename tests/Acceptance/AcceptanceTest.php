@@ -24,8 +24,7 @@ use Eventjet\Json\Internal\Error\UnsupportedCollection;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
-use Eventjet\Json\Internal\FieldNameCollisions;
-use Eventjet\Json\Internal\FieldNames;
+use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\LiteralFieldCompiler;
@@ -59,8 +58,9 @@ use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
+use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\RootDescriptor;
-use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
@@ -122,9 +122,9 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(PhpDocTokenStream::class)]
 #[CoversClass(PhpDocNamespaceDeclaration::class)]
 #[CoversClass(ConstructorPlan::class)]
+#[CoversClass(RenamedArguments::class)]
 #[CoversClass(PublicProperties::class)]
 #[CoversClass(PublicPropertyTypeValidator::class)]
-#[CoversClass(RootTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(TypeCompiler::class)]
 #[CoversClass(CollectionCompiler::class)]
@@ -142,8 +142,8 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(Field::class)]
 #[CoversMethod(MappedJsonFields::class, 'jsonSerialize')]
 #[CoversClass(MappedObjectSerializer::class)]
-#[CoversClass(FieldNameCollisions::class)]
-#[CoversClass(FieldNames::class)]
+#[CoversClass(TargetClass::class)]
+#[CoversClass(FieldNameRules::class)]
 #[CoversClass(CollectionUnionCompiler::class)]
 #[CoversClass(CollectionUnionNatives::class)]
 #[CoversClass(DecodeErrorKind::class)]

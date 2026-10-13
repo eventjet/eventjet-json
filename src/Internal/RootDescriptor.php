@@ -132,13 +132,13 @@ final class RootDescriptor
 
     /**
      * Unlike a root object, a collection may hold instances of subclasses, so the item class must be final.
-     * RootTypeValidator rejects interfaces and abstract classes first, which can never be final.
+     * TargetClass rejects interfaces and abstract classes first, which can never be final.
      *
      * @template TClass of object
      * @param ReflectionClass<TClass> $class
      */
     private static function validateItem(ReflectionClass $class): DecodeError|null
     {
-        return RootTypeValidator::validate($class) ?? ($class->isFinal() ? null : UnsupportedTarget::nonFinalItem());
+        return TargetClass::validate($class) ?? ($class->isFinal() ? null : UnsupportedTarget::nonFinalItem());
     }
 }

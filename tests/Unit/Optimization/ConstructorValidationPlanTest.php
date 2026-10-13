@@ -19,8 +19,7 @@ use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
-use Eventjet\Json\Internal\FieldNameCollisions;
-use Eventjet\Json\Internal\FieldNames;
+use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\LiteralFieldCompiler;
@@ -53,7 +52,8 @@ use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\RenamedArguments;
+use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
@@ -76,19 +76,19 @@ use RuntimeException;
 use function class_alias;
 
 #[CoversClass(ConstructorPlan::class)]
+#[CoversClass(RenamedArguments::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[CoversClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(PublicProperties::class)]
-#[CoversClass(FieldNameCollisions::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
-#[CoversClass(FieldNames::class)]
+#[CoversClass(TargetClass::class)]
+#[CoversClass(FieldNameRules::class)]
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]
 #[UsesClass(EnumNode::class)]
@@ -295,6 +295,7 @@ final class ConstructorValidationPlanTest extends TestCase
     /**
      * @throws ReflectionException
      * @throws DecodeError
+     * @throws JsonException
      * @throws RuntimeException
      */
     public function testMappedSerializationDoesNotExposeNonPublicState(): void
@@ -306,6 +307,24 @@ final class ConstructorValidationPlanTest extends TestCase
         $object = new ReflectionClass($class)->newInstance();
         static::assertEquals((object) ['wire' => 'public'], MappedObjectSerializer::serialize($object));
         static::assertEquals((object) ['wire' => 'public'], MappedObjectSerializer::serialize($object));
+
+        $namesClass = CollectionNameSource::load(
+            'MappedNonPublicNames',
+            'use Eventjet\\Json\\Field; final class MappedNonPublicNames implements JsonSerializable { use Eventjet\\Json\\MappedJsonFields; private string $internal = "private"; public static string $shared = "static"; #[Field("internal")] public string $value = "public"; #[Field("shared")] public string $other = "other"; }',
+        );
+        $namesReflection = new ReflectionClass($namesClass);
+        for ($attempt = 0; $attempt < 2; ++$attempt) {
+            static::assertEquals(
+                (object) ['internal' => 'public', 'shared' => 'other'],
+                MappedObjectSerializer::serialize($namesReflection->newInstance()),
+            );
+            $decoded = self::decode($namesReflection, ['internal' => 'decoded', 'shared' => 'also decoded'], '');
+            static::assertInstanceOf($namesClass, $decoded);
+            static::assertEquals(
+                (object) ['internal' => 'decoded', 'shared' => 'also decoded'],
+                MappedObjectSerializer::serialize($decoded),
+            );
+        }
     }
 
     /**
@@ -323,7 +342,7 @@ final class ConstructorValidationPlanTest extends TestCase
         $error = InvalidFieldMapping::collision('value', 'ref', 'ref');
         $named = InvalidFieldMapping::collision('value', 'ref', 'ref')->whileCreating($class);
         for ($attempt = 0; $attempt < 2; ++$attempt) {
-            static::assertEquals($error, RootTypeValidator::validate($reflection));
+            static::assertEquals($error, TargetClass::validate($reflection));
             static::assertEquals($named, self::decode($reflection, [], ''));
             static::assertEquals($named, ClassDecoders::get($class));
             try {
@@ -349,7 +368,7 @@ final class ConstructorValidationPlanTest extends TestCase
                 $source =
                     'use Eventjet\\Json\\Field; class '
                     . $parent
-                    . ' { #[Field("hidden")] private '
+                    . ' { private string $unmapped = ""; #[Field("hidden")] private '
                     . $modifier
                     . 'string $value = "secret"; }';
                 if ($depth === 2) {
@@ -369,7 +388,7 @@ final class ConstructorValidationPlanTest extends TestCase
                 $error = InvalidFieldMapping::nonPublicProperty('value');
                 $named = InvalidFieldMapping::nonPublicProperty('value')->whileCreating($class);
                 for ($attempt = 0; $attempt < 2; ++$attempt) {
-                    static::assertEquals($error, RootTypeValidator::validate($reflection));
+                    static::assertEquals($error, TargetClass::validate($reflection));
                     static::assertEquals($named, self::decode($reflection, [], ''));
                     static::assertEquals($named, ClassDecoders::get($class));
                     try {
@@ -396,7 +415,7 @@ final class ConstructorValidationPlanTest extends TestCase
         );
         $reflection = new ReflectionClass($class);
         for ($attempt = 0; $attempt < 2; ++$attempt) {
-            static::assertSame(['value' => 'wire', 'other' => 'inherited'], RootTypeValidator::fieldNames($reflection));
+            static::assertSame(['value' => 'wire', 'other' => 'inherited'], TargetClass::fieldNames($reflection));
             static::assertEquals(
                 (object) ['wire' => 'child', 'inherited' => 'kept', 'old' => 'ordinary'],
                 MappedObjectSerializer::serialize($reflection->newInstance()),
