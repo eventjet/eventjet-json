@@ -20,6 +20,8 @@ PHP types and JSON object/array shapes intact. See the [type reference](docs/typ
 - PHPDoc literal types restrict a field to specific values, such as `@param 'open'|'done' $state` or
   `@param 1|2|3 $priority`. Strings, integers, floats, `true`, `false`, constants, class-constant wildcards such as
   `self::STATE_*`, and backed enum cases work, also inside collections such as `list<'red'|'green'>`.
+- Doc comments are read with PHPStan's PHPDoc syntax, including `@phpstan-param`, `@psalm-param`, and `@phan-param`
+  tags and their `@var` counterparts, which take priority over plain tags. `array-key` reads as `int|string`.
 - `JsonType::array()` and `JsonType::map()` describe JSON arrays and objects at the root:
   `Json::decode($json, JsonType::array(Person::class))`.
 - `Json::validateType()` checks a class and every class reachable from it without JSON input, so unit tests can catch
@@ -57,6 +59,8 @@ PHP types and JSON object/array shapes intact. See the [type reference](docs/typ
   - Unions that JSON cannot tell apart, such as two classes, or an enum with its own backing type.
   - Literal unions that cannot restore the original PHP type, such as `1|1.0`, or an enum case with its own backing
     value.
+  - Number literals that PHP and PHPStan read differently, such as `0x10`, `052`, or `1e999`, and integer range bounds
+    such as `int<0x10, max>` or `int<+5, max>`. Use plain decimal numbers.
 
 ### Removed
 

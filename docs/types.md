@@ -59,10 +59,10 @@ PHPDoc literal types constrain values exactly: `'foo'|42` accepts the string
 `foo` and the integer `42`, and rejects other strings, integers, and `"42"`.
 Use constructor `@param` tags or public-property `@var` tags alongside compatible
 native scalar declarations. Supported literals are single- or double-quoted
-strings, integers within PHP's integer range, finite floats, `true`, and `false`.
-Integers support decimal, hexadecimal (`0x2a`), binary (`0b101010`), and explicit
-octal (`0o52`) notation, signs, and digit separators. Floats support decimal
-and exponent notation, such as `3.0` and `-1.5e2`.
+strings, plain decimal numbers, `true`, and `false`. Numbers may have a sign and
+digit separators, and floats may use exponent notation, such as `-1_000`, `3.0`,
+and `-1.5e2`. Hexadecimal, binary, and octal numbers are rejected; see
+[Number literals](#number-literals).
 Unions may also contain scalar types and `null`.
 
 ```php
@@ -77,8 +77,10 @@ The same literals work in collection declarations, including `list<'foo'|42>`,
 `ArrayObject<string, true>`, and `array{'foo', 42, false}`. String delimiters
 inside quotes are literal characters; escape the matching quote or a backslash
 with a backslash. Native `true` and `false` fields remain supported.
-Double-quoted strings also recognize PHP escape sequences, including hexadecimal,
-octal, and Unicode escapes. Strings do not interpolate variables.
+Double-quoted strings also recognize escape sequences, including hexadecimal,
+octal, and Unicode escapes, the way PHPStan reads them: unlike PHP, `\$` keeps
+its backslash, and a Unicode escape is encoded as written, even if it is not a
+valid code point. Strings do not interpolate variables and cannot span lines.
 
 Constant expressions such as `Status::ACTIVE`, `self::VALUE`, `parent::VALUE`,
 `ClassName::class`, global constants, and class-constant wildcards such as
@@ -397,11 +399,15 @@ usual leading `*` and either LF or CRLF line endings:
  */
 ```
 
-The internal parser builds a syntax tree for nested list, map, and tuple
-syntax, including unions and intersections, without runtime dependencies. Parsing a nested declaration does not
-enable its decoding: the supported collection forms and item types above
-still apply. Declarations are limited to 64 type levels, counting the outer
-collection and its innermost item, to bound parser recursion.
+The type must start on the line of its tag, and a `@param` variable must follow
+on the line where the type ends. Inside `<…>`, `{…}`, and `(…)`, line breaks may
+appear anywhere. Outside them, a union may continue on the next line only if
+that line starts with `|`.
+
+Parsing a declaration does not enable its decoding: the supported collection
+forms and item types above still apply. Declarations are limited to 64 type
+levels, counting the outer collection and its innermost item through generic
+arguments and shape entries. Unions and parentheses do not add a level.
 
 These PHPDoc declarations describe fields inside a root object. For root
 collections, use `JsonType::array()` or `JsonType::map()`; PHPDoc strings are
@@ -424,8 +430,8 @@ type.
 
 Integer-range items and values, such as `list<int<5, max>>`,
 `non-empty-array<string, int<min, -1>>`, and `ArrayObject<string, int<-5, 5>>`,
-are also recognized. Bounds may be decimal integers, `min` for the lower bound,
-or `max` for the upper bound. These declarations validate values as integers
+are also recognized. Bounds may be plain decimal integers without a plus sign,
+`min` for the lower bound, or `max` for the upper bound. These declarations validate values as integers
 without coercion and preserve collection shape rules. Range bounds are not
 enforced at runtime. Errors report the underlying `int` type.
 
@@ -464,6 +470,82 @@ Fully qualified names do not need source-file access.
 Plain `array<TKey, TValue>` declarations are rejected with a `DecodeError`;
 choose one of the two map declarations above to state whether the map may be
 empty.
+
+## Reading PHPDoc
+
+The decoder reads doc comments with PHPStan's PHPDoc syntax: the grammar of
+phpstan/phpdoc-parser 2.x as PHPStan 2.x configures it, without runtime
+dependencies. It deliberately differs in two ways:
+
+- Number literals that PHP and PHPStan read differently are rejected. See
+  [Number literals](#number-literals).
+- `non-empty-map<string, T>` is an alias for `non-empty-array<string, T>`.
+
+### Tags
+
+A constructor parameter takes its type from the constructor's doc comment.
+`@phpstan-param` overrides `@psalm-param`, which overrides `@phan-param`, which
+overrides `@param`. Among tags of the same kind, the last one for a parameter
+counts.
+
+```php
+/**
+ * @param array $value Shown in the documentation.
+ * @phpstan-param list<int> $value
+ */
+```
+
+A public property outside the constructor takes its type from its own doc
+comment, with `@phpstan-var`, `@psalm-var`, `@phan-var`, and `@var` in the same
+order. Tags without a variable name override named ones, but if the kind that
+counts has more than one of them, none counts. A named tag counts only for the
+property it names.
+
+Tags count only at the start of a line, and the selected tag counts even if the
+decoder does not support its type. Unlike PHPStan, the decoder does not skip
+`@psalm-` tags whose types PHPStan cannot resolve, does not read `@var` tags on
+promoted constructor properties, and does not inherit doc comments from parent
+classes or interfaces.
+
+### Number literals
+
+PHPStan reads some number literals differently from PHP: it reads `0x10` as 0
+and `052` as 52, and it caps integers beyond PHP's range. So a declaration with
+any of these is unsupported, and the error asks for a plain decimal number:
+
+- hexadecimal, binary, and octal integers, such as `0x2a`, `0b101`, `0o52`, and
+  `052`
+- integers beyond PHP's integer range
+- floats that do not fit, such as `1e999`
+- integer range bounds that are not plain decimal integers or that have a plus
+  sign, such as `int<0x10, max>` and `int<+5, max>`
+
+Signs, digit separators, decimal points, and exponents work: `-42`, `+7`,
+`1_000`, `.5`, and `1.5e3`.
+
+### Keywords
+
+The decoder recognizes the keywords of the types it can decode: `int`, `float`,
+`bool`, `string`, `true`, `false`, `null`, `array-key` (`int|string`), `list`,
+`non-empty-list`, `array{…}`, `non-empty-array`, `non-empty-map`, `self`,
+integer ranges such as `int<0, max>`, and the refinements listed under
+[Collection declarations](#collection-declarations). `resource`,
+`open-resource`, and `closed-resource` may appear in unions.
+
+`array-key` works only as a value. Map keys must be `string`, so
+`non-empty-array<array-key, T>` is unsupported.
+
+Keywords are case-sensitive, and synonyms are not keywords: `Int`, `List`, and
+`Self` are read as class names, and `integer`, `boolean`, and `double` do not
+mean `int`, `bool`, and `float`. `static`, `parent`, `number`, and `scalar` are
+not recognized either and count as unknown types.
+
+### Unknown types in a union
+
+On a scalar or enum field, a PHPDoc type that names a type the decoder does not
+know is ignored, and the native type applies. In a collection, every member of a
+union must be known: `list<int|Foo>` is an unsupported declaration if the
+decoder cannot resolve `Foo`.
 
 ## Errors
 
