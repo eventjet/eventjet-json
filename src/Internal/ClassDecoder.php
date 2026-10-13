@@ -49,11 +49,11 @@ final readonly class ClassDecoder
      */
     public static function compile(ReflectionClass $class): self|DecodeError
     {
-        $error = RootTypeValidator::validate($class);
+        $error = TargetClass::validate($class);
         if ($error !== null) {
             return $error;
         }
-        $names = FieldNames::of($class);
+        $names = TargetClass::fieldNames($class);
         assert(is_array($names), description: 'The target validation rejects invalid field names.');
         $constructor = self::constructor($class, $names);
         if ($constructor instanceof DecodeError) {

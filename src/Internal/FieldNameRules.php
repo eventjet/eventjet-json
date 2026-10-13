@@ -17,7 +17,7 @@ use function count;
 use function sprintf;
 
 /**
- * Reads the #[Field] names of a class and checks the rules for them. Kept apart from FieldNames, so that classes
+ * Reads the #[Field] names of a class and checks the rules for them. Kept apart from TargetClass, so that classes
  * without #[Field] do not load it.
  *
  * @internal

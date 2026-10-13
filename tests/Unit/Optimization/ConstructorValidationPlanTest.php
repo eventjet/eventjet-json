@@ -18,7 +18,6 @@ use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\DecodeErrorKind;
 use Eventjet\Json\Internal\FieldNameRules;
-use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\MapJsonType;
@@ -53,7 +52,7 @@ use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyValues;
 use Eventjet\Json\Internal\RenamedArguments;
-use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
@@ -84,14 +83,13 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[CoversClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(PublicProperties::class)]
 #[CoversClass(PublicPropertyValues::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
-#[CoversClass(FieldNames::class)]
+#[CoversClass(TargetClass::class)]
 #[CoversClass(FieldNameRules::class)]
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]
@@ -358,7 +356,7 @@ final class ConstructorValidationPlanTest extends TestCase
             'Properties value and ref use the same JSON field name "ref".',
         );
         for ($attempt = 0; $attempt < 2; ++$attempt) {
-            static::assertEquals($error, RootTypeValidator::validate($reflection));
+            static::assertEquals($error, TargetClass::validate($reflection));
             static::assertEquals($error, self::decode($reflection, [], ''));
             static::assertEquals($error, ClassDecoders::get($class));
             try {
@@ -406,7 +404,7 @@ final class ConstructorValidationPlanTest extends TestCase
                     '#[Field] requires a public instance property; value is not one.',
                 );
                 for ($attempt = 0; $attempt < 2; ++$attempt) {
-                    static::assertEquals($error, RootTypeValidator::validate($reflection));
+                    static::assertEquals($error, TargetClass::validate($reflection));
                     static::assertEquals($error, self::decode($reflection, [], ''));
                     static::assertEquals($error, ClassDecoders::get($class));
                     try {
@@ -433,7 +431,7 @@ final class ConstructorValidationPlanTest extends TestCase
         );
         $reflection = new ReflectionClass($class);
         for ($attempt = 0; $attempt < 2; ++$attempt) {
-            static::assertSame(['value' => 'wire', 'other' => 'inherited'], FieldNames::of($reflection));
+            static::assertSame(['value' => 'wire', 'other' => 'inherited'], TargetClass::fieldNames($reflection));
             static::assertEquals(
                 (object) ['wire' => 'child', 'inherited' => 'kept', 'old' => 'ordinary'],
                 MappedObjectSerializer::serialize($reflection->newInstance()),

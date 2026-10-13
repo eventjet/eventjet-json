@@ -18,7 +18,6 @@ use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\DecodeErrorKind;
 use Eventjet\Json\Internal\FieldNameRules;
-use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\MapJsonType;
@@ -54,7 +53,7 @@ use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyValues;
 use Eventjet\Json\Internal\RenamedArguments;
-use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
@@ -91,7 +90,6 @@ use function class_alias;
 #[UsesClass(RenamedArguments::class)]
 #[CoversClass(ClassJsonType::class)]
 #[UsesClass(FieldPath::class)]
-#[UsesClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(PublicProperties::class)]
 #[CoversClass(PublicPropertyValues::class)]
@@ -103,7 +101,7 @@ use function class_alias;
 #[UsesClass(PhpDocTypeTokens::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
-#[UsesClass(FieldNames::class)]
+#[UsesClass(TargetClass::class)]
 #[UsesClass(FieldNameRules::class)]
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]

@@ -7,7 +7,7 @@ namespace Eventjet\Json;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
-use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\TargetClass;
 use ReflectionClass;
 use stdClass;
 use Throwable;
@@ -89,7 +89,7 @@ final class Json
         $class = $type->itemClass();
 
         try {
-            $error = ClassFieldTypeValidator::validate($class, '[]', $class) ?? RootTypeValidator::validate(
+            $error = ClassFieldTypeValidator::validate($class, '[]', $class) ?? TargetClass::validate(
                 new ReflectionClass($class),
             );
 

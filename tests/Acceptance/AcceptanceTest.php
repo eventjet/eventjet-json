@@ -19,7 +19,6 @@ use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\DecodeErrorKind;
 use Eventjet\Json\Internal\FieldNameRules;
-use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\LiteralFieldCompiler;
@@ -56,7 +55,7 @@ use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyValues;
 use Eventjet\Json\Internal\RenamedArguments;
-use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
@@ -126,7 +125,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(PublicProperties::class)]
 #[CoversClass(PublicPropertyValues::class)]
 #[CoversClass(PublicPropertyTypeValidator::class)]
-#[CoversClass(RootTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(TypeCompiler::class)]
 #[CoversClass(CollectionCompiler::class)]
@@ -144,7 +142,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(Field::class)]
 #[CoversMethod(MappedJsonFields::class, 'jsonSerialize')]
 #[CoversClass(MappedObjectSerializer::class)]
-#[CoversClass(FieldNames::class)]
+#[CoversClass(TargetClass::class)]
 #[CoversClass(FieldNameRules::class)]
 #[CoversClass(CollectionUnionCompiler::class)]
 #[CoversClass(CollectionUnionNatives::class)]

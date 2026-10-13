@@ -46,7 +46,7 @@ final class ClassFieldTypeValidator
             );
         }
 
-        $names = FieldNames::of($typeReflection);
+        $names = TargetClass::fieldNames($typeReflection);
         return $names instanceof DecodeError ? $names : null;
     }
 }
