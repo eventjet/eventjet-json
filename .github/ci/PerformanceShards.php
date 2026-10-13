@@ -7,13 +7,16 @@ namespace Eventjet\Json\Ci;
 use RuntimeException;
 
 require_once __DIR__ . '/BenchmarkReport.php';
+require_once __DIR__ . '/FpmMeasurements.php';
 
 final class PerformanceShards
 {
+    public const SHARDS = 8;
+
     public static function shardNumber(mixed $value): int
     {
-        if (!is_string($value) || !ctype_digit($value) || (int) $value < 1 || (int) $value > 4) {
-            throw new RuntimeException('Shard must be an integer from 1 through 4');
+        if (!is_string($value) || !ctype_digit($value) || (int) $value < 1 || (int) $value > self::SHARDS) {
+            throw new RuntimeException('Shard must be an integer from 1 through ' . self::SHARDS);
         }
         return (int) $value;
     }
@@ -23,7 +26,7 @@ final class PerformanceShards
     {
         $indices = [];
         for ($index = 0; $index < $count; $index++) {
-            if ($shard === null || ($index % 4) === ($shard - 1)) {
+            if ($shard === null || ($index % self::SHARDS) === ($shard - 1)) {
                 $indices[] = $index;
             }
         }
@@ -51,24 +54,23 @@ final class PerformanceShards
         return $validated;
     }
 
-    /** @return array{comparisons: non-empty-list<BenchmarkComparison>, status: int, fpm: string} */
+    /** @return array{comparisons: non-empty-list<BenchmarkComparison>, fpm: non-empty-list<FpmComparison>} */
     public static function collect(string $directory, string $mode): array
     {
         $directories = glob($directory . '/*', GLOB_ONLYDIR);
-        if ($directories === false || count($directories) !== 4) {
-            throw new RuntimeException('Expected exactly four shard artifact directories');
+        if ($directories === false || count($directories) !== self::SHARDS) {
+            throw new RuntimeException('Expected exactly one artifact directory per shard');
         }
         $reference = null;
         $expected = null;
         $seen = [];
         $comparisons = [];
-        $status = 0;
-        $fpm = '';
+        $fpm = null;
         foreach ($directories as $shardDirectory) {
             $metadata = self::json($shardDirectory . '/metadata.json');
             $completion = self::json($shardDirectory . '/complete.json');
             $shard = $metadata['shard'] ?? null;
-            if (!is_int($shard) || $shard < 1 || $shard > 4 || isset($seen[$shard])) {
+            if (!is_int($shard) || $shard < 1 || $shard > self::SHARDS || isset($seen[$shard])) {
                 throw new RuntimeException('Missing, duplicate, or invalid shard number');
             }
             $seen[$shard] = true;
@@ -91,42 +93,41 @@ final class PerformanceShards
                     'Shards disagree about revisions, dependencies, configuration, or workloads',
                 );
             }
-            $shardStatus = $completion['status'] ?? null;
-            if ($shardStatus !== 0 && $shardStatus !== 2) {
-                throw new RuntimeException('Shard has no completed comparison verdict');
-            }
-            $status = max($status, $shardStatus);
             $assigned = self::assignedIndices(count($identities), $shard);
             foreach ($assigned as $index) {
-                $baseline = BenchmarkReport::read($shardDirectory . '/baseline-' . $index . '.xml');
-                $candidate = BenchmarkReport::read($shardDirectory . '/candidate-' . $index . '.xml');
-                $comparisons[] = $candidate->compareAgainst($baseline, $identities[$index], $mode);
+                $rounds = ['baseline' => [], 'candidate' => []];
+                foreach ($rounds as $version => $reports) {
+                    for ($round = 0; $round < BenchmarkComparison::ROUNDS; ++$round) {
+                        $rounds[$version][] = BenchmarkReport::read(
+                            $shardDirectory . '/' . $version . '-' . $index . '-' . $round . '.xml',
+                        );
+                    }
+                }
+                $comparisons[] = BenchmarkReport::compare(
+                    $rounds['baseline'],
+                    $rounds['candidate'],
+                    $identities[$index],
+                    $mode,
+                );
             }
             if (($completion['indices'] ?? null) !== $assigned) {
                 throw new RuntimeException('Shard did not complete exactly its assigned workloads');
             }
-            $files = glob($shardDirectory . '/candidate-*.xml');
-            if (
-                $files === false
-                || count(array_filter(
-                    $files,
-                    static fn(string $path): bool => !str_ends_with($path, '/candidate-workloads.xml'),
-                )) !== count($assigned)
-            ) {
+            $files = glob($shardDirectory . '/{baseline,candidate}-[0-9]*.xml', GLOB_BRACE);
+            if ($files === false || count($files) !== 2 * BenchmarkComparison::ROUNDS * count($assigned)) {
                 throw new RuntimeException('Shard contains unexpected workload measurements');
             }
             if ($shard === 1) {
-                self::json($shardDirectory . '/fpm.json');
-                $report = file_get_contents($shardDirectory . '/fpm.md');
-                if ($report === false || $report === '') {
-                    throw new RuntimeException('Missing FPM report');
-                }
-                $fpm = $report;
+                $samples = self::json($shardDirectory . '/fpm.json');
+                $fpm = FpmMeasurements::compare($samples['baseline'] ?? null, $samples['candidate'] ?? null, $mode === 'on');
             }
         }
         if ($comparisons === [] || count($comparisons) !== count($expected)) {
             throw new RuntimeException('Incomplete workload coverage');
         }
-        return ['comparisons' => $comparisons, 'status' => $status, 'fpm' => $fpm];
+        if ($fpm === null) {
+            throw new RuntimeException('Missing PHP-FPM measurements');
+        }
+        return ['comparisons' => $comparisons, 'fpm' => $fpm];
     }
 }

@@ -20,7 +20,14 @@ final readonly class BenchmarkWorkload
         public string $subject,
         public string $parameter,
         public string $category,
+        public bool $cold,
     ) {}
+
+    /** Fresh CLI processes compile the whole library each time, which a long-running server does once per deploy. */
+    public function blocks(): bool
+    {
+        return !$this->cold;
+    }
 
     public function identity(): string
     {
