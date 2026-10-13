@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\Address;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
+use Eventjet\Json\Test\Acceptance\Fixtures\InheritedPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedObjectFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NestedObjectPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
@@ -25,6 +26,11 @@ final class ObjectHydrationRoundTripCases
             $object = new PublicPropertiesWithConstructor('constructor value');
             $object->label = 'property value';
             $object->active = true;
+            $object->inherited = 42;
+            return $object;
+        })()];
+        yield 'non-final root class' => [(static function (): object {
+            $object = new InheritedPublicProperty();
             $object->inherited = 42;
             return $object;
         })()];
