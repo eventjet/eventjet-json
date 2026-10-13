@@ -77,7 +77,7 @@ foreach ([true, false] as $opcache) {
         throw new RuntimeException('Expected one result per discovered workload');
     }
     foreach ($samples as $sample) {
-        if (count($sample['time_us']) !== Eventjet\Json\Ci\FpmMeasurements::requests($opcache)) {
+        if (count($sample['time_us']) !== Eventjet\Json\Ci\FpmMeasurements::REQUESTS) {
             throw new RuntimeException('Expected every timed request per workload and round');
         }
     }
@@ -93,20 +93,20 @@ foreach ([true, false] as $opcache) {
     $order = [];
     $samples = FpmMeasurements::measure(static function (string $version, int $round) use (&$order, $opcache): array {
         $order[] = $version[0];
-        return ['document' => ['time_us' => array_fill(0, FpmMeasurements::requests($opcache), 100.0), 'peak_bytes' => $round + 1]];
+        return ['document' => ['time_us' => array_fill(0, FpmMeasurements::REQUESTS, 100.0), 'peak_bytes' => $round + 1]];
     }, $opcache);
     $rounds = FpmMeasurements::rounds($opcache);
     if (implode('', array_slice($order, 0, 8)) !== 'bccbbccb' || count($order) !== 2 * $rounds) {
         throw new RuntimeException('Revisions must alternate in ABBA order across all rounds');
     }
     foreach ($samples as $sample) {
-        if (count($sample['document']['time_us']) !== $rounds * FpmMeasurements::requests($opcache)
+        if (count($sample['document']['time_us']) !== $rounds * FpmMeasurements::REQUESTS
             || $sample['document']['peak_bytes'] !== $rounds) {
             throw new RuntimeException('Rounds must be merged into one complete sample per revision');
         }
     }
 }
-if (FpmMeasurements::rounds(true) * FpmMeasurements::requests(true) !== 800) {
+if (FpmMeasurements::rounds(true) * FpmMeasurements::REQUESTS !== 800) {
     throw new RuntimeException('The blocking sample size must match its calibration');
 }
 $complete = static fn(array $times): array => ['document' => ['time_us' => $times, 'peak_bytes' => 1024]];

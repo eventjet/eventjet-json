@@ -14,6 +14,8 @@ require_once __DIR__ . '/BenchmarkComparison.php';
 final class FpmMeasurements
 {
     public const LIMIT_PERCENT = 3.0;
+    /** Beyond a few requests per pool, more rounds reduce the noise far more than more requests per round. */
+    public const REQUESTS = 10;
 
     /** Production servers enable OPcache; without it, every request recompiles the library and mostly measures code size. */
     public static function blocks(bool $opcache): bool
@@ -24,13 +26,9 @@ final class FpmMeasurements
     /** Without OPcache, every request recompiles the library and the blocking sample size would exceed the job limit. */
     public static function rounds(bool $opcache): int
     {
-        return $opcache ? 40 : 10;
+        return $opcache ? 80 : 10;
     }
 
-    public static function requests(bool $opcache): int
-    {
-        return $opcache ? 20 : 10;
-    }
 
     /** @return non-empty-list<string> */
     public static function names(string $workspace): array
@@ -133,7 +131,7 @@ final class FpmMeasurements
             foreach ($names as $name) {
                 $times = $memory = $requests = [];
                 $worker = null;
-                for ($index = 0; $index <= self::requests($opcache); ++$index) {
+                for ($index = 0; $index <= self::REQUESTS; ++$index) {
                     $response = BenchmarkCommand::run([
                         'env',
                         'SCRIPT_FILENAME=' . __DIR__ . '/fpm/request.php',
@@ -233,7 +231,7 @@ final class FpmMeasurements
      */
     public static function compare(mixed $baseline, mixed $candidate, bool $opcache): array
     {
-        $count = self::rounds($opcache) * self::requests($opcache);
+        $count = self::rounds($opcache) * self::REQUESTS;
         $baseline = self::validated($baseline, $count);
         $candidate = self::validated($candidate, $count);
         if (array_keys($baseline) !== array_keys($candidate)) {
@@ -262,7 +260,7 @@ final class FpmMeasurements
             sprintf(
                 '%d alternating pool rounds per revision, each with %d timed requests per document after one discarded priming request.',
                 self::rounds($opcache),
-                self::requests($opcache),
+                self::REQUESTS,
             ),
             $opcache
                 ? 'Bytecode is warm; request-local decoder metadata is fresh.'

@@ -42,7 +42,7 @@ for ($shard = 1; $shard <= PerformanceShards::SHARDS; $shard++) {
     }
 }
 function fpmSample(bool $opcache): array {
-    $count = Eventjet\Json\Ci\FpmMeasurements::rounds($opcache) * Eventjet\Json\Ci\FpmMeasurements::requests($opcache);
+    $count = Eventjet\Json\Ci\FpmMeasurements::rounds($opcache) * Eventjet\Json\Ci\FpmMeasurements::REQUESTS;
     return ['document' => ['time_us' => array_fill(0, $count, 100.0), 'peak_bytes' => 1024]];
 }
 $fpmSample = fpmSample(true);

@@ -43,7 +43,8 @@ The suite separates workloads by purpose:
   1,000-item scalar list. Error checks run after timing. These results are reported
   separately from successful decoding.
 
-Local PHPBench takes five iterations; CI takes 20, in separate CLI processes. `cold` measures one
+Local PHPBench takes five iterations. CI runs 20 alternating rounds of two
+iterations per revision, each iteration in a separate CLI process. `cold` measures one
 first decode, including decoder class loading and compilation. `warm` performs
 one untimed decode first, then batches repeated decodes: 2,000 for small focused
 cases; 10,000 for unknown enum errors and 0/1-record batches; 100 for long scalar lists, the string map,
@@ -141,8 +142,8 @@ The gate blocks on what production pays:
 
 | Measurement | OPcache on | OPcache off |
 | --- | --- | --- |
-| First decode in a fresh PHP-FPM request | **Blocking**, 2% limit on the median | Advisory |
-| Warm CLI decodes (PHPBench `warm` group) | **Blocking**, 5% limit on the mode | **Blocking**, 5% limit on the mode |
+| First decode in a fresh PHP-FPM request | **Blocking**, 3% limit on the median | Advisory |
+| Warm CLI decodes (all workloads outside the `cold` group) | **Blocking**, 3% limit on the median | **Blocking**, 3% limit on the median |
 | Fresh CLI processes (PHPBench `cold` group) | Advisory | Advisory |
 
 A fresh CLI process with OPcache on and no file cache compiles and optimizes
@@ -176,16 +177,14 @@ for revision comparisons. The standalone FPM smoke check does not require Git.
 The artifact includes per-request timing, payload bytes, worker PID, and runtime
 settings for every round, and `fpm.json` holds the merged samples that the
 aggregation checks and compares. A document fails the PHP-FPM gate when the PR's
-median request time is more than 2% above the target's; more than 2% below
+median request time is more than 3% above the target's; more than 3% below
 counts as an improvement. CLI reports separate realistic documents,
 synthetic batches, focused diagnostics, stress cases, and errors.
 
-For warm workloads, the CLI gate uses PHPBench's native baseline comparison and assertion:
-
-```text
---file=../results/baseline-N.xml
---assert="mode(variant.time.avg) <= mode(baseline.time.avg) * 1.05"
-```
+The CLI gate compares the median time per decode over all rounds' iterations.
+A warm workload fails when the PR's median is more than 3% above the target's;
+more than 3% below counts as an improvement. Cold workloads use the same rule
+for display only.
 
 The runner prepares separate baseline and candidate environments once, each with
 its own source tree and optimized Composer autoloader. Each prepared tree is moved
@@ -194,15 +193,15 @@ path-dependent autoloader or filesystem differences. Both use identical frozen
 workloads and installed dependencies. CLI and FPM reuse these environments; changed
 candidate workloads receive a separate environment for verification.
 
-CI splits the discovered workload list across four runners per OPcache mode,
-using the workload index modulo four. Each baseline/candidate pair stays on one
+CI splits the discovered workload list across eight runners per OPcache mode,
+using the workload index modulo eight. Each baseline/candidate pair stays on one
 runner; measurements never run concurrently on that runner. Each shard retains
 the full discovery list and its assigned workload indices. Only shard one runs
-the FPM measurements. Local comparisons remain unsharded unless `--shard 1`,
-`--shard 2`, `--shard 3`, or `--shard 4` is specified. Shard one requires
-`--fpm on`; the other shards require `--fpm off`.
+the FPM measurements. Local comparisons remain unsharded unless `--shard N` is
+specified, with N from 1 through 8. Shard one requires `--fpm on`; the other
+shards require `--fpm off`.
 
-The final comparison checks validate all four artifacts before publishing one
+The final comparison checks validate all eight artifacts before publishing one
 combined result. They reject missing or duplicate shards, inconsistent revisions,
 dependencies or configuration, missing workloads, and incomplete sampling.
 Partial reruns reuse measurements from shards that did not rerun. Aggregation
@@ -212,24 +211,25 @@ cannot fall back to an older passing result, even when it leaves no artifact.
 A completed regression remains a regression; interrupted measurements cannot
 produce a passing comparison. The existing required check names remain unchanged.
 
-The runner discovers workloads with a single-iteration discovery run, then
-measures each target workload immediately before its candidate counterpart to
-reduce the time between comparable measurements. Each version runs 20 iterations
-per workload, preserving cold/warm revolution
-and warmup settings. PHPBench estimates the mode of per-decode times and fails
-with exit code 2 when any warm workload is more than 5% slower than its freshly
-measured target baseline. Cold workloads are compared against the same baseline
-file without an assertion. There is no stored timing baseline, minimum increase
-in microseconds, or automatic retry-until-pass policy. The runner's exit status
-combines PHPBench's status with the PHP-FPM verdict when OPcache is on.
-Memory remains advisory. Raw XML, PHPBench's aggregate report, commit IDs,
-CPU information, and a dependency fingerprint are archived even on assertion
-failure. A changed candidate workload suite runs separately without a baseline
-assertion, since its workloads are not comparable.
+The runner discovers workloads with a single-iteration discovery run. It then
+measures each workload in 20 rounds per revision, in ABBA order (target, PR, PR,
+target, …). Each round is one PHPBench run of two iterations, preserving cold/warm
+revolution and warmup settings. The runner slows down for seconds at a time;
+when one revision ran all its iterations before the other, such a slow stretch
+fell on one side only and moved unchanged workloads by up to 17%. Short
+alternating rounds spread those stretches over both sides. Each round names only
+its benchmark file, because PHPBench needs about two seconds to parse the whole
+suite. The runner exits with code 2 when a blocking workload or, with OPcache on,
+a PHP-FPM document exceeds its limit. There is no stored timing baseline,
+minimum increase in microseconds, or automatic retry-until-pass policy.
+Memory remains advisory. Raw XML and PHPBench's aggregate report for every round,
+commit IDs, CPU information, and a dependency fingerprint are archived even when
+a comparison fails. A changed candidate workload suite runs once separately, since
+its workloads are not comparable.
 
 Use the Performance workflow's manual `calibrate` input to compare the same
 commit against itself in five independent repetitions of the complete sharded check.
-Each repetition uses four runners per selected OPcache mode (40 measurement
+Each repetition uses eight runners per selected OPcache mode (80 measurement
 jobs when both modes are selected). Normal PR runs still
 compare the target with the proposed merge. Each calibration job archives its
 own samples and report for each selected OPcache mode. Only shard one measures

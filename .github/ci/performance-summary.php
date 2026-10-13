@@ -132,7 +132,7 @@ function fpmSection(array $fpm, string $mode): array
         . sectionResult($blocks, fpmSlower($fpm), $faster)
         . sprintf(
             " · Median of %d requests per revision · Limit ±%s\n\n",
-            FpmMeasurements::rounds($mode === 'on') * FpmMeasurements::requests($mode === 'on'),
+            FpmMeasurements::rounds($mode === 'on') * FpmMeasurements::REQUESTS,
             limitText(FpmMeasurements::LIMIT_PERCENT),
         )
         . "| Document | Target | PR | Change |\n| --- | ---: | ---: | ---: |\n"
