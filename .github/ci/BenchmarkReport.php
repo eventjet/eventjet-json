@@ -9,6 +9,7 @@ use SimpleXMLElement;
 
 require_once __DIR__ . '/BenchmarkWorkload.php';
 require_once __DIR__ . '/BenchmarkComparison.php';
+require_once __DIR__ . '/Statistics.php';
 
 final readonly class BenchmarkReport
 {
@@ -89,35 +90,58 @@ final readonly class BenchmarkReport
         }
     }
 
-    private function measuredVariant(string $identity, string $mode): SimpleXMLElement
+    /** @return array{times: non-empty-list<float>, revs: string, warmup: string} */
+    private function sample(string $identity, string $mode): array
     {
         if ($this->identities() !== [$identity]) {
             throw new RuntimeException('Measured workload differs from the assigned workload');
         }
         $this->requireMode($mode);
         $variant = $this->variants[0];
-        if (count($variant->iteration) !== 20) {
+        if (count($variant->iteration) !== BenchmarkComparison::ITERATIONS) {
             throw new RuntimeException('Measurement sampling differs');
         }
-        return $variant;
+        $times = [];
+        foreach ($variant->iteration as $iteration) {
+            $time = (float) $iteration['time-avg'];
+            if ($time <= 0 || !is_finite($time)) {
+                throw new RuntimeException('Invalid iteration time');
+            }
+            $times[] = $time;
+        }
+        if ($times === []) {
+            throw new RuntimeException('Missing iterations');
+        }
+        return ['times' => $times, 'revs' => (string) $variant['revs'], 'warmup' => (string) $variant['warmup']];
     }
 
-    public function compareAgainst(self $baseline, string $identity, string $mode): BenchmarkComparison
+    /**
+     * Compares the medians of all rounds' iteration times.
+     *
+     * @param list<self> $baselines
+     * @param list<self> $candidates
+     */
+    public static function compare(array $baselines, array $candidates, string $identity, string $mode): BenchmarkComparison
     {
-        $base = $baseline->measuredVariant($identity, $mode);
-        $candidate = $this->measuredVariant($identity, $mode);
-        if (
-            count($candidate->{'baseline-stats'}) !== 1
-            || (string) $base->stats['mode'] !== (string) $candidate->{'baseline-stats'}['mode']
-            || (string) $base['revs'] !== (string) $candidate['revs']
-            || (string) $base['warmup'] !== (string) $candidate['warmup']
-        ) {
-            throw new RuntimeException('Candidate comparison does not match its baseline measurement');
+        if (count($baselines) !== BenchmarkComparison::ROUNDS || count($candidates) !== BenchmarkComparison::ROUNDS) {
+            throw new RuntimeException('Measurement rounds differ');
+        }
+        $times = ['baseline' => [], 'candidate' => []];
+        $settings = null;
+        foreach (['baseline' => $baselines, 'candidate' => $candidates] as $version => $reports) {
+            foreach ($reports as $report) {
+                $sample = $report->sample($identity, $mode);
+                $settings ??= [$sample['revs'], $sample['warmup']];
+                if ($settings !== [$sample['revs'], $sample['warmup']]) {
+                    throw new RuntimeException('Candidate comparison does not match its baseline measurement');
+                }
+                $times[$version] = [...$times[$version], ...$sample['times']];
+            }
         }
         return new BenchmarkComparison(
-            $this->workloads[0],
-            (float) $base->stats['mode'],
-            (float) $candidate->stats['mode'],
+            $candidates[0]->workloads[0],
+            Statistics::median($times['baseline']),
+            Statistics::median($times['candidate']),
         );
     }
 }

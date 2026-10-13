@@ -20,16 +20,16 @@ if (
     );
 }
 $comparison = PerformanceShards::collect($options['artifacts'], $options['opcache']);
-$comment = performanceSummary($comparison['comparisons'], $comparison['status'], $options['opcache'], $comparison['fpm']);
+$comment = performanceSummary($comparison['comparisons'], $options['opcache'], $comparison['fpm']);
 if (!is_dir($options['output'])) {
     mkdir($options['output'], 0777, true);
 }
 file_put_contents($options['output'] . '/comment.md', $comment);
-$summary = $comment . FpmMeasurements::report($comparison['fpm'], $options['opcache'] === 'on');
+$summary = $comment . cliReport($comparison['comparisons']) . FpmMeasurements::report($comparison['fpm'], $options['opcache'] === 'on');
 file_put_contents($options['output'] . '/summary.md', $summary);
 $stepSummary = getenv('GITHUB_STEP_SUMMARY');
 if ($stepSummary !== false && $stepSummary !== '') {
     file_put_contents($stepSummary, $summary, FILE_APPEND);
 }
 echo $summary;
-exit(performanceStatus($comparison['status'], $options['opcache'], $comparison['fpm']));
+exit(performanceStatus($comparison['comparisons'], $options['opcache'], $comparison['fpm']));

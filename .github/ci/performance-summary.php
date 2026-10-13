@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Eventjet\Json\Ci\BenchmarkComparison;
+use Eventjet\Json\Ci\BenchmarkWorkload;
 use Eventjet\Json\Ci\FpmComparison;
 use Eventjet\Json\Ci\FpmMeasurements;
 
@@ -36,24 +37,30 @@ function fpmSlower(array $fpm): bool
     return false;
 }
 
-/**
- * The CLI status is PHPBench's assertion status, which covers only blocking CLI workloads.
- *
- * @param list<FpmComparison>|null $fpm
- */
-function performanceStatus(int $status, string $mode, array|null $fpm): int
+function limitText(float $percent): string
 {
-    $fpmRegressed = $fpm !== null && FpmMeasurements::blocks($mode === 'on') && fpmSlower($fpm);
-    return max($status, $fpmRegressed ? 2 : 0);
+    return rtrim(rtrim(sprintf('%.1f', $percent), '0'), '.') . '%';
 }
 
 /**
- * Blocking sections take their verdict from PHPBench's assertion; advisory sections have no assertion.
- *
+ * @param list<BenchmarkComparison> $comparisons
+ * @param list<FpmComparison>|null $fpm
+ */
+function performanceStatus(array $comparisons, string $mode, array|null $fpm): int
+{
+    foreach ($comparisons as $comparison) {
+        if ($comparison->workload->blocks() && $comparison->slower()) {
+            return 2;
+        }
+    }
+    return $fpm !== null && FpmMeasurements::blocks($mode === 'on') && fpmSlower($fpm) ? 2 : 0;
+}
+
+/**
  * @param non-empty-list<BenchmarkComparison> $comparisons
  * @return array{text: string, faster: bool}
  */
-function cliSection(string $title, array $comparisons, bool $blocks, bool $assertionFailed): array
+function cliSection(string $title, array $comparisons, bool $blocks): array
 {
     $rows = [];
     $slower = 0;
@@ -62,8 +69,8 @@ function cliSection(string $title, array $comparisons, bool $blocks, bool $asser
     foreach ($comparisons as $comparison) {
         $ratio = $comparison->candidate / $comparison->baseline;
         $logRatios += log($ratio);
-        $slower += (int) ($comparison->candidate > ($comparison->baseline * 1.05));
-        $faster += (int) ($comparison->candidate < ($comparison->baseline * 0.95));
+        $slower += (int) $comparison->slower();
+        $faster += (int) $comparison->faster();
         $workload = $comparison->workload;
         $rows[] = [
             'name' => summaryName($workload->class . '::' . $workload->subject . ' [' . $workload->parameter . ']'),
@@ -74,16 +81,18 @@ function cliSection(string $title, array $comparisons, bool $blocks, bool $asser
     }
     usort($rows, static fn(array $a, array $b): int => $a['change'] <=> $b['change']);
     $text = '### ' . $title . ' · ' . ($blocks ? 'blocking' : 'advisory') . "\n\n"
-        . sectionResult($blocks, $blocks ? $assertionFailed : $slower > 0, $faster > 0)
+        . sectionResult($blocks, $slower > 0, $faster > 0)
         . sprintf(
-            " · **Overall decode time: %+.2f%%** · **%d workloads**\n\n",
+            " · **Overall decode time: %+.2f%%** · **%d workloads** · Limit ±%s\n\n",
             (exp($logRatios / count($rows)) - 1) * 100,
             count($rows),
+            limitText(BenchmarkComparison::LIMIT_PERCENT),
         )
         . sprintf(
-            "| Faster (>5%%) | Within ±5%% | Slower (>5%%) |\n| ---: | ---: | ---: |\n| %d | %d | %d |\n\n",
+            "| Faster (>%3\$s) | Within ±%3\$s | Slower (>%3\$s) |\n| ---: | ---: | ---: |\n| %1\$d | %2\$d | %4\$d |\n\n",
             $faster,
             count($rows) - $faster - $slower,
+            limitText(BenchmarkComparison::LIMIT_PERCENT),
             $slower,
         )
         . "| Timing range | Workload | Target | PR | Change |\n| --- | --- | ---: | ---: | ---: |\n";
@@ -107,7 +116,6 @@ function cliSection(string $title, array $comparisons, bool $blocks, bool $asser
 function fpmSection(array $fpm, string $mode): array
 {
     $blocks = FpmMeasurements::blocks($mode === 'on');
-    $limit = FpmMeasurements::LIMIT_PERCENT;
     $faster = false;
     $rows = '';
     foreach ($fpm as $comparison) {
@@ -123,9 +131,9 @@ function fpmSection(array $fpm, string $mode): array
     $text = '### First decode in a fresh PHP-FPM request · ' . ($blocks ? 'blocking' : 'advisory') . "\n\n"
         . sectionResult($blocks, fpmSlower($fpm), $faster)
         . sprintf(
-            " · Median of %d requests per revision · Limit ±%s%%\n\n",
+            " · Median of %d requests per revision · Limit ±%s\n\n",
             FpmMeasurements::rounds($mode === 'on') * FpmMeasurements::requests($mode === 'on'),
-            rtrim(rtrim(sprintf('%.1f', $limit), '0'), '.'),
+            limitText(FpmMeasurements::LIMIT_PERCENT),
         )
         . "| Document | Target | PR | Change |\n| --- | ---: | ---: | ---: |\n"
         . $rows;
@@ -136,7 +144,7 @@ function fpmSection(array $fpm, string $mode): array
  * @param non-empty-list<BenchmarkComparison> $comparisons
  * @param non-empty-list<FpmComparison>|null $fpm
  */
-function performanceSummary(array $comparisons, int $status, string $mode, array|null $fpm): string
+function performanceSummary(array $comparisons, string $mode, array|null $fpm): string
 {
     $warm = array_values(array_filter($comparisons, static fn(BenchmarkComparison $c): bool => $c->workload->blocks()));
     $cold = array_values(array_filter($comparisons, static fn(BenchmarkComparison $c): bool => !$c->workload->blocks()));
@@ -150,19 +158,47 @@ function performanceSummary(array $comparisons, int $status, string $mode, array
         $sections[] = "### First decode in a fresh PHP-FPM request\n\nNot measured in this run.\n\n";
     }
     if ($warm !== []) {
-        $section = cliSection('Warm CLI decodes', $warm, true, $status !== 0);
+        $section = cliSection('Warm CLI decodes', $warm, true);
         $sections[] = $section['text'];
         $improved = $improved || $section['faster'];
     }
     if ($cold !== []) {
-        $sections[] = cliSection('Fresh CLI processes', $cold, false, false)['text'];
+        $sections[] = cliSection('Fresh CLI processes', $cold, false)['text'];
     }
-    $verdict = performanceStatus($status, $mode, $fpm) !== 0
+    $verdict = performanceStatus($comparisons, $mode, $fpm) !== 0
         ? '🔴 Performance regression'
         : ($improved ? '🟢 Performance improvement' : '⚪ No significant performance changes');
     return '## ' . $verdict . ' (OPcache ' . $mode . ")\n\n"
         . "Only blocking sections decide this result. Advisory sections are shown for information.\n\n"
         . implode('', $sections)
-        . 'CLI sections compare PHPBench mode times per decode; overall is the geometric mean of PR/target ratios, '
-        . "with equal weight per workload. The PHP-FPM section compares median request times. Negative means faster.\n";
+        . 'CLI sections compare median times per decode over alternating rounds; overall is the geometric mean of '
+        . "PR/target ratios, with equal weight per workload. The PHP-FPM section compares median request times. Negative means faster.\n";
+}
+
+/** @param list<BenchmarkComparison> $comparisons */
+function cliReport(array $comparisons): string
+{
+    $groups = [];
+    foreach ($comparisons as $comparison) {
+        $workload = $comparison->workload;
+        $groups[$workload->category] = ($groups[$workload->category] ?? '') . sprintf(
+            "| %s | %s | %.3f µs | %.3f µs | %+.2f%% |\n",
+            summaryName($workload->class . '::' . $workload->subject . ' [' . $workload->parameter . ']'),
+            $workload->blocks() ? 'blocking' : 'advisory',
+            $comparison->baseline,
+            $comparison->candidate,
+            $comparison->change(),
+        );
+    }
+    $text = sprintf(
+        "\n## CLI workloads\n\n%d alternating rounds per revision, each with %d PHPBench iterations in separate processes. Times are medians per decode.\n",
+        BenchmarkComparison::ROUNDS,
+        BenchmarkComparison::ITERATIONS,
+    );
+    foreach (BenchmarkWorkload::REPORT_GROUPS as $group => $title) {
+        if (isset($groups[$group])) {
+            $text .= "\n### $title\n\n| Workload | Gate | Target | PR | Change |\n| --- | --- | ---: | ---: | ---: |\n" . $groups[$group];
+        }
+    }
+    return $text;
 }

@@ -52,7 +52,7 @@ final class PerformanceShards
         return $validated;
     }
 
-    /** @return array{comparisons: non-empty-list<BenchmarkComparison>, status: int, fpm: non-empty-list<FpmComparison>} */
+    /** @return array{comparisons: non-empty-list<BenchmarkComparison>, fpm: non-empty-list<FpmComparison>} */
     public static function collect(string $directory, string $mode): array
     {
         $directories = glob($directory . '/*', GLOB_ONLYDIR);
@@ -63,7 +63,6 @@ final class PerformanceShards
         $expected = null;
         $seen = [];
         $comparisons = [];
-        $status = 0;
         $fpm = null;
         foreach ($directories as $shardDirectory) {
             $metadata = self::json($shardDirectory . '/metadata.json');
@@ -92,28 +91,28 @@ final class PerformanceShards
                     'Shards disagree about revisions, dependencies, configuration, or workloads',
                 );
             }
-            $shardStatus = $completion['status'] ?? null;
-            if ($shardStatus !== 0 && $shardStatus !== 2) {
-                throw new RuntimeException('Shard has no completed comparison verdict');
-            }
-            $status = max($status, $shardStatus);
             $assigned = self::assignedIndices(count($identities), $shard);
             foreach ($assigned as $index) {
-                $baseline = BenchmarkReport::read($shardDirectory . '/baseline-' . $index . '.xml');
-                $candidate = BenchmarkReport::read($shardDirectory . '/candidate-' . $index . '.xml');
-                $comparisons[] = $candidate->compareAgainst($baseline, $identities[$index], $mode);
+                $rounds = ['baseline' => [], 'candidate' => []];
+                foreach ($rounds as $version => $reports) {
+                    for ($round = 0; $round < BenchmarkComparison::ROUNDS; ++$round) {
+                        $rounds[$version][] = BenchmarkReport::read(
+                            $shardDirectory . '/' . $version . '-' . $index . '-' . $round . '.xml',
+                        );
+                    }
+                }
+                $comparisons[] = BenchmarkReport::compare(
+                    $rounds['baseline'],
+                    $rounds['candidate'],
+                    $identities[$index],
+                    $mode,
+                );
             }
             if (($completion['indices'] ?? null) !== $assigned) {
                 throw new RuntimeException('Shard did not complete exactly its assigned workloads');
             }
-            $files = glob($shardDirectory . '/candidate-*.xml');
-            if (
-                $files === false
-                || count(array_filter(
-                    $files,
-                    static fn(string $path): bool => !str_ends_with($path, '/candidate-workloads.xml'),
-                )) !== count($assigned)
-            ) {
+            $files = glob($shardDirectory . '/{baseline,candidate}-[0-9]*.xml', GLOB_BRACE);
+            if ($files === false || count($files) !== 2 * BenchmarkComparison::ROUNDS * count($assigned)) {
                 throw new RuntimeException('Shard contains unexpected workload measurements');
             }
             if ($shard === 1) {
@@ -127,6 +126,6 @@ final class PerformanceShards
         if ($fpm === null) {
             throw new RuntimeException('Missing PHP-FPM measurements');
         }
-        return ['comparisons' => $comparisons, 'status' => $status, 'fpm' => $fpm];
+        return ['comparisons' => $comparisons, 'fpm' => $fpm];
     }
 }

@@ -7,6 +7,8 @@ namespace Eventjet\Json\Ci;
 use RuntimeException;
 
 require_once __DIR__ . '/FpmComparison.php';
+require_once __DIR__ . '/Statistics.php';
+require_once __DIR__ . '/BenchmarkComparison.php';
 
 /** Measures fresh requests in an isolated PHP-FPM pool with warm bytecode. */
 final class FpmMeasurements
@@ -58,7 +60,7 @@ final class FpmMeasurements
 
     /**
      * Request times shift between pool restarts by more than they vary within one pool. Alternating many short pools
-     * between the revisions, in ABBA order, averages those shifts and runner drift out of the comparison.
+     * between the revisions averages those shifts and runner drift out of the comparison.
      *
      * @param callable(string, int): array<string, array{time_us: non-empty-list<float>, peak_bytes: int}> $round
      * @return array{
@@ -70,7 +72,7 @@ final class FpmMeasurements
     {
         $samples = ['baseline' => [], 'candidate' => []];
         for ($index = 0; $index < self::rounds($opcache); ++$index) {
-            foreach ($index % 2 === 0 ? ['baseline', 'candidate'] : ['candidate', 'baseline'] as $version) {
+            foreach (BenchmarkComparison::order($index) as $version) {
                 foreach ($round($version, $index) as $name => $measured) {
                     $previous = $samples[$version][$name] ?? ['time_us' => [], 'peak_bytes' => 0];
                     $samples[$version][$name] = [
@@ -241,8 +243,8 @@ final class FpmMeasurements
         foreach ($baseline as $name => $base) {
             $comparisons[] = new FpmComparison(
                 $name,
-                self::median($base['time_us']),
-                self::median($candidate[$name]['time_us']),
+                Statistics::median($base['time_us']),
+                Statistics::median($candidate[$name]['time_us']),
                 $base['peak_bytes'],
                 $candidate[$name]['peak_bytes'],
             );
@@ -315,13 +317,5 @@ final class FpmMeasurements
             $validated[$name] = ['time_us' => $floats, 'peak_bytes' => $peak];
         }
         return $validated;
-    }
-
-    /** @param non-empty-list<float> $values */
-    private static function median(array $values): float
-    {
-        sort($values);
-        $middle = intdiv(count($values), 2);
-        return count($values) % 2 === 1 ? $values[$middle] : ($values[$middle - 1] + $values[$middle]) / 2;
     }
 }
