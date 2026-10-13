@@ -19,7 +19,7 @@ final class PhpDocNamedTypeParser
     /** @throws PhpDocSyntaxError */
     public static function named(PhpDocTokens $tokens, string $name): PhpDocType|null
     {
-        $html = $tokens->is(PhpDocLexer::OPEN_ANGLE_BRACKET) && PhpDocHtmlDetector::follows($tokens);
+        $html = $tokens->is(PhpDocLexer::OPEN_ANGLE_BRACKET) && $tokens->slash && PhpDocHtmlDetector::follows($tokens);
         if ($html) {
             return new PhpDocType($name);
         }
@@ -42,11 +42,11 @@ final class PhpDocNamedTypeParser
     private static function continued(PhpDocTokens $tokens, string $name): PhpDocType|null
     {
         if ($tokens->is(PhpDocLexer::OPEN_PARENTHESES)) {
-            $callable = PhpDocCallableParser::attempt($tokens);
+            $callable = self::callable($tokens);
             return $callable ? null : new PhpDocType($name);
         }
         if ($tokens->is(PhpDocLexer::OPEN_ANGLE_BRACKET)) {
-            $callable = PhpDocCallableParser::attempt($tokens);
+            $callable = self::callable($tokens);
             $type = $callable ? null : PhpDocGenericParser::generic($tokens, $name);
             return $callable ? null : PhpDocAtomicTypeParser::arrayOrOffsetAccess($tokens, $type);
         }
@@ -58,5 +58,12 @@ final class PhpDocNamedTypeParser
             ? PhpDocShapeItemParser::objectShape($tokens)
             : PhpDocArrayShapeParser::shape($tokens, $name);
         return PhpDocAtomicTypeParser::arrayOrOffsetAccess($tokens, $type);
+    }
+
+    /** Parses a callable if possible. A callable needs a `(`, so none can start after the last one. */
+    private static function callable(PhpDocTokens $tokens): bool
+    {
+        $last = $tokens->lastParenthesis;
+        return $last !== null && $tokens->index <= $last && PhpDocCallableParser::attempt($tokens);
     }
 }

@@ -83,6 +83,7 @@ use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\UnknownClassOrInterfaceException;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionParameter;
 use ReflectionProperty;
 use RuntimeException;
 
@@ -97,7 +98,7 @@ use function class_alias;
 #[CoversClass(PublicPropertyValues::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(DecodeError::class)]
-#[UsesClass(PhpDocFieldType::class)]
+#[CoversClass(PhpDocFieldType::class)]
 #[UsesClass(PhpDocType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLexer::class)]
@@ -125,6 +126,9 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTags::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTag::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTagSelector::class)]
@@ -434,5 +438,23 @@ final class MetadataCacheTest extends TestCase
         static::assertNotNull($type);
         $node = new TypeCompiler()->field($property, $type);
         return [$node, $node instanceof DecodeError ? [] : $node->dependencies()];
+    }
+
+    /**
+     * A constructor's doc comment declares all parameters, so it is read once and not once for each parameter.
+     *
+     * @throws ReflectionException
+     * @throws RuntimeException
+     */
+    public function testEachDocCommentIsReadOnce(): void
+    {
+        foreach ([
+            "/**\n * @param list<int> \$value\n */",
+            "/**\n * @return void\n * @param list<int> \$value\n */",
+        ] as $doc) {
+            $class = CollectionDeclarationFixture::create('array', $doc, 'param');
+            $value = new ReflectionParameter([$class, '__construct'], 'value');
+            static::assertSame(PhpDocFieldType::resolve($value), PhpDocFieldType::resolve($value));
+        }
     }
 }

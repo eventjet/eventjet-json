@@ -14,6 +14,13 @@ use function str_contains;
 /** @internal */
 final class PhpDocFieldType
 {
+    /**
+     * The tags of each doc comment read so far, so that a constructor's doc comment is read once for all parameters.
+     *
+     * @var array<string, list<array{string, string, PhpDocType|null}>>
+     */
+    private static array $tags = [];
+
     /** Returns the error for an `array` or `ArrayObject` field without a supported PHPDoc collection declaration. */
     public static function unrecognized(ReflectionParameter|ReflectionProperty $field): DecodeError
     {
@@ -30,7 +37,8 @@ final class PhpDocFieldType
         if (!str_contains($doc, $parameter ? 'param' : 'var')) {
             return null;
         }
-        $tags = PhpDocTagParser::tags($doc);
+        self::$tags[$doc] ??= PhpDocSimpleTags::tags($doc) ?? PhpDocTagParser::tags($doc);
+        $tags = self::$tags[$doc];
         $type = $parameter
             ? PhpDocTagSelector::parameter($tags, $field->getName())
             : PhpDocTagSelector::property($tags, $field->getName());
