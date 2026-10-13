@@ -5,12 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json;
 
 use ArrayObject;
-use Eventjet\Json\Internal\ArrayJsonType;
-use Eventjet\Json\Internal\ClassJsonType;
-use Eventjet\Json\Internal\MapJsonType;
-use Eventjet\Json\Internal\Node\Node;
-use JsonException;
-use ReflectionException;
+use Eventjet\Json\Internal\RootDescriptor;
 
 use function is_string;
 
@@ -18,8 +13,13 @@ use function is_string;
  * @api
  * @template-covariant T
  */
-abstract readonly class JsonType
+final readonly class JsonType
 {
+    /** @param RootDescriptor<T> $descriptor */
+    private function __construct(
+        private RootDescriptor $descriptor,
+    ) {}
+
     /**
      * @template TItem
      * @param class-string<TItem&object>|self<TItem> $itemType
@@ -29,7 +29,9 @@ abstract readonly class JsonType
      */
     public static function array(string|self $itemType): self
     {
-        return new ArrayJsonType(self::resolve($itemType));
+        /** @var RootDescriptor<list<TItem>> $descriptor */
+        $descriptor = self::wrap('array', $itemType);
+        return new self($descriptor);
     }
 
     /**
@@ -41,46 +43,23 @@ abstract readonly class JsonType
      */
     public static function map(string|self $valueType): self
     {
-        return new MapJsonType(self::resolve($valueType));
+        /** @var RootDescriptor<ArrayObject<string, TValue>> $descriptor */
+        $descriptor = self::wrap('object', $valueType);
+        return new self($descriptor);
     }
 
     /**
-     * @template TValue
-     * @param class-string<TValue&object>|self<TValue> $type
-     * @phpstan-param (TValue is object ? class-string<TValue> : never)|self<TValue> $type
-     * @psalm-param class-string<TValue&object>|self<TValue> $type
-     * @return self<TValue>
+     * @template TItem
+     * @param 'array'|'object' $shape
+     * @param class-string<TItem&object>|self<TItem> $item
+     * @return RootDescriptor<mixed>
      */
-    private static function resolve(string|self $type): self
+    private static function wrap(string $shape, string|self $item): RootDescriptor
     {
-        return is_string($type) ? new ClassJsonType($type) : $type;
+        return (
+            is_string($item)
+                ? new RootDescriptor([$shape], $item)
+                : new RootDescriptor([$shape, ...$item->descriptor->shapes], $item->descriptor->itemClass)
+        );
     }
-
-    /**
-     * Compiles this descriptor.
-     *
-     * @internal
-     * @throws ReflectionException
-     */
-    abstract public function node(): Node;
-
-    /**
-     * @internal
-     * @return T|DecodeError
-     * @throws JsonException
-     * @throws ReflectionException
-     */
-    abstract public function decode(mixed $value): mixed;
-
-    /**
-     * @internal
-     * @return 'array'|'object'
-     */
-    abstract public function rootShape(): string;
-
-    /**
-     * @internal
-     * @return class-string
-     */
-    abstract public function itemClass(): string;
 }

@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace Eventjet\Json;
 
 use Eventjet\Json\Internal\ClassDecoders;
-use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
-use Eventjet\Json\Internal\RootTypeValidator;
-use ReflectionClass;
+use Eventjet\Json\Internal\RootDescriptor;
 use stdClass;
 use Throwable;
 
-use function is_array;
 use function is_string;
 use function json_decode;
 use function json_last_error;
@@ -30,15 +27,13 @@ final class Json
      */
     public static function validateType(string|JsonType $type): DecodeError|null
     {
-        $class = is_string($type) ? $type : $type->itemClass();
+        if (!is_string($type)) {
+            return RootDescriptor::of($type)->validate();
+        }
         try {
-            if (is_string($type)) {
-                return new ClassGraphValidator()->validateRoot($class);
-            }
-            $error = ClassFieldTypeValidator::validate('[]', $class);
-            return $error?->whileCreating($class) ?? new ClassGraphValidator()->validate($class);
+            return new ClassGraphValidator()->validateRoot($type);
         } catch (Throwable $error) {
-            return UnsupportedTarget::unreadable($error)->whileCreating($class);
+            return UnsupportedTarget::unreadable($error)->whileCreating($type);
         }
     }
 
@@ -60,7 +55,7 @@ final class Json
         }
 
         if (!is_string($class)) {
-            return self::decodeCollection($class, $values);
+            return RootDescriptor::of($class)->decode($values);
         }
 
         if (!$values instanceof stdClass) {
@@ -68,39 +63,5 @@ final class Json
         }
 
         return ClassDecoders::hydrate($class, $values);
-    }
-
-    /**
-     * @template T
-     * @param JsonType<T> $type
-     * @return T|DecodeError
-     */
-    private static function decodeCollection(JsonType $type, mixed $values): mixed
-    {
-        $rootType = $type->rootShape();
-        $matchesRoot = match ($rootType) {
-            'object' => $values instanceof stdClass,
-            'array' => is_array($values),
-        };
-        if (!$matchesRoot) {
-            return DecodeError::unexpectedRootValue($values, $rootType);
-        }
-
-        $class = $type->itemClass();
-
-        try {
-            $error = ClassFieldTypeValidator::validate('[]', $class) ?? RootTypeValidator::validate(
-                new ReflectionClass($class),
-            );
-
-            if ($error !== null) {
-                return $error->whileCreating($class);
-            }
-
-            $decoded = $type->decode($values);
-            return $decoded instanceof DecodeError ? $decoded->whileCreating($class) : $decoded;
-        } catch (Throwable $error) {
-            return UnsupportedTarget::unreadable($error)->whileCreating($class);
-        }
     }
 }

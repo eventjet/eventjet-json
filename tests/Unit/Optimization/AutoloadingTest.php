@@ -7,12 +7,10 @@ namespace Eventjet\Json\Test\Unit\Optimization;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
-use Eventjet\Json\Internal\ArrayJsonType;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
-use Eventjet\Json\Internal\ClassJsonType;
 use Eventjet\Json\Internal\CollectionCompiler;
 use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\CollectionUnionNatives;
@@ -24,7 +22,6 @@ use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\LiteralFieldCompiler;
-use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
@@ -136,14 +133,11 @@ use function spl_autoload_unregister;
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
 #[CoversClass(UnionNode::class)]
-#[UsesClass(ArrayJsonType::class)]
 #[UsesClass(ClassDecoder::class)]
 #[UsesClass(ClassDecoders::class)]
 #[UsesClass(ClassGraphValidator::class)]
-#[UsesClass(ClassJsonType::class)]
 #[UsesClass(DecodeErrorKind::class)]
 #[UsesClass(InvalidValue::class)]
-#[UsesClass(MapJsonType::class)]
 #[UsesClass(MappedObjectSerializer::class)]
 final class AutoloadingTest extends TestCase
 {

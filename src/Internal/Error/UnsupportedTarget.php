@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal\Error;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
+use ReflectionClass;
 use Throwable;
 
 use function sprintf;
@@ -54,11 +55,25 @@ final class UnsupportedTarget
         );
     }
 
-    public static function jsonSerializable(): DecodeError
+    public static function nonFinalItem(): DecodeError
     {
         return self::error(
-            'Target type implements JsonSerializable. Its custom JSON representation may not match its constructor parameters, so it cannot satisfy the round-trip contract.',
+            'Target type is a non-final class. Collection items may be subclasses, whose runtime class JSON does not identify.',
         );
+    }
+
+    /**
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     */
+    public static function jsonSerializable(ReflectionClass $class): DecodeError
+    {
+        $enum = $class->isEnum();
+        return self::error(sprintf(
+            'Target type %s JsonSerializable. Its custom JSON representation may not match its %s, so it cannot satisfy the round-trip contract.',
+            $enum ? 'is an enum that implements' : 'implements',
+            $enum ? 'cases' : 'constructor parameters',
+        ));
     }
 
     /** Reading the declarations threw, for example because a class does not exist or an attribute is invalid. */

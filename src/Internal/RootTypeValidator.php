@@ -43,7 +43,7 @@ final class RootTypeValidator
         $properties = self::mappedFields($class);
         if ($properties === []) {
             return $class->implementsInterface(JsonSerializable::class)
-                ? UnsupportedTarget::jsonSerializable()
+                ? UnsupportedTarget::jsonSerializable($class)
                 : (self::$names[$className] = []);
         }
         $names = FieldNames::resolve($class, $properties);

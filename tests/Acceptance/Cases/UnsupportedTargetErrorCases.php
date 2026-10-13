@@ -7,12 +7,14 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
+use Eventjet\Json\Test\Acceptance\Fixtures\InheritedPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassField;
 use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
+use Eventjet\Json\Test\Acceptance\Fixtures\PrivateConstructorTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface;
 
 /** @internal */
@@ -96,13 +98,50 @@ final class UnsupportedTargetErrorCases
         yield 'root list enum cannot implement JsonSerializable' => [
             '[]',
             JsonType::array(JsonSerializableStatus::class),
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus from the JSON object: Field [] uses enum Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus, which implements JsonSerializable. Its custom JSON representation may not match its cases, so it cannot satisfy the round-trip contract.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus from the JSON object: Target type is an enum that implements JsonSerializable. Its custom JSON representation may not match its cases, so it cannot satisfy the round-trip contract.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'list item type cannot be an interface' => [
             '[]',
             JsonType::array(RootTargetInterface::class),
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface from the JSON object: Field [] uses interface Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface from the JSON object: Target type is an interface. JSON does not identify a concrete implementation to instantiate.',
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
+        yield 'list item type cannot be an abstract class' => [
+            '[]',
+            JsonType::array(AbstractRootTarget::class),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget from the JSON object: Target type is an abstract class. JSON does not identify a concrete subclass to instantiate.',
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
+        $nonFinal = 'Could not create Eventjet\Json\Test\Acceptance\Fixtures\InheritedPublicProperty from the JSON object: Target type is a non-final class. Collection items may be subclasses, whose runtime class JSON does not identify.';
+        yield 'list item type cannot be a non-final class' => [
+            '[]',
+            JsonType::array(InheritedPublicProperty::class),
+            $nonFinal,
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
+        yield 'map value type cannot be a non-final class' => [
+            '{}',
+            JsonType::map(InheritedPublicProperty::class),
+            $nonFinal,
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
+        yield 'nested descriptor item type cannot be a non-final class' => [
+            '[]',
+            JsonType::array(JsonType::map(InheritedPublicProperty::class)),
+            $nonFinal,
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
+        yield 'list item type cannot be a non-backed enum' => [
+            '[]',
+            JsonType::array(NonBackedStatus::class),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus from the JSON object: Target type non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
+        yield 'list item type cannot have a private constructor' => [
+            '[]',
+            JsonType::array(PrivateConstructorTarget::create()::class),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\PrivateConstructorTarget from the JSON object: Target class has a private constructor, which cannot be called to create the object.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'imported interface cannot be a collection item type' => [

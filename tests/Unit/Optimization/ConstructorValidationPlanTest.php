@@ -7,12 +7,10 @@ namespace Eventjet\Json\Test\Unit\Optimization;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
-use Eventjet\Json\Internal\ArrayJsonType;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
-use Eventjet\Json\Internal\ClassJsonType;
 use Eventjet\Json\Internal\CollectionCompiler;
 use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorParameter;
@@ -25,7 +23,6 @@ use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\MapJsonType;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
@@ -125,17 +122,14 @@ use function class_alias;
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
 #[UsesClass(UnionNode::class)]
-#[UsesClass(ArrayJsonType::class)]
 #[CoversClass(ClassDecoder::class)]
 #[CoversClass(ClassDecoders::class)]
 #[UsesClass(ClassGraphValidator::class)]
-#[UsesClass(ClassJsonType::class)]
 #[UsesClass(DecodeErrorKind::class)]
 #[UsesClass(InvalidFieldMapping::class)]
 #[UsesClass(InvalidValue::class)]
 #[UsesClass(UnsupportedField::class)]
 #[UsesClass(UnsupportedFieldClass::class)]
-#[UsesClass(MapJsonType::class)]
 final class ConstructorValidationPlanTest extends TestCase
 {
     /**
