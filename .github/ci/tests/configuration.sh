@@ -50,17 +50,20 @@ final class Revision
 PHP
 printf '100\n' > src/time.txt
 touch tests/placeholder
-printf '%s\n' '{"name":"test/performance","autoload":{"psr-4":{"Fixture\\":"src/"}}}' > composer.json
+printf '%s\n' '{"name":"test/performance","autoload":{"psr-4":{"Fixture\\Benchmark\\":"benchmarks/","Fixture\\":"src/"}}}' > composer.json
 printf '%s\n' '{"packages":[]}' > vendor/composer/installed.json
 printf '%s\n' '{"runner.path":"benchmarks","runner.php_config":{"serialize_precision":"7","pcov.enabled":"1"}}' > phpbench.json
 cat > benchmarks/ExampleBench.php <<'PHP'
 <?php
-final class ErrorBench
+namespace Fixture\Benchmark;
+final class ExampleBench
 {
     #[\PhpBench\Attributes\Groups(['documents', 'warm'])]
     #[\PhpBench\Attributes\ParamProviders('cases')]
     public function benchExample(): void {}
     public function benchControl(): void {}
+    #[\PhpBench\Attributes\Groups(['documents', 'cold'])]
+    public function benchCold(): void {}
     public function cases(): iterable
     {
         yield 'record batch[case]' => [];
@@ -115,10 +118,18 @@ if (\Fixture\Revision::IDENTITY !== $expectedIdentity) {
     throw new RuntimeException('Autoloader selected the wrong compared revision');
 }
 $time = \Fixture\Revision::time();
+$cold = false;
 foreach ($argv as $argument) {
     if (str_contains($argument, 'benchControl')) {
-        $time = $time === 100 ? 100 : (int) (getenv('PERFORMANCE_TEST_CONTROL_TIME') ?: 100);
+        $time = 100;
     }
+    $cold = $cold || str_contains($argument, 'benchCold');
+    if (str_starts_with($argument, '--file=') || str_starts_with($argument, '--assert=')) {
+        throw new RuntimeException('The runner computes verdicts from raw iterations, not PHPBench baselines');
+    }
+}
+if ($cold && \Fixture\Revision::IDENTITY === 'candidate' && getenv('PERFORMANCE_TEST_COLD_TIME') !== false) {
+    $time = (int) getenv('PERFORMANCE_TEST_COLD_TIME');
 }
 $arguments = [PHP_BINARY, getenv('PERFORMANCE_TEST_PHPBENCH'), ...array_slice($argv, 1),
     '--executor=' . json_encode(['executor' => 'debug', 'times' => [$time]])];
@@ -141,12 +152,13 @@ check_run() {
     test -d .perf/workspace-candidate-workloads
     test "$(wc -l < .perf/preparations.txt)" -eq 3
     test "$(sort -u .perf/preparations.txt | wc -l)" -eq 3
-    test -s .perf/results/baseline-0.xml
-    test -s .perf/results/candidate-0.xml
-    test -s .perf/results/candidate-0.txt
+    test -s .perf/results/baseline-0-0.xml
+    test -s .perf/results/candidate-0-0.xml
+    test -s .perf/results/candidate-0-0.txt
     test -s .perf/results/summary.md
     test -s .perf/results/comment.md
-    for text in "$verdict" "$counts" "$overall" '**3 workloads**' '100.00 µs' 'Negative means faster'; do
+    for text in "$verdict" "$counts" "$overall" '**3 workloads**' '100.00 µs' 'Negative means faster' \
+        '### Warm CLI decodes · blocking' '### Fresh CLI processes · advisory' '**1 workloads**' 'Not measured in this run'; do
         if ! grep -Fq -- "$text" .perf/results/comment.md; then
             cat .perf/results/comment.md
             echo "Missing summary text: $text"
@@ -160,44 +172,40 @@ check_run() {
         echo 'Report categories must come from groups, not benchmark or variant names'
         exit 1
     fi
-    php <<'PHP'
+    PROJECT="$project" php <<'PHP'
 <?php
-$files = glob('.perf/results/candidate-*.xml');
-$files = array_filter($files, static fn($file) => !str_contains($file, 'candidate-workloads'));
-if (count($files) !== 3) {
-    throw new RuntimeException('Expected three distinct workload comparisons');
-}
-foreach ($files as $file) {
-    $xml = simplexml_load_file($file);
-    if (count($xml->xpath('//variant')) !== 1 || count($xml->xpath('//baseline-stats')) !== 1) {
-        throw new RuntimeException('Each comparison must contain exactly one workload and its baseline');
+require getenv('PROJECT') . '/.github/ci/BenchmarkComparison.php';
+use Eventjet\Json\Ci\BenchmarkComparison;
+foreach (['baseline', 'candidate'] as $version) {
+    $files = glob('.perf/results/' . $version . '-[0-9]*.xml');
+    if (count($files) !== 4 * BenchmarkComparison::ROUNDS) {
+        throw new RuntimeException('Expected every round of four distinct workloads');
+    }
+    foreach ($files as $file) {
+        $xml = simplexml_load_file($file);
+        if (count($xml->xpath('//variant')) !== 1
+            || count($xml->xpath('//variant/iteration')) !== BenchmarkComparison::ITERATIONS) {
+            throw new RuntimeException('Each round must contain exactly one workload and its iterations');
+        }
     }
 }
 PHP
     mv .perf "$name-results"
 }
 check_run 0 unchanged '⚪ No significant performance changes' '| 0 | 3 | 0 |' '+0.00%'
-for entry in '50 improvement 0' '94 improvement-boundary 0' '95 at-improvement-limit 0' '104 below-limit 0' '105 at-limit 0' '106 regression 2'; do
-    read -r time name expected <<< "$entry"
-    printf '%s\n' "$time" > src/time.txt
-    git add src/time.txt
-    git commit --quiet -m "$name"
-    candidate=$(git rev-parse HEAD)
-    case "$name" in
-        improvement) check_run "$expected" "$name" '🟢 Performance improvement' '| 2 | 1 | 0 |' '-37.00%' ;;
-        improvement-boundary) check_run "$expected" "$name" '🟢 Performance improvement' '| 2 | 1 | 0 |' '-4.04%' ;;
-        at-improvement-limit) check_run "$expected" "$name" '⚪ No significant performance changes' '| 0 | 3 | 0 |' '-3.36%' ;;
-        below-limit) check_run "$expected" "$name" '⚪ No significant performance changes' '| 0 | 3 | 0 |' '+2.65%' ;;
-        at-limit) check_run "$expected" "$name" '⚪ No significant performance changes' '| 0 | 3 | 0 |' '+3.31%' ;;
-        regression) check_run "$expected" "$name" '🔴 Performance regression' '| 0 | 1 | 2 |' '+3.96%' ;;
-    esac
-done
-PERFORMANCE_TEST_CONTROL_TIME=50 check_run 2 mixed '🔴 Performance regression' '| 1 | 0 | 2 |' '-17.49%'
-if ! grep -Fq 'PHPBench assertions failed' regression-results/results/summary.md; then
-    cat regression.log
+unchanged=$candidate
+printf '106\n' > src/time.txt
+git add src/time.txt
+git commit --quiet -m regression
+candidate=$(git rev-parse HEAD)
+check_run 2 regression '🔴 Performance regression' '| 0 | 1 | 2 |' '+3.96%'
+if ! grep -Fq '| blocking | 100.000 µs | 106.000 µs | +6.00% |' regression-results/results/summary.md; then
+    cat regression-results/results/summary.md
     exit 1
 fi
-echo 'Native PHPBench assertions, boundaries, configuration isolation, and failure artifacts passed.'
+candidate=$unchanged PERFORMANCE_TEST_COLD_TIME=200 check_run 0 cold-slower '⚪ No significant performance changes' '| 0 | 3 | 0 |' '+0.00%'
+grep -Fq '🟡 Slower than the limit, advisory only · **Overall decode time: +100.00%** · **1 workloads**' cold-slower-results/results/comment.md
+echo 'Round verdicts, boundaries, configuration isolation, and failure artifacts passed.'
 
 EXPECTED_OPCACHE=0 check_run 2 opcache-off '🔴 Performance regression' '| 0 | 1 | 2 |' '+3.96%' --opcache off
 php <<'PHP'
@@ -233,65 +241,92 @@ echo 'OPcache modes and explicit frozen workloads passed.'
 
 EXPLICIT_WORKLOADS=1 php "$runner" --base "$baseline" --candidate "$candidate" --workloads "$candidate" --shard 2 > shard.log 2>&1 && status=0 || status=$?
 if [ "$status" -ne 2 ]; then cat shard.log; exit 1; fi
-php <<'PHP'
+PROJECT="$project" php <<'PHP'
 <?php
+require getenv('PROJECT') . '/.github/ci/BenchmarkComparison.php';
+use Eventjet\Json\Ci\BenchmarkComparison;
 $completion = json_decode(file_get_contents('.perf/results/complete.json'), true, flags: JSON_THROW_ON_ERROR);
-if ($completion !== ['indices' => [1], 'status' => 2]
-    || count(glob('.perf/results/candidate-*.xml')) !== 1
-    || !is_file('.perf/results/baseline-1.xml') || !is_file('.perf/results/candidate-1.xml')) {
-    throw new RuntimeException('Shard must measure exactly its assigned workload and retain its regression verdict');
+if ($completion !== ['indices' => [1]]
+    || count(glob('.perf/results/candidate-*.xml')) !== BenchmarkComparison::ROUNDS
+    || count(glob('.perf/results/baseline-1-*.xml')) !== BenchmarkComparison::ROUNDS) {
+    throw new RuntimeException('Shard must measure exactly its assigned workload in every round');
 }
-foreach (['baseline', 'candidate'] as $version) {
-    $xml = simplexml_load_file('.perf/results/' . $version . '-1.xml');
-    if (count($xml->xpath('//variant/iteration')) !== 20) {
-        throw new RuntimeException('Sharding must preserve all 20 iterations');
+foreach (glob('.perf/results/*-1-*.xml') as $file) {
+    if (count(simplexml_load_file($file)->xpath('//variant/iteration')) !== BenchmarkComparison::ITERATIONS) {
+        throw new RuntimeException('Sharding must preserve every iteration');
     }
 }
 PHP
 mv .perf shard-results
-for shard in 0 5 invalid; do
+for shard in 0 9 invalid; do
     if php "$runner" --base "$baseline" --shard "$shard" > invalid-shard.log 2>&1; then
         echo 'Invalid shards must fail'
         exit 1
     fi
 done
-echo 'Shard selection preserves sampling, isolated revisions, and native regression assertions.'
+echo 'Shard selection preserves sampling, isolated revisions, and regression verdicts.'
 
-php <<'PHP'
+aggregate() {
+    local name=$1 source=$2 mode=$3 fpm_time=$4 expected=$5 status=0
+    shift 5
+    SOURCE="$source" ARTIFACTS="$name-artifacts" FPM_TIME="$fpm_time" PROJECT="$project" MODE="$mode" php <<'PHP'
 <?php
-$source = 'opcache-off-results/results';
+require getenv('PROJECT') . '/.github/ci/FpmMeasurements.php';
+require getenv('PROJECT') . '/.github/ci/PerformanceShards.php';
+$source = getenv('SOURCE');
 $metadata = json_decode(file_get_contents($source . '/metadata.json'), true, flags: JSON_THROW_ON_ERROR);
-for ($shard = 1; $shard <= 4; $shard++) {
-    $directory = 'aggregate-artifacts/' . $shard;
+for ($shard = 1; $shard <= Eventjet\Json\Ci\PerformanceShards::SHARDS; $shard++) {
+    $directory = getenv('ARTIFACTS') . '/' . $shard;
     mkdir($directory, 0777, true);
     file_put_contents($directory . '/metadata.json', json_encode(array_replace($metadata, ['shard' => $shard, 'fpm' => $shard === 1]), JSON_THROW_ON_ERROR));
     copy($source . '/discovery.xml', $directory . '/discovery.xml');
-    $indices = $shard <= 3 ? [$shard - 1] : [];
-    file_put_contents($directory . '/complete.json', json_encode(['indices' => $indices, 'status' => $shard <= 2 ? 2 : 0], JSON_THROW_ON_ERROR));
+    $indices = $shard <= 4 ? [$shard - 1] : [];
+    file_put_contents($directory . '/complete.json', json_encode(['indices' => $indices], JSON_THROW_ON_ERROR));
     foreach ($indices as $index) {
-        foreach (['baseline', 'candidate'] as $version) {
-            copy($source . '/' . $version . '-' . $index . '.xml', $directory . '/' . $version . '-' . $index . '.xml');
+        foreach (glob($source . '/*-' . $index . '-*.xml') as $path) {
+            copy($path, $directory . '/' . basename($path));
         }
     }
 }
-file_put_contents('aggregate-artifacts/1/fpm.json', '{}');
-file_put_contents('aggregate-artifacts/1/fpm.md', 'FPM integration is tested separately.');
+$opcache = getenv('MODE') === 'on';
+$rounds = Eventjet\Json\Ci\FpmMeasurements::rounds($opcache);
+$sample = static fn(float $time): array => ['Stripe invoice' => [
+    'rounds' => array_fill(0, $rounds, array_fill(0, Eventjet\Json\Ci\FpmMeasurements::REQUESTS, $time)),
+    'peak_bytes' => 1024,
+]];
+file_put_contents(getenv('ARTIFACTS') . '/1/fpm.json', json_encode([
+    'baseline' => $sample(1000.0),
+    'candidate' => $sample((float) getenv('FPM_TIME')),
+], JSON_THROW_ON_ERROR));
 PHP
-status=0
-php "$project/.github/ci/performance-aggregate.php" --artifacts aggregate-artifacts --opcache off --output aggregate-report > aggregate.log 2>&1 || status=$?
-if [ "$status" -ne 2 ]; then cat aggregate.log; exit 1; fi
-grep -Fq '**3 workloads**' aggregate-report/comment.md
-grep -Fq 'Performance regression' aggregate-report/comment.md
-echo 'Aggregation accepts real OPcache-off XML, preserves all samples, and retains regressions.'
-
-
+    php "$project/.github/ci/performance-aggregate.php" --artifacts "$name-artifacts" --opcache "$mode" --output "$name-report" > "$name.log" 2>&1 || status=$?
+    if [ "$status" -ne "$expected" ]; then cat "$name.log"; echo "Expected status $expected, got $status for $name"; exit 1; fi
+    for text in '**3 workloads**' '| Stripe invoice | 1000.00 µs |' "$@"; do
+        if ! grep -Fq -- "$text" "$name-report/comment.md"; then
+            cat "$name-report/comment.md"
+            echo "Missing aggregate text for $name: $text"
+            exit 1
+        fi
+    done
+    grep -Fq '## Fresh PHP-FPM requests' "$name-report/summary.md"
+}
+aggregate cli-regression opcache-off-results/results off 1000 2 '🔴 Performance regression (OPcache off)'
+EXPECTED_OPCACHE=0 candidate=$unchanged check_run 0 opcache-off-unchanged '⚪ No significant performance changes' '| 0 | 3 | 0 |' '+0.00%' --opcache off
+aggregate fpm-advisory opcache-off-unchanged-results/results off 1100 0 '⚪ No significant performance changes (OPcache off)' \
+    '### First decode in a fresh PHP-FPM request · advisory' '🟡 Slower than the limit, advisory only' '+10.00%'
+aggregate fpm-regression unchanged-results/results on 1100 2 '🔴 Performance regression (OPcache on)' \
+    '### First decode in a fresh PHP-FPM request · blocking' '🔴 Regression · Median of' '+10.00%' \
+    '### Warm CLI decodes · blocking' '### Fresh CLI processes · advisory'
+aggregate fpm-improvement unchanged-results/results on 900 0 '🟢 Performance improvement (OPcache on)' '🟢 Improvement · Median of'
+aggregate fpm-unchanged unchanged-results/results on 1000 0 '⚪ No significant performance changes (OPcache on)'
+echo 'Aggregation preserves all samples, keeps CLI regressions, and blocks only on PHP-FPM with OPcache on.'
 git rm --quiet -rf benchmarks tests phpbench.json
 git commit --quiet -m 'Source without a benchmark suite'
 no_benchmarks=$(git rev-parse HEAD)
 SOURCE_ONLY=1 EXPLICIT_WORKLOADS=1 php "$runner" --base "$no_benchmarks" --candidate "$no_benchmarks" --workloads "$candidate" > source-only.log 2>&1
-test -s .perf/results/baseline-0.xml
-test -s .perf/results/candidate-0.xml
-grep -Fq 'PHPBench assertions passed' .perf/results/summary.md
+test -s .perf/results/baseline-0-0.xml
+test -s .perf/results/candidate-0-0.xml
+grep -Fq '⚪ No significant performance changes' .perf/results/summary.md
 mv .perf source-only-results
 echo 'Source-only revisions can use an independent frozen suite.'
 
