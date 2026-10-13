@@ -175,10 +175,10 @@ the binary is `php-fpm8.4`. Both environments require `cgi-fcgi` from `libfcgi-b
 As with PHPBench, local Git worktrees need a read-only mount of their Git metadata
 for revision comparisons. The standalone FPM smoke check does not require Git.
 The artifact includes per-request timing, payload bytes, worker PID, and runtime
-settings for every round, and `fpm.json` holds the merged samples that the
-aggregation checks and compares. A document fails the PHP-FPM gate when the PR's
-median request time is more than 3% above the target's; more than 3% below
-counts as an improvement. CLI reports separate realistic documents,
+settings for every round, and `fpm.json` holds every round's samples, which the
+aggregation checks and compares. Each round yields one PR/target ratio of median
+request times. A document fails the PHP-FPM gate when the median of those ratios
+is more than 3% above 1; more than 3% below counts as an improvement. CLI reports separate realistic documents,
 synthetic batches, focused diagnostics, stress cases, and errors.
 
 The CLI gate compares the median time per decode over all rounds' iterations.
@@ -247,7 +247,7 @@ rerun keeps the result of the mode that did not rerun.
 Each mode has three sections, and each section heading says whether it is
 **blocking** or **advisory**:
 
-- **First decode in a fresh PHP-FPM request:** target and PR medians for every document.
+- **First decode in a fresh PHP-FPM request:** target and PR median request times and the median per-round change for every document.
 - **Warm CLI decodes:** the overall percentage change in decode time, counts of
   faster/unchanged/slower workloads, and the lowest and highest changes with
   target and PR times in microseconds.
@@ -278,47 +278,67 @@ Only the separate comment job can write to PRs. Fork and Dependabot PRs still
 receive the job summary and artifacts, but skip comments because their workflow
 tokens have read-only permissions.
 
-The 5% limit was selected from hosted unchanged-code calibration, not local
-machine timings. Two batches of five independent GitHub runners produced 200
-workload comparisons:
+Limits are selected from hosted unchanged-code calibration, not local machine
+timings. The earlier CLI method, with one block of 20 iterations per revision
+and PHPBench's mode, used a 5% limit. Two batches of five independent GitHub
+runners produced 200 workload comparisons:
 
 - [Selection batch](https://github.com/eventjet/eventjet-json/actions/runs/37764898344): largest apparent slowdown 3.22%; a 3% limit would have failed one comparison.
 - [Independent validation batch](https://github.com/eventjet/eventjet-json/actions/runs/37765567166): largest apparent slowdown 4.11%; the provisional 4% limit failed one unchanged workload. Reversing the comparisons exposed variation up to 4.59%.
 
 A 5% limit was the lowest whole-percentage limit with no observed false positives
 in either direction across these 200 comparisons of the earlier diagnostic suite.
-The expanded document suite and OPcache modes need their own calibration before
-those observations can be generalized. This is an empirical operating
+The current limits below replace it. Each is an empirical operating
 limit, not a guarantee against future false positives on shared runners.
 Changes to sampling or thresholds should be checked with unchanged-code runs on
 the CI runner. A consistently noisy benchmark needs more stable measurement,
 not a larger limit chosen just to pass a particular PR. The expanded workflow retains
 its 15-minute job limit and a 90-second limit per subprocess.
 
-The 2% PHP-FPM limit was selected the same way, with OPcache on. Each batch ran
-the `calibrate` input on five independent runners, and shard one compared the
-nine documents, giving 45 PHP-FPM comparisons per batch:
+**Warm CLI decodes, 3%.** On the current suite, the earlier method produced
+false results in both directions: −6.85% in one
+[calibration batch](https://github.com/eventjet/eventjet-json/actions/runs/38384084871),
++6.05% in [another](https://github.com/eventjet/eventjet-json/actions/runs/38384902975),
+and +16.96% on a [pull request](https://github.com/eventjet/eventjet-json/actions/runs/38388258998)
+that did not change the decoder. In the largest case, the raw iterations show
+the runner slowing down for seconds while only the PR was being measured.
+An [exploratory batch](https://github.com/eventjet/eventjet-json/actions/runs/38391646029)
+with 20 alternating rounds of two iterations kept warm workloads between −1.62%
+and +2.91%; fewer rounds were noisier. Most of its jobs hit the job limit, which
+led to naming the benchmark file and to eight shards. With the final sampling,
+each batch has 130 warm comparisons per OPcache mode:
 
-- [Exploratory batch](https://github.com/eventjet/eventjet-json/actions/runs/38382940033): 20 rounds of 25 requests per revision. With all rounds, medians moved by at most +1.62% and −1.29%. Fewer rounds were much noisier: the first 4 rounds alone reached +10.94%, and the first 10 rounds +5.07%. Modes were less stable than medians (+3.05% with all rounds). This batch set the sampling and the statistic, not the limit.
-- [Selection batch](https://github.com/eventjet/eventjet-json/actions/runs/38384084871): the final 40 rounds of 20 requests. Largest apparent changes +1.04% and −1.30%; a 1% limit would have failed in both directions.
-- [Independent validation batch](https://github.com/eventjet/eventjet-json/actions/runs/38384902975): largest apparent changes +0.96% and −0.92%.
+- [Selection batch](https://github.com/eventjet/eventjet-json/actions/runs/38394376868): OPcache on −1.19% to +0.90%; off −2.82% to +1.22%.
+- [Independent validation batch](https://github.com/eventjet/eventjet-json/actions/runs/38396556118): on −1.10% to +1.22%; off −1.13% to +1.91%.
 
-A 2% limit was the lowest whole-percentage limit with no observed false positives
-in either direction across these 90 comparisons. Small documents were not noisier
-than large ones in relative terms (record batch 0, about 100 µs per request,
-stayed within ±1.2%), so there is no minimum change below which results are
-ignored. With this sampling, shard one takes about five minutes with OPcache on.
-The full sample with OPcache off took 14 minutes in [a trial run](https://github.com/eventjet/eventjet-json/actions/runs/38385674663),
+A 3% limit is the lowest whole-percentage limit with no observed false positives
+in either direction across these 520 comparisons. Three later OPcache-on batches,
+run for the PHP-FPM calibration below, stayed within −2.02% and +1.07%. Cold workloads,
+which are advisory, reached −4.50% and +5.93%.
+
+**First PHP-FPM decode, 3%.** The PHP-FPM measurement took several iterations:
+
+- [An exploratory batch](https://github.com/eventjet/eventjet-json/actions/runs/38382940033) compared pooled medians of 20 rounds of 25 requests: +1.62% and −1.29% at most. Fewer rounds were much noisier (the first 4 rounds alone reached +10.94%), and modes were less stable than medians.
+- With 40 rounds of 20 requests, two batches ([1](https://github.com/eventjet/eventjet-json/actions/runs/38384084871), [2](https://github.com/eventjet/eventjet-json/actions/runs/38384902975)) stayed within ±1.30% and suggested a 2% limit. Two later batches ([3](https://github.com/eventjet/eventjet-json/actions/runs/38394376868), [4](https://github.com/eventjet/eventjet-json/actions/runs/38396556118)) broke it with +2.50% and −3.21%, both for small documents.
+- With 80 rounds of 10 requests, [a batch](https://github.com/eventjet/eventjet-json/actions/runs/38398773241) reached −3.82% on a runner whose per-round Stripe medians ranged from 1,165 µs to 3,421 µs. Pooling all requests mixes those speeds.
+
+Comparing the two revisions within each round, then taking the median of the
+per-round ratios, reduced the largest changes in batches 3 and 4 and the
+80-round batch to 2.71% at most. That statistic was chosen from those batches,
+so the limit also needed fresh batches with the final sampling and statistic:
+
+- [Selection batch](https://github.com/eventjet/eventjet-json/actions/runs/38400869162): −1.12% to +0.70%.
+- [Independent validation batch](https://github.com/eventjet/eventjet-json/actions/runs/38402269325): −0.61% to +0.45%. Pooled medians from the same requests would have reached +2.74%.
+
+The selection batch alone would allow 2%, but the 80-round batch reached
++2.71% with the same statistic, so the limit is 3%. Small documents are noisier
+than large ones: with 40 rounds, record batches of 0 and 1 records varied about
+twice as much as the larger documents. The relative limit
+still covers them, so there is no minimum change below which results are ignored.
+With this sampling, PHP-FPM adds about three minutes to shard one, which takes
+about 8.5 minutes with OPcache on. The full sample with OPcache off took 14 minutes in
+[a trial run](https://github.com/eventjet/eventjet-json/actions/runs/38385674663),
 which led to its smaller advisory sample.
-
-The selection and validation batches also compared the current suite's 26 warm
-and 23 cold CLI workloads on every runner. Warm workloads reached −6.85%
-(`DecodeBench::benchWarmStress [enum union collections]`) in the selection batch
-and +6.05% (`DecodeBench::benchWarmCollections [long scalar lists]`) in the
-validation batch, which failed one calibration sample. The 5% warm limit
-therefore produces occasional false positives on the current suite and needs
-more stable measurement; this calibration leaves it unchanged. Cold workloads,
-which are advisory, reached +11.86%.
 
 Performance tooling validation runs once in a separate job alongside the measurements.
 The existing comparison checks require both the measurements and tooling validation
@@ -326,8 +346,10 @@ to succeed, so moving validation does not weaken the merge gate.
 
 The comparison runner is PHP (`.github/ci/performance.php`). PHPStan checks the
 orchestration code. A shell integration test exercises the real PHPBench CLI
-with its deterministic debug executor to verify improvements, threshold
-boundaries, regressions, configuration isolation, and failure artifacts:
+with its deterministic debug executor to verify rounds, regressions, advisory cold
+workloads, configuration isolation, aggregation, and failure artifacts. Limit
+boundaries are tested directly in `.github/ci/tests/shards.sh` and
+`.github/ci/tests/fpm.sh`:
 
 ```bash
 docker compose exec php bash .github/ci/tests/configuration.sh
