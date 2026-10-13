@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\ArrayScalarUnionPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedOutcome;
@@ -42,7 +43,7 @@ final class UnsupportedUnionErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'list<resource|open-resource>', 'var')
                 . ' from the JSON object: Field value uses non-JSON-encodable type resource, which has no JSON representation.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'native union of non-backed enums has no JSON representation' => [
             '{}',
@@ -58,7 +59,7 @@ final class UnsupportedUnionErrorCases
                     'var',
                 )
                 . ' from the JSON object: Field value uses non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'map union of non-backed enums has no JSON representation' => [
             '{}',
@@ -74,7 +75,7 @@ final class UnsupportedUnionErrorCases
                     'param',
                 )
                 . ' from the JSON object: Field value uses non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
     }
 
@@ -99,7 +100,7 @@ final class UnsupportedUnionErrorCases
                     'var',
                 )
                 . ' from the JSON object: Field value uses interface Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'collection union cannot contain an abstract class' => [
             '{}',
@@ -115,7 +116,7 @@ final class UnsupportedUnionErrorCases
                     'var',
                 )
                 . ' from the JSON object: Field value uses abstract class Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'interface union member is rejected before non-backed enum members' => [
             '{}',
@@ -131,7 +132,7 @@ final class UnsupportedUnionErrorCases
                     'var',
                 )
                 . ' from the JSON object: Field value uses interface Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
     }
 
@@ -146,13 +147,13 @@ final class UnsupportedUnionErrorCases
             '{}',
             new NullableIntersectionTypeField(null)::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionTypeField from the JSON object: Field value uses unsupported intersection type Countable&Iterator. JSON does not identify a concrete class to instantiate.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'nullable intersection public property is unsupported' => [
             '{"value":null}',
             NullableIntersectionPublicProperty::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionPublicProperty from the JSON object: Field value uses unsupported public property type (Countable&Iterator)|null. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'collection union cannot contain an intersection member' => [
             '{}',
@@ -168,7 +169,7 @@ final class UnsupportedUnionErrorCases
                     'param',
                 )
                 . ' from the JSON object: Field value uses unsupported intersection type Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface&Countable. JSON does not identify a concrete class to instantiate.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
     }
 
@@ -185,7 +186,7 @@ final class UnsupportedUnionErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array|\ArrayObject', 'list<int>|ArrayObject', 'var')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'collection union declaration must match its native members' => [
             '{}',
@@ -206,13 +207,13 @@ final class UnsupportedUnionErrorCases
                     'param',
                 )
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'array union property requires a collection declaration' => [
             '{}',
             ArrayScalarUnionPublicProperty::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ArrayScalarUnionPublicProperty from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
     }
 }

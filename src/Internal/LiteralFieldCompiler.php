@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\Node;
 use ReflectionException;
 use ReflectionNamedType;
@@ -100,12 +101,7 @@ final class LiteralFieldCompiler
         foreach ($declared as $member) {
             $unresolved = PhpDocType::literalSyntax($member->name) && $items->literals($member) === null;
             if ($unresolved && !$native instanceof DecodeError) {
-                return DecodeError::nonInstantiableField(
-                    $types->class,
-                    $field->getName(),
-                    'unsupported literal declaration',
-                    $member->name,
-                );
+                return UnsupportedField::literal($field->getName(), $member->name);
             }
         }
         return $native;

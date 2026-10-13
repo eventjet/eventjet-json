@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal\Node;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\ClassDecoders;
+use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Override;
 use stdClass;
@@ -15,12 +16,8 @@ use function sprintf;
 /** @internal */
 final readonly class ObjectNode implements Node
 {
-    /**
-     * @param class-string $class
-     * @param class-string $target
-     */
+    /** @param class-string $target */
     public function __construct(
-        private string $class,
         public string $target,
         private bool $nullable,
     ) {}
@@ -33,7 +30,7 @@ final readonly class ObjectNode implements Node
         }
         if (!$value instanceof stdClass) {
             $expected = $this->nullable ? FieldTypeNameResolver::withNull($this->target) : $this->target;
-            return DecodeError::fieldTypeMismatch($this->class, $path, $expected, $value);
+            return InvalidValue::typeMismatch($path, $expected, $value);
         }
         return ClassDecoders::hydrate($this->target, $value, $path);
     }
@@ -51,7 +48,7 @@ final readonly class ObjectNode implements Node
         foreach ($values as $index => $value) {
             $itemPath = sprintf('%s[%d]', $path, $index);
             if (!$value instanceof stdClass) {
-                return DecodeError::fieldTypeMismatch($this->class, $itemPath, $this->target, $value);
+                return InvalidValue::typeMismatch($itemPath, $this->target, $value);
             }
             $object = ClassDecoders::hydrate($this->target, $value, $itemPath);
             if ($object instanceof DecodeError) {

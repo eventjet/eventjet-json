@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
@@ -25,8 +26,6 @@ use function in_array;
  */
 final readonly class PhpDocItemCompiler
 {
-    /** @var class-string */
-    private string $class;
     private PhpDocCollectionCompiler $collections;
     private PhpDocUnionCompiler $unions;
 
@@ -34,9 +33,8 @@ final readonly class PhpDocItemCompiler
         private TypeCompiler $types,
         private ReflectionParameter|ReflectionProperty $field,
     ) {
-        $this->class = $types->class;
-        $this->collections = new PhpDocCollectionCompiler($this, $this->class, $field);
-        $this->unions = new PhpDocUnionCompiler($this, $this->class);
+        $this->collections = new PhpDocCollectionCompiler($this, $field);
+        $this->unions = new PhpDocUnionCompiler($this);
     }
 
     public function collections(): PhpDocCollectionCompiler
@@ -92,18 +90,18 @@ final readonly class PhpDocItemCompiler
     private function named(string $name, string $path): Node|DecodeError
     {
         if (in_array($name, ['bool', 'float', 'int', 'string'], strict: true)) {
-            return new ScalarNode($this->class, $name, false);
+            return new ScalarNode($name, false);
         }
         if (!enum_exists($name)) {
             $object = $this->types->object($path, $name, false);
             assert($object !== null, description: 'PHPDoc names resolve only to loaded classes.');
             return $object;
         }
-        $node = EnumNode::of($this->class, $name);
+        $node = EnumNode::of($name);
         if ($node === null) {
-            return DecodeError::nonBackedEnum($this->class, $name, $path);
+            return UnsupportedFieldClass::nonBackedEnum($path, $name);
         }
-        return ClassFieldTypeValidator::validate($this->class, $path, $name) ?? $node;
+        return ClassFieldTypeValidator::validate($path, $name) ?? $node;
     }
 
     /**
@@ -121,8 +119,8 @@ final readonly class PhpDocItemCompiler
     public function literal(string $name): Node
     {
         if ($name === 'null') {
-            return new NullOnlyNode($this->class, 'null');
+            return new NullOnlyNode('null');
         }
-        return LiteralNode::of($this->class, $name);
+        return LiteralNode::of($name);
     }
 }

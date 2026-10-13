@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Node;
 
 use BackedEnum;
-use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\PhpDocLiteral;
 use Override;
 
@@ -26,23 +26,17 @@ use function is_float;
 final readonly class LiteralNode implements Node
 {
     /**
-     * @param class-string $class
      * @param non-empty-list<array{string, string|int|float|bool, string|int|float|bool|BackedEnum}> $values The JSON
      *     value type, JSON value, and PHP value of each literal.
      */
     private function __construct(
-        private string $class,
         private string $type,
         private array $values,
         private Node|null $fallback,
     ) {}
 
-    /**
-     * Returns the node of a single literal that resolves to a value.
-     *
-     * @param class-string $class
-     */
-    public static function of(string $class, string $name): self
+    /** Returns the node of a single literal that resolves to a value. */
+    public static function of(string $name): self
     {
         $value = PhpDocLiteral::value($name);
         assert($value !== null, description: 'Compilers only pass literals that resolve to a value.');
@@ -58,19 +52,18 @@ final readonly class LiteralNode implements Node
         if ($whole) {
             $values[] = ['int', (int) $json, $value];
         }
-        return new self($class, $name, $values, null);
+        return new self($name, $values, null);
     }
 
     /**
      * Combines the literals of a union by the JSON value types they accept. A member that already accepts a value type
      * receives the values that match no literal.
      *
-     * @param class-string $class
      * @param list<self> $literals
      * @param array<string, Node> $indexed Union members, keyed by the JSON value types they accept.
      * @return array<string, Node>
      */
-    public static function index(string $class, string $type, array $literals, array $indexed): array
+    public static function index(string $type, array $literals, array $indexed): array
     {
         $values = [];
         foreach ($literals as $literal) {
@@ -79,7 +72,7 @@ final readonly class LiteralNode implements Node
             }
         }
         foreach ($values as $valueType => $accepted) {
-            $indexed[$valueType] = new self($class, $type, $accepted, $indexed[$valueType] ?? null);
+            $indexed[$valueType] = new self($type, $accepted, $indexed[$valueType] ?? null);
         }
         return $indexed;
     }
@@ -93,7 +86,7 @@ final readonly class LiteralNode implements Node
             }
         }
         return $this->fallback === null
-            ? DecodeError::fieldTypeMismatch($this->class, $path, $this->type, $value)
+            ? InvalidValue::typeMismatch($path, $this->type, $value)
             : $this->fallback->decode($value, $path);
     }
 

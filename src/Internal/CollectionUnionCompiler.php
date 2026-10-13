@@ -23,15 +23,12 @@ use function is_string;
  */
 final readonly class CollectionUnionCompiler
 {
-    /** @var class-string */
-    private string $class;
     private PhpDocItemCompiler $items;
 
     public function __construct(
         private TypeCompiler $types,
         private ReflectionParameter|ReflectionProperty $field,
     ) {
-        $this->class = $types->class;
         $this->items = new PhpDocItemCompiler($types, $field);
     }
 
@@ -46,16 +43,16 @@ final readonly class CollectionUnionCompiler
         $path = $this->field->getName();
         $members = $doc?->name === '|' ? $this->items->unions()->members($doc->arguments, $path) : null;
         if (!is_array($members)) {
-            return $members ?? PhpDocFieldType::unrecognized($this->class, $this->field);
+            return $members ?? PhpDocFieldType::unrecognized($this->field);
         }
         $types = $native instanceof ReflectionUnionType ? $native->getTypes() : [$native];
         $natives = new CollectionUnionNatives($this->field, $types);
         $matches = $natives->match($members);
-        $union = new UnionBuilder($this->class, $path);
+        $union = new UnionBuilder($path);
         $declared = $matches ? $natives->named($members) : $natives->members();
         $error = NativeUnionCompiler::addMembers($this->types, $this->field, $declared, $union);
         if ($error !== null || !$matches) {
-            return $error ?? PhpDocFieldType::unrecognized($this->class, $this->field);
+            return $error ?? PhpDocFieldType::unrecognized($this->field);
         }
         foreach ($members as $member) {
             $nativeMember = is_string($member) && $member !== 'null' && !PhpDocType::literalSyntax($member);

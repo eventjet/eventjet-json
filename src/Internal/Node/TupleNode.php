@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Node;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\InvalidValue;
 use Override;
 
 use function assert;
@@ -18,12 +19,8 @@ final readonly class TupleNode implements Node
 {
     private string $expected;
 
-    /**
-     * @param class-string $class
-     * @param list<Node> $items
-     */
+    /** @param list<Node> $items */
     public function __construct(
-        private string $class,
         private array $items,
         private int $required,
     ) {
@@ -39,24 +36,12 @@ final readonly class TupleNode implements Node
     public function decode(mixed $value, string $path): array|DecodeError
     {
         if (!is_array($value)) {
-            return DecodeError::fieldTypeMismatch($this->class, $path, $this->expected, $value);
+            return InvalidValue::typeMismatch($path, $this->expected, $value);
         }
         $count = count($value);
         $max = count($this->items);
         if ($count < $this->required || $count > $max) {
-            $length = $this->required === $max
-                ? sprintf('exactly %d', $max)
-                : sprintf('between %d and %d', $this->required, $max);
-            return DecodeError::nonInstantiableTarget(
-                $this->class,
-                sprintf(
-                    'Field %s must be of type %s with %s items, %d given.',
-                    $path,
-                    $this->expected,
-                    $length,
-                    $count,
-                ),
-            );
+            return InvalidValue::tupleLength($path, $this->expected, $this->required, $max, $count);
         }
         $decoded = [];
         /** @var list<mixed> $items JSON arrays decode to lists. */

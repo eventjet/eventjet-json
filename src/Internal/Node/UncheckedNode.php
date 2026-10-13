@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Node;
 
+use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Override;
 
 /**
- * A constructor parameter whose declared class is not loaded yet. PHP checks the value when the constructor runs.
- * The class remains a dependency, so the decoder is compiled again once the class is loaded.
+ * A constructor parameter whose declared class could not be loaded. Only null can satisfy such a parameter, so other
+ * values report the unknown class instead of failing the constructor call. The class remains a dependency, so the
+ * decoder is compiled again once the class is loaded.
  *
  * @internal
  */
@@ -16,14 +19,13 @@ final readonly class UncheckedNode implements Node
 {
     public function __construct(
         public string $name,
+        private string $field,
     ) {}
 
-    /** @return array<array-key, mixed>|bool|float|int|object|string|null */
     #[Override]
-    public function decode(mixed $value, string $path): array|bool|float|int|object|string|null
+    public function decode(mixed $value, string $path): DecodeError|null
     {
-        /** @var array<array-key, mixed>|bool|float|int|object|string|null */
-        return $value;
+        return $value === null ? null : UnsupportedFieldClass::unknown($this->field, $this->name);
     }
 
     #[Override]

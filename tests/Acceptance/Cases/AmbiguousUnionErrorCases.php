@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use ArrayObject;
+use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\OverlappingEnumUnionField;
@@ -59,7 +60,7 @@ final class AmbiguousUnionErrorCases
                             . ' from the JSON object: Field '
                             . $path
                             . ' uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus together with float. Whole-valued floats encode as JSON integers, so JSON cannot distinguish an enum case from a float value.',
-                        3,
+                        DecodeErrorKind::UnsupportedDeclaration->value,
                     ];
                 }
             }
@@ -68,7 +69,7 @@ final class AmbiguousUnionErrorCases
             '{}',
             new OverlappingEnumUnionField(StringBackedStatus::Ready)::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\OverlappingEnumUnionField from the JSON object: Field value uses multiple backed enums Eventjet\Json\Test\Acceptance\Fixtures\OverlappingStringBackedStatus and Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus with overlapping backing value \'ready\'. JSON cannot identify which enum case to instantiate.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'enum and its backing scalar cannot be distinguished' => [
             '{}',
@@ -94,7 +95,7 @@ final class AmbiguousUnionErrorCases
                     'var',
                 )
                 . ' from the JSON object: Field value uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus together with its backing type string. JSON cannot distinguish an enum case from the scalar value.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
     }
 
@@ -109,7 +110,7 @@ final class AmbiguousUnionErrorCases
             '{"value":{}}',
             new SelfClassUnionField(new Person('Ada', 'Lovelace'))::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField from the JSON object: Field value uses multiple class types: Eventjet\Json\Test\Acceptance\Fixtures\Person, Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField. JSON does not identify which class to instantiate.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'an unloaded class and another class cannot be distinguished' => [
             '{}',
@@ -117,7 +118,7 @@ final class AmbiguousUnionErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('UnloadedUnionClass|\\' . Person::class, '', 'param')
                 . ' from the JSON object: Field value uses multiple class types: Eventjet\Json\Test\Acceptance\Fixtures\Person, UnloadedUnionClass. JSON does not identify which class to instantiate.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'multiple class alternatives cannot be distinguished' => [
             '{}',
@@ -143,7 +144,7 @@ final class AmbiguousUnionErrorCases
                     'param',
                 )
                 . ' from the JSON object: Field value uses multiple class types: Eventjet\Json\Test\Acceptance\Fixtures\Coordinates, Eventjet\Json\Test\Acceptance\Fixtures\Person. JSON does not identify which class to instantiate.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
     }
 
@@ -168,7 +169,7 @@ final class AmbiguousUnionErrorCases
                     'param',
                 )
                 . ' from the JSON object: Field value has multiple union members with the same JSON shape. JSON cannot identify which type to restore.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'map and object field alternatives have the same JSON shape' => [
             '{}',
@@ -184,7 +185,7 @@ final class AmbiguousUnionErrorCases
                     'param',
                 )
                 . ' from the JSON object: Field value has multiple union members with the same JSON shape. JSON cannot identify which type to restore.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'nested list alternatives have the same JSON shape' => [
             '{}',
@@ -208,7 +209,7 @@ final class AmbiguousUnionErrorCases
                     'param',
                 )
                 . ' from the JSON object: Field value has multiple union members with the same JSON shape. JSON cannot identify which type to restore.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'tuple and list alternatives have the same JSON shape' => [
             '{}',
@@ -224,7 +225,7 @@ final class AmbiguousUnionErrorCases
                     'var',
                 )
                 . ' from the JSON object: Field value has multiple union members with the same JSON shape. JSON cannot identify which type to restore.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
     }
 }
