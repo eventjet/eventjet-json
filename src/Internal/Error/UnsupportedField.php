@@ -64,6 +64,15 @@ final class UnsupportedField
         ));
     }
 
+    public static function number(string $field, string $literal): DecodeError
+    {
+        return self::error(sprintf(
+            'Field %s uses unsupported number literal %s, which PHP and PHPStan can read differently. Use a plain decimal number, such as 42, -7, or 1.5.',
+            $field,
+            $literal,
+        ));
+    }
+
     public static function variadic(string $parameter): DecodeError
     {
         return self::error(sprintf(

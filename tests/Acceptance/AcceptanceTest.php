@@ -110,6 +110,8 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(PhpDocType::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]
+#[CoversClass(\Eventjet\Json\Internal\LiteralFieldTypes::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocNumbers::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocConstantResolver::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocConstantValues::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]

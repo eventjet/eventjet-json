@@ -60,6 +60,7 @@ final class LiteralTypeCases
     public static function errors(): iterable
     {
         yield from LiteralDeclarationErrorCases::errors();
+        yield from NumberLiteralErrorCases::errors();
         foreach ([
             ['array', 'list<null>', '[true]', 'value[0]', 'null', 'bool'],
             ['array', 'list<42>', '[null]', 'value[0]', '42', 'null'],

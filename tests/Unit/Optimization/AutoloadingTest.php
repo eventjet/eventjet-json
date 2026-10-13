@@ -181,12 +181,14 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(MappedObjectSerializer::class)]
 #[UsesClass(\Eventjet\Json\Internal\Error\UnsupportedCollection::class)]
 #[UsesClass(\Eventjet\Json\Internal\LiteralFieldCompiler::class)]
+#[UsesClass(\Eventjet\Json\Internal\LiteralFieldTypes::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\LiteralNode::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocConstantResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocConstantValues::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNumbers::class)]
 #[UsesClass(\Eventjet\Json\Json::class)]
 final class AutoloadingTest extends TestCase
 {

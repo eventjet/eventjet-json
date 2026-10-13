@@ -11,8 +11,6 @@ use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use RuntimeException;
 
-use const PHP_INT_MAX;
-
 /** @internal */
 final class LiteralDeclarationErrorCases
 {
@@ -23,8 +21,6 @@ final class LiteralDeclarationErrorCases
     public static function errors(): iterable
     {
         foreach ([
-            ['int', (string) PHP_INT_MAX . '0'],
-            ['float', '1e999'],
             ['int', '\\' . ExtendedLiteralFields::class . '::MISSING'],
             ['int', 'parent::NUMBER'],
             ['int', 'MissingLiteralClass::VALUE'],

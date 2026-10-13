@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedCollection;
+use Eventjet\Json\Internal\Error\UnsupportedField;
 use ReflectionParameter;
 use ReflectionProperty;
 
@@ -43,5 +44,13 @@ final class PhpDocFieldType
             ? PhpDocTagSelector::parameter($tags, $field->getName())
             : PhpDocTagSelector::property($tags, $field->getName());
         return PhpDocTypeTree::limit($type);
+    }
+
+    /** Returns an error if the declared type has a number literal that PHP and PHPStan can read differently. */
+    public static function unsupportedNumber(ReflectionParameter|ReflectionProperty $field): DecodeError|null
+    {
+        $type = self::resolve($field);
+        $number = $type === null ? null : PhpDocNumbers::unsupported($type);
+        return $number === null ? null : UnsupportedField::number($field->getName(), $number);
     }
 }

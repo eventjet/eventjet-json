@@ -65,6 +65,8 @@ use const PHP_INT_MAX;
 use const PHP_INT_MIN;
 
 #[CoversClass(PhpDocLiteralNumber::class)]
+#[CoversClass(\Eventjet\Json\Internal\LiteralFieldTypes::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocNumbers::class)]
 #[CoversClass(PhpDocConstantValues::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(LiteralFieldCompiler::class)]
@@ -417,21 +419,22 @@ final class LiteralTypeTest extends TestCase
             ['-0', 0],
             ['+42', 42],
             ['-42', -42],
-            ['4_2', 42],
-            ['0X2A', 42],
-            ['0B101010', 42],
-            ['0O52', 42],
+            ['42', 42],
             ['1E2', 100.0],
+            ['+1.5e-1', 0.15],
             [(string) PHP_INT_MIN, PHP_INT_MIN],
             [(string) PHP_INT_MAX, PHP_INT_MAX],
             ['9223372036854775808', null],
             ['-9223372036854775809', null],
             ['92233720368547758070', null],
             ['-92233720368547758080', null],
-            ['0xffffffffffffffffffff', null],
-            ['0b11111111111111111111111111111111111111111111111111111111111111111', null],
+            ['0X2A', null],
+            ['0B101010', null],
+            ['0O52', null],
+            ['052', null],
+            ['00', null],
+            ['4_2', null],
             ['foo', null],
-            ['0xg', null],
             ['1e999', null],
         ] as [$source, $expected]) {
             static::assertSame($expected, PhpDocLiteralNumber::parse($source), $source);

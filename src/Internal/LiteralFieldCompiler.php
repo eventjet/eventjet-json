@@ -8,7 +8,6 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\Node;
 use ReflectionException;
-use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionType;
@@ -16,7 +15,6 @@ use ReflectionUnionType;
 
 use function array_any;
 use function array_keys;
-use function enum_exists;
 use function implode;
 use function is_array;
 
@@ -37,7 +35,11 @@ final class LiteralFieldCompiler
         ReflectionParameter|ReflectionProperty $field,
         ReflectionType $type,
     ): Node|DecodeError {
-        $accepts = self::accepts($type);
+        $number = PhpDocFieldType::unsupportedNumber($field);
+        if ($number !== null) {
+            return $number;
+        }
+        $accepts = LiteralFieldTypes::accepts($type);
         $doc = $accepts ? PhpDocFieldType::resolve($field) : null;
         if ($doc === null) {
             return $types->declared($field, $type);
@@ -57,20 +59,6 @@ final class LiteralFieldCompiler
             ? NativeUnionCompiler::classes($types, $field, $type)
             : $types->declared($field, $type);
         return $native instanceof DecodeError ? $native : $items->unions()->build($members, $path);
-    }
-
-    /**
-     * Literals restrict scalars and backed enums. Collection items declare their literals in the collection type.
-     */
-    private static function accepts(ReflectionType $type): bool
-    {
-        if ($type instanceof ReflectionUnionType) {
-            return !NativeUnionCompiler::hasCollection($type);
-        }
-        return (
-            $type instanceof ReflectionNamedType
-            && ($type->isBuiltin() ? $type->getName() !== 'array' : enum_exists($type->getName()))
-        );
     }
 
     /** @param array<array-key, Node|string> $members */
