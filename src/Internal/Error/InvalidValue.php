@@ -24,7 +24,7 @@ final class InvalidValue
 {
     public static function typeMismatch(string $path, string $expectedType, mixed $value): DecodeError
     {
-        return self::error(sprintf(
+        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
             'Field %s must be of type %s, %s given.',
             $path,
             $expectedType,
@@ -34,12 +34,16 @@ final class InvalidValue
 
     public static function emptyList(string $path, string $type): DecodeError
     {
-        return self::error(sprintf('Field %s must be of type %s, empty list given.', $path, $type));
+        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
+            'Field %s must be of type %s, empty list given.',
+            $path,
+            $type,
+        ));
     }
 
     public static function emptyMap(string $path): DecodeError
     {
-        return self::error(sprintf(
+        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
             'Field %s uses non-empty-array<string, TValue> and cannot accept an empty JSON object. Use ArrayObject<string, TValue> when the map may be empty.',
             $path,
         ));
@@ -47,7 +51,7 @@ final class InvalidValue
 
     public static function integerKey(string $path, int $key): DecodeError
     {
-        return self::error(sprintf(
+        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
             'Field %s has numeric-looking member name %d, which PHP converts to an integer array key. Supported maps require member names that remain strings.',
             $path,
             $key,
@@ -57,7 +61,7 @@ final class InvalidValue
     public static function tupleLength(string $path, string $type, int $required, int $max, int $count): DecodeError
     {
         $length = $required === $max ? sprintf('exactly %d', $max) : sprintf('between %d and %d', $required, $max);
-        return self::error(sprintf(
+        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
             'Field %s must be of type %s with %s items, %d given.',
             $path,
             $type,
@@ -69,7 +73,7 @@ final class InvalidValue
     /** @param 'int'|'string' $backingType */
     public static function enumBackingType(string $path, string $enum, string $backingType, mixed $value): DecodeError
     {
-        return self::error(sprintf(
+        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
             'Field %s uses backed enum %s, which expects a %s backing value; %s given.',
             $path,
             $enum,
@@ -82,7 +86,7 @@ final class InvalidValue
     public static function unknownEnumCase(string $path, array $enums, int|string $value): DecodeError
     {
         sort($enums);
-        return self::error(sprintf(
+        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
             'Field %s uses %s %s, which has no case with backing value %s.',
             $path,
             count($enums) === 1 ? 'backed enum' : 'backed enum union',
@@ -95,10 +99,5 @@ final class InvalidValue
     public static function missingArgument(Throwable $error): DecodeError
     {
         return DecodeError::thrown(DecodeErrorKind::InvalidValue, $error);
-    }
-
-    private static function error(string $message): DecodeError
-    {
-        return new DecodeError(DecodeErrorKind::InvalidValue, $message);
     }
 }
