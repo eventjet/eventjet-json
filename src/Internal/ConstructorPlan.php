@@ -30,30 +30,28 @@ use function is_string;
  */
 final readonly class ConstructorPlan
 {
+    /** Whether the checked members are the arguments: none needs a converter or has a different JSON name. */
     private bool $scalarOnly;
 
-    private bool $renamed;
-
-    /** @var array<array-key, string> Native type names of the arguments that need a type check. */
+    /** @var array<array-key, string> Native type names of the members that need a type check, keyed by JSON name. */
     private array $types;
 
-    /** @var array<array-key, string> The type that errors report for each checked argument that accepts null. */
+    /** @var array<array-key, string> The type that errors report for each checked member that accepts null. */
     private array $nullable;
 
     /**
      * @param array<array-key, array{string, string|null}> $checks Native type checks, keyed by JSON name: type name,
      *     and the type that errors report if the argument accepts null.
-     * @param array<array-key, Node|null> $converters Converter of each argument, keyed by JSON name. The converter is
-     *     null if the argument needs only its native type check.
-     * @param array<string, Node|null> $nodes The same converters, keyed by parameter name.
-     * @param array<string, string> $names JSON names of renamed fields, keyed by property name.
+     * @param array<string, Node|null> $converters Converter of each argument, keyed by parameter name. The converter
+     *     is null if the argument needs only its native type check.
+     * @param array<string, string> $jsonNames JSON names of the arguments whose JSON name differs from their parameter
+     *     name, keyed by parameter name.
      * @param list<string> $required The names of the parameters without a default value.
      */
     public function __construct(
         array $checks,
-        private array $converters,
-        public array $nodes,
-        private array $names,
+        public array $converters,
+        private array $jsonNames,
         private array $required,
     ) {
         $this->types = array_map(
@@ -69,9 +67,8 @@ final readonly class ConstructorPlan
             ),
             static fn(string|null $type): bool => $type !== null,
         );
-        $this->renamed = $names !== [];
         $this->scalarOnly =
-            $names === [] && array_all($nodes, static fn(Node|null $converter): bool => $converter === null);
+            $jsonNames === [] && array_all($converters, static fn(Node|null $converter): bool => $converter === null);
     }
 
     /**
@@ -126,28 +123,29 @@ final readonly class ConstructorPlan
 
     /**
      * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values
-     * @return array<array-key, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
+     * @return array<string, array<array-key, mixed>|bool|float|int|object|string|null>|DecodeError
      * @throws JsonException
      */
     private function convert(array $values, string $path): array|DecodeError
     {
+        if ($this->jsonNames !== []) {
+            return RenamedArguments::convert($this->converters, $this->jsonNames, $values, $path);
+        }
         $arguments = [];
+        // Each parameter name is also the JSON name, which spares a lookup per argument.
         foreach ($this->converters as $name => $converter) {
             if (!array_key_exists($name, $values)) {
                 continue;
             }
             $value = $values[$name];
             if ($converter !== null) {
-                $fieldPath = $path === '' ? (string) $name : FieldPath::field($path, (string) $name);
+                $fieldPath = $path === '' ? $name : FieldPath::field($path, $name);
                 $value = $converter->decode($value, $fieldPath);
                 if ($value instanceof DecodeError) {
                     return $value;
                 }
             }
             $arguments[$name] = $value;
-        }
-        if ($this->renamed) {
-            return FieldNames::toProperties($arguments, $this->names);
         }
         return $arguments;
     }

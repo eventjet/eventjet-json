@@ -17,8 +17,7 @@ use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
-use Eventjet\Json\Internal\FieldNameCollisions;
-use Eventjet\Json\Internal\FieldNames;
+use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\MappedObjectSerializer;
@@ -52,8 +51,9 @@ use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyValues;
+use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\RootDescriptor;
-use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
@@ -89,8 +89,8 @@ use function class_alias;
 
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(ConstructorPlan::class)]
+#[UsesClass(RenamedArguments::class)]
 #[UsesClass(FieldPath::class)]
-#[UsesClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(PublicProperties::class)]
 #[CoversClass(PublicPropertyValues::class)]
@@ -102,8 +102,8 @@ use function class_alias;
 #[UsesClass(PhpDocTypeTokens::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
-#[UsesClass(FieldNameCollisions::class)]
-#[UsesClass(FieldNames::class)]
+#[UsesClass(TargetClass::class)]
+#[UsesClass(FieldNameRules::class)]
 #[UsesClass(NamedTypeCompiler::class)]
 #[CoversClass(NodeCompiler::class)]
 #[UsesClass(PhpDocNarrowing::class)]

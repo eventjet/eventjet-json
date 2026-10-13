@@ -41,7 +41,7 @@ final class ClassFieldTypeValidator
             return UnsupportedFieldClass::nonFinal($field, $type);
         }
 
-        $names = RootTypeValidator::fieldNames($typeReflection);
+        $names = TargetClass::fieldNames($typeReflection);
         return $names instanceof DecodeError ? $names->whileCreating($typeReflection->getName()) : null;
     }
 }
