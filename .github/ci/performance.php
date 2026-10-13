@@ -36,6 +36,34 @@ function exportRevision(string $ref, string $destination): void
     }
 }
 
+/**
+ * PHPBench takes seconds to parse every benchmark file, so each measurement names only its own file.
+ *
+ * @param list<string> $classes
+ * @return array<string, string> Paths relative to the workspace, keyed by class
+ */
+function benchmarkFiles(string $workspace, array $classes): array
+{
+    $files = json_decode(BenchmarkCommand::run([
+        PHP_BINARY,
+        '-r',
+        'require "vendor/autoload.php"; $files = []; foreach (json_decode($argv[1], true) as $class) { '
+        . '$files[$class] = (new ReflectionClass(ltrim($class, "\\\\")))->getFileName(); } echo json_encode($files);',
+        '--',
+        json_encode($classes, JSON_THROW_ON_ERROR),
+    ], $workspace), true, flags: JSON_THROW_ON_ERROR);
+    $prefix = $workspace . '/';
+    $relative = [];
+    foreach ($classes as $class) {
+        $file = is_array($files) ? $files[$class] ?? null : null;
+        if (!is_string($file) || !str_starts_with($file, $prefix)) {
+            throw new RuntimeException('Benchmark class is outside the workspace: ' . $class);
+        }
+        $relative[$class] = substr($file, strlen($prefix));
+    }
+    return $relative;
+}
+
 /** @param array<array-key, mixed> $data */
 function writeJson(string $path, array $data): void
 {
@@ -229,6 +257,13 @@ $measure = static function (string $workspace, string $name, int $iterations, st
 $discovery = $measure($workspaces['baseline'], 'discovery', 1, '--revs=1');
 $comparisons = [];
 $indices = PerformanceShards::assignedIndices(count($discovery->workloads), $shard);
+$files = withWorkspace($workspaces['baseline'], static fn(string $active): array => benchmarkFiles(
+    $active,
+    array_values(array_unique(array_map(
+        static fn(int $index): string => $discovery->workloads[$index]->class,
+        $indices,
+    ))),
+));
 foreach ($indices as $index) {
     $workload = $discovery->workloads[$index];
     $rounds = ['baseline' => [], 'candidate' => []];
@@ -238,6 +273,7 @@ foreach ($indices as $index) {
                 $workspaces[$version],
                 $version . '-' . $index . '-' . $round,
                 BenchmarkComparison::ITERATIONS,
+                $files[$workload->class],
                 ...$workload->filters(),
             );
         }

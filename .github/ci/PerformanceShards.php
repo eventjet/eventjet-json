@@ -11,10 +11,12 @@ require_once __DIR__ . '/FpmMeasurements.php';
 
 final class PerformanceShards
 {
+    public const SHARDS = 8;
+
     public static function shardNumber(mixed $value): int
     {
-        if (!is_string($value) || !ctype_digit($value) || (int) $value < 1 || (int) $value > 4) {
-            throw new RuntimeException('Shard must be an integer from 1 through 4');
+        if (!is_string($value) || !ctype_digit($value) || (int) $value < 1 || (int) $value > self::SHARDS) {
+            throw new RuntimeException('Shard must be an integer from 1 through ' . self::SHARDS);
         }
         return (int) $value;
     }
@@ -24,7 +26,7 @@ final class PerformanceShards
     {
         $indices = [];
         for ($index = 0; $index < $count; $index++) {
-            if ($shard === null || ($index % 4) === ($shard - 1)) {
+            if ($shard === null || ($index % self::SHARDS) === ($shard - 1)) {
                 $indices[] = $index;
             }
         }
@@ -56,8 +58,8 @@ final class PerformanceShards
     public static function collect(string $directory, string $mode): array
     {
         $directories = glob($directory . '/*', GLOB_ONLYDIR);
-        if ($directories === false || count($directories) !== 4) {
-            throw new RuntimeException('Expected exactly four shard artifact directories');
+        if ($directories === false || count($directories) !== self::SHARDS) {
+            throw new RuntimeException('Expected exactly one artifact directory per shard');
         }
         $reference = null;
         $expected = null;
@@ -68,7 +70,7 @@ final class PerformanceShards
             $metadata = self::json($shardDirectory . '/metadata.json');
             $completion = self::json($shardDirectory . '/complete.json');
             $shard = $metadata['shard'] ?? null;
-            if (!is_int($shard) || $shard < 1 || $shard > 4 || isset($seen[$shard])) {
+            if (!is_int($shard) || $shard < 1 || $shard > self::SHARDS || isset($seen[$shard])) {
                 throw new RuntimeException('Missing, duplicate, or invalid shard number');
             }
             $seen[$shard] = true;
