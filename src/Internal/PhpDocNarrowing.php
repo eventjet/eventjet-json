@@ -7,9 +7,9 @@ namespace Eventjet\Json\Internal;
 use ArrayObject;
 use ReflectionException;
 
+use function array_column;
 use function array_diff;
 use function array_intersect;
-use function array_map;
 use function in_array;
 
 /**
@@ -32,7 +32,7 @@ final class PhpDocNarrowing
         if ($doc === null) {
             return null;
         }
-        $names = array_map(static fn(PhpDocType $member): string => $member->name, $native->members());
+        $names = array_column($native->members(), 'name');
         $narrows = array_intersect($names, ['array', ArrayObject::class]) !== [];
         $declared = [];
         foreach ($doc->members() as $member) {
@@ -42,16 +42,16 @@ final class PhpDocNarrowing
                 ? PhpDocLiteralNativeType::name($member->name, $names)
                 : self::declaredName($member->name);
         }
+        if (!$narrows) {
+            return null;
+        }
         // PHPDoc class names have their declared spelling; a native one may differ in case or be an alias.
-        $natives = array_map(
-            /** @throws ReflectionException */
-            static fn(string $name): string => in_array($name, $declared, strict: true)
-                ? $name
-                : PhpDocClassNameResolver::canonical($name),
-            $names,
-        );
+        $natives = [];
+        foreach ($names as $name) {
+            $natives[] = in_array($name, $declared, strict: true) ? $name : PhpDocClassNameResolver::canonical($name);
+        }
         $same = array_diff($declared, $natives) === [] && array_diff($natives, $declared) === [];
-        return $narrows && $same ? $doc : null;
+        return $same ? $doc : null;
     }
 
     private static function declaredName(string $name): string

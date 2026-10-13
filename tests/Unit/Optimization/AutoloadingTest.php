@@ -175,6 +175,7 @@ final class AutoloadingTest extends TestCase
         static::assertFalse(class_exists(PhpDocTypeResolver::class, autoload: false));
         static::assertFalse(class_exists(PhpDocNarrowing::class, autoload: false));
         static::assertFalse(class_exists(UnionBuilder::class, autoload: false));
+        static::assertFalse(class_exists(PhpDocFieldType::class, autoload: false));
         $ordinary = new class(new EmptyObject()) {
             /** @param \Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject $object */
             public function __construct(
@@ -185,6 +186,7 @@ final class AutoloadingTest extends TestCase
         $ordinaryInput->object = new stdClass();
         static::assertEquals($ordinary, ClassDecoders::hydrate($ordinary::class, $ordinaryInput));
         static::assertFalse(class_exists(PhpDocClassNameResolver::class, autoload: false));
+        static::assertFalse(class_exists(PhpDocTypeParser::class, autoload: false));
         $collection = new class([42]) {
             /** @param list<int> $values The name has a native scalar type. */
             public function __construct(

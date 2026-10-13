@@ -29,12 +29,12 @@ use function is_a;
  *
  * @internal
  */
-final readonly class NamedTypeCompiler
+final class NamedTypeCompiler
 {
     private const array RESOURCES = ['resource', 'open-resource', 'closed-resource'];
 
     /** @throws ReflectionException */
-    public function compile(string $name, string $path): Node|DecodeError
+    public static function compile(string $name, string $path): Node|DecodeError
     {
         return match (true) {
             in_array($name, ['bool', 'callable', 'float', 'int', 'string'], strict: true) => new ScalarNode(
@@ -42,14 +42,14 @@ final readonly class NamedTypeCompiler
                 false,
             ),
             $name === 'null' => new NullOnlyNode('null'),
-            PhpDocType::literalSyntax($name) => $this->literal($name, $path),
+            PhpDocType::literalSyntax($name) => self::literal($name, $path),
             in_array($name, ['mixed', 'object', stdClass::class], strict: true) => UnsupportedField::imprecise(
                 $path,
                 $name,
             ),
             in_array($name, self::RESOURCES, strict: true) => UnsupportedField::nonEncodable($path, $name),
-            enum_exists($name) => $this->enum($name, $path),
-            default => $this->object($name, $path),
+            enum_exists($name) => self::enum($name, $path),
+            default => self::object($name, $path),
         };
     }
 
@@ -77,26 +77,24 @@ final readonly class NamedTypeCompiler
      *
      * @throws ReflectionException
      */
-    private function enum(string $enum, string $path): Node|DecodeError
+    private static function enum(string $enum, string $path): Node|DecodeError
     {
         $node = EnumNode::of($enum);
         return match (true) {
             $node === null => UnsupportedFieldClass::nonBackedEnum($path, $enum),
-            is_a($enum, JsonSerializable::class, allow_string: true) => $this->serializedEnum($enum, $path),
+            is_a($enum, JsonSerializable::class, allow_string: true) => self::serializedEnum($enum, $path),
             default => $node,
         };
     }
 
     /** A literal enum case is subject to the rules of its enum. */
-    private function literal(string $name, string $path): Node|DecodeError
+    private static function literal(string $name, string $path): Node|DecodeError
     {
         $value = PhpDocLiteral::value($name);
-        return $value instanceof JsonSerializable
-            ? $this->serializedEnum($value::class, $path)
-            : LiteralNode::of($name);
+        return $value instanceof JsonSerializable ? self::serializedEnum($value::class, $path) : LiteralNode::of($name);
     }
 
-    private function serializedEnum(string $enum, string $path): DecodeError
+    private static function serializedEnum(string $enum, string $path): DecodeError
     {
         return UnsupportedFieldClass::jsonSerializableEnum($path, $enum);
     }
@@ -107,7 +105,7 @@ final readonly class NamedTypeCompiler
      *
      * @throws ReflectionException
      */
-    private function object(string $name, string $path): Node|DecodeError
+    private static function object(string $name, string $path): Node|DecodeError
     {
         $error = ClassFieldTypeValidator::validate($path, $name);
         return match (true) {

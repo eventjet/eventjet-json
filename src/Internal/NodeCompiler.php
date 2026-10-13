@@ -30,13 +30,6 @@ use function sprintf;
  */
 final readonly class NodeCompiler
 {
-    private NamedTypeCompiler $names;
-
-    public function __construct()
-    {
-        $this->names = new NamedTypeCompiler();
-    }
-
     /**
      * Compiles the whole type of a field. Unlike a list item, a field of a nullable class gets an object node that
      * accepts null, because lists decode their objects without a null check.
@@ -70,7 +63,7 @@ final readonly class NodeCompiler
             'list', 'non-empty-list' => $this->list($type, $path),
             'non-empty-array', 'non-empty-map', ArrayObject::class => $this->map($type, $path),
             'array' => null,
-            default => $arguments === [] ? $this->names->compile($type->name, $path) : null,
+            default => $arguments === [] ? NamedTypeCompiler::compile($type->name, $path) : null,
         };
     }
 
