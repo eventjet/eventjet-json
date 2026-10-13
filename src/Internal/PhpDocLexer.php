@@ -56,15 +56,24 @@ final class PhpDocLexer
     public const int ARROW = 36;
     public const int COMMENT = 37;
 
-    private const string NAME = '(?:[\\\\]?+[a-z_\\x80-\\xFF][0-9a-z_\\x80-\\xFF-]*+)++';
+    /**
+     * PCRE builds its character tables from the locale, which changes what `\s` and case-insensitive matching accept.
+     * phpdoc-parser runs in the C locale, so the patterns spell out its character classes.
+     */
+    private const string SPACE = '\\x09-\\x0D\\x20';
+
+    private const string NAME_START = 'A-Z_a-z\\x80-\\xFF';
+    private const string NAME_PART = '0-9A-Z_a-z\\x80-\\xFF';
+    private const string NAME = '(?:[\\\\]?+[' . self::NAME_START . '][-' . self::NAME_PART . ']*+)++';
+    private const string THIS = '\\$[Tt][Hh][Ii][Ss](?![' . self::NAME_PART . '])';
 
     /** The order decides which token wins where several patterns match. */
     private const array PATTERNS = [
         self::HORIZONTAL_WS => '[\\x09\\x20]++',
         self::IDENTIFIER => self::NAME,
-        self::THIS_VARIABLE => '\\$this(?![0-9a-z_\\x80-\\xFF])',
-        self::VARIABLE => '\\$[a-z_\\x80-\\xFF][0-9a-z_\\x80-\\xFF]*+',
-        self::REFERENCE => '&(?=\\s*+(?:[,=)]|\\.\\.\\.|(?:\\$(?!this(?![0-9a-z_\\x80-\\xFF])))))',
+        self::THIS_VARIABLE => self::THIS,
+        self::VARIABLE => '\\$[' . self::NAME_START . '][' . self::NAME_PART . ']*+',
+        self::REFERENCE => '&(?=[' . self::SPACE . ']*+(?:[,=)]|\\.\\.\\.|(?!' . self::THIS . ')\\$))',
         self::UNION => '\\|',
         self::INTERSECTION => '&',
         self::NULLABLE => '\\?',
@@ -85,18 +94,18 @@ final class PhpDocLexer
         self::ARROW => '->',
         self::EQUAL => '=',
         self::COLON => ':',
-        self::OPEN_PHPDOC => '/\\*\\*(?=\\s)\\x20?+',
+        self::OPEN_PHPDOC => '/\\*\\*(?=[' . self::SPACE . '])\\x20?+',
         self::CLOSE_PHPDOC => '\\*/',
-        self::PHPDOC_TAG => '@(?:[a-z][a-z0-9-\\\\]+:)?[a-z][a-z0-9-\\\\]*+',
-        self::DOCTRINE_TAG => '@[a-z_\\\\][a-z0-9_\:\\\\]*[a-z_][a-z0-9_]*',
+        self::PHPDOC_TAG => '@(?:[A-Za-z][-0-9A-Z\\\\a-z]+:)?[A-Za-z][-0-9A-Z\\\\a-z]*+',
+        self::DOCTRINE_TAG => '@[A-Z\\\\_a-z][0-9:A-Z\\\\_a-z]*[A-Z_a-z][0-9A-Z_a-z]*',
         self::PHPDOC_EOL => '\\r?+\\n[\\x09\\x20]*+(?:\\*(?!/)\\x20?+)?',
-        self::FLOAT => '[+\-]?(?:(?:[0-9]++(?:_[0-9]++)*\\.[0-9]*+(?:_[0-9]++)*(?:e[+\-]?[0-9]++(?:_[0-9]++)*)?)|(?:[0-9]*+(?:_[0-9]++)*\\.[0-9]++(?:_[0-9]++)*(?:e[+\-]?[0-9]++(?:_[0-9]++)*)?)|(?:[0-9]++(?:_[0-9]++)*e[+\-]?[0-9]++(?:_[0-9]++)*))',
-        self::INTEGER => '[+\-]?(?:(?:0b[0-1]++(?:_[0-1]++)*)|(?:0o[0-7]++(?:_[0-7]++)*)|(?:0x[0-9a-f]++(?:_[0-9a-f]++)*)|(?:[0-9]++(?:_[0-9]++)*))',
+        self::FLOAT => '[+\-]?(?:(?:[0-9]++(?:_[0-9]++)*\\.[0-9]*+(?:_[0-9]++)*(?:[Ee][+\-]?[0-9]++(?:_[0-9]++)*)?)|(?:[0-9]*+(?:_[0-9]++)*\\.[0-9]++(?:_[0-9]++)*(?:[Ee][+\-]?[0-9]++(?:_[0-9]++)*)?)|(?:[0-9]++(?:_[0-9]++)*[Ee][+\-]?[0-9]++(?:_[0-9]++)*))',
+        self::INTEGER => '[+\-]?(?:(?:0[Bb][0-1]++(?:_[0-1]++)*)|(?:0[Oo][0-7]++(?:_[0-7]++)*)|(?:0[Xx][0-9A-Fa-f]++(?:_[0-9A-Fa-f]++)*)|(?:[0-9]++(?:_[0-9]++)*))',
         self::SINGLE_QUOTED_STRING => '\'(?:\\\\[^\\r\\n]|[^\'\\r\\n\\\\])*+\'',
         self::DOUBLE_QUOTED_STRING => '"(?:\\\\[^\\r\\n]|[^"\\r\\n\\\\])*+"',
         self::DOCTRINE_ANNOTATION_STRING => '"(?:""|[^"])*+"',
         self::WILDCARD => '\\*',
-        self::OTHER => '(?:(?!\\*/)[^\\s])++',
+        self::OTHER => '(?:(?!\\*/)[^' . self::SPACE . '])++',
     ];
 
     /**
@@ -120,7 +129,7 @@ final class PhpDocLexer
     /** @mutation-free */
     public static function isIdentifier(string $value): bool
     {
-        return preg_match('~\\A' . self::NAME . '\\z~i', $value) === 1;
+        return preg_match('~\\A' . self::NAME . '\\z~', $value) === 1;
     }
 
     /**
@@ -134,6 +143,6 @@ final class PhpDocLexer
         foreach (self::PATTERNS as $type => $pattern) {
             $alternatives[] = $pattern . '(*MARK:' . $type . ')';
         }
-        return '~' . implode('|', $alternatives) . '~Asi';
+        return '~' . implode('|', $alternatives) . '~A';
     }
 }
