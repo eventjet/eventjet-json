@@ -3,7 +3,8 @@
 [Back to the README](../README.md) · [Development setup](../CONTRIBUTING.md)
 
 The decoder compiles each class once per PHP process and reuses the compiled
-decoder, `#[Field]` names, and PHPDoc imports. Every
+decoder, `#[Field]` names, PHPDoc imports, and the parsed `@param` and `@var`
+tags of each doc comment. Every
 incoming value is still checked, including collection shapes, item types, enum values, and nested error paths. Decoded
 objects and errors are not cached.
 
