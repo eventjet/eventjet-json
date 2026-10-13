@@ -6,11 +6,13 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
+use Eventjet\Json\Test\Acceptance\Fixtures\InheritedPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassField;
 use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
+use Eventjet\Json\Test\Acceptance\Fixtures\PrivateConstructorTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface;
 
 /** @internal */
@@ -81,7 +83,44 @@ final class UnsupportedTargetErrorCases
         yield 'list item type cannot be an interface' => [
             '[]',
             JsonType::array(RootTargetInterface::class),
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface from the JSON object: Field [] uses interface Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface from the JSON object: Target type is an interface. JSON does not identify a concrete implementation to instantiate.',
+            3,
+        ];
+        yield 'list item type cannot be an abstract class' => [
+            '[]',
+            JsonType::array(AbstractRootTarget::class),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget from the JSON object: Target type is an abstract class. JSON does not identify a concrete subclass to instantiate.',
+            3,
+        ];
+        $nonFinal = 'Could not create Eventjet\Json\Test\Acceptance\Fixtures\InheritedPublicProperty from the JSON object: Target type is a non-final class. Collection items may be subclasses, whose runtime class JSON does not identify.';
+        yield 'list item type cannot be a non-final class' => [
+            '[]',
+            JsonType::array(InheritedPublicProperty::class),
+            $nonFinal,
+            3,
+        ];
+        yield 'map value type cannot be a non-final class' => [
+            '{}',
+            JsonType::map(InheritedPublicProperty::class),
+            $nonFinal,
+            3,
+        ];
+        yield 'nested descriptor item type cannot be a non-final class' => [
+            '[]',
+            JsonType::array(JsonType::map(InheritedPublicProperty::class)),
+            $nonFinal,
+            3,
+        ];
+        yield 'list item type cannot be a non-backed enum' => [
+            '[]',
+            JsonType::array(NonBackedStatus::class),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus from the JSON object: Target type non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
+            3,
+        ];
+        yield 'list item type cannot have a private constructor' => [
+            '[]',
+            JsonType::array(PrivateConstructorTarget::create()::class),
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\PrivateConstructorTarget from the JSON object: Target class has a private constructor, which cannot be called to create the object.',
             3,
         ];
         yield 'imported interface cannot be a collection item type' => [

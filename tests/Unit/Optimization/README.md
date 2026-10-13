@@ -7,7 +7,9 @@ visible to mutation testing without relying on timing thresholds.
 
 - `MetadataCacheTest` checks that class decoders are compiled once per class, that
   failed and incomplete declarations are compiled again, and that field declarations
-  are compiled again after a missing class loads.
+  are compiled again after a missing class loads. It also checks that equivalent
+  `JsonType` descriptors share one compiled node, and that a descriptor is compiled
+  again after its missing item class loads.
 - `ConstructorHydrationPlanTest` checks that cached class decoders still validate each
   input and that unions keep the JSON value types they decode.
 - `ConstructorValidationPlanTest` checks that cached decoders still validate and convert each
