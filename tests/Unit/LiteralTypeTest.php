@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Unit;
 
+use BackedEnum;
 use DateTimeImmutable;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
@@ -29,8 +30,6 @@ use Eventjet\Json\Internal\PhpDocCollectionCompiler;
 use Eventjet\Json\Internal\PhpDocConstantImportStatement;
 use Eventjet\Json\Internal\PhpDocConstantResolver;
 use Eventjet\Json\Internal\PhpDocConstantValues;
-use Eventjet\Json\Internal\PhpDocExtendedTypeParser;
-use Eventjet\Json\Internal\PhpDocExtendedTypeTokens;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
@@ -38,13 +37,10 @@ use Eventjet\Json\Internal\PhpDocImportStatement;
 use Eventjet\Json\Internal\PhpDocItemCompiler;
 use Eventjet\Json\Internal\PhpDocLiteral;
 use Eventjet\Json\Internal\PhpDocLiteralNumber;
-use Eventjet\Json\Internal\PhpDocLiteralString;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
-use Eventjet\Json\Internal\PhpDocStringEscape;
 use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
-use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
@@ -69,8 +65,6 @@ use const PHP_INT_MAX;
 use const PHP_INT_MIN;
 
 #[CoversClass(PhpDocLiteralNumber::class)]
-#[CoversClass(PhpDocLiteralString::class)]
-#[CoversClass(PhpDocStringEscape::class)]
 #[CoversClass(PhpDocConstantValues::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(LiteralFieldCompiler::class)]
@@ -78,8 +72,6 @@ use const PHP_INT_MIN;
 #[CoversClass(PhpDocFieldType::class)]
 #[CoversClass(PhpDocType::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
-#[CoversClass(PhpDocExtendedTypeParser::class)]
-#[CoversClass(PhpDocExtendedTypeTokens::class)]
 #[CoversClass(PhpDocImportStatement::class)]
 #[CoversClass(PhpDocConstantImportStatement::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
@@ -104,7 +96,34 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocNamespaceDeclaration::class)]
 #[UsesClass(PhpDocTokenStream::class)]
 #[UsesClass(PhpDocTypeParser::class)]
-#[UsesClass(PhpDocTypeTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLexer::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSyntaxError::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokenState::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTree::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNestedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocAtomicTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNamedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocHtmlDetector::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocGenericParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantNameParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableReturnParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocArrayShapeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocShapeItemParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagValues::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocFieldTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocOtherTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodParameterTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTextParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagSelector::class)]
 #[UsesClass(PhpDocUnionCompiler::class)]
 #[UsesClass(TargetClass::class)]
 #[UsesClass(ScalarItems::class)]
@@ -418,6 +437,10 @@ final class LiteralTypeTest extends TestCase
 
     public function testUnicodeScalarBoundaries(): void
     {
+        $literal = static function (string $source): string|int|float|bool|BackedEnum|null {
+            $type = PhpDocTypeParser::parse($source);
+            return $type === null ? null : PhpDocLiteral::value($type->name);
+        };
         foreach ([
             ['0',                        "\u{0}"],
             ['d7ff',                     "\u{d7ff}"],
@@ -427,15 +450,16 @@ final class LiteralTypeTest extends TestCase
             ['103ff',                    "\u{103ff}"],
             ['10400',                    "\u{10400}"],
             ['10ffff',                   "\u{10ffff}"],
-            ['d800',                     null],
-            ['dfff',                     null],
-            ['110000',                   null],
-            ['ffffffffffffffffffffffff', null],
+            ['d800',                     "\xED\xA0\x80"],
+            ['dfff',                     "\xED\xBF\xBF"],
+            ['110000',                   "\xF4\x90\x80\x80"],
+            ['ffffffff',                 "\u{fffd}"],
+            ['ffffffffffffffffffffffff', "\0"],
         ] as [$code, $expected]) {
-            static::assertSame($expected, PhpDocLiteralString::parse('"\\u{' . $code . '}"'), $code);
+            static::assertSame($expected, $literal('"\\u{' . $code . '}"'), $code);
         }
-        static::assertNull(PhpDocLiteralString::parse('not quoted'));
-        static::assertNull(PhpDocLiteralString::parse("'mismatched\""));
+        static::assertNull($literal('not quoted'));
+        static::assertNull($literal("'mismatched\""));
     }
 
     /** @throws ReflectionException */

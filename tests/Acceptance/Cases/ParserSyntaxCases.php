@@ -37,9 +37,9 @@ final class ParserSyntaxCases
             str_repeat('(', times: 63) . 'int' . str_repeat(')', times: 63),
             new PhpDocType('int'),
         ];
-        yield '64 parentheses exceed the depth limit' => [
+        yield 'parentheses do not count toward the depth limit' => [
             str_repeat('(', times: 64) . 'int' . str_repeat(')', times: 64),
-            null,
+            new PhpDocType('int'),
         ];
         $nested = new PhpDocType("'a'");
         for ($level = 0; $level < 63; ++$level) {
@@ -69,7 +69,67 @@ final class ParserSyntaxCases
                 [new PhpDocTupleEntry(new PhpDocType('int')), new PhpDocTupleEntry(new PhpDocType('string'))],
             ),
         ];
+        yield 'generic arguments may end with a comma' => [
+            'list<int,>',
+            new PhpDocType('list', [new PhpDocType('int')]),
+        ];
+        yield 'constant fetches may contain spaces around ::' => ['Foo :: BAR', new PhpDocType('Foo::BAR')];
+        yield 'an intersection inside a union needs parentheses' => ['int&string|null', null];
+        yield 'digit separators are removed from numbers' => [
+            '1_000|1_0.5',
+            new PhpDocType('|', [
+                new PhpDocType('1000'),
+                new PhpDocType('10.5'),
+            ]),
+        ];
+        yield 'strings are requoted with their escapes decoded' => [
+            '"a\\n\\"b\\$"',
+            new PhpDocType("\"a\n\\\"b\\\\\$\""),
+        ];
+        yield 'string shape keys are requoted' => [
+            "array{'a\\'b': int}",
+            new PhpDocType('array{}', entries: [new PhpDocTupleEntry(new PhpDocType('int'), "'a\\'b'")]),
+        ];
         yield from ParserDepthCases::types();
+        yield from ParserGrammarCases::types();
+        yield from self::escapes();
         yield 'tuple declaration rejects a mismatched closing delimiter' => ['array{int>', null];
+    }
+
+    /** @return iterable<string, array{string, PhpDocType}> */
+    private static function escapes(): iterable
+    {
+        foreach ([
+            '7f' => "\x7F",
+            '80' => "\u{80}",
+            '100' => "\u{100}",
+            '7ff' => "\u{7ff}",
+            '800' => "\u{800}",
+            'ffff' => "\u{ffff}",
+            '10000' => "\u{10000}",
+            '10ffff' => "\u{10ffff}",
+            'd800' => "\xED\xA0\x80",
+            '110000' => "\xF4\x90\x80\x80",
+            '1fffff' => "\xF7\xBF\xBF\xBF",
+            '200000' => "\u{fffd}",
+            '0041' => 'A',
+        ] as $code => $bytes) {
+            yield 'a Unicode escape is encoded as UTF-8: ' . $code => [
+                '"\\u{' . $code . '}"',
+                new PhpDocType('"' . $bytes . '"'),
+            ];
+        }
+        foreach ([
+            '\x41' => 'A',
+            '\X41' => 'A',
+            '\x7' => "\x07",
+            '\xfF' => "\xFF",
+            '\x1g' => "\x01g",
+        ] as $escape => $bytes) {
+            yield 'a hexadecimal escape is a byte: ' . $escape => [
+                '"' . $escape . '"',
+                new PhpDocType('"' . $bytes . '"'),
+            ];
+        }
     }
 }

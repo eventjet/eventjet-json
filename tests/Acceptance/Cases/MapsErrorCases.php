@@ -82,7 +82,7 @@ final class MapsErrorCases
             CollectionDeclarationFixture::create('array', 'non-empty-map<string, int, bool>', 'var'),
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'non-empty-map<string, int, bool>', 'var')
-                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var, @phpstan-var, @psalm-var, or @phan-var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
     }

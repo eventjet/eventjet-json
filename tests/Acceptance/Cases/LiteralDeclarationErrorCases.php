@@ -25,7 +25,6 @@ final class LiteralDeclarationErrorCases
         foreach ([
             ['int', (string) PHP_INT_MAX . '0'],
             ['float', '1e999'],
-            ['string', '"\\u{110000}"'],
             ['int', '\\' . ExtendedLiteralFields::class . '::MISSING'],
             ['int', 'parent::NUMBER'],
             ['int', 'MissingLiteralClass::VALUE'],

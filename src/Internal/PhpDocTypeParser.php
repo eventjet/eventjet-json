@@ -4,89 +4,92 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use UnexpectedValueException;
-
-use function count;
-use function strpbrk;
-use function trim;
-
-/** @internal */
-readonly class PhpDocTypeParser
+/**
+ * Parses PHPDoc types with phpstan/phpdoc-parser 2.x's grammar. The parsers follow phpdoc-parser step by step,
+ * because where it backtracks decides which declarations are valid.
+ *
+ * Parsers return the type, or null for syntax that the decoder does not support, such as `?T`, `T[]`, callables,
+ * conditional types, object shapes, and open array shapes.
+ *
+ * @internal
+ */
+final class PhpDocTypeParser
 {
-    final protected function __construct(
-        protected PhpDocTypeTokens $tokens,
-    ) {}
-
+    /** Parses a standalone type such as `list<int>`. */
     public static function parse(string $source): PhpDocType|null
     {
-        $parsed = self::prefix($source);
-
-        return $parsed === null || trim($parsed[1], characters: " \t\r\n\v\f") !== '' ? null : $parsed[0];
-    }
-
-    /** @return array{PhpDocType, string}|null */
-    public static function prefix(string $source): array|null
-    {
-        $parser = strpbrk($source, characters: "'\"(:{0123456789") === false
-            ? new self(new PhpDocTypeTokens($source))
-            : new PhpDocExtendedTypeParser(new PhpDocExtendedTypeTokens($source));
+        $tokens = PhpDocTokens::of($source);
         try {
-            return [$parser->type(0), $parser->tokens->remainder()];
-        } catch (UnexpectedValueException) {
+            $type = self::type($tokens);
+        } catch (PhpDocSyntaxError) {
             return null;
         }
-    }
-
-    /** @throws UnexpectedValueException */
-    protected function type(int $depth): PhpDocType
-    {
-        if ($depth >= 64) {
-            throw new UnexpectedValueException('PHPDoc nesting exceeds 64 type levels.');
-        }
-
-        return $this->compound($depth, '|');
-    }
-
-    /** @throws UnexpectedValueException */
-    private function compound(int $depth, string $operator): PhpDocType
-    {
-        $types = [];
-
-        do {
-            $type = $operator === '|' ? $this->compound($depth, '&') : $this->namedType($depth);
-
-            $types[] = $type;
-            $hasNext = $this->tokens->consume($operator);
-        } while ($hasNext);
-
-        return count($types) === 1 ? $types[0] : new PhpDocType($operator, $types);
-    }
-
-    /** @throws UnexpectedValueException */
-    protected function namedType(int $depth): PhpDocType
-    {
-        $name = $this->tokens->token();
-        $hasArguments = $this->tokens->consume('<');
-
-        return $hasArguments ? new PhpDocType($name, $this->arguments($depth + 1)) : new PhpDocType($name);
+        $complete = $tokens->is(PhpDocLexer::END);
+        return $complete ? PhpDocTypeTree::limit($type) : null;
     }
 
     /**
-     * @return list<PhpDocType>
-     * @throws UnexpectedValueException
+     * Parses a type, where a union or intersection may continue on the next line.
+     *
+     * @throws PhpDocSyntaxError
      */
-    protected function arguments(int $depth): array
+    public static function type(PhpDocTokens $tokens): PhpDocType|null
     {
-        $arguments = [];
-        do {
-            $arguments[] = $this->type($depth);
-            $closed = $this->tokens->consume('>');
-            if ($closed) {
-                return $arguments;
-            }
-            $hasNext = $this->tokens->consume(',');
-        } while ($hasNext);
+        if ($tokens->is(PhpDocLexer::NULLABLE)) {
+            return PhpDocAtomicTypeParser::nullable($tokens);
+        }
+        $type = PhpDocAtomicTypeParser::atomic($tokens);
+        $compound = self::compoundAcrossLines($tokens, $type);
+        return $compound === false ? $type : $compound;
+    }
 
-        throw new UnexpectedValueException('Expected a PHPDoc argument separator or closing delimiter.');
+    /**
+     * Tries a union or intersection that continues on the next line first, then one on the same line.
+     *
+     * @throws PhpDocSyntaxError
+     */
+    private static function compoundAcrossLines(PhpDocTokens $tokens, PhpDocType|null $type): PhpDocType|false|null
+    {
+        $state = $tokens->state;
+        $state->push();
+        $state->skipLineEnds();
+        try {
+            $compound = self::compound($tokens, $type);
+        } catch (PhpDocSyntaxError) {
+            $compound = false;
+        }
+        if ($compound !== false) {
+            $state->drop();
+            return $compound;
+        }
+        $state->rollback();
+        return self::compound($tokens, $type);
+    }
+
+    /**
+     * Returns false if no union or intersection follows.
+     *
+     * @throws PhpDocSyntaxError
+     */
+    private static function compound(PhpDocTokens $tokens, PhpDocType|null $type): PhpDocType|false|null
+    {
+        $operator = $tokens->is(PhpDocLexer::UNION) ? PhpDocLexer::UNION : PhpDocLexer::INTERSECTION;
+        if (!$tokens->is($operator)) {
+            return false;
+        }
+        $types = [$type];
+        $continues = true;
+        while ($continues) {
+            $tokens->next();
+            $types[] = PhpDocAtomicTypeParser::atomic($tokens);
+            $tokens->state->push();
+            $tokens->state->skipLineEnds();
+            $continues = $tokens->is($operator);
+            if ($continues) {
+                $tokens->state->drop();
+            }
+        }
+        $tokens->state->rollback();
+        return PhpDocTypeTree::named($operator === PhpDocLexer::UNION ? '|' : '&', $types);
     }
 }

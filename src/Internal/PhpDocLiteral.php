@@ -9,8 +9,9 @@ use BackedEnum;
 use function constant;
 use function defined;
 use function enum_exists;
-use function preg_match;
 use function strstr;
+use function strtr;
+use function substr;
 
 /** @internal */
 final class PhpDocLiteral
@@ -30,7 +31,21 @@ final class PhpDocLiteral
         if ($name === 'true' || $name === 'false') {
             return $name === 'true';
         }
-        $quoted = preg_match('/\A[\x27"]/', $name) === 1;
-        return $quoted ? PhpDocLiteralString::parse($name) : PhpDocLiteralNumber::parse($name);
+        $quote = $name[0] ?? '';
+        if ($quote !== "'" && $quote !== '"') {
+            return PhpDocLiteralNumber::parse($name);
+        }
+        return strtr(substr($name, offset: 1, length: -1), ['\\\\' => '\\', "\\'" => "'", '\\"' => '"']);
+    }
+
+    /**
+     * Returns the name of a parsed string literal. Only backslashes and the quote are escaped, so that {@see value()}
+     * can restore the string.
+     *
+     * @param "'"|'"' $quote
+     */
+    public static function quote(string $value, string $quote): string
+    {
+        return $quote . strtr($value, ['\\' => '\\\\', $quote => '\\' . $quote]) . $quote;
     }
 }
