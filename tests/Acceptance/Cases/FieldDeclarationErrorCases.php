@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use ArrayIterator;
 use DatePeriod;
+use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntersectionTypeField;
 use Eventjet\Json\Test\Acceptance\Fixtures\MixedField;
@@ -25,7 +26,7 @@ final class FieldDeclarationErrorCases
             '{}',
             DatePeriod::class,
             'Could not create DatePeriod from the JSON object: Field start uses no type declaration. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'non-nullable non-backed enum field is rejected even when absent' => [
             '{}',
@@ -33,25 +34,25 @@ final class FieldDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('\\' . NonBackedStatus::class, '', 'param')
                 . ' from the JSON object: Field value uses non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'intersection constructor field is rejected even when absent' => [
             '{}',
             new IntersectionTypeField(new ArrayIterator())::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntersectionTypeField from the JSON object: Field value uses unsupported intersection type Countable&Iterator. JSON does not identify a concrete class to instantiate.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'mixed constructor field is rejected even when absent' => [
             '{}',
             new MixedField(null)::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\MixedField from the JSON object: Field value uses unsupported type mixed. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'intersection public property is unsupported' => [
             '{"value":{}}',
             new IntersectionPublicProperty()::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntersectionPublicProperty from the JSON object: Field value uses unsupported public property type Countable&Iterator. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'unknown public property type is unsupported' => [
             '{}',
@@ -59,7 +60,7 @@ final class FieldDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('UnknownPublicPropertyType', '', 'var')
                 . ' from the JSON object: Field value uses unsupported public property type UnknownPublicPropertyType. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
     }
 }

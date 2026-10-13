@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Node;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\InvalidValue;
 use JsonException;
 use Override;
 
@@ -17,9 +18,7 @@ final readonly class ListNode implements Node
 {
     private string $type;
 
-    /** @param class-string $class */
     public function __construct(
-        private string $class,
         private Node $item,
         private bool $nonEmpty,
     ) {
@@ -31,13 +30,10 @@ final readonly class ListNode implements Node
     public function decode(mixed $value, string $path): array|DecodeError
     {
         if (!is_array($value) || !array_is_list($value)) {
-            return DecodeError::fieldTypeMismatch($this->class, $path, $this->type, $value);
+            return InvalidValue::typeMismatch($path, $this->type, $value);
         }
         if ($this->nonEmpty && $value === []) {
-            return DecodeError::nonInstantiableTarget(
-                $this->class,
-                sprintf('Field %s must be of type %s, empty list given.', $path, $this->type),
-            );
+            return InvalidValue::emptyList($path, $this->type);
         }
         /** @var list<mixed>|DecodeError */
         return $this->item instanceof ScalarNode

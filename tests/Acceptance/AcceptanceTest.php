@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
@@ -12,7 +13,14 @@ use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\DecodeErrorKind;
+use Eventjet\Json\Internal\Error\AmbiguousUnion;
+use Eventjet\Json\Internal\Error\ConstructorFailure;
+use Eventjet\Json\Internal\Error\InvalidFieldMapping;
+use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedCollection;
+use Eventjet\Json\Internal\Error\UnsupportedField;
+use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
+use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
@@ -140,6 +148,14 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(FieldNameCollisions::class)]
 #[CoversClass(FieldNames::class)]
 #[CoversClass(DecodeErrorKind::class)]
+#[CoversClass(AmbiguousUnion::class)]
+#[CoversClass(ConstructorFailure::class)]
+#[CoversClass(InvalidFieldMapping::class)]
+#[CoversClass(InvalidValue::class)]
+#[CoversClass(UnsupportedCollection::class)]
+#[CoversClass(UnsupportedField::class)]
+#[CoversClass(UnsupportedFieldClass::class)]
+#[CoversClass(UnsupportedTarget::class)]
 #[CoversClass(UnionBuilder::class)]
 #[CoversClass(LiteralNode::class)]
 #[CoversClass(ClassDecoder::class)]

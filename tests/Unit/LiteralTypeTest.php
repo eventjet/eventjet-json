@@ -7,6 +7,8 @@ namespace Eventjet\Json\Test\Unit;
 use DateTimeImmutable;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\Error\UnsupportedField;
+use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\NamedTypeCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
@@ -82,6 +84,8 @@ use const PHP_INT_MIN;
 #[CoversClass(PhpDocConstantImportStatement::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
 #[UsesClass(DecodeError::class)]
+#[UsesClass(UnsupportedField::class)]
+#[UsesClass(UnsupportedFieldClass::class)]
 #[UsesClass(EnumNode::class)]
 #[UsesClass(ListNode::class)]
 #[UsesClass(NullOnlyNode::class)]
@@ -162,7 +166,7 @@ final class LiteralTypeTest extends TestCase
         $property = new ReflectionProperty($object, 'value');
         $type = $property->getType();
         static::assertNotNull($type);
-        static::assertInstanceOf(ScalarNode::class, new TypeCompiler($object::class)->field($property, $type));
+        static::assertInstanceOf(ScalarNode::class, new TypeCompiler()->field($property, $type));
         static::assertFalse(class_exists(PhpDocTypeResolver::class, autoload: false));
         static::assertFalse(class_exists(NodeCompiler::class, autoload: false));
     }
@@ -283,11 +287,11 @@ final class LiteralTypeTest extends TestCase
                 $this->status = StringBackedStatus::Ready;
             }
         };
-        $whole = LiteralNode::of($enum::class, '3.0');
+        $whole = LiteralNode::of('3.0');
         static::assertSame(['float', 'int'], $whole->valueTypes());
         static::assertSame(3.0, $whole->decode(3.0, 'value'));
         static::assertSame(3.0, $whole->decode(3, 'value'));
-        static::assertSame(['string'], LiteralNode::of($enum::class, "'3'")->valueTypes());
+        static::assertSame(['string'], LiteralNode::of("'3'")->valueTypes());
 
         $status = self::compile(new ReflectionProperty($enum, 'status'));
         static::assertInstanceOf(LiteralNode::class, $status);
@@ -470,6 +474,6 @@ final class LiteralTypeTest extends TestCase
         $class = $field->getDeclaringClass();
         static::assertNotNull($type);
         static::assertNotNull($class);
-        return new TypeCompiler($class->getName())->field($field, $type);
+        return new TypeCompiler()->field($field, $type);
     }
 }

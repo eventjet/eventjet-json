@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use ReflectionClass;
 use ReflectionProperty;
-
-use function sprintf;
 
 /** @internal */
 final class FieldNameCollisions
@@ -29,12 +28,7 @@ final class FieldNameCollisions
             $wireName = $names[$name] ?? $name;
             $owner = $owners[$wireName] ?? null;
             if ($owner !== null) {
-                return DecodeError::nonInstantiableTarget($class->getName(), sprintf(
-                    'Properties %s and %s use the same JSON field name "%s".',
-                    $owner,
-                    $name,
-                    $wireName,
-                ));
+                return InvalidFieldMapping::collision($owner, $name, $wireName);
             }
             $owners[$wireName] = $name;
         }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
@@ -23,7 +24,7 @@ final class EnumsErrorCases
             '[["1"]]',
             JsonType::array(JsonType::array(IntBackedStatus::class)),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus from the JSON object: Field [0][0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus, which expects a int backing value; string given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'enum list declared in PHPDoc rejects null' => [
             '{"value":[null]}',
@@ -31,7 +32,7 @@ final class EnumsErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', PhpType::list(IntBackedStatus::class), 'param')
                 . ' from the JSON object: Field value[0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus, which expects a int backing value; null given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         $nullableItems = CollectionDeclarationFixture::create(
             'array',
@@ -44,7 +45,7 @@ final class EnumsErrorCases
             'Could not create '
                 . $nullableItems
                 . ' from the JSON object: Field value[0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus, which expects a string backing value; int given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         $repeatedEnum = CollectionDeclarationFixture::create(
             'array',
@@ -57,7 +58,7 @@ final class EnumsErrorCases
             'Could not create '
                 . $repeatedEnum
                 . ' from the JSON object: Field value[0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus, which expects a string backing value; int given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'nullable non-backed enum rejects a non-null value' => [
             '{"value":1}',
@@ -69,13 +70,13 @@ final class EnumsErrorCases
                     'var',
                 )
                 . ' from the JSON object: Field value must be of type ?Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, int given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'string-backed enum rejects null' => [
             '{"stringStatus":null,"nullableStatus":null,"intStatus":1}',
             BackedEnumFields::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields from the JSON object: Field stringStatus uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus, which expects a string backing value; null given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
     }
 }

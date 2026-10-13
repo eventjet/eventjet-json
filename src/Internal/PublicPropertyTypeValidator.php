@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionException;
@@ -22,50 +23,35 @@ use function interface_exists;
 /** @internal */
 final class PublicPropertyTypeValidator
 {
-    /**
-     * @param class-string $class
-     * @throws ReflectionException
-     */
-    public static function validate(string $class, ReflectionProperty $property): Node|DecodeError
+    /** @throws ReflectionException */
+    public static function validate(ReflectionProperty $property): Node|DecodeError
     {
         $field = $property->getName();
         $type = $property->getType();
 
         if (!$type instanceof ReflectionNamedType && !$type instanceof ReflectionUnionType) {
-            return self::unsupportedType($class, $field, $type === null ? 'none' : (string) $type);
+            return UnsupportedField::publicProperty($field, $type === null ? 'none' : (string) $type);
         }
 
         foreach ($type instanceof ReflectionNamedType ? [$type] : $type->getTypes() as $member) {
             if (!$member instanceof ReflectionNamedType) {
-                return self::unsupportedType($class, $field, (string) $type);
+                return UnsupportedField::publicProperty($field, (string) $type);
             }
 
             $typeName = FieldTypeNameResolver::resolve($property, $member);
             $typeIsSupported = self::isSupportedType($member, $typeName);
 
             if (!$typeIsSupported) {
-                return self::unsupportedType($class, $field, (string) $type);
+                return UnsupportedField::publicProperty($field, (string) $type);
             }
         }
 
         $plain = FieldTypeNameResolver::isPlainType($property, $type);
         if (!$plain) {
-            return new TypeCompiler($class)->field($property, $type);
+            return new TypeCompiler()->field($property, $type);
         }
         assert($type instanceof ReflectionNamedType, description: 'Plain types are named types.');
-        return new ScalarNode($class, $type->getName(), $type->allowsNull());
-    }
-
-    /** @param class-string $class */
-    private static function unsupportedType(string $class, string $field, string $type): DecodeError
-    {
-        return DecodeError::nonInstantiableField(
-            $class,
-            $field,
-            'unsupported public property type',
-            $type,
-            '. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
-        );
+        return new ScalarNode($type->getName(), $type->allowsNull());
     }
 
     private static function isSupportedType(ReflectionNamedType $member, string $type): bool

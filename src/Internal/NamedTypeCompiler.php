@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedField;
+use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
@@ -31,36 +33,21 @@ final readonly class NamedTypeCompiler
 {
     private const array RESOURCES = ['resource', 'open-resource', 'closed-resource'];
 
-    /** @param class-string $class */
-    public function __construct(
-        private string $class,
-    ) {}
-
     /** @throws ReflectionException */
     public function compile(string $name, string $path): Node|DecodeError
     {
         return match (true) {
             in_array($name, ['bool', 'callable', 'float', 'int', 'string'], strict: true) => new ScalarNode(
-                $this->class,
                 $name,
                 false,
             ),
-            $name === 'null' => new NullOnlyNode($this->class, 'null'),
+            $name === 'null' => new NullOnlyNode('null'),
             PhpDocType::literalSyntax($name) => $this->literal($name, $path),
-            in_array($name, ['mixed', 'object', stdClass::class], strict: true) => DecodeError::nonInstantiableField(
-                $this->class,
+            in_array($name, ['mixed', 'object', stdClass::class], strict: true) => UnsupportedField::imprecise(
                 $path,
-                'unsupported type',
                 $name,
-                '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
             ),
-            in_array($name, self::RESOURCES, strict: true) => DecodeError::nonInstantiableField(
-                $this->class,
-                $path,
-                'non-JSON-encodable type',
-                $name,
-                ', which has no JSON representation.',
-            ),
+            in_array($name, self::RESOURCES, strict: true) => UnsupportedField::nonEncodable($path, $name),
             enum_exists($name) => $this->enum($name, $path),
             default => $this->object($name, $path),
         };
@@ -92,9 +79,9 @@ final readonly class NamedTypeCompiler
      */
     private function enum(string $enum, string $path): Node|DecodeError
     {
-        $node = EnumNode::of($this->class, $enum);
+        $node = EnumNode::of($enum);
         return match (true) {
-            $node === null => DecodeError::nonBackedEnum($this->class, $enum, $path),
+            $node === null => UnsupportedFieldClass::nonBackedEnum($path, $enum),
             is_a($enum, JsonSerializable::class, allow_string: true) => $this->serializedEnum($enum, $path),
             default => $node,
         };
@@ -106,18 +93,12 @@ final readonly class NamedTypeCompiler
         $value = PhpDocLiteral::value($name);
         return $value instanceof JsonSerializable
             ? $this->serializedEnum($value::class, $path)
-            : LiteralNode::of($this->class, $name);
+            : LiteralNode::of($name);
     }
 
     private function serializedEnum(string $enum, string $path): DecodeError
     {
-        return DecodeError::nonInstantiableField(
-            $this->class,
-            $path,
-            'backed enum',
-            $enum,
-            ', which implements JsonSerializable. Its custom JSON representation may not match its backing values, so it cannot satisfy the round-trip contract.',
-        );
+        return UnsupportedFieldClass::jsonSerializableEnum($path, $enum);
     }
 
     /**
@@ -128,11 +109,11 @@ final readonly class NamedTypeCompiler
      */
     private function object(string $name, string $path): Node|DecodeError
     {
-        $error = ClassFieldTypeValidator::validate($this->class, $path, $name);
+        $error = ClassFieldTypeValidator::validate($path, $name);
         return match (true) {
             $error !== null => $error,
-            class_exists($name) => new ObjectNode($this->class, $name, false),
-            default => new UncheckedNode($name),
+            class_exists($name) => new ObjectNode($name, false),
+            default => new UncheckedNode($name, $path),
         };
     }
 }

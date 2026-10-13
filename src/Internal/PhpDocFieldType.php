@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedCollection;
 use ReflectionParameter;
 use ReflectionProperty;
 
@@ -14,7 +15,6 @@ use function in_array;
 use function preg_match;
 use function preg_match_all;
 use function preg_replace;
-use function sprintf;
 use function str_replace;
 use function strpbrk;
 use function trim;
@@ -23,28 +23,12 @@ use function trim;
 final class PhpDocFieldType
 {
     /**
-     * Returns the error for an `array` or `ArrayObject` field without a supported PHPDoc collection declaration.
-     *
-     * @param class-string $class
-     */
-    private static function unrecognized(string $class, ReflectionParameter|ReflectionProperty $field): DecodeError
-    {
-        return DecodeError::nonInstantiableTarget($class, sprintf(
-            'Field %s has a missing or unrecognized collection declaration. Use @%s with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            $field->getName(),
-            $field instanceof ReflectionParameter ? 'param' : 'var',
-        ));
-    }
-
-    /**
      * Returns the error for a field whose native type has an `array` or `ArrayObject` member that its PHPDoc type does
      * not declare. A plain `array` or `ArrayObject` field reports an unsupported map declaration in more detail.
      *
-     * @param class-string $class
      * @param PhpDocType|null $declared The PHPDoc type as written.
      */
     public static function unsupported(
-        string $class,
         ReflectionParameter|ReflectionProperty $field,
         PhpDocType|null $declared,
         PhpDocType $native,
@@ -53,21 +37,16 @@ final class PhpDocFieldType
         $map = count($arguments) >= 2 ? $declared?->name : null;
         $stringKeys = ($arguments[0] ?? null)?->isPlainName('string') === true;
         $arrayObject = $stringKeys && $map !== null && new PhpDocTypeResolver($field)->container($map) !== null;
+        $name = $field->getName();
         return match (true) {
             $native->name === ArrayObject::class => $arrayObject
-                ? self::unrecognized($class, $field)
-                : self::unsupportedMap($class, $field, ArrayObject::class),
-            $native->name !== 'array' => self::unrecognized($class, $field),
-            $map === 'array' => DecodeError::nonInstantiableTarget($class, sprintf(
-                'Field %s uses array<TKey, TValue>, whose empty value encodes as a JSON array and cannot represent an empty JSON object. Use non-empty-array<string, TValue> for a non-empty map or ArrayObject<string, TValue> for a map that may be empty.',
-                $field->getName(),
-            )),
-            in_array($map, ['non-empty-array', 'non-empty-map'], strict: true) && !$stringKeys => self::unsupportedMap(
-                $class,
-                $field,
-                $map,
-            ),
-            default => self::unrecognized($class, $field),
+                ? self::unrecognized($field)
+                : UnsupportedCollection::map($name, ArrayObject::class),
+            $native->name !== 'array' => self::unrecognized($field),
+            $map === 'array' => UnsupportedCollection::genericArrayMap($name),
+            in_array($map, ['non-empty-array', 'non-empty-map'], strict: true) && !$stringKeys
+                => UnsupportedCollection::map($name, $map),
+            default => self::unrecognized($field),
         };
     }
 
@@ -106,16 +85,12 @@ final class PhpDocFieldType
         return null;
     }
 
-    /** @param class-string $class */
-    private static function unsupportedMap(
-        string $class,
-        ReflectionParameter|ReflectionProperty $field,
-        string $type,
-    ): DecodeError {
-        return DecodeError::nonInstantiableTarget($class, sprintf(
-            'Field %s uses unsupported map declaration %s. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
+    /** Returns the error for an `array` or `ArrayObject` field without a supported PHPDoc collection declaration. */
+    private static function unrecognized(ReflectionParameter|ReflectionProperty $field): DecodeError
+    {
+        return UnsupportedCollection::unrecognized(
             $field->getName(),
-            $type,
-        ));
+            $field instanceof ReflectionParameter ? 'param' : 'var',
+        );
     }
 }

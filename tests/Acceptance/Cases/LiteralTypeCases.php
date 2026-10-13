@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\ExtendedLiteralFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralConstantFields;
@@ -82,7 +83,7 @@ final class LiteralTypeCases
                         . ', '
                         . $actual
                         . ' given.',
-                    3,
+                    DecodeErrorKind::InvalidValue->value,
                 ];
             }
         }
@@ -93,7 +94,7 @@ final class LiteralTypeCases
             'Could not create '
                 . LiteralConstantFields::class
                 . ' from the JSON object: Field nothing must be of type null, bool given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'double quoted literal rejects another string' => [
             '{"doubleQuoted":"bar"}',
@@ -101,7 +102,7 @@ final class LiteralTypeCases
             'Could not create '
                 . ExtendedLiteralFields::class
                 . ' from the JSON object: Field doubleQuoted must be of type "foo", string given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'float literal rejects another float' => [
             '{"wholeFloat":3.5}',
@@ -109,7 +110,7 @@ final class LiteralTypeCases
             'Could not create '
                 . ExtendedLiteralFields::class
                 . ' from the JSON object: Field wholeFloat must be of type 3.0, float given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'constant wildcard rejects another value' => [
             '{"constant":"baz"}',
@@ -117,7 +118,7 @@ final class LiteralTypeCases
             'Could not create '
                 . ExtendedLiteralFields::class
                 . ' from the JSON object: Field constant must be of type \'foo\'|\'bar\', string given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'single literal constructor rejects another string' => [
             '{"string":"bar"}',
@@ -125,7 +126,7 @@ final class LiteralTypeCases
             'Could not create '
                 . SingleLiteralFields::class
                 . ' from the JSON object: Field string must be of type \'foo\', string given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'literal field rejects another string' => [
             '{"value":"bar"}',
@@ -133,7 +134,7 @@ final class LiteralTypeCases
             'Could not create '
                 . LiteralFields::class
                 . ' from the JSON object: Field value must be of type \'foo\'|42|true|false|null, string given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'literal property rejects another integer' => [
             '{"value":43}',
@@ -141,7 +142,7 @@ final class LiteralTypeCases
             'Could not create '
                 . LiteralProperties::class
                 . ' from the JSON object: Field value must be of type \'foo\'|42, int given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'literal list rejects numeric string' => [
             '{"items":["42"]}',
@@ -149,7 +150,7 @@ final class LiteralTypeCases
             'Could not create '
                 . LiteralProperties::class
                 . ' from the JSON object: Field items[0] must be of type \'foo\'|42|true|false|null, string given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'literal map reports key' => [
             '{"map":{"key":"bar"}}',
@@ -157,7 +158,7 @@ final class LiteralTypeCases
             'Could not create '
                 . LiteralProperties::class
                 . ' from the JSON object: Field map[key] must be of type \'foo\', string given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'literal nested list reports indexes' => [
             '{"nested":[[43]]}',
@@ -165,7 +166,7 @@ final class LiteralTypeCases
             'Could not create '
                 . LiteralProperties::class
                 . ' from the JSON object: Field nested[0][0] must be of type 42, int given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
         yield 'literal tuple rejects opposite boolean' => [
             '{"tuple":[false,false,-42,"","a|b"]}',
@@ -173,7 +174,7 @@ final class LiteralTypeCases
             'Could not create '
                 . LiteralProperties::class
                 . ' from the JSON object: Field tuple[0] must be of type true, bool given.',
-            3,
+            DecodeErrorKind::InvalidValue->value,
         ];
     }
 
@@ -191,7 +192,7 @@ final class LiteralTypeCases
                 'Could not create '
                     . $class
                     . " from the JSON object: Field value must be of type list<42>|'foo', string given.",
-                3,
+                DecodeErrorKind::InvalidValue->value,
             ];
             $class = CollectionDeclarationFixture::create(
                 'array',
@@ -204,7 +205,7 @@ final class LiteralTypeCases
                 'Could not create '
                     . $class
                     . ' from the JSON object: Field value has overlapping literal union members. JSON cannot identify which PHP type to restore.',
-                3,
+                DecodeErrorKind::UnsupportedDeclaration->value,
             ];
         }
     }

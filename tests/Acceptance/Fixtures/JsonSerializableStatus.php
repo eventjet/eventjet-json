@@ -14,6 +14,6 @@ enum JsonSerializableStatus: string implements JsonSerializable
     #[Override]
     public function jsonSerialize(): string
     {
-        return 'serialized-' . $this->value;
+        return 'custom ' . $this->value;
     }
 }

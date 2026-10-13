@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
@@ -12,7 +13,10 @@ use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\DecodeErrorKind;
+use Eventjet\Json\Internal\Error\InvalidFieldMapping;
+use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedField;
+use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\FieldNameCollisions;
 use Eventjet\Json\Internal\FieldNames;
 use Eventjet\Json\Internal\FieldPath;
@@ -118,6 +122,10 @@ use function class_alias;
 #[CoversClass(ClassDecoders::class)]
 #[UsesClass(ClassGraphValidator::class)]
 #[UsesClass(DecodeErrorKind::class)]
+#[UsesClass(InvalidFieldMapping::class)]
+#[UsesClass(InvalidValue::class)]
+#[UsesClass(UnsupportedField::class)]
+#[UsesClass(UnsupportedFieldClass::class)]
 final class ConstructorValidationPlanTest extends TestCase
 {
     /**
@@ -135,7 +143,7 @@ final class ConstructorValidationPlanTest extends TestCase
         $class = new ReflectionClass($target);
         for ($lookup = 0; $lookup < 3; ++$lookup) {
             static::assertEquals(
-                DecodeError::fieldTypeMismatch($class->getName(), 'before.first', 'int|null', false),
+                InvalidValue::typeMismatch('before.first', 'int|null', false)->whileCreating($class->getName()),
                 self::decode($class, ['first' => false, 'second' => 1], 'before'),
             );
             static::assertEquals($class->newInstanceArgs([]), self::decode($class, [], ''));
@@ -144,7 +152,7 @@ final class ConstructorValidationPlanTest extends TestCase
                 self::decode($class, ['first' => null, 'second' => 'valid'], ''),
             );
             static::assertEquals(
-                DecodeError::fieldTypeMismatch($class->getName(), 'after.second', 'string', 1),
+                InvalidValue::typeMismatch('after.second', 'string', 1)->whileCreating($class->getName()),
                 self::decode($class, ['first' => 1, 'second' => 1], 'after'),
             );
         }
@@ -165,13 +173,7 @@ final class ConstructorValidationPlanTest extends TestCase
             ) {}
         };
         $class = new ReflectionClass($target);
-        $declarationError = DecodeError::nonInstantiableField(
-            $class->getName(),
-            'second',
-            'unsupported type',
-            'mixed',
-            '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
-        );
+        $declarationError = UnsupportedField::imprecise('second', 'mixed')->whileCreating($class->getName());
         for ($lookup = 0; $lookup < 2; ++$lookup) {
             static::assertEquals($declarationError, self::decode($class, ['first' => false], ''));
             static::assertEquals($declarationError, self::decode($class, ['first' => 1], ''));
@@ -187,13 +189,7 @@ final class ConstructorValidationPlanTest extends TestCase
         };
         $invalidClass = new ReflectionClass($invalidTarget);
         static::assertEquals(
-            DecodeError::nonInstantiableField(
-                $invalidClass->getName(),
-                'value',
-                'unsupported type',
-                'mixed',
-                '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
-            ),
+            UnsupportedField::imprecise('value', 'mixed')->whileCreating($invalidClass->getName()),
             self::decode($invalidClass, [], ''),
         );
 
@@ -206,7 +202,7 @@ final class ConstructorValidationPlanTest extends TestCase
         $enumClass = new ReflectionClass($enumTarget);
         for ($lookup = 0; $lookup < 3; ++$lookup) {
             static::assertEquals(
-                DecodeError::fieldTypeMismatch($enumClass->getName(), 'nested.second', 'int', false),
+                InvalidValue::typeMismatch('nested.second', 'int', false)->whileCreating($enumClass->getName()),
                 self::decode($enumClass, ['first' => 'unknown', 'second' => false], 'nested'),
             );
             static::assertEquals(
@@ -254,7 +250,7 @@ final class ConstructorValidationPlanTest extends TestCase
             static::assertEquals($class->newInstanceArgs([]), self::decode($class, ['ref' => 'ignored'], ''));
             static::assertSame(ClassDecoders::get(MappedDefaults::class), ClassDecoders::get(MappedDefaults::class));
             static::assertEquals(
-                DecodeError::fieldTypeMismatch($class->getName(), 'nested.$ref', 'string|null', 42),
+                InvalidValue::typeMismatch('nested.$ref', 'string|null', 42)->whileCreating($class->getName()),
                 self::decode($class, ['$ref' => 42], 'nested'),
             );
         }
@@ -322,19 +318,17 @@ final class ConstructorValidationPlanTest extends TestCase
             'use Eventjet\\Json\\Field; final class InvalidMappedSerializer implements JsonSerializable { use Eventjet\\Json\\MappedJsonFields; public static string $shared = ""; #[Field("ref")] public string $value = ""; public string $ref = ""; }',
         );
         $reflection = new ReflectionClass($class);
-        $error = DecodeError::nonInstantiableTarget(
-            $class,
-            'Properties value and ref use the same JSON field name "ref".',
-        );
+        $error = InvalidFieldMapping::collision('value', 'ref', 'ref');
+        $named = InvalidFieldMapping::collision('value', 'ref', 'ref')->whileCreating($class);
         for ($attempt = 0; $attempt < 2; ++$attempt) {
             static::assertEquals($error, RootTypeValidator::validate($reflection));
-            static::assertEquals($error, self::decode($reflection, [], ''));
-            static::assertEquals($error, ClassDecoders::get($class));
+            static::assertEquals($named, self::decode($reflection, [], ''));
+            static::assertEquals($named, ClassDecoders::get($class));
             try {
                 MappedObjectSerializer::serialize($reflection->newInstance());
                 static::fail('Invalid mappings must not serialize.');
             } catch (DecodeError $caught) {
-                static::assertSame($error->getMessage(), $caught->getMessage());
+                static::assertSame($named->getMessage(), $caught->getMessage());
             }
         }
     }
@@ -370,19 +364,17 @@ final class ConstructorValidationPlanTest extends TestCase
                     . ' implements JsonSerializable { use Eventjet\\Json\\MappedJsonFields; #[Field("wire")] public string $value = "public"; }',
                 );
                 $reflection = new ReflectionClass($class);
-                $error = DecodeError::nonInstantiableTarget(
-                    $class,
-                    '#[Field] requires a public instance property; value is not one.',
-                );
+                $error = InvalidFieldMapping::nonPublicProperty('value');
+                $named = InvalidFieldMapping::nonPublicProperty('value')->whileCreating($class);
                 for ($attempt = 0; $attempt < 2; ++$attempt) {
                     static::assertEquals($error, RootTypeValidator::validate($reflection));
-                    static::assertEquals($error, self::decode($reflection, [], ''));
-                    static::assertEquals($error, ClassDecoders::get($class));
+                    static::assertEquals($named, self::decode($reflection, [], ''));
+                    static::assertEquals($named, ClassDecoders::get($class));
                     try {
                         MappedObjectSerializer::serialize($reflection->newInstance());
                         static::fail('Private ancestor mappings must not serialize.');
                     } catch (DecodeError $caught) {
-                        static::assertSame($error->getMessage(), $caught->getMessage());
+                        static::assertSame($named->getMessage(), $caught->getMessage());
                     }
                 }
             }

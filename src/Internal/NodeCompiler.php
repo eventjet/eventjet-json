@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
@@ -31,11 +32,9 @@ final readonly class NodeCompiler
 {
     private NamedTypeCompiler $names;
 
-    /** @param class-string $class */
-    public function __construct(
-        private string $class,
-    ) {
-        $this->names = new NamedTypeCompiler($class);
+    public function __construct()
+    {
+        $this->names = new NamedTypeCompiler();
     }
 
     /**
@@ -50,7 +49,7 @@ final readonly class NodeCompiler
         $inner = $type->withoutNull();
         $node = $inner === null ? null : $this->compile($inner, $path);
         return match (true) {
-            $node instanceof ObjectNode => new ObjectNode($this->class, $node->target, nullable: true),
+            $node instanceof ObjectNode => new ObjectNode($node->target, nullable: true),
             $node instanceof UncheckedNode => $node,
             $type->name === '|' => self::nullable($node) ?? $this->union($type->arguments, $path, $label),
             default => $this->compile($type, $path),
@@ -63,11 +62,10 @@ final readonly class NodeCompiler
         $arguments = $type->arguments;
         return match ($type->name) {
             '|' => $this->nested($type, $path),
-            '&' => DecodeError::unsupportedIntersection(
-                $this->class,
-                $path,
-                implode('&', array_map(static fn(PhpDocType $member): string => $member->name, $arguments)),
-            ),
+            '&' => UnsupportedField::intersection($path, implode('&', array_map(
+                static fn(PhpDocType $member): string => $member->name,
+                $arguments,
+            ))),
             'array{}' => $this->tuple($type->entries, $path),
             'list', 'non-empty-list' => $this->list($type, $path),
             'non-empty-array', 'non-empty-map', ArrayObject::class => $this->map($type, $path),
@@ -91,7 +89,7 @@ final readonly class NodeCompiler
      */
     private function union(array $members, string $path, string|null $label): Node|DecodeError|null
     {
-        $union = new UnionBuilder($this->class, $path);
+        $union = new UnionBuilder($path);
         foreach ($members as $member) {
             $node = $this->compile($member, $path);
             $rejected = NamedTypeCompiler::unrepresentable($member, $node);
@@ -138,7 +136,7 @@ final readonly class NodeCompiler
             }
             $items[] = $item;
         }
-        return new TupleNode($this->class, $items, $required);
+        return new TupleNode($items, $required);
     }
 
     /** @throws ReflectionException */
@@ -146,7 +144,7 @@ final readonly class NodeCompiler
     {
         $arguments = $type->arguments;
         $item = count($arguments) === 1 ? $this->compile($arguments[0], $path) : null;
-        return $item instanceof Node ? new ListNode($this->class, $item, $type->name === 'non-empty-list') : $item;
+        return $item instanceof Node ? new ListNode($item, $type->name === 'non-empty-list') : $item;
     }
 
     /** @throws ReflectionException */
@@ -154,6 +152,6 @@ final readonly class NodeCompiler
     {
         $value = $type->stringKeyedValue();
         $node = $value === null ? null : $this->compile($value, $path);
-        return $node instanceof Node ? new MapNode($this->class, $node, $type->name === ArrayObject::class) : $node;
+        return $node instanceof Node ? new MapNode($node, $type->name === ArrayObject::class) : $node;
     }
 }

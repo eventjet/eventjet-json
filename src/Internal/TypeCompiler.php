@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionException;
@@ -21,18 +22,13 @@ use function assert;
 use function in_array;
 
 /**
- * Compiles field declarations of one class into decoder nodes. A field's PHPDoc type applies if it narrows the native
+ * Compiles field declarations into decoder nodes. A field's PHPDoc type applies if it narrows the native
  * type; otherwise the native type applies.
  *
  * @internal
  */
 final readonly class TypeCompiler
 {
-    /** @param class-string $class */
-    public function __construct(
-        public string $class,
-    ) {}
-
     /** @throws ReflectionException */
     public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|DecodeError
     {
@@ -43,19 +39,14 @@ final readonly class TypeCompiler
             : PhpDocNarrowing::narrowing(new PhpDocTypeResolver($field)->resolve($declared), $native);
         $node = $doc === null
             ? $this->native($field, $type, $native)
-            : new NodeCompiler($this->class)->field($doc, $field->getName());
+            : new NodeCompiler()->field($doc, $field->getName());
         $literal =
             $node instanceof Node && $declared !== null && $doc === null
                 ? new PhpDocTypeResolver($field)->unresolvedLiteral($declared)
                 : null;
         return match (true) {
-            $node === null => PhpDocFieldType::unsupported($this->class, $field, $declared, $native),
-            $literal !== null => DecodeError::nonInstantiableField(
-                $this->class,
-                $field->getName(),
-                'unsupported literal declaration',
-                $literal,
-            ),
+            $node === null => PhpDocFieldType::unsupported($field, $declared, $native),
+            $literal !== null => UnsupportedField::literal($field->getName(), $literal),
             default => $node,
         };
     }
@@ -75,8 +66,8 @@ final readonly class TypeCompiler
             && $type->isBuiltin()
             && !in_array($type->getName(), ['array', 'mixed', 'object'], strict: true);
         return $scalar
-            ? new ScalarNode($this->class, $type->getName(), $type->allowsNull())
-            : new NodeCompiler($this->class)->field($native, $field->getName(), (string) $type);
+            ? new ScalarNode($type->getName(), $type->allowsNull())
+            : new NodeCompiler()->field($native, $field->getName(), (string) $type);
     }
 
     /**

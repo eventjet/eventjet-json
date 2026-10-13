@@ -6,6 +6,8 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Field;
+use Eventjet\Json\Internal\Error\InvalidFieldMapping;
+use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use JsonSerializable;
 use ReflectionClass;
 use ReflectionProperty;
@@ -16,7 +18,6 @@ use function array_flip;
 use function array_keys;
 use function array_map;
 use function count;
-use function sprintf;
 
 /** @internal */
 final class FieldNames
@@ -30,20 +31,16 @@ final class FieldNames
      */
     public static function resolve(ReflectionClass $class, array $properties): array|DecodeError
     {
-        $className = $class->getName();
         try {
-            $names = self::discover($class, $properties);
+            $names = self::discover($properties);
         } catch (Throwable $error) {
-            return DecodeError::cannotInstantiate($className, $error);
+            return UnsupportedTarget::unreadable($error);
         }
         if ($names instanceof DecodeError) {
             return $names;
         }
         if (!$class->implementsInterface(JsonSerializable::class)) {
-            return DecodeError::nonInstantiableTarget(
-                $className,
-                '#[Field] requires the target class to implement JsonSerializable.',
-            );
+            return InvalidFieldMapping::withoutJsonSerializable();
         }
         $collision = FieldNameCollisions::validate($class, $names);
         return $collision ?? $names;
@@ -66,28 +63,20 @@ final class FieldNames
     }
 
     /**
-     * @template T of object
-     * @param ReflectionClass<T> $class
      * @param list<ReflectionProperty> $properties
      * @return array<string, string>|DecodeError
      */
-    private static function discover(ReflectionClass $class, array $properties): array|DecodeError
+    private static function discover(array $properties): array|DecodeError
     {
         $names = [];
         foreach ($properties as $property) {
             $attributes = $property->getAttributes(Field::class);
             $name = $property->getName();
             if (($property->getModifiers() & ReflectionProperty::IS_PUBLIC) === 0 || $property->isStatic()) {
-                return DecodeError::nonInstantiableTarget($class->getName(), sprintf(
-                    '#[Field] requires a public instance property; %s is not one.',
-                    $name,
-                ));
+                return InvalidFieldMapping::nonPublicProperty($name);
             }
             if (count($attributes) !== 1) {
-                return DecodeError::nonInstantiableTarget($class->getName(), sprintf(
-                    'Property %s must not repeat #[Field].',
-                    $name,
-                ));
+                return InvalidFieldMapping::repeated($name);
             }
             $names[$name] = $attributes[0]->newInstance()->name;
         }
