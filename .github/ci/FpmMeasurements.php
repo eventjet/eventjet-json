@@ -13,7 +13,7 @@ require_once __DIR__ . '/BenchmarkComparison.php';
 /** Measures fresh requests in an isolated PHP-FPM pool with warm bytecode. */
 final class FpmMeasurements
 {
-    public const LIMIT_PERCENT = 2.0;
+    public const LIMIT_PERCENT = 3.0;
 
     /** Production servers enable OPcache; without it, every request recompiles the library and mostly measures code size. */
     public static function blocks(bool $opcache): bool

@@ -149,14 +149,17 @@ use Eventjet\Json\Ci\BenchmarkComparison;
 use Eventjet\Json\Ci\BenchmarkWorkload;
 $comparison = static fn(string $subject, bool $cold, float $time): BenchmarkComparison
     => new BenchmarkComparison(new BenchmarkWorkload('Fixture', $subject, 'case', 'documents', $cold), 100.0, $time);
+if (BenchmarkComparison::LIMIT_PERCENT !== 3.0) {
+    throw new LogicException('The boundary cases below assume a 3% limit');
+}
 foreach ([
     [50, 100, 200, 0, '🟢 Performance improvement', '| 2 | 1 | 0 |', '-37.00%'],
-    [94, 100, 100, 0, '🟢 Performance improvement', '| 2 | 1 | 0 |', '-4.04%'],
-    [95, 100, 100, 0, '⚪ No significant performance changes', '| 0 | 3 | 0 |', '-3.36%'],
-    [104, 100, 100, 0, '⚪ No significant performance changes', '| 0 | 3 | 0 |', '+2.65%'],
-    [105, 100, 100, 0, '⚪ No significant performance changes', '| 0 | 3 | 0 |', '+3.31%'],
-    [106, 100, 50, 2, '🔴 Performance regression', '| 0 | 1 | 2 |', '+3.96%'],
-    [106, 50, 100, 2, '🔴 Performance regression', '| 1 | 0 | 2 |', '-17.49%'],
+    [96, 100, 100, 0, '🟢 Performance improvement', '| 2 | 1 | 0 |', '-2.68%'],
+    [97, 100, 100, 0, '⚪ No significant performance changes', '| 0 | 3 | 0 |', '-2.01%'],
+    [102, 100, 100, 0, '⚪ No significant performance changes', '| 0 | 3 | 0 |', '+1.33%'],
+    [103, 100, 100, 0, '⚪ No significant performance changes', '| 0 | 3 | 0 |', '+1.99%'],
+    [104, 100, 50, 2, '🔴 Performance regression', '| 0 | 1 | 2 |', '+2.65%'],
+    [104, 50, 100, 2, '🔴 Performance regression', '| 1 | 0 | 2 |', '-18.53%'],
     [100, 100, 50, 0, '⚪ No significant performance changes', '| 0 | 3 | 0 |', '+0.00%'],
 ] as [$time, $control, $cold, $status, $verdict, $counts, $overall]) {
     $comparisons = [

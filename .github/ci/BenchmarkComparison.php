@@ -14,7 +14,7 @@ final readonly class BenchmarkComparison
      */
     public const ROUNDS = 20;
     public const ITERATIONS = 2;
-    public const LIMIT_PERCENT = 5.0;
+    public const LIMIT_PERCENT = 3.0;
 
     public function __construct(
         public BenchmarkWorkload $workload,
