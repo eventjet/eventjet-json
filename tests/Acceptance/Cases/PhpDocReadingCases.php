@@ -136,7 +136,7 @@ final class PhpDocReadingCases
         }
     }
 
-    private static function unrecognized(string $class, string $tag): string
+    public static function unrecognized(string $class, string $tag): string
     {
         $tags = $tag === 'param'
             ? '@param, @phpstan-param, @psalm-param, or @phan-param'

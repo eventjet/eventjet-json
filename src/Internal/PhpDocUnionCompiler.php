@@ -55,6 +55,9 @@ final readonly class PhpDocUnionCompiler
      */
     private function resolve(PhpDocType $type, string $path): array|DecodeError|null
     {
+        if ($type->isPlainName('array-key')) {
+            return ['int', 'string'];
+        }
         $keyword =
             $type->arguments === []
             && in_array(

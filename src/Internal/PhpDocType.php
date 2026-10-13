@@ -77,6 +77,7 @@ final readonly class PhpDocType
         return $hasStringKey ? $pair[1] : null;
     }
 
+    /** @mutation-free */
     public function isPlainName(string $name): bool
     {
         return $this->name === $name && $this->arguments === [];
