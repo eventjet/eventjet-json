@@ -7,6 +7,7 @@ namespace Eventjet\Json\Ci;
 use RuntimeException;
 
 require_once __DIR__ . '/BenchmarkReport.php';
+require_once __DIR__ . '/FpmMeasurements.php';
 
 final class PerformanceShards
 {
@@ -51,7 +52,7 @@ final class PerformanceShards
         return $validated;
     }
 
-    /** @return array{comparisons: non-empty-list<BenchmarkComparison>, status: int, fpm: string} */
+    /** @return array{comparisons: non-empty-list<BenchmarkComparison>, status: int, fpm: non-empty-list<FpmComparison>} */
     public static function collect(string $directory, string $mode): array
     {
         $directories = glob($directory . '/*', GLOB_ONLYDIR);
@@ -63,7 +64,7 @@ final class PerformanceShards
         $seen = [];
         $comparisons = [];
         $status = 0;
-        $fpm = '';
+        $fpm = null;
         foreach ($directories as $shardDirectory) {
             $metadata = self::json($shardDirectory . '/metadata.json');
             $completion = self::json($shardDirectory . '/complete.json');
@@ -116,16 +117,15 @@ final class PerformanceShards
                 throw new RuntimeException('Shard contains unexpected workload measurements');
             }
             if ($shard === 1) {
-                self::json($shardDirectory . '/fpm.json');
-                $report = file_get_contents($shardDirectory . '/fpm.md');
-                if ($report === false || $report === '') {
-                    throw new RuntimeException('Missing FPM report');
-                }
-                $fpm = $report;
+                $samples = self::json($shardDirectory . '/fpm.json');
+                $fpm = FpmMeasurements::compare($samples['baseline'] ?? null, $samples['candidate'] ?? null, $mode === 'on');
             }
         }
         if ($comparisons === [] || count($comparisons) !== count($expected)) {
             throw new RuntimeException('Incomplete workload coverage');
+        }
+        if ($fpm === null) {
+            throw new RuntimeException('Missing PHP-FPM measurements');
         }
         return ['comparisons' => $comparisons, 'status' => $status, 'fpm' => $fpm];
     }

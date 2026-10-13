@@ -61,6 +61,8 @@ final class ErrorBench
     #[\PhpBench\Attributes\ParamProviders('cases')]
     public function benchExample(): void {}
     public function benchControl(): void {}
+    #[\PhpBench\Attributes\Groups(['documents', 'cold'])]
+    public function benchCold(): void {}
     public function cases(): iterable
     {
         yield 'record batch[case]' => [];
@@ -115,10 +117,22 @@ if (\Fixture\Revision::IDENTITY !== $expectedIdentity) {
     throw new RuntimeException('Autoloader selected the wrong compared revision');
 }
 $time = \Fixture\Revision::time();
+$cold = false;
+$compared = false;
+$asserted = false;
 foreach ($argv as $argument) {
     if (str_contains($argument, 'benchControl')) {
         $time = $time === 100 ? 100 : (int) (getenv('PERFORMANCE_TEST_CONTROL_TIME') ?: 100);
     }
+    $cold = $cold || str_contains($argument, 'benchCold');
+    $compared = $compared || str_starts_with($argument, '--file=');
+    $asserted = $asserted || str_starts_with($argument, '--assert=');
+}
+if ($cold && \Fixture\Revision::IDENTITY === 'candidate' && getenv('PERFORMANCE_TEST_COLD_TIME') !== false) {
+    $time = (int) getenv('PERFORMANCE_TEST_COLD_TIME');
+}
+if ($asserted !== ($compared && !$cold)) {
+    throw new RuntimeException('Only warm comparisons may assert');
 }
 $arguments = [PHP_BINARY, getenv('PERFORMANCE_TEST_PHPBENCH'), ...array_slice($argv, 1),
     '--executor=' . json_encode(['executor' => 'debug', 'times' => [$time]])];
@@ -146,7 +160,8 @@ check_run() {
     test -s .perf/results/candidate-0.txt
     test -s .perf/results/summary.md
     test -s .perf/results/comment.md
-    for text in "$verdict" "$counts" "$overall" '**3 workloads**' '100.00 µs' 'Negative means faster'; do
+    for text in "$verdict" "$counts" "$overall" '**3 workloads**' '100.00 µs' 'Negative means faster' \
+        '### Warm CLI decodes · blocking' '### Fresh CLI processes · advisory' '**1 workloads**' 'Not measured in this run'; do
         if ! grep -Fq -- "$text" .perf/results/comment.md; then
             cat .perf/results/comment.md
             echo "Missing summary text: $text"
@@ -164,8 +179,8 @@ check_run() {
 <?php
 $files = glob('.perf/results/candidate-*.xml');
 $files = array_filter($files, static fn($file) => !str_contains($file, 'candidate-workloads'));
-if (count($files) !== 3) {
-    throw new RuntimeException('Expected three distinct workload comparisons');
+if (count($files) !== 4) {
+    throw new RuntimeException('Expected four distinct workload comparisons');
 }
 foreach ($files as $file) {
     $xml = simplexml_load_file($file);
@@ -177,6 +192,7 @@ PHP
     mv .perf "$name-results"
 }
 check_run 0 unchanged '⚪ No significant performance changes' '| 0 | 3 | 0 |' '+0.00%'
+unchanged=$candidate
 for entry in '50 improvement 0' '94 improvement-boundary 0' '95 at-improvement-limit 0' '104 below-limit 0' '105 at-limit 0' '106 regression 2'; do
     read -r time name expected <<< "$entry"
     printf '%s\n' "$time" > src/time.txt
@@ -197,6 +213,10 @@ if ! grep -Fq 'PHPBench assertions failed' regression-results/results/summary.md
     cat regression.log
     exit 1
 fi
+candidate=$unchanged PERFORMANCE_TEST_COLD_TIME=200 check_run 0 cold-slower '⚪ No significant performance changes' '| 0 | 3 | 0 |' '+0.00%'
+grep -Fq '🟡 Slower than the limit, advisory only · **Overall decode time: +100.00%** · **1 workloads**' cold-slower-results/results/comment.md
+candidate=$unchanged PERFORMANCE_TEST_COLD_TIME=50 check_run 0 cold-faster '⚪ No significant performance changes' '| 0 | 3 | 0 |' '+0.00%'
+grep -Fq '🟢 Improvement · **Overall decode time: -50.00%** · **1 workloads**' cold-faster-results/results/comment.md
 echo 'Native PHPBench assertions, boundaries, configuration isolation, and failure artifacts passed.'
 
 EXPECTED_OPCACHE=0 check_run 2 opcache-off '🔴 Performance regression' '| 0 | 1 | 2 |' '+3.96%' --opcache off
@@ -257,34 +277,57 @@ for shard in 0 5 invalid; do
 done
 echo 'Shard selection preserves sampling, isolated revisions, and native regression assertions.'
 
-php <<'PHP'
+aggregate() {
+    local name=$1 source=$2 mode=$3 fpm_time=$4 expected=$5 status=0
+    shift 5
+    SOURCE="$source" ARTIFACTS="$name-artifacts" FPM_TIME="$fpm_time" PROJECT="$project" MODE="$mode" php <<'PHP'
 <?php
-$source = 'opcache-off-results/results';
+require getenv('PROJECT') . '/.github/ci/FpmMeasurements.php';
+$source = getenv('SOURCE');
 $metadata = json_decode(file_get_contents($source . '/metadata.json'), true, flags: JSON_THROW_ON_ERROR);
+$cliStatus = json_decode(file_get_contents($source . '/complete.json'), true, flags: JSON_THROW_ON_ERROR)['status'];
 for ($shard = 1; $shard <= 4; $shard++) {
-    $directory = 'aggregate-artifacts/' . $shard;
+    $directory = getenv('ARTIFACTS') . '/' . $shard;
     mkdir($directory, 0777, true);
     file_put_contents($directory . '/metadata.json', json_encode(array_replace($metadata, ['shard' => $shard, 'fpm' => $shard === 1]), JSON_THROW_ON_ERROR));
     copy($source . '/discovery.xml', $directory . '/discovery.xml');
-    $indices = $shard <= 3 ? [$shard - 1] : [];
-    file_put_contents($directory . '/complete.json', json_encode(['indices' => $indices, 'status' => $shard <= 2 ? 2 : 0], JSON_THROW_ON_ERROR));
+    $indices = [$shard - 1];
+    file_put_contents($directory . '/complete.json', json_encode(['indices' => $indices, 'status' => $shard <= 2 ? $cliStatus : 0], JSON_THROW_ON_ERROR));
     foreach ($indices as $index) {
         foreach (['baseline', 'candidate'] as $version) {
             copy($source . '/' . $version . '-' . $index . '.xml', $directory . '/' . $version . '-' . $index . '.xml');
         }
     }
 }
-file_put_contents('aggregate-artifacts/1/fpm.json', '{}');
-file_put_contents('aggregate-artifacts/1/fpm.md', 'FPM integration is tested separately.');
+$opcache = getenv('MODE') === 'on';
+$count = Eventjet\Json\Ci\FpmMeasurements::rounds($opcache) * Eventjet\Json\Ci\FpmMeasurements::requests($opcache);
+$sample = static fn(float $time): array => ['Stripe invoice' => ['time_us' => array_fill(0, $count, $time), 'peak_bytes' => 1024]];
+file_put_contents(getenv('ARTIFACTS') . '/1/fpm.json', json_encode([
+    'baseline' => $sample(1000.0),
+    'candidate' => $sample((float) getenv('FPM_TIME')),
+], JSON_THROW_ON_ERROR));
 PHP
-status=0
-php "$project/.github/ci/performance-aggregate.php" --artifacts aggregate-artifacts --opcache off --output aggregate-report > aggregate.log 2>&1 || status=$?
-if [ "$status" -ne 2 ]; then cat aggregate.log; exit 1; fi
-grep -Fq '**3 workloads**' aggregate-report/comment.md
-grep -Fq 'Performance regression' aggregate-report/comment.md
-echo 'Aggregation accepts real OPcache-off XML, preserves all samples, and retains regressions.'
-
-
+    php "$project/.github/ci/performance-aggregate.php" --artifacts "$name-artifacts" --opcache "$mode" --output "$name-report" > "$name.log" 2>&1 || status=$?
+    if [ "$status" -ne "$expected" ]; then cat "$name.log"; echo "Expected status $expected, got $status for $name"; exit 1; fi
+    for text in '**3 workloads**' '| Stripe invoice | 1000.00 µs |' "$@"; do
+        if ! grep -Fq -- "$text" "$name-report/comment.md"; then
+            cat "$name-report/comment.md"
+            echo "Missing aggregate text for $name: $text"
+            exit 1
+        fi
+    done
+    grep -Fq '## Fresh PHP-FPM requests' "$name-report/summary.md"
+}
+aggregate cli-regression opcache-off-results/results off 1000 2 '🔴 Performance regression (OPcache off)'
+EXPECTED_OPCACHE=0 candidate=$unchanged check_run 0 opcache-off-unchanged '⚪ No significant performance changes' '| 0 | 3 | 0 |' '+0.00%' --opcache off
+aggregate fpm-advisory opcache-off-unchanged-results/results off 1100 0 '⚪ No significant performance changes (OPcache off)' \
+    '### First decode in a fresh PHP-FPM request · advisory' '🟡 Slower than the limit, advisory only' '+10.00%'
+aggregate fpm-regression unchanged-results/results on 1100 2 '🔴 Performance regression (OPcache on)' \
+    '### First decode in a fresh PHP-FPM request · blocking' '🔴 Regression · Median of' '+10.00%' \
+    '### Warm CLI decodes · blocking' '### Fresh CLI processes · advisory'
+aggregate fpm-improvement unchanged-results/results on 900 0 '🟢 Performance improvement (OPcache on)' '🟢 Improvement · Median of'
+aggregate fpm-unchanged unchanged-results/results on 1000 0 '⚪ No significant performance changes (OPcache on)'
+echo 'Aggregation preserves all samples, keeps CLI regressions, and blocks only on PHP-FPM with OPcache on.'
 git rm --quiet -rf benchmarks tests phpbench.json
 git commit --quiet -m 'Source without a benchmark suite'
 no_benchmarks=$(git rev-parse HEAD)

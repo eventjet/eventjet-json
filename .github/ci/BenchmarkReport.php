@@ -37,8 +37,10 @@ final readonly class BenchmarkReport
             foreach ($suite->benchmark as $benchmark) {
                 foreach ($benchmark->subject as $subject) {
                     $categories = [];
+                    $cold = false;
                     foreach ($subject->group as $group) {
                         $name = (string) $group['name'];
+                        $cold = $cold || $name === 'cold';
                         if (isset(BenchmarkWorkload::REPORT_GROUPS[$name])) {
                             $categories[$name] = true;
                         }
@@ -52,6 +54,7 @@ final readonly class BenchmarkReport
                             (string) $subject['name'],
                             (string) $variant->{'parameter-set'}['name'],
                             array_key_first($categories) ?? 'uncategorized',
+                            $cold,
                         );
                         $variants[] = $variant;
                     }

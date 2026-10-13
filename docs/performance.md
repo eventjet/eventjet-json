@@ -62,12 +62,21 @@ file-update protection to zero so newly exported source files can be cached.
 The runner checks the actual runtime OPcache state. OPcache-off remains available
 for consumers whose runtime does not enable it.
 
-**Fresh PHP-FPM requests** cover the request lifecycle missing from CLI loops.
-The harness starts an isolated one-worker pool for each measured revision and
-invocation. One discarded request per document warms bytecode; 15 subsequent
-requests each time exactly one `Json::decode()` using `hrtime`. Each request has
-fresh request-local decoder metadata. With OPcache disabled, class compilation
-is included on each request; that mode does not have warm bytecode. Fixture loading, FastCGI transport, and
+**Fresh PHP-FPM requests** measure the cost production pays: the first decode
+in a request, with warm bytecode but fresh request-local decoder metadata.
+Compiled decoders live for one request, so every request compiles them again.
+The harness starts an isolated one-worker pool for one revision. One discarded
+request per document warms bytecode; 20 subsequent requests each time exactly
+one `Json::decode()` using `hrtime`. It then stops the pool and does the same
+for the other revision. This repeats for 40 rounds per revision, in ABBA order
+(target, PR, PR, target, …), so each document has 800 timed requests per
+revision. Request times shift between pool restarts by more than they vary
+within one pool; many short, alternating pools average those shifts and runner
+drift out of the comparison. With OPcache disabled, class compilation
+is included on each request; that mode does not have warm bytecode. Its
+requests take about 50 ms including transport, so the full sample would not fit
+the 15-minute job limit. Because that mode is advisory, it runs 10 rounds of 10
+requests instead. Fixture loading, FastCGI transport, and
 verification are outside the timer. The harness checks PHP version, OPcache and
 JIT state, worker identity, and zero OPcache misses during measured decodes when
 OPcache is enabled. It stops the pool before replacing any source files. This
@@ -126,8 +135,24 @@ Normal pull-request and branch runs measure both OPcache modes on separate runne
 with separate summaries and artifacts. OPcache on is the primary result; off is
 a secondary compatibility measurement. Compare baseline and candidate within each
 mode, not absolute timings between jobs on different runners. A failed job does
-not cancel the other mode. Native PHPBench assertions gate CLI performance in
-both modes; PHP-FPM timings remain advisory, and benchmark errors fail CI.
+not cancel the other mode. Benchmark errors fail CI.
+
+The gate blocks on what production pays:
+
+| Measurement | OPcache on | OPcache off |
+| --- | --- | --- |
+| First decode in a fresh PHP-FPM request | **Blocking**, 2% limit on the median | Advisory |
+| Warm CLI decodes (PHPBench `warm` group) | **Blocking**, 5% limit on the mode | **Blocking**, 5% limit on the mode |
+| Fresh CLI processes (PHPBench `cold` group) | Advisory | Advisory |
+
+A fresh CLI process with OPcache on and no file cache compiles and optimizes
+every library file it loads, which a PHP-FPM server does once per deploy. Those
+workloads mostly measure how much library code is loaded, so code
+reorganizations can fail them without any change that production would notice.
+Without OPcache, every PHP-FPM request also recompiles the library, so that
+mode measures code size as well. Both stay measured and visible for
+consumers who run that way, but neither blocks.
+
 Both modes include PHP-FPM measurements. CLI and FPM receive the same resolved
 settings from the frozen workload configuration. FPM overrides OPcache enablement
 for its SAPI and disables timestamp validation for its isolated pool. The FPM
@@ -149,11 +174,13 @@ the binary is `php-fpm8.4`. Both environments require `cgi-fcgi` from `libfcgi-b
 As with PHPBench, local Git worktrees need a read-only mount of their Git metadata
 for revision comparisons. The standalone FPM smoke check does not require Git.
 The artifact includes per-request timing, payload bytes, worker PID, and runtime
-settings alongside the advisory per-request samples. The request summary uses
-PHPBench's mode and variation statistics. CLI reports separate realistic documents,
+settings for every round, and `fpm.json` holds the merged samples that the
+aggregation checks and compares. A document fails the PHP-FPM gate when the PR's
+median request time is more than 2% above the target's; more than 2% below
+counts as an improvement. CLI reports separate realistic documents,
 synthetic batches, focused diagnostics, stress cases, and errors.
 
-The gate uses PHPBench's native baseline comparison and assertion:
+For warm workloads, the CLI gate uses PHPBench's native baseline comparison and assertion:
 
 ```text
 --file=../results/baseline-N.xml
@@ -190,9 +217,11 @@ measures each target workload immediately before its candidate counterpart to
 reduce the time between comparable measurements. Each version runs 20 iterations
 per workload, preserving cold/warm revolution
 and warmup settings. PHPBench estimates the mode of per-decode times and fails
-with exit code 2 when any workload is more than 5% slower than its freshly
-measured target baseline. There is no stored timing baseline, minimum increase
-in microseconds, custom verdict engine, or automatic retry-until-pass policy.
+with exit code 2 when any warm workload is more than 5% slower than its freshly
+measured target baseline. Cold workloads are compared against the same baseline
+file without an assertion. There is no stored timing baseline, minimum increase
+in microseconds, or automatic retry-until-pass policy. The runner's exit status
+combines PHPBench's status with the PHP-FPM verdict when OPcache is on.
 Memory remains advisory. Raw XML, PHPBench's aggregate report, commit IDs,
 CPU information, and a dependency fingerprint are archived even on assertion
 failure. A changed candidate workload suite runs separately without a baseline
@@ -203,29 +232,44 @@ commit against itself in five independent repetitions of the complete sharded ch
 Each repetition uses four runners per selected OPcache mode (40 measurement
 jobs when both modes are selected). Normal PR runs still
 compare the target with the proposed merge. Each calibration job archives its
-own samples and report for each selected OPcache mode. Calibration compares the
+own samples and report for each selected OPcache mode. Only shard one measures
+PHP-FPM, so each calibration batch yields five PHP-FPM comparisons of the nine
+documents. Calibration compares the
 selected candidate with itself, overriding the `base` input.
 
 For same-repository PRs, the workflow maintains one GitHub Actions comment and
 updates it after each completed run, including a failed regression gate. It has
-one section per OPcache mode, primary first, with the mode in each heading; a
+one part per OPcache mode, primary first, with the mode in each heading; a
 mode without a complete comparison is reported as unavailable. Like aggregation,
-each section uses the summary from its comparison's latest execution, so a partial
-rerun keeps the result of the mode that did not rerun. Each section shows
-the overall percentage change in decode time, counts of faster/unchanged/slower
-workloads, and the lowest and highest changes with target and PR times in
-microseconds. The overall figure is the geometric mean of workload timing ratios;
-each workload has equal weight. Negative percentages mean less time per decode.
+each part uses the summary from its comparison's latest execution, so a partial
+rerun keeps the result of the mode that did not rerun.
 
-Each section has one of three comparison outcomes:
+Each mode has three sections, and each section heading says whether it is
+**blocking** or **advisory**:
 
-- **Performance regression:** PHPBench's regression assertion failed for any workload.
-- **Performance improvement:** no regression, and at least one workload is more than 5% faster.
-- **No significant performance changes:** all workloads remain within ±5%.
+- **First decode in a fresh PHP-FPM request:** target and PR medians for every document.
+- **Warm CLI decodes:** the overall percentage change in decode time, counts of
+  faster/unchanged/slower workloads, and the lowest and highest changes with
+  target and PR times in microseconds.
+- **Fresh CLI processes:** the same figures for the cold workloads.
 
-Exactly 5% stays inside the unchanged band. A regression takes priority even when
-other workloads improve or the overall figure is faster. This uses the existing
-5% operating limit; it is not a statistical significance test. The full run and
+The overall figure is the geometric mean of workload timing ratios; each
+workload has equal weight. Negative percentages mean less time per decode.
+
+Each section has its own result: regression, improvement, or no significant
+changes. An advisory section that exceeds its limit says "slower than the limit,
+advisory only" instead of reporting a regression. The mode's heading reflects
+only the blocking sections:
+
+- **Performance regression:** a blocking section exceeded its limit.
+- **Performance improvement:** no regression, and a blocking section has a
+  document or workload faster than its limit.
+- **No significant performance changes:** every blocking result stays within its limit.
+
+A result exactly at a limit stays inside the unchanged band. A regression takes
+priority even when other workloads improve or the overall figure is faster. The
+limits are operating limits from calibration, not statistical significance
+tests. The full run and
 artifacts remain linked for inspection. Missing baselines and incomplete runs are
 reported explicitly instead of being labeled unchanged. Results for an outdated
 PR head or target commit do not update the comment.
@@ -250,6 +294,31 @@ Changes to sampling or thresholds should be checked with unchanged-code runs on
 the CI runner. A consistently noisy benchmark needs more stable measurement,
 not a larger limit chosen just to pass a particular PR. The expanded workflow retains
 its 15-minute job limit and a 90-second limit per subprocess.
+
+The 2% PHP-FPM limit was selected the same way, with OPcache on. Each batch ran
+the `calibrate` input on five independent runners, and shard one compared the
+nine documents, giving 45 PHP-FPM comparisons per batch:
+
+- [Exploratory batch](https://github.com/eventjet/eventjet-json/actions/runs/38382940033): 20 rounds of 25 requests per revision. With all rounds, medians moved by at most +1.62% and −1.29%. Fewer rounds were much noisier: the first 4 rounds alone reached +10.94%, and the first 10 rounds +5.07%. Modes were less stable than medians (+3.05% with all rounds). This batch set the sampling and the statistic, not the limit.
+- [Selection batch](https://github.com/eventjet/eventjet-json/actions/runs/38384084871): the final 40 rounds of 20 requests. Largest apparent changes +1.04% and −1.30%; a 1% limit would have failed in both directions.
+- [Independent validation batch](https://github.com/eventjet/eventjet-json/actions/runs/38384902975): largest apparent changes +0.96% and −0.92%.
+
+A 2% limit was the lowest whole-percentage limit with no observed false positives
+in either direction across these 90 comparisons. Small documents were not noisier
+than large ones in relative terms (record batch 0, about 100 µs per request,
+stayed within ±1.2%), so there is no minimum change below which results are
+ignored. With this sampling, shard one takes about five minutes with OPcache on.
+The full sample with OPcache off took 14 minutes in [a trial run](https://github.com/eventjet/eventjet-json/actions/runs/38385674663),
+which led to its smaller advisory sample.
+
+The selection and validation batches also compared the current suite's 26 warm
+and 23 cold CLI workloads on every runner. Warm workloads reached −6.85%
+(`DecodeBench::benchWarmStress [enum union collections]`) in the selection batch
+and +6.05% (`DecodeBench::benchWarmCollections [long scalar lists]`) in the
+validation batch, which failed one calibration sample. The 5% warm limit
+therefore produces occasional false positives on the current suite and needs
+more stable measurement; this calibration leaves it unchanged. Cold workloads,
+which are advisory, reached +11.86%.
 
 Performance tooling validation runs once in a separate job alongside the measurements.
 The existing comparison checks require both the measurements and tooling validation

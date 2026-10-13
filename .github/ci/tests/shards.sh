@@ -36,15 +36,20 @@ for ($shard = 1; $shard <= 4; $shard++) {
         file_put_contents($path . '/candidate-' . $index . '.xml', measurement([$index], true));
     }
 }
-jsonFile($directory . '/1/fpm.json', ['baseline' => [], 'candidate' => []]);
-file_put_contents($directory . '/1/fpm.md', 'FPM report');
+function fpmSample(bool $opcache): array {
+    $count = Eventjet\Json\Ci\FpmMeasurements::rounds($opcache) * Eventjet\Json\Ci\FpmMeasurements::requests($opcache);
+    return ['document' => ['time_us' => array_fill(0, $count, 100.0), 'peak_bytes' => 1024]];
+}
+$fpmSample = fpmSample(true);
+jsonFile($directory . '/1/fpm.json', ['baseline' => $fpmSample, 'candidate' => $fpmSample]);
 $result = PerformanceShards::collect($directory, 'on');
-if ($result['status'] !== 0 || count($result['comparisons']) !== 9 || !str_contains(performanceSummary($result['comparisons'], 0, 'on'), "(OPcache on)\n\n**Overall decode time: +0.00%** · **9 workloads**")) {
+if ($result['status'] !== 0 || count($result['comparisons']) !== 9 || count($result['fpm']) !== 1
+    || !str_contains(performanceSummary($result['comparisons'], 0, 'on', $result['fpm']), "⚪ No significant changes · **Overall decode time: +0.00%** · **9 workloads**")) {
     throw new RuntimeException('Complete shards must produce one full comparison');
 }
 $measurementPath = $directory . '/1/candidate-0.xml';
 rename($measurementPath, $measurementPath . '.saved');
-if (!str_contains(performanceSummary($result['comparisons'], 0, 'on'), '**9 workloads**')) {
+if (!str_contains(performanceSummary($result['comparisons'], 0, 'on', $result['fpm']), '**9 workloads**')) {
     throw new RuntimeException('Summary must use validated comparisons without reopening measurement files');
 }
 rename($measurementPath . '.saved', $measurementPath);
@@ -78,6 +83,9 @@ foreach (['shard' => 1, 'opcache' => 'off', 'fpm' => true, 'baseline' => 'wrong'
     rejects($directory, '2/metadata.json', json_encode(array_replace($metadata, [$key => $value])));
 }
 rejects($directory, '2/discovery.xml', measurement(range(0, 7)));
+rejects($directory, '1/fpm.json', json_encode(['baseline' => $fpmSample]));
+rejects($directory, '1/fpm.json', json_encode(['baseline' => $fpmSample, 'candidate' => ['document' => ['time_us' => [100.0], 'peak_bytes' => 1024]]]));
+rejects($directory, '1/fpm.json', json_encode(['baseline' => fpmSample(false), 'candidate' => fpmSample(false)]));
 rejects($directory, '2/candidate-1.xml', measurement([0], true));
 rejects($directory, '2/candidate-1.xml', str_replace('<iteration time-net="100"/>', '', measurement([1], true)));
 rejects($directory, '2/candidate-1.xml', str_replace('>1</value>', '>0</value>', measurement([1], true)));
@@ -98,6 +106,7 @@ foreach (glob($directory . '/*/metadata.json') as $path) {
 foreach (glob($directory . '/*/*.xml') as $path) {
     file_put_contents($path, str_replace('>1</value>', '></value>', file_get_contents($path)));
 }
+jsonFile($directory . '/1/fpm.json', ['baseline' => fpmSample(false), 'candidate' => fpmSample(false)]);
 if (PerformanceShards::collect($directory, 'off')['status'] !== 2) {
     throw new RuntimeException('OPcache-off empty XML boolean must preserve the verdict');
 }

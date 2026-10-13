@@ -10,7 +10,7 @@ use Eventjet\Json\Ci\FpmMeasurements;
 use Eventjet\Json\Ci\PerformanceShards;
 
 require_once __DIR__ . '/performance-summary.php';
-require __DIR__ . '/FpmMeasurements.php';
+require_once __DIR__ . '/FpmMeasurements.php';
 require __DIR__ . '/BenchmarkCommand.php';
 require __DIR__ . '/BenchmarkRuntime.php';
 require __DIR__ . '/PerformanceShards.php';
@@ -208,7 +208,7 @@ foreach (['baseline', 'candidate'] as $version) {
 $metadata['configuration_sha256'] = hash_file('sha256', $workspaces['baseline'] . '/phpbench.json');
 writeJson($results . '/metadata.json', $metadata);
 /** @return array{status: int, report: BenchmarkReport} */
-$measure = static function (string $workspace, string $name, string|null $baseline = null, string ...$options) use (
+$measure = static function (string $workspace, string $name, string|null $baseline, bool $assert, string ...$options) use (
     $results,
     $opcacheOption,
 ): array {
@@ -224,6 +224,8 @@ $measure = static function (string $workspace, string $name, string|null $baseli
     ];
     if ($baseline !== null) {
         $arguments[] = '--file=../results/' . $baseline . '.xml';
+    }
+    if ($assert) {
         $arguments[] = '--assert=mode(variant.time.avg) <= mode(baseline.time.avg) * 1.05';
     }
     $result = withWorkspace($workspace, static fn(string $active): array => BenchmarkCommand::execute(
@@ -232,14 +234,14 @@ $measure = static function (string $workspace, string $name, string|null $baseli
     ));
     file_put_contents($results . '/' . $name . '.txt', $result['output']);
     echo $result['output'];
-    if ($result['status'] !== 0 && ($baseline === null || $result['status'] !== 2)) {
+    if ($result['status'] !== 0 && (!$assert || $result['status'] !== 2)) {
         throw new RuntimeException('Command failed (' . $result['status'] . "): PHPBench\n" . $result['output']);
     }
     $report = BenchmarkReport::read($results . '/' . $name . '.xml');
     $report->requireMode($opcacheOption);
     return ['status' => $result['status'], 'report' => $report];
 };
-$discovery = $measure($workspaces['baseline'], 'discovery', null, '--revs=1')['report'];
+$discovery = $measure($workspaces['baseline'], 'discovery', null, false, '--revs=1')['report'];
 $status = 0;
 $reports = [];
 $comparisons = [];
@@ -250,8 +252,8 @@ foreach ($indices as $index) {
     $filters = $workload->filters();
     $baselineName = 'baseline-' . $index;
     $candidateName = 'candidate-' . $index;
-    $baseline = $measure($workspaces['baseline'], $baselineName, null, ...$filters);
-    $comparison = $measure($workspaces['candidate'], $candidateName, $baselineName, ...$filters);
+    $baseline = $measure($workspaces['baseline'], $baselineName, null, false, ...$filters);
+    $comparison = $measure($workspaces['candidate'], $candidateName, $baselineName, $workload->blocks(), ...$filters);
     $status = max($status, $comparison['status']);
     $comparisons[] = $comparison['report']->compareAgainst($baseline['report'], $workload->identity(), $opcacheOption);
     $workloadReport = file_get_contents($results . '/' . $candidateName . '.txt');
@@ -266,38 +268,44 @@ foreach (BenchmarkWorkload::REPORT_GROUPS as $group => $title) {
         $report .= "\n### $title\n\n```text\n" . $reports[$group] . "\n```\n";
     }
 }
-$comment = $comparisons === [] ? "No workloads assigned to this shard.\n" : performanceSummary($comparisons, $status, $opcacheOption);
+$fpmComparisons = null;
+$fpmReport = '';
+if ($fpm) {
+    $names = withWorkspace($workspaces['baseline'], FpmMeasurements::names(...));
+    $samples = FpmMeasurements::measure(static fn(string $version, int $round): array => withWorkspace(
+        $workspaces[$version],
+        static fn(string $active): array => FpmMeasurements::run(
+            $active,
+            $results . '/' . $version . '-fpm-' . $round,
+            $opcache,
+            $runtimeSettings[$version],
+            $names,
+        ),
+    ), $opcache);
+    writeJson($results . '/fpm.json', $samples);
+    $fpmComparisons = FpmMeasurements::compare($samples['baseline'], $samples['candidate'], $opcache);
+    $fpmReport = FpmMeasurements::report($fpmComparisons, $opcache);
+}
+$comment = $comparisons === []
+    ? "No workloads assigned to this shard.\n"
+    : performanceSummary($comparisons, $status, $opcacheOption, $fpmComparisons);
 file_put_contents($results . '/comment.md', $comment);
 publish(
     $results,
     $comment
     . "\nBaseline: `$base`. Candidate: `$candidate`. OPcache: **$opcacheOption**. Frozen workloads: `$workloads`.\n\n"
     . ($status === 0 ? 'PHPBench assertions passed.' : 'PHPBench assertions failed: performance regression.')
-    . " PHPBench mode time per decode must be at most 105% of the target's mode for every workload.\n\n"
+    . " PHPBench mode time per decode must be at most 105% of the target's mode for every warm workload. "
+    . "Cold workloads in fresh CLI processes are compared without an assertion.\n\n"
     . 'Each target workload is measured immediately before its candidate counterpart, using the same configuration and dependencies on this runner. '
     . "Cold and warm workloads retain their own warmup and revolution settings. Memory is advisory.\n\n"
-    . $report,
+    . $report
+    . $fpmReport,
 );
-if ($fpm) {
-    require 'vendor/autoload.php';
-    $samples = [];
-    foreach (['baseline', 'candidate'] as $version) {
-        $samples[$version] = withWorkspace($workspaces[$version], static fn(string $active): array => FpmMeasurements::run(
-            $active,
-            $results . '/' . $version . '-fpm',
-            $opcache,
-            $runtimeSettings[$version],
-        ));
-    }
-    writeJson($results . '/fpm.json', $samples);
-    $fpmReport = FpmMeasurements::report($samples['baseline'], $samples['candidate'], $opcache);
-    file_put_contents($results . '/fpm.md', $fpmReport);
-    publish($results, $fpmReport);
-}
 if ($metadata['workloads_changed'] && ($shard === null || $shard === 1)) {
     $candidateWorkspace = $output . '/workspace-candidate-workloads';
     prepareWorkspace($candidateWorkspace, $output . '/candidate', $output . '/candidate', $candidate, $opcache);
-    $measure($candidateWorkspace, 'candidate-workloads');
+    $measure($candidateWorkspace, 'candidate-workloads', null, false);
 }
 writeJson($results . '/complete.json', ['indices' => $indices, 'status' => $status]);
-exit($status);
+exit(performanceStatus($status, $opcacheOption, $fpmComparisons));
