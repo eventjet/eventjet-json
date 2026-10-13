@@ -16,8 +16,7 @@ use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\Error\InvalidValue;
-use Eventjet\Json\Internal\FieldNameCollisions;
-use Eventjet\Json\Internal\FieldNames;
+use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\MappedObjectSerializer;
@@ -50,7 +49,8 @@ use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\PublicPropertyValues;
-use Eventjet\Json\Internal\RootTypeValidator;
+use Eventjet\Json\Internal\RenamedArguments;
+use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
@@ -68,6 +68,7 @@ use ReflectionProperty;
 use stdClass;
 
 #[CoversClass(ConstructorPlan::class)]
+#[CoversClass(RenamedArguments::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
@@ -75,14 +76,13 @@ use stdClass;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[CoversClass(RootTypeValidator::class)]
 #[UsesClass(ValueTypeMatcher::class)]
-#[CoversClass(FieldNames::class)]
+#[CoversClass(TargetClass::class)]
+#[CoversClass(FieldNameRules::class)]
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(PublicProperties::class)]
 #[CoversClass(PublicPropertyValues::class)]
-#[CoversClass(FieldNameCollisions::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]

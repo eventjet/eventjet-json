@@ -49,11 +49,11 @@ final readonly class ClassDecoder
      */
     public static function compile(ReflectionClass $class): self|DecodeError
     {
-        $error = RootTypeValidator::validate($class);
+        $error = TargetClass::validate($class);
         if ($error !== null) {
             return $error;
         }
-        $names = RootTypeValidator::fieldNames($class);
+        $names = TargetClass::fieldNames($class);
         assert(is_array($names), description: 'The target validation rejects invalid field names.');
         $constructor = self::constructor($class, $names);
         if ($constructor instanceof DecodeError) {
@@ -75,7 +75,7 @@ final readonly class ClassDecoder
     {
         $checks = [];
         $converters = [];
-        $nodes = [];
+        $jsonNames = [];
         $required = [];
         foreach ($class->getConstructor()?->getParameters() ?? [] as $reflection) {
             $parameter = new ConstructorParameter($reflection, $class);
@@ -84,8 +84,10 @@ final readonly class ClassDecoder
             if ($converter instanceof DecodeError) {
                 return $converter;
             }
-            $converters[$name] = $converter;
-            $nodes[$parameter->name] = $converter;
+            $converters[$parameter->name] = $converter;
+            if ($name !== $parameter->name) {
+                $jsonNames[$parameter->name] = $name;
+            }
             $check = $parameter->nativeCheck();
             if ($check !== null) {
                 $checks[$name] = $check;
@@ -94,7 +96,7 @@ final readonly class ClassDecoder
                 $required[] = $parameter->name;
             }
         }
-        return new ConstructorPlan($checks, $converters, $nodes, $names, $required);
+        return new ConstructorPlan($checks, $converters, $jsonNames, $required);
     }
 
     /**
@@ -104,7 +106,7 @@ final readonly class ClassDecoder
      */
     public function fields(): array
     {
-        $fields = array_filter($this->constructor->nodes, static fn(Node|null $node): bool => $node !== null);
+        $fields = array_filter($this->constructor->converters, static fn(Node|null $node): bool => $node !== null);
         foreach ($this->properties as $property) {
             $fields[$property['property']->getName()] = $property['node'];
         }
