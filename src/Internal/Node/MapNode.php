@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal\Node;
 
 use ArrayObject;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldPath;
 use JsonException;
 use Override;
@@ -18,9 +19,7 @@ use function sprintf;
 /** @internal */
 final readonly class MapNode implements Node
 {
-    /** @param class-string $class */
     public function __construct(
-        private string $class,
         private Node $value,
         public bool $arrayObject,
     ) {}
@@ -30,28 +29,15 @@ final readonly class MapNode implements Node
     public function decode(mixed $value, string $path): array|ArrayObject|DecodeError
     {
         if (!$value instanceof stdClass) {
-            return DecodeError::fieldTypeMismatch($this->class, $path, 'JSON object', $value);
+            return InvalidValue::typeMismatch($path, 'JSON object', $value);
         }
         $values = (array) $value;
         if (!$this->arrayObject && $values === []) {
-            return DecodeError::nonInstantiableTarget(
-                $this->class,
-                sprintf(
-                    'Field %s uses non-empty-array<string, TValue> and cannot accept an empty JSON object. Use ArrayObject<string, TValue> when the map may be empty.',
-                    $path,
-                ),
-            );
+            return InvalidValue::emptyMap($path);
         }
         foreach (array_keys($values) as $key) {
             if (is_int($key)) {
-                return DecodeError::nonInstantiableTarget(
-                    $this->class,
-                    sprintf(
-                        'Field %s has numeric-looking member name %d, which PHP converts to an integer array key. Supported maps require member names that remain strings.',
-                        $path,
-                        $key,
-                    ),
-                );
+                return InvalidValue::integerKey($path, $key);
             }
         }
         /** @var array<string, mixed> $values */

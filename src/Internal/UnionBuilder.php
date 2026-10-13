@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\AmbiguousUnion;
 use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ObjectNode;
@@ -18,9 +19,6 @@ use function array_map;
 use function array_unique;
 use function assert;
 use function count;
-use function implode;
-use function sort;
-use function sprintf;
 
 /**
  * Collects the compiled members of a union, then checks that JSON values identify one member each.
@@ -33,9 +31,7 @@ final class UnionBuilder
     private array $members = [];
     private DecodeError|null $rejected = null;
 
-    /** @param class-string $class */
     public function __construct(
-        private readonly string $class,
         private readonly string $path,
     ) {}
 
@@ -66,8 +62,7 @@ final class UnionBuilder
         if (count($this->members) === 1 && $this->rejected === null) {
             return $this->members[0];
         }
-        $union =
-            $this->literals() ?? $this->classes() ?? UnionNode::of($this->class, $this->path, $type, $this->members);
+        $union = $this->literals() ?? $this->classes() ?? UnionNode::of($this->path, $type, $this->members);
         return $union instanceof DecodeError ? $union : $this->shapes() ?? $union;
     }
 
@@ -85,14 +80,7 @@ final class UnionBuilder
         if (count($classes) < 2) {
             return null;
         }
-        sort($classes);
-        return DecodeError::nonInstantiableField(
-            $this->class,
-            $this->path,
-            'multiple class types:',
-            implode(', ', $classes),
-            '. JSON does not identify which class to instantiate.',
-        );
+        return AmbiguousUnion::classes($this->path, $classes);
     }
 
     /** @throws ReflectionException */
@@ -101,7 +89,6 @@ final class UnionBuilder
         $literal = array_any($this->members, static fn(Node $member): bool => $member instanceof LiteralNode);
         return $literal
             ? PhpDocLiteralUnionValidator::validate(
-                $this->class,
                 $this->path,
                 array_map(static fn(Node $member): string => (string) $member, $this->members),
             )
@@ -117,12 +104,6 @@ final class UnionBuilder
         if (count($shapes) === count(array_unique($shapes))) {
             return null;
         }
-        return DecodeError::nonInstantiableTarget(
-            $this->class,
-            sprintf(
-                'Field %s has multiple union members with the same JSON shape. JSON cannot identify which type to restore.',
-                $this->path,
-            ),
-        );
+        return AmbiguousUnion::shapes($this->path);
     }
 }

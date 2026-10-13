@@ -6,6 +6,8 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Field;
+use Eventjet\Json\Internal\Error\InvalidFieldMapping;
+use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use JsonSerializable;
 use ReflectionClass;
 use ReflectionProperty;
@@ -14,7 +16,6 @@ use Throwable;
 use function array_filter;
 use function array_key_exists;
 use function count;
-use function sprintf;
 
 /**
  * Reads the #[Field] names of a class and checks the rules for them. Kept apart from TargetClass, so that classes
@@ -34,30 +35,25 @@ final class FieldNameRules
      */
     public static function resolve(ReflectionClass $class, array $properties, array $annotated): array|DecodeError
     {
-        $className = $class->getName();
         try {
-            $names = self::read($className, $annotated);
+            $names = self::read($annotated);
         } catch (Throwable $error) {
-            return DecodeError::cannotInstantiate($className, $error);
+            return UnsupportedTarget::unreadable($error);
         }
         if ($names instanceof DecodeError) {
             return $names;
         }
         if (!$class->implementsInterface(JsonSerializable::class)) {
-            return DecodeError::nonInstantiableTarget(
-                $className,
-                '#[Field] requires the target class to implement JsonSerializable.',
-            );
+            return InvalidFieldMapping::withoutJsonSerializable();
         }
-        return self::collision($className, $properties, $names) ?? $names;
+        return self::collision($properties, $names) ?? $names;
     }
 
     /**
-     * @param class-string $class
      * @param array<ReflectionProperty> $properties
      * @return array<string, string>|DecodeError
      */
-    private static function read(string $class, array $properties): array|DecodeError
+    private static function read(array $properties): array|DecodeError
     {
         $names = [];
         foreach ($properties as $property) {
@@ -65,16 +61,10 @@ final class FieldNameRules
             $name = $property->getName();
             $publicInstance = self::isPublicInstance($property);
             if (!$publicInstance) {
-                return DecodeError::nonInstantiableTarget($class, sprintf(
-                    '#[Field] requires a public instance property; %s is not one.',
-                    $name,
-                ));
+                return InvalidFieldMapping::nonPublicProperty($name);
             }
             if (count($attributes) !== 1) {
-                return DecodeError::nonInstantiableTarget($class, sprintf(
-                    'Property %s must not repeat #[Field].',
-                    $name,
-                ));
+                return InvalidFieldMapping::repeated($name);
             }
             $names[$name] = $attributes[0]->newInstance()->name;
         }
@@ -84,23 +74,17 @@ final class FieldNameRules
     /**
      * Rejects two public instance properties that use the same JSON name.
      *
-     * @param class-string $class
      * @param list<ReflectionProperty> $properties
      * @param array<string, string> $names
      */
-    private static function collision(string $class, array $properties, array $names): DecodeError|null
+    private static function collision(array $properties, array $names): DecodeError|null
     {
         $owners = [];
         foreach (array_filter($properties, self::isPublicInstance(...)) as $property) {
             $name = $property->getName();
             $wireName = $names[$name] ?? $name;
             if (array_key_exists($wireName, $owners)) {
-                return DecodeError::nonInstantiableTarget($class, sprintf(
-                    'Properties %s and %s use the same JSON field name "%s".',
-                    $owners[$wireName],
-                    $name,
-                    $wireName,
-                ));
+                return InvalidFieldMapping::collision($owners[$wireName], $name, $wireName);
             }
             $owners[$wireName] = $name;
         }

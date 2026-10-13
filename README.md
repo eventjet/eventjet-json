@@ -66,11 +66,46 @@ $json = json_encode($person, JSON_THROW_ON_ERROR);
 PHPStan and Psalm infer `Person|DecodeError` for the result. After the error
 check, you can use the object's typed properties directly.
 
+## Handling errors
+
 `Json::decode()` returns failures as `DecodeError` values. You choose whether
-to throw, log, or otherwise handle them. Errors cover invalid JSON, type
-mismatches, unsupported declarations, and construction failures. Conversion
-errors include paths such as `people[1].name`; `getPrevious()` retains an
-underlying constructor exception when one exists.
+to throw, log, or otherwise handle them. `$error->kind` tells you what went
+wrong, and `getCode()` returns the same value as a number:
+
+| Kind | Code | What went wrong |
+| --- | ---: | --- |
+| `DecodeErrorKind::InvalidJson` | 1 | The input is not valid JSON. |
+| `DecodeErrorKind::UnexpectedRootValue` | 2 | The JSON root is not the object or array the target needs. |
+| `DecodeErrorKind::InvalidValue` | 3 | A JSON value does not match its declared type, or a required member is missing. |
+| `DecodeErrorKind::UnsupportedDeclaration` | 4 | The target class can't be decoded, whatever the input. |
+| `DecodeErrorKind::ConstructorFailure` | 5 | The target's constructor, or a set hook of one of its public properties, threw. |
+
+The first three kinds mean the input is wrong. An unsupported declaration is a
+bug in your class: fix the class, and catch it early with
+[`Json::validateType()`](#validate-your-classes-in-unit-tests). Whether a
+constructor failure is the client's fault depends on your constructor. For
+example, an HTTP API can answer bad input with 400 and everything else with 500:
+
+```php
+use Eventjet\Json\DecodeErrorKind;
+
+$person = Json::decode($requestBody, Person::class);
+
+if ($person instanceof DecodeError) {
+    $status = match ($person->kind) {
+        DecodeErrorKind::InvalidJson,
+        DecodeErrorKind::UnexpectedRootValue,
+        DecodeErrorKind::InvalidValue => 400,
+        DecodeErrorKind::UnsupportedDeclaration,
+        DecodeErrorKind::ConstructorFailure => 500,
+    };
+}
+```
+
+From kind 3 on, messages name the class that could not be created; value errors
+also name the path to the failing value, such as `people[1].name`. When PHP or
+your code threw an exception, `getPrevious()` returns it. See
+[Errors](docs/types.md#errors) for details.
 
 ## Validate your classes in unit tests
 
@@ -85,12 +120,13 @@ public function testJsonDeclarations(): void
 }
 ```
 
-The result is `null` for supported declarations or the first `DecodeError`.
-Validation follows constructor parameters, public properties, unions, and
-PHPDoc collection items, including nested lists, maps, and tuples. It checks
-optional and nullable fields even when no values are supplied and safely
-handles recursive class declarations. You can also pass a root collection
-descriptor, such as `JsonType::array(Person::class)`.
+The result is `null` for supported declarations or the first `DecodeError`,
+whose kind is always `DecodeErrorKind::UnsupportedDeclaration`. Validation
+follows constructor parameters, public properties, unions, and PHPDoc
+collection items, including nested lists, maps, and tuples. It checks optional
+and nullable fields even when no values are supplied and safely handles
+recursive class declarations. You can also pass a root collection descriptor,
+such as `JsonType::array(Person::class)`.
 
 This checks the decoder's declaration rules. It does not run constructors,
 validate particular values, or prove that custom constructor behavior preserves
@@ -222,9 +258,10 @@ is rejected because PHP converts it to an integer key.
 - JSON member names match constructor parameter or public property names by
   default. For names PHP cannot use, see [the example below](#when-json-names-dont-work-as-php-property-names).
   Unknown members are ignored.
-- Missing required constructor arguments produce an error. Missing optional
-  arguments use their defaults. A present `null` requires a nullable type.
-  Omitted public properties retain their state after construction.
+- Missing required constructor arguments produce an `InvalidValue` error.
+  Missing optional arguments use their defaults. A present `null` requires a
+  nullable type. Omitted public properties retain their state after
+  construction.
 - Values must match their declared types. For example, `"42"` is rejected for
   an `int` field. Integer JSON values are accepted for `float` fields and
   restored as PHP floats.

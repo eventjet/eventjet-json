@@ -76,10 +76,11 @@ final readonly class ClassDecoder
         $checks = [];
         $converters = [];
         $jsonNames = [];
+        $required = [];
         foreach ($class->getConstructor()?->getParameters() ?? [] as $reflection) {
             $parameter = new ConstructorParameter($reflection, $class);
             $name = $names[$parameter->name] ?? $parameter->name;
-            $converter = $parameter->resolveType($parameter->plain ? null : new TypeCompiler($class->getName()));
+            $converter = $parameter->resolveType($parameter->plain ? null : new TypeCompiler());
             if ($converter instanceof DecodeError) {
                 return $converter;
             }
@@ -91,8 +92,11 @@ final readonly class ClassDecoder
             if ($check !== null) {
                 $checks[$name] = $check;
             }
+            if (!$reflection->isOptional()) {
+                $required[] = $parameter->name;
+            }
         }
-        return new ConstructorPlan($class->getName(), $checks, $converters, $jsonNames);
+        return new ConstructorPlan($checks, $converters, $jsonNames, $required);
     }
 
     /**

@@ -36,7 +36,7 @@ final class PublicProperties
             if (!$publicInstance || ($constructorFields[$property->getName()] ?? false)) {
                 continue;
             }
-            $node = PublicPropertyTypeValidator::validate($class->getName(), $property);
+            $node = PublicPropertyTypeValidator::validate($property);
             if ($node instanceof DecodeError) {
                 return $node;
             }

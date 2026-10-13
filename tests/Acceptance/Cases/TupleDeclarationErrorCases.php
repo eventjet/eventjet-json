@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\DecodeErrorKind;
+
 /** @internal */
 final class TupleDeclarationErrorCases
 {
@@ -20,7 +22,7 @@ final class TupleDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'array{0?: int, string}', 'var')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'tuple integer range rejects reversed bounds' => [
             '{}',
@@ -28,7 +30,7 @@ final class TupleDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'array{int<max, min>}', 'param')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'tuple integer range rejects a third bound' => [
             '{}',
@@ -36,7 +38,7 @@ final class TupleDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'array{int<min, max, 0>}', 'param')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'tuple declaration rejects an unsupported nested map' => [
             '{}',
@@ -44,7 +46,7 @@ final class TupleDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'list<array{list<array<string, int>>}>', 'var')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'tuple indices must start at zero' => [
             '{}',
@@ -52,7 +54,7 @@ final class TupleDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'array{1: int}', 'var')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'tuple union rejects a generic null declaration' => [
             '{}',
@@ -60,7 +62,7 @@ final class TupleDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'list<array{0: int}|null<string>>', 'param')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            3,
+            DecodeErrorKind::UnsupportedDeclaration->value,
         ];
     }
 }

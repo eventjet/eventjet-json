@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Closure;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
@@ -78,7 +79,7 @@ final class RootDescriptor
             $node = $this->node();
             return $node instanceof DecodeError ? $node : new ClassGraphValidator()->validate($this->itemClass);
         } catch (Throwable $error) {
-            return DecodeError::cannotInstantiate($this->itemClass, $error);
+            return UnsupportedTarget::unreadable($error)->whileCreating($this->itemClass);
         }
     }
 
@@ -98,15 +99,13 @@ final class RootDescriptor
         $class = $this->itemClass;
         $error = self::validateItem(new ReflectionClass($class));
         if ($error !== null) {
-            return $error;
+            return $error->whileCreating($class);
         }
         $enum = $class;
-        $node = enum_exists($enum) ? EnumNode::of($class, $enum) : new ObjectNode($class, $class, nullable: false);
+        $node = enum_exists($enum) ? EnumNode::of($enum) : new ObjectNode($class, nullable: false);
         assert($node !== null, description: 'Root validation rejects non-backed enums.');
         foreach (array_reverse($this->shapes) as $shape) {
-            $node = $shape === 'array'
-                ? new ListNode($class, $node, nonEmpty: false)
-                : new MapNode($class, $node, arrayObject: true);
+            $node = $shape === 'array' ? new ListNode($node, nonEmpty: false) : new MapNode($node, arrayObject: true);
         }
         return self::$nodes[$key] = $node;
     }
@@ -124,26 +123,22 @@ final class RootDescriptor
         }
         try {
             $node = $this->node();
-            return $node instanceof DecodeError ? $node : $node->decode($value, '');
+            $decoded = $node instanceof DecodeError ? $node : $node->decode($value, '');
+            return $decoded instanceof DecodeError ? $decoded->whileCreating($this->itemClass) : $decoded;
         } catch (Throwable $error) {
-            return DecodeError::cannotInstantiate($this->itemClass, $error);
+            return UnsupportedTarget::unreadable($error)->whileCreating($this->itemClass);
         }
     }
 
     /**
-     * Unlike a root object, a collection may hold instances of subclasses, so a concrete item class must be final.
+     * Unlike a root object, a collection may hold instances of subclasses, so the item class must be final.
+     * TargetClass rejects interfaces and abstract classes first, which can never be final.
      *
      * @template TClass of object
      * @param ReflectionClass<TClass> $class
      */
     private static function validateItem(ReflectionClass $class): DecodeError|null
     {
-        $concrete = !$class->isInterface() && !$class->isAbstract();
-        return $concrete && !$class->isFinal()
-            ? DecodeError::nonInstantiableTarget(
-                $class->getName(),
-                'Target type is a non-final class. Collection items may be subclasses, whose runtime class JSON does not identify.',
-            )
-            : TargetClass::validate($class);
+        return TargetClass::validate($class) ?? ($class->isFinal() ? null : UnsupportedTarget::nonFinalItem());
     }
 }

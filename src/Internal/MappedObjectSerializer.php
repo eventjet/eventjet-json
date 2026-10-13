@@ -19,9 +19,10 @@ final class MappedObjectSerializer
      */
     public static function serialize(object $object): object
     {
-        $names = TargetClass::fieldNames(new ReflectionClass($object));
+        $class = new ReflectionClass($object);
+        $names = TargetClass::fieldNames($class);
         if ($names instanceof DecodeError) {
-            throw $names;
+            throw $names->whileCreating($class->getName());
         }
         $result = [];
         /** @var array<string, array<array-key, mixed>|object|bool|int|float|string|resource|null> $properties */

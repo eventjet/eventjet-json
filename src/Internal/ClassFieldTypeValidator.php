@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
+use JsonSerializable;
 use ReflectionClass;
 use ReflectionException;
 
@@ -15,15 +17,15 @@ use function interface_exists;
 final class ClassFieldTypeValidator
 {
     /**
-     * Rejects a referenced class that JSON cannot identify or construct. Classes that are not loaded pass.
+     * Rejects a referenced class that JSON cannot identify or construct. Classes that are not loaded pass. Errors in
+     * the declarations of the referenced class itself name that class.
      *
-     * @param class-string $class
      * @throws ReflectionException
      */
-    public static function validate(string $class, string $field, string $type): DecodeError|null
+    public static function validate(string $field, string $type): DecodeError|null
     {
         if (interface_exists($type)) {
-            return DecodeError::nonInstantiableField($class, $field, 'interface', $type);
+            return UnsupportedFieldClass::interface($field, $type);
         }
 
         if (!class_exists($type)) {
@@ -33,20 +35,20 @@ final class ClassFieldTypeValidator
         $typeReflection = new ReflectionClass($type);
 
         if ($typeReflection->isAbstract()) {
-            return DecodeError::nonInstantiableField($class, $field, 'abstract class', $type);
+            return UnsupportedFieldClass::abstractClass($field, $type);
         }
 
         if (!$typeReflection->isFinal()) {
-            return DecodeError::nonInstantiableField(
-                $class,
-                $field,
-                'non-final class',
-                $type,
-                '. Values may be subclasses, whose runtime class JSON does not identify.',
-            );
+            return UnsupportedFieldClass::nonFinal($field, $type);
+        }
+
+        if ($typeReflection->isEnum()) {
+            return $typeReflection->implementsInterface(JsonSerializable::class)
+                ? UnsupportedFieldClass::jsonSerializableEnum($field, $type)
+                : null;
         }
 
         $names = TargetClass::fieldNames($typeReflection);
-        return $names instanceof DecodeError ? $names : null;
+        return $names instanceof DecodeError ? $names->whileCreating($typeReflection->getName()) : null;
     }
 }

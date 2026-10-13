@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Unit\Optimization;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
@@ -15,7 +16,7 @@ use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\CollectionUnionNatives;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
-use Eventjet\Json\Internal\DecodeErrorKind;
+use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
@@ -135,6 +136,7 @@ use function spl_autoload_unregister;
 #[UsesClass(ClassDecoders::class)]
 #[UsesClass(ClassGraphValidator::class)]
 #[UsesClass(DecodeErrorKind::class)]
+#[UsesClass(InvalidValue::class)]
 #[UsesClass(MappedObjectSerializer::class)]
 final class AutoloadingTest extends TestCase
 {
@@ -213,11 +215,7 @@ final class AutoloadingTest extends TestCase
         };
         spl_autoload_register($autoload, prepend: true);
         try {
-            $items = new ListNode(
-                stdClass::class,
-                new ObjectNode(stdClass::class, DeferredListItem::class, false),
-                false,
-            );
+            $items = new ListNode(new ObjectNode(DeferredListItem::class, false), false);
             static::assertSame([], $items->decode([], 'items'));
             static::assertSame(0, $requests->count);
             static::assertFalse(class_exists(DeferredListItem::class, autoload: false));
@@ -278,7 +276,7 @@ final class AutoloadingTest extends TestCase
                 $type = $parameter->getType();
                 static::assertInstanceOf(ReflectionNamedType::class, $type);
                 static::assertNotNull(new ConstructorParameter($parameter, $class)->nativeCheck());
-                $compiler = new TypeCompiler($class->getName());
+                $compiler = new TypeCompiler();
                 $property = $class->getProperty($name);
                 foreach ([$parameter, $property] as $field) {
                     $node = $compiler->field($field, $type);
@@ -315,7 +313,7 @@ final class AutoloadingTest extends TestCase
         spl_autoload_register($autoload, prepend: true);
 
         try {
-            $enum = EnumNode::of(DeferredValueEnum::class, DeferredValueEnum::class);
+            $enum = EnumNode::of(DeferredValueEnum::class);
             static::assertNotNull($enum);
             static::assertInstanceOf(DecodeError::class, $enum->decode(1, 'value'));
             static::assertNotContains(DeferredEnumBacking::class, $requests->names);
@@ -342,10 +340,7 @@ final class AutoloadingTest extends TestCase
         };
         foreach (['undocumented', 'value'] as $name) {
             $property = new ReflectionProperty($object, $name);
-            static::assertInstanceOf(ScalarNode::class, PublicPropertyTypeValidator::validate(
-                $object::class,
-                $property,
-            ));
+            static::assertInstanceOf(ScalarNode::class, PublicPropertyTypeValidator::validate($property));
         }
         static::assertFalse(class_exists(TypeCompiler::class, autoload: false));
         static::assertFalse(class_exists(LiteralFieldCompiler::class, autoload: false));
