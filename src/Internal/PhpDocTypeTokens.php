@@ -14,13 +14,19 @@ use function substr;
 /** @internal */
 final class PhpDocTypeTokens
 {
-    /** A quoted string, a number, or a name with an optional class constant, such as `Foo::BAR`. */
-    private const string PATTERN =
+    /** The characters that start a quoted string or a number. Names start with none of them. */
+    private const string LITERAL_START = "'\"+-.0123456789";
+
+    /** A quoted string or a number. */
+    private const string LITERAL =
         '/\G(?:'
             . '\x27(?:[^\x27\\\\]|\\\\[\s\S])*\x27|"(?:[^"\\\\]|\\\\[\s\S])*"'
             . '|[+-]?(?:0[xX][0-9a-fA-F]+(?:_[0-9a-fA-F]+)*|0[bB][01]+(?:_[01]+)*|0[oO][0-7]+(?:_[0-7]+)*|(?:[0-9]+(?:_[0-9]+)*(?:\.[0-9]*(?:_[0-9]+)*)?|\.[0-9]+(?:_[0-9]+)*)(?:[eE][+-]?[0-9]+(?:_[0-9]+)*)?)'
-            . '|\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff-]*(?:\\\\[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)*(?:::[A-Za-z_*\x80-\xff][A-Za-z0-9_*\x80-\xff]*)?'
             . ')/';
+
+    /** A name with an optional class constant, such as `Foo::BAR`. */
+    private const string NAME =
+        '/\G\\\\?[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff-]*(?:\\\\[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)*(?:::[A-Za-z_*\x80-\xff][A-Za-z0-9_*\x80-\xff]*)?/';
 
     private int $offset = 0;
 
@@ -38,8 +44,10 @@ final class PhpDocTypeTokens
     {
         $this->whitespace();
         $matches = [];
+        // Most types contain only names, so the larger literal pattern is compiled only for types that use literals.
+        $literal = strspn($this->source, characters: self::LITERAL_START, offset: $this->offset, length: 1) === 1;
         $matched = preg_match(
-            pattern: self::PATTERN,
+            pattern: $literal ? self::LITERAL : self::NAME,
             subject: $this->source,
             matches: $matches,
             flags: 0,
