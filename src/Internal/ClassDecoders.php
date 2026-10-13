@@ -95,7 +95,7 @@ final class ClassDecoders
             try {
                 $assignment[0]->setValue($hydrated, $assignment[1]);
             } catch (Throwable $error) {
-                return PublicProperties::failure($assignment[0], $error)->whileCreating($class);
+                return ConstructorFailure::assignmentThrew($assignment[0], $error)->whileCreating($class);
             }
         }
         return $hydrated;
