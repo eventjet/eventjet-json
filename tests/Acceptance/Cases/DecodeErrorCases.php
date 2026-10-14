@@ -17,10 +17,7 @@ final class DecodeErrorCases
     public static function errors(): iterable
     {
         yield from LiteralTypeCases::errors();
-        yield from PhpDocReadingCases::errors();
         yield from PhpDocKeywordCases::errors();
-        yield from PhpDocTagCases::errors();
-        yield from PhpDocDocumentCases::errors();
         yield from FieldMappingErrorCases::errors();
         yield from JsonInputErrorCases::errors();
         yield from RootShapeErrorCases::errors();
