@@ -36,10 +36,18 @@ use function is_a;
  */
 final class TypeCompiler
 {
-    /** @throws ReflectionException */
+    /**
+     * Compiles a field from its native declaration and, for scalars, enums, and unions, its PHPDoc type. Collection
+     * fields read their PHPDoc type while compiling the native declaration.
+     *
+     * @throws ReflectionException
+     */
     public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|DecodeError
     {
-        return LiteralFieldCompiler::compile($this, $field, $type);
+        $doc = LiteralFieldCompiler::phpDoc($field, $type);
+        return $doc === null
+            ? $this->declared($field, $type)
+            : LiteralFieldCompiler::compile($this, $field, $type, $doc);
     }
 
     /**

@@ -21,7 +21,8 @@ use function implode;
 use function is_array;
 
 /**
- * Compiles a scalar, enum, or union field whose PHPDoc restricts it to literals, such as `'draft'|'published'`.
+ * Compiles a scalar, enum, or union field with a PHPDoc type, which may restrict it to literals, such as
+ * `'draft'|'published'`.
  *
  * @internal
  */
@@ -36,12 +37,8 @@ final class LiteralFieldCompiler
         TypeCompiler $types,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionType $type,
+        PhpDocType $doc,
     ): Node|DecodeError {
-        $accepts = self::accepts($type);
-        $doc = $accepts ? PhpDocFieldType::resolve($field) : null;
-        if ($doc === null) {
-            return $types->declared($field, $type);
-        }
         $path = $field->getName();
         $declared = $doc->members();
         $items = new PhpDocItemCompiler($types, $field);
@@ -57,6 +54,16 @@ final class LiteralFieldCompiler
             ? NativeUnionCompiler::classes($types, $field, $type)
             : $types->declared($field, $type);
         return $native instanceof DecodeError ? $native : $items->unions()->build($members, $path);
+    }
+
+    /**
+     * Returns the PHPDoc type of a field whose native type literals can restrict, or null if the native declaration is
+     * the whole declaration.
+     */
+    public static function phpDoc(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): PhpDocType|null
+    {
+        $accepts = self::accepts($type);
+        return $accepts ? PhpDocFieldType::resolve($field) : null;
     }
 
     /**
