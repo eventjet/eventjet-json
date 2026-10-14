@@ -28,10 +28,15 @@ use function in_array;
  */
 final class TypeCompiler
 {
-    /** The native types of collections, whose compilers read the PHPDoc type themselves. */
+    /** The native types of collections. */
     private const array COLLECTIONS = ['array', ArrayObject::class];
 
-    /** @throws ReflectionException */
+    /**
+     * Compiles a field from its native declaration and, unless it is a collection, its PHPDoc type. Collection fields
+     * read their PHPDoc type while compiling the native declaration.
+     *
+     * @throws ReflectionException
+     */
     public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|DecodeError
     {
         $isCollection = $this->isCollection($field, $type);

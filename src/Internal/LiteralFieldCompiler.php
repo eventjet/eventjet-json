@@ -21,7 +21,8 @@ use function implode;
 use function is_array;
 
 /**
- * Compiles a scalar, enum, or union field whose PHPDoc restricts it to literals, such as `'draft'|'published'`.
+ * Compiles a field with a PHPDoc type, which may restrict a scalar, enum, or union field to literals, such as
+ * `'draft'|'published'`.
  *
  * @internal
  */
