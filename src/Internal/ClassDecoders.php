@@ -72,7 +72,7 @@ final class ClassDecoders
             }
             $assignments = $decoder->properties === []
                 ? []
-                : PublicPropertyValues::decode($decoder->properties, $values, $path);
+                : PublicProperties::decode($decoder->properties, $values, $path);
             if ($assignments instanceof DecodeError) {
                 return $assignments->whileCreating($decoder->class);
             }
@@ -95,7 +95,7 @@ final class ClassDecoders
             try {
                 $assignment[0]->setValue($hydrated, $assignment[1]);
             } catch (Throwable $error) {
-                return PublicPropertyValues::failure($assignment[0], $error)->whileCreating($class);
+                return ConstructorFailure::assignmentThrew($assignment[0], $error)->whileCreating($class);
             }
         }
         return $hydrated;

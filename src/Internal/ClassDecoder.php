@@ -80,7 +80,7 @@ final readonly class ClassDecoder
         foreach ($class->getConstructor()?->getParameters() ?? [] as $reflection) {
             $parameter = new ConstructorParameter($reflection, $class);
             $name = $names[$parameter->name] ?? $parameter->name;
-            $converter = $parameter->resolveType($parameter->plain ? null : new TypeCompiler());
+            $converter = $parameter->resolveType();
             if ($converter instanceof DecodeError) {
                 return $converter;
             }

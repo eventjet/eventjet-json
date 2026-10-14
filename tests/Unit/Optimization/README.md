@@ -15,8 +15,9 @@ visible to mutation testing without relying on timing thresholds.
 - `ConstructorValidationPlanTest` checks that cached decoders still validate and convert each
   input, preserve error paths and validation-before-conversion order, and recheck
   unresolved dependencies.
-- `AutoloadingTest` checks that built-in types and irrelevant or absent values do
-  not trigger unnecessary class loading.
+- `AutoloadingTest` checks that built-in type names, and the classes of irrelevant
+  or absent values, do not reach the autoloader. It does not check which of the
+  library's own classes load; the cold benchmarks measure that cost.
 
 Keep assertions in ordinary PHPUnit test methods. Use data providers for inputs
 and expected results. Prefer acceptance coverage for externally visible behavior;

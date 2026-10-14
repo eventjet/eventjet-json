@@ -58,7 +58,6 @@ use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\PublicPropertyValues;
 use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\TargetClass;
@@ -94,8 +93,6 @@ use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(ClassGraphValidator::class)]
 #[CoversClass(ConstructorParameter::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[CoversClass(Json::class)]
 #[CoversClass(JsonType::class)]
 #[CoversClass(RootDescriptor::class)]
@@ -127,7 +124,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ConstructorPlan::class)]
 #[CoversClass(RenamedArguments::class)]
 #[CoversClass(PublicProperties::class)]
-#[CoversClass(PublicPropertyValues::class)]
 #[CoversClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(TypeCompiler::class)]

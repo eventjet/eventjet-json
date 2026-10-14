@@ -3,7 +3,8 @@
 [Back to the README](../README.md) · [Development setup](../CONTRIBUTING.md)
 
 The decoder compiles each class once per PHP process and reuses the compiled
-decoder, `#[Field]` names, and PHPDoc imports. Every
+decoder, `#[Field]` names, PHPDoc imports, and the parsed `@param` and `@var`
+tags of each doc comment. Every
 incoming value is still checked, including collection shapes, item types, enum values, and nested error paths. Decoded
 objects and errors are not cached.
 
@@ -33,7 +34,7 @@ The suite separates workloads by purpose:
   many-class workloads.
 - **Focused diagnostics:** constructor scalars, public properties, enums, enum
   unions, short/long scalar lists, a 1,000-entry string map, PHPDoc literal
-  types, array shapes, and imported constants. The last three load parsing code
+  types, array shapes, and imported constants. The last three load code
   that ordinary declarations skip. Collection DTOs
   contain only the fields being measured, with no acceptance-test bookkeeping in their constructors.
 - **Stress diagnostics:** enum-heavy object and root collections, enum-union

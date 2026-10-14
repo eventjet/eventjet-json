@@ -19,6 +19,7 @@ use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
+use Eventjet\Json\Internal\LiteralFieldCompiler;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
@@ -48,7 +49,6 @@ use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\PublicPropertyValues;
 use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
@@ -73,8 +73,6 @@ use stdClass;
 #[UsesClass(DecodeError::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ConstructorParameter::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(TargetClass::class)]
@@ -82,7 +80,6 @@ use stdClass;
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(PublicProperties::class)]
-#[CoversClass(PublicPropertyValues::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(CollectionCompiler::class)]
 #[UsesClass(CollectionUnionCompiler::class)]
@@ -110,6 +107,7 @@ use stdClass;
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(ScalarItems::class)]
 #[UsesClass(TupleNode::class)]
+#[UsesClass(LiteralFieldCompiler::class)]
 #[UsesClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]

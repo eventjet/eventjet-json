@@ -16,8 +16,6 @@ use function enum_exists;
 use function in_array;
 use function interface_exists;
 use function strcasecmp;
-use function strpbrk;
-use function strtr;
 
 /** @internal */
 final class FieldTypeNameResolver
@@ -57,34 +55,21 @@ final class FieldTypeNameResolver
         return $parent === false ? $name : $parent->getName();
     }
 
-    /** Returns the doc comment that declares a field: the constructor's for a parameter. */
-    public static function docComment(ReflectionParameter|ReflectionProperty $field): string
-    {
-        $doc = $field instanceof ReflectionParameter
-            ? $field->getDeclaringFunction()->getDocComment()
-            : $field->getDocComment();
-        return (string) $doc;
-    }
-
     /**
-     * Whether the native type check is the whole check of a field: a scalar type without a PHPDoc literal. Skipping the
-     * type compiler for such fields keeps it unloaded for classes with only scalar fields.
+     * Returns the native type of a field if its native check is the whole check, or null if the field needs the type
+     * compiler. That is a builtin that the type compiler treats as a scalar, and no PHPDoc tag declares a type for the
+     * field. Skipping the compiler for such fields saves its work on the first decode of a class in each request.
      */
-    public static function isPlainType(ReflectionParameter|ReflectionProperty $field, ReflectionType|null $type): bool
-    {
-        return (
+    public static function plainScalar(
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionType $type,
+    ): ReflectionNamedType|null {
+        $plain =
             $type instanceof ReflectionNamedType
             && $type->isBuiltin()
             && !in_array($type->getName(), ['array', 'mixed', 'object'], strict: true)
-            && !self::mayDeclareLiteral(self::docComment($field))
-        );
-    }
-
-    /** Whether a doc comment may declare a literal type. False means it certainly does not. */
-    public static function mayDeclareLiteral(string $docComment): bool
-    {
-        $markers = strtr($docComment, ['true' => '"', 'false' => '"', ' null' => '"', "\tnull" => '"']);
-        return strpbrk($markers, characters: "'\"0123456789:") !== false;
+            && PhpDocFieldType::resolve($field) === null;
+        return $plain ? $type : null;
     }
 
     /** Returns the type that errors report for a nullable declaration of a type. */

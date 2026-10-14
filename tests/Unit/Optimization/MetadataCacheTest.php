@@ -22,6 +22,7 @@ use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
+use Eventjet\Json\Internal\LiteralFieldCompiler;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
@@ -52,7 +53,6 @@ use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\PublicPropertyValues;
 use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\TargetClass;
@@ -84,6 +84,7 @@ use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\UnknownClassOrInterfaceException;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionParameter;
 use ReflectionProperty;
 use RuntimeException;
 
@@ -95,10 +96,9 @@ use function class_alias;
 #[UsesClass(FieldPath::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(PublicProperties::class)]
-#[CoversClass(PublicPropertyValues::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(DecodeError::class)]
-#[UsesClass(PhpDocFieldType::class)]
+#[CoversClass(PhpDocFieldType::class)]
 #[UsesClass(PhpDocType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
 #[UsesClass(PhpDocTypeTokens::class)]
@@ -128,6 +128,7 @@ use function class_alias;
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(ScalarItems::class)]
 #[UsesClass(TupleNode::class)]
+#[UsesClass(LiteralFieldCompiler::class)]
 #[UsesClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
@@ -327,6 +328,33 @@ final class MetadataCacheTest extends TestCase
         $decoder = ClassDecoders::get($name);
         static::assertInstanceOf(ClassDecoder::class, $decoder);
         static::assertSame($decoder, ClassDecoders::get($name));
+    }
+
+    /** @throws ReflectionException */
+    public function testDocCommentsAreParsedOnce(): void
+    {
+        $object = new class(1, 2) {
+            /** @var 3 */
+            public int $third = 3;
+
+            /**
+             * @param 1 $first
+             * @param 2 $second
+             */
+            public function __construct(
+                public int $first,
+                public int $second,
+            ) {}
+        };
+        foreach ([
+            new ReflectionParameter([$object::class, '__construct'], 'first'),
+            new ReflectionParameter([$object::class, '__construct'], 'second'),
+            new ReflectionProperty($object, 'third'),
+        ] as $field) {
+            $type = PhpDocFieldType::resolve($field);
+            static::assertNotNull($type);
+            static::assertSame($type, PhpDocFieldType::resolve($field));
+        }
     }
 
     /**
