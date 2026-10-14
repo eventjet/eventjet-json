@@ -11,6 +11,7 @@ use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
+use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
@@ -54,7 +55,6 @@ use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\PublicPropertyValues;
 use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\TargetClass;
@@ -90,8 +90,6 @@ use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(ClassGraphValidator::class)]
 #[CoversClass(ConstructorParameter::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[CoversClass(Json::class)]
 #[CoversClass(JsonType::class)]
 #[CoversClass(RootDescriptor::class)]
@@ -106,6 +104,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(PhpDocClassNameResolver::class)]
 #[CoversClass(PhpDocImports::class)]
 #[CoversClass(PhpDocFieldType::class)]
+#[CoversClass(CollectionDeclarationError::class)]
 #[CoversClass(PhpDocTypeTokens::class)]
 #[CoversClass(PhpDocType::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
@@ -123,7 +122,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ConstructorPlan::class)]
 #[CoversClass(RenamedArguments::class)]
 #[CoversClass(PublicProperties::class)]
-#[CoversClass(PublicPropertyValues::class)]
 #[CoversClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(TypeCompiler::class)]

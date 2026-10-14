@@ -6,12 +6,15 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
+use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\ExtendedLiteralFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralConstantFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\SingleLiteralFields;
+
+use const PHP_INT_MAX;
 
 /** @internal */
 final class LiteralTypeCases
@@ -49,6 +52,13 @@ final class LiteralTypeCases
             yield 'literals that omit a native member leave the native type in charge ' . $tag => [
                 CollectionDeclarationFixture::object('?string', "'a'|'b'", $tag, 'c'),
             ];
+            yield 'a PHPDoc literal does not restrict an object field ' . $tag => [
+                CollectionDeclarationFixture::object('?\\' . EmptyObject::class, 'null', $tag, new EmptyObject()),
+            ];
+            $name = $tag === 'param' ? ' $value' : '';
+            yield 'a word that only starts with the tag name declares nothing ' . $tag => [
+                CollectionDeclarationFixture::object('int', '/** @' . $tag . '1' . $name . ' */', $tag, 2),
+            ];
         }
         $properties = new LiteralProperties();
         $properties->value = 42;
@@ -63,30 +73,8 @@ final class LiteralTypeCases
     public static function errors(): iterable
     {
         yield from LiteralDeclarationErrorCases::errors();
-        foreach ([
-            ['array', 'list<null>', '[true]', 'value[0]', 'null', 'bool'],
-            ['array', 'list<42>', '[null]', 'value[0]', '42', 'null'],
-            ['int', '42', '43', 'value', '42', 'int'],
-            ['string', '\\' . ExtendedLiteralFields::class . '::WORD_*', '"baz"', 'value', "'foo'|'bar'", 'string'],
-        ] as [$native, $declaration, $value, $path, $expected, $actual]) {
-            foreach (['param', 'var'] as $tag) {
-                $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
-                yield 'literal mismatch ' . $declaration . ' ' . $tag => [
-                    '{"value":' . $value . '}',
-                    $class,
-                    'Could not create '
-                        . $class
-                        . ' from the JSON object: Field '
-                        . $path
-                        . ' must be of type '
-                        . $expected
-                        . ', '
-                        . $actual
-                        . ' given.',
-                    DecodeErrorKind::InvalidValue->value,
-                ];
-            }
-        }
+        yield from self::mismatches();
+        yield from self::repeatedTags();
         yield from self::collectionUnionErrors();
         yield 'null constant rejects non-null value' => [
             '{"nothing":true}',
@@ -176,6 +164,59 @@ final class LiteralTypeCases
                 . ' from the JSON object: Field tuple[0] must be of type true, bool given.',
             DecodeErrorKind::InvalidValue->value,
         ];
+    }
+
+    /**
+     * @return iterable<string, array{string, class-string, string, int}>
+     * @throws \RuntimeException
+     */
+    private static function mismatches(): iterable
+    {
+        foreach ([
+            ['array', 'list<null>', '[true]', 'value[0]', 'null', 'bool'],
+            ['array', 'list<42>', '[null]', 'value[0]', '42', 'null'],
+            ['int', '42', '43', 'value', '42', 'int'],
+            ['int', 'PHP_INT_MAX', '43', 'value', (string) PHP_INT_MAX, 'int'],
+            ['string|null', "'a'|(null)", '"x"', 'value', "'a'|null", 'string'],
+            ['string', '\\' . ExtendedLiteralFields::class . '::WORD_*', '"baz"', 'value', "'foo'|'bar'", 'string'],
+        ] as [$native, $declaration, $value, $path, $expected, $actual]) {
+            foreach (['param', 'var'] as $tag) {
+                $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
+                yield 'literal mismatch ' . $declaration . ' ' . $tag => [
+                    '{"value":' . $value . '}',
+                    $class,
+                    'Could not create '
+                        . $class
+                        . ' from the JSON object: Field '
+                        . $path
+                        . ' must be of type '
+                        . $expected
+                        . ', '
+                        . $actual
+                        . ' given.',
+                    DecodeErrorKind::InvalidValue->value,
+                ];
+            }
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, class-string, string, int}>
+     * @throws \RuntimeException
+     */
+    private static function repeatedTags(): iterable
+    {
+        foreach (['param', 'var'] as $tag) {
+            $name = $tag === 'param' ? ' $value' : '';
+            $doc = "/**\n * @" . $tag . ' 42' . $name . "\n * @" . $tag . ' 43' . $name . "\n */";
+            $class = CollectionDeclarationFixture::create('int', $doc, $tag);
+            yield 'the first of repeated tags declares the field ' . $tag => [
+                '{"value":43}',
+                $class,
+                'Could not create ' . $class . ' from the JSON object: Field value must be of type 42, int given.',
+                DecodeErrorKind::InvalidValue->value,
+            ];
+        }
     }
 
     /**

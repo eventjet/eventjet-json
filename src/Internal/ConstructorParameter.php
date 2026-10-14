@@ -26,9 +26,6 @@ final readonly class ConstructorParameter
     private bool $variadic;
     private bool $recoverable;
 
-    /** Whether the native type check is the whole check. Such parameters need no compiler. */
-    public bool $plain;
-
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
@@ -47,16 +44,14 @@ final readonly class ConstructorParameter
         $this->variadic = $reflection->isVariadic();
         $property = $class->hasProperty($this->name) ? $class->getProperty($this->name) : null;
         $this->recoverable = $property !== null && $property->isPublic() && !$property->isStatic();
-        $this->plain = FieldTypeNameResolver::isPlainType($reflection, $this->type);
     }
 
     /**
-     * Returns the node that converts the argument, or null if the argument needs only its native type check. Without a
-     * compiler, the argument gets only its native type check.
+     * Returns the node that converts the argument, or null if the argument needs only its native type check.
      *
      * @throws ReflectionException
      */
-    public function resolveType(TypeCompiler|null $compiler): Node|DecodeError|null
+    public function resolveType(): Node|DecodeError|null
     {
         if ($this->variadic) {
             return UnsupportedField::variadic($this->name);
@@ -64,13 +59,23 @@ final readonly class ConstructorParameter
         if ($this->type === null) {
             return UnsupportedField::untyped($this->name);
         }
-        $node = $compiler?->field($this->reflection, $this->type);
+        $node = $this->compile($this->type);
         if ($node instanceof DecodeError) {
             return $node;
         }
-        if (!$this->recoverable) {
-            return UnsupportedField::withoutProperty($this->name);
-        }
+        return $this->recoverable ? $node : UnsupportedField::withoutProperty($this->name);
+    }
+
+    /**
+     * Returns the node of the argument, or null if the native type check is the whole check: a scalar node checks
+     * nothing beyond it.
+     *
+     * @throws ReflectionException
+     */
+    private function compile(ReflectionType $type): Node|DecodeError|null
+    {
+        $plain = FieldTypeNameResolver::plainScalar($this->reflection, $type);
+        $node = $plain === null ? new TypeCompiler()->field($this->reflection, $type) : null;
         return $node instanceof ScalarNode ? null : $node;
     }
 

@@ -14,7 +14,6 @@ use ReflectionProperty;
 use ReflectionUnionType;
 use stdClass;
 
-use function assert;
 use function class_exists;
 use function enum_exists;
 use function in_array;
@@ -46,12 +45,10 @@ final class PublicPropertyTypeValidator
             }
         }
 
-        $plain = FieldTypeNameResolver::isPlainType($property, $type);
-        if (!$plain) {
-            return new TypeCompiler()->field($property, $type);
-        }
-        assert($type instanceof ReflectionNamedType, description: 'Plain types are named types.');
-        return new ScalarNode($type->getName(), $type->allowsNull());
+        $plain = FieldTypeNameResolver::plainScalar($property, $type);
+        return $plain === null
+            ? new TypeCompiler()->field($property, $type)
+            : new ScalarNode($plain->getName(), $plain->allowsNull());
     }
 
     private static function isSupportedType(ReflectionNamedType $member, string $type): bool

@@ -11,6 +11,7 @@ use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
+use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\Error\InvalidValue;
@@ -34,8 +35,6 @@ use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\NodeCompiler;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocConstantResolver;
-use Eventjet\Json\Internal\PhpDocExtendedTypeParser;
-use Eventjet\Json\Internal\PhpDocExtendedTypeTokens;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
@@ -52,15 +51,12 @@ use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\PublicPropertyValues;
-use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedReference;
-use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredEnumBacking;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredListItem;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredValueEnum;
@@ -78,7 +74,6 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
-use ReflectionProperty;
 use stdClass;
 use TypeError;
 
@@ -95,7 +90,6 @@ use function spl_autoload_unregister;
 #[UsesClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(PublicProperties::class)]
-#[CoversClass(PublicPropertyValues::class)]
 #[UsesClass(Field::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(TargetClass::class)]
@@ -111,6 +105,7 @@ use function spl_autoload_unregister;
 #[UsesClass(NullableNode::class)]
 #[UsesClass(ObjectNode::class)]
 #[UsesClass(PhpDocFieldType::class)]
+#[UsesClass(CollectionDeclarationError::class)]
 #[UsesClass(PhpDocImportScanner::class)]
 #[UsesClass(PhpDocImportStatement::class)]
 #[UsesClass(PhpDocImports::class)]
@@ -129,8 +124,6 @@ use function spl_autoload_unregister;
 #[UsesClass(UnionBuilder::class)]
 #[UsesClass(LiteralNode::class)]
 #[UsesClass(PhpDocConstantResolver::class)]
-#[UsesClass(PhpDocExtendedTypeParser::class)]
-#[UsesClass(PhpDocExtendedTypeTokens::class)]
 #[UsesClass(PhpDocLiteral::class)]
 #[UsesClass(PhpDocLiteralNumber::class)]
 #[CoversClass(UnionNode::class)]
@@ -142,69 +135,6 @@ use function spl_autoload_unregister;
 #[UsesClass(MappedObjectSerializer::class)]
 final class AutoloadingTest extends TestCase
 {
-    /**
-     * @throws ReflectionException
-     * @throws JsonException
-     */
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function testScalarAndEnumConstructorsDoNotLoadPropertyOrLiteralCode(): void
-    {
-        $target = new class('expected') {
-            public function __construct(
-                public string $value,
-            ) {}
-        };
-        for ($lookup = 0; $lookup < 2; ++$lookup) {
-            static::assertEquals($target, ClassDecoders::hydrate($target::class, JsonObject::of([
-                'value' => 'expected',
-            ])));
-            static::assertFalse(class_exists(PublicPropertyValues::class, autoload: false));
-            static::assertFalse(class_exists(PhpDocTypeResolver::class, autoload: false));
-            static::assertFalse(class_exists(PhpDocLiteral::class, autoload: false));
-            static::assertFalse(class_exists(TypeCompiler::class, autoload: false));
-            static::assertFalse(class_exists(FieldNameRules::class, autoload: false));
-            static::assertFalse(class_exists(RenamedArguments::class, autoload: false));
-        }
-        $status = new class(StringBackedStatus::Ready) {
-            public function __construct(
-                public StringBackedStatus $status,
-                public StringBackedStatus|null $previous = null,
-            ) {}
-        };
-        static::assertEquals($status, ClassDecoders::hydrate($status::class, JsonObject::of(['status' => 'ready'])));
-        static::assertFalse(class_exists(PhpDocTypeResolver::class, autoload: false));
-        static::assertFalse(class_exists(PhpDocNarrowing::class, autoload: false));
-        static::assertFalse(class_exists(UnionBuilder::class, autoload: false));
-        static::assertFalse(class_exists(PhpDocFieldType::class, autoload: false));
-        $ordinary = new class(new EmptyObject()) {
-            /** @param \Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject $object */
-            public function __construct(
-                public EmptyObject $object,
-            ) {}
-        };
-        $ordinaryInput = new stdClass();
-        $ordinaryInput->object = new stdClass();
-        static::assertEquals($ordinary, ClassDecoders::hydrate($ordinary::class, $ordinaryInput));
-        static::assertFalse(class_exists(PhpDocClassNameResolver::class, autoload: false));
-        static::assertFalse(class_exists(PhpDocTypeParser::class, autoload: false));
-        $collection = new class([42]) {
-            /** @param list<int> $values The name has a native scalar type. */
-            public function __construct(
-                public array $values,
-                public string $name = '',
-            ) {}
-        };
-        $collectionInput = new stdClass();
-        $collectionInput->values = [42];
-        static::assertEquals($collection, ClassDecoders::hydrate($collection::class, $collectionInput));
-        static::assertFalse(class_exists(PhpDocClassNameResolver::class, autoload: false));
-        static::assertFalse(class_exists(PhpDocConstantResolver::class, autoload: false));
-        static::assertFalse(class_exists(LiteralNode::class, autoload: false));
-        static::assertFalse(class_exists(PhpDocLiteral::class, autoload: false));
-        static::assertFalse(class_exists(PhpDocExtendedTypeParser::class, autoload: false));
-    }
-
     /**
      * @throws ReflectionException
      * @throws JsonException
@@ -378,29 +308,6 @@ final class AutoloadingTest extends TestCase
         } finally {
             spl_autoload_unregister($autoload);
         }
-    }
-
-    /**
-     * @throws ReflectionException
-     * @throws \PHPUnit\Framework\Exception
-     * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
-     */
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function testOrdinaryScalarPhpDocDoesNotLoadLiteralResolution(): void
-    {
-        $object = new class {
-            /** @var positive-int */
-            public int $value = 42;
-            public int $undocumented = 42;
-        };
-        foreach (['undocumented', 'value'] as $name) {
-            $property = new ReflectionProperty($object, $name);
-            static::assertInstanceOf(ScalarNode::class, PublicPropertyTypeValidator::validate($property));
-        }
-        static::assertFalse(class_exists(TypeCompiler::class, autoload: false));
-        static::assertFalse(class_exists(PhpDocTypeResolver::class, autoload: false));
-        static::assertFalse(class_exists(PhpDocLiteral::class, autoload: false));
     }
 
     /**

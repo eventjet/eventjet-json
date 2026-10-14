@@ -42,6 +42,11 @@ The round-trip contract also has these representation limits:
   declared as `float`. Final-class items require JSON objects and are validated
   recursively. The same rules apply to constructor fields and public properties.
   Native arrays without a supported collection declaration are rejected.
+- A PHPDoc type must be compatible with the field's native type, such as
+  `positive-int` on `int` or `list<Foo>` on `array`. The decoder does not check
+  this, because static analysis tools such as PHPStan and Psalm already report
+  incompatible declarations. If the PHPDoc type contradicts the native type, for
+  example `list<Foo>` on an `int` field, the decoding result is unspecified.
 - JSON object members without matching constructor parameters or supported
   public properties are ignored and do not appear when the decoded object is
   re-encoded.

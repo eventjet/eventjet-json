@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use ArrayObject;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\Node;
@@ -17,7 +16,6 @@ use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
 
-use function array_any;
 use function assert;
 use function in_array;
 
@@ -33,7 +31,7 @@ final readonly class TypeCompiler
     public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|DecodeError
     {
         $native = self::tree($field, $type);
-        $declared = self::declared($field, $native);
+        $declared = PhpDocFieldType::resolve($field);
         $doc = $declared === null
             ? null
             : PhpDocNarrowing::narrowing(new PhpDocTypeResolver($field)->resolve($declared), $native);
@@ -45,7 +43,7 @@ final readonly class TypeCompiler
                 ? new PhpDocTypeResolver($field)->unresolvedLiteral($declared)
                 : null;
         return match (true) {
-            $node === null => PhpDocFieldType::unsupported($field, $declared, $native),
+            $node === null => CollectionDeclarationError::unsupported($field, $declared, $native),
             $literal !== null => UnsupportedField::literal($field->getName(), $literal),
             default => $node,
         };
@@ -68,22 +66,6 @@ final readonly class TypeCompiler
         return $scalar
             ? new ScalarNode($type->getName(), $type->allowsNull())
             : new NodeCompiler()->field($native, $field->getName(), (string) $type);
-    }
-
-    /**
-     * Returns the PHPDoc type of a field if it may declare something that its native type cannot: the items of an
-     * `array` or `ArrayObject` member, or literals.
-     */
-    private static function declared(ReflectionParameter|ReflectionProperty $field, PhpDocType $native): PhpDocType|null
-    {
-        $collection = array_any($native->members(), static fn(PhpDocType $member): bool => in_array(
-            $member->name,
-            ['array', ArrayObject::class],
-            strict: true,
-        ));
-        $mayDeclare =
-            $collection || FieldTypeNameResolver::mayDeclareLiteral(FieldTypeNameResolver::docComment($field));
-        return $mayDeclare ? PhpDocFieldType::resolve($field) : null;
     }
 
     /** Returns a native type as the type tree that PHPDoc types parse into, with `?T` as `T|null`. */

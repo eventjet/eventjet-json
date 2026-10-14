@@ -7,6 +7,7 @@ namespace Eventjet\Json\Test\Unit;
 use DateTimeImmutable;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
+use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
@@ -25,8 +26,6 @@ use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocConstantImportStatement;
 use Eventjet\Json\Internal\PhpDocConstantResolver;
 use Eventjet\Json\Internal\PhpDocConstantValues;
-use Eventjet\Json\Internal\PhpDocExtendedTypeParser;
-use Eventjet\Json\Internal\PhpDocExtendedTypeTokens;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
@@ -49,16 +48,12 @@ use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
 use stdClass;
-
-use function class_exists;
 
 use const INF;
 use const NAN;
@@ -76,10 +71,9 @@ use const PHP_INT_MIN;
 #[CoversClass(PhpDocTypeResolver::class)]
 #[CoversClass(LiteralNode::class)]
 #[CoversClass(PhpDocFieldType::class)]
+#[UsesClass(CollectionDeclarationError::class)]
 #[CoversClass(PhpDocType::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
-#[CoversClass(PhpDocExtendedTypeParser::class)]
-#[CoversClass(PhpDocExtendedTypeTokens::class)]
 #[CoversClass(PhpDocImportStatement::class)]
 #[CoversClass(PhpDocConstantImportStatement::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
@@ -98,8 +92,8 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocLiteralNativeType::class)]
 #[UsesClass(PhpDocNamespaceDeclaration::class)]
 #[UsesClass(PhpDocTokenStream::class)]
-#[UsesClass(PhpDocTypeParser::class)]
-#[UsesClass(PhpDocTypeTokens::class)]
+#[CoversClass(PhpDocTypeParser::class)]
+#[CoversClass(PhpDocTypeTokens::class)]
 #[UsesClass(TargetClass::class)]
 #[UsesClass(ScalarItems::class)]
 #[UsesClass(ScalarNode::class)]
@@ -148,27 +142,6 @@ final class LiteralTypeTest extends TestCase
             DecodeError::class,
             self::compile(new ReflectionParameter([$invalid::class, '__construct'], 'value')),
         );
-    }
-
-    /**
-     * @throws ReflectionException
-     * @throws \PHPUnit\Framework\Exception
-     * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
-     */
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function testPlainScalarPhpDocDoesNotLoadItemResolution(): void
-    {
-        $object = new class {
-            /** @var float */
-            public float $value = 1.0;
-        };
-        $property = new ReflectionProperty($object, 'value');
-        $type = $property->getType();
-        static::assertNotNull($type);
-        static::assertInstanceOf(ScalarNode::class, new TypeCompiler()->field($property, $type));
-        static::assertFalse(class_exists(PhpDocTypeResolver::class, autoload: false));
-        static::assertFalse(class_exists(NodeCompiler::class, autoload: false));
     }
 
     /**
@@ -331,10 +304,6 @@ final class LiteralTypeTest extends TestCase
             self::compile(new ReflectionProperty($properties, 'undocumented')),
         );
 
-        foreach (["\tnull", ' null', 'true', 'false', "'", '"', '0', '9', ':'] as $marker) {
-            static::assertTrue(FieldTypeNameResolver::mayDeclareLiteral('/** @param ' . $marker . ' $value */'));
-        }
-        static::assertFalse(FieldTypeNameResolver::mayDeclareLiteral('/** @param list<int>|null $value */'));
         static::assertSame(
             ['const:BAR' => 'Foo\\BAR', 'const:Qux' => 'Foo\\BAZ'],
             PhpDocImportStatement::parse('const Foo\\{BAR, BAZ as Qux}'),

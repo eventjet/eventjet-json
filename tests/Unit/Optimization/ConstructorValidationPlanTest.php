@@ -11,6 +11,7 @@ use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
+use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
@@ -49,7 +50,6 @@ use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\PublicPropertyValues;
 use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
@@ -79,14 +79,11 @@ use function class_alias;
 #[UsesClass(DecodeError::class)]
 #[UsesClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ConstructorParameter::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocExtendedTypeTokens::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(PublicProperties::class)]
-#[CoversClass(PublicPropertyValues::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(TargetClass::class)]
 #[CoversClass(FieldNameRules::class)]
@@ -102,6 +99,7 @@ use function class_alias;
 #[UsesClass(ObjectNode::class)]
 #[UsesClass(PhpDocClassNameResolver::class)]
 #[UsesClass(PhpDocFieldType::class)]
+#[UsesClass(CollectionDeclarationError::class)]
 #[UsesClass(PhpDocImportScanner::class)]
 #[UsesClass(PhpDocImportStatement::class)]
 #[UsesClass(PhpDocImports::class)]
