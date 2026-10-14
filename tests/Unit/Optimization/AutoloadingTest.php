@@ -85,7 +85,6 @@ use RuntimeException;
 use stdClass;
 use TypeError;
 
-use function array_map;
 use function class_exists;
 use function enum_exists;
 use function json_encode;
@@ -423,11 +422,7 @@ final class AutoloadingTest extends TestCase
                 self::nestedList(62),
             ),
         ];
-        $decode = static fn(object $original): object => Json::decode(
-            json_encode($original, JSON_THROW_ON_ERROR),
-            $original::class,
-        );
-        static::assertEquals($simple, array_map($decode, $simple));
+        self::assertRoundTrips($simple);
         static::assertFalse(class_exists(PhpDocLexer::class, autoload: false));
 
         $full = [
@@ -450,10 +445,28 @@ final class AutoloadingTest extends TestCase
                 [1],
             ),
         ];
-        static::assertEquals($full, array_map($decode, $full));
+        self::assertRoundTrips($full);
         static::assertTrue(class_exists(PhpDocLexer::class, autoload: false));
         static::assertFalse(class_exists(PhpDocHtmlDetector::class, autoload: false));
         static::assertFalse(class_exists(PhpDocCallableParser::class, autoload: false));
+    }
+
+    /**
+     * Checks each object right after decoding it. When a mutant makes the parser loop, the time limit aborts the decode,
+     * which returns the abort as a decode error. Checking it right away ends the test before the next decode loops
+     * without a limit.
+     *
+     * @param list<object> $originals
+     * @throws JsonException
+     */
+    private static function assertRoundTrips(array $originals): void
+    {
+        foreach ($originals as $original) {
+            static::assertEquals($original, Json::decode(
+                json_encode($original, JSON_THROW_ON_ERROR),
+                $original::class,
+            ));
+        }
     }
 
     /** @return list<mixed> */
