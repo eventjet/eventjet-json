@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use function chr;
 use function hexdec;
+use function is_int;
 use function octdec;
 use function preg_replace_callback;
 use function str_replace;
@@ -54,9 +55,18 @@ final class PhpDocLiteralString
         return match (true) {
             $simple !== null => self::REPLACEMENTS[$simple] ?? '',
             $hex !== null => chr((int) hexdec($hex)),
-            $unicode !== null => self::utf8((int) hexdec($unicode)),
+            $unicode !== null => self::utf8(self::codePoint($unicode)),
             default => chr((int) octdec($matches['octal'] ?? '')),
         };
+    }
+
+    /**
+     * phpdoc-parser casts the value of a `\u{…}` escape to int, which gives 0 for a value beyond PHP's integer range.
+     */
+    private static function codePoint(string $hex): int
+    {
+        $code = hexdec($hex);
+        return is_int($code) ? $code : 0;
     }
 
     private static function utf8(int $code): string
