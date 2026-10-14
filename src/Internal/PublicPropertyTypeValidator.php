@@ -7,6 +7,7 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\Node;
+use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionProperty;
@@ -44,7 +45,10 @@ final class PublicPropertyTypeValidator
             }
         }
 
-        return new TypeCompiler()->field($property, $type);
+        $plain = FieldTypeNameResolver::plainScalar($property, $type);
+        return $plain === null
+            ? new TypeCompiler()->field($property, $type)
+            : new ScalarNode($plain->getName(), $plain->allowsNull());
     }
 
     private static function isSupportedType(ReflectionNamedType $member, string $type): bool

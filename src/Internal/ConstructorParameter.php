@@ -74,7 +74,8 @@ final readonly class ConstructorParameter
      */
     private function compile(ReflectionType $type): Node|DecodeError|null
     {
-        $node = new TypeCompiler()->field($this->reflection, $type);
+        $plain = FieldTypeNameResolver::plainScalar($this->reflection, $type);
+        $node = $plain === null ? new TypeCompiler()->field($this->reflection, $type) : null;
         return $node instanceof ScalarNode ? null : $node;
     }
 

@@ -9,9 +9,11 @@ use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
+use ReflectionType;
 
 use function class_exists;
 use function enum_exists;
+use function in_array;
 use function interface_exists;
 use function strcasecmp;
 
@@ -51,6 +53,23 @@ final class FieldTypeNameResolver
         $parent = $declaringClass->getParentClass();
 
         return $parent === false ? $name : $parent->getName();
+    }
+
+    /**
+     * Returns the native type of a field if its native check is the whole check, or null if the field needs the type
+     * compiler. That is a builtin that the type compiler treats as a scalar, and no PHPDoc tag declares a type for the
+     * field. Skipping the compiler for such fields saves its work on the first decode of a class in each request.
+     */
+    public static function plainScalar(
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionType $type,
+    ): ReflectionNamedType|null {
+        $plain =
+            $type instanceof ReflectionNamedType
+            && $type->isBuiltin()
+            && !in_array($type->getName(), ['array', 'mixed', 'object'], strict: true)
+            && PhpDocFieldType::resolve($field) === null;
+        return $plain ? $type : null;
     }
 
     /** Returns the type that errors report for a nullable declaration of a type. */
