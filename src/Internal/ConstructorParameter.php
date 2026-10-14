@@ -67,15 +67,14 @@ final readonly class ConstructorParameter
     }
 
     /**
-     * Returns the node of the argument, or null if the native type check is the whole check. A scalar whose PHPDoc
-     * declares no literal compiles to a scalar node, which checks nothing beyond the native check.
+     * Returns the node of the argument, or null if the native type check is the whole check: a scalar node checks
+     * nothing beyond it.
      *
      * @throws ReflectionException
      */
     private function compile(ReflectionType $type): Node|DecodeError|null
     {
-        $complete = FieldTypeNameResolver::nativeCheckIsComplete($this->reflection, $type);
-        $node = $complete ? null : new TypeCompiler()->field($this->reflection, $type);
+        $node = new TypeCompiler()->field($this->reflection, $type);
         return $node instanceof ScalarNode ? null : $node;
     }
 

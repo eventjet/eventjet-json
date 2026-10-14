@@ -7,11 +7,9 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\Node;
-use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionProperty;
-use ReflectionType;
 use ReflectionUnionType;
 use stdClass;
 
@@ -46,21 +44,7 @@ final class PublicPropertyTypeValidator
             }
         }
 
-        return self::compile($property, $type);
-    }
-
-    /**
-     * Compiles a supported property type. A property whose native check is the whole check needs no compilation; its
-     * node is that check.
-     *
-     * @throws ReflectionException
-     */
-    private static function compile(ReflectionProperty $property, ReflectionType $type): Node|DecodeError
-    {
-        $complete = FieldTypeNameResolver::nativeCheckIsComplete($property, $type);
-        return $complete && $type instanceof ReflectionNamedType
-            ? new ScalarNode($type->getName(), $type->allowsNull())
-            : new TypeCompiler()->field($property, $type);
+        return new TypeCompiler()->field($property, $type);
     }
 
     private static function isSupportedType(ReflectionNamedType $member, string $type): bool
