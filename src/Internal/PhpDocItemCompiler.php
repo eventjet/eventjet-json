@@ -30,7 +30,6 @@ final readonly class PhpDocItemCompiler
     private PhpDocUnionCompiler $unions;
 
     public function __construct(
-        private TypeCompiler $types,
         private ReflectionParameter|ReflectionProperty $field,
     ) {
         $this->collections = new PhpDocCollectionCompiler($this, $field);
@@ -93,7 +92,7 @@ final readonly class PhpDocItemCompiler
             return new ScalarNode($name, false);
         }
         if (!enum_exists($name)) {
-            $object = $this->types->object($path, $name, false);
+            $object = ClassFieldTypeValidator::object($path, $name, false);
             assert($object !== null, description: 'PHPDoc names resolve only to loaded classes.');
             return $object;
         }

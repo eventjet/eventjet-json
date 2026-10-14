@@ -29,7 +29,7 @@ final readonly class CollectionUnionCompiler
         private TypeCompiler $types,
         private ReflectionParameter|ReflectionProperty $field,
     ) {
-        $this->items = new PhpDocItemCompiler($types, $field);
+        $this->items = new PhpDocItemCompiler($field);
     }
 
     /**

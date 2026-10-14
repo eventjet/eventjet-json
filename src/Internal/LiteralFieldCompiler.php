@@ -28,7 +28,7 @@ use function is_array;
 final class LiteralFieldCompiler
 {
     /**
-     * Compiles the native declaration if the PHPDoc declares no literal.
+     * Compiles a field from its PHPDoc type, or from its native declaration if the PHPDoc declares no literal.
      *
      * @throws ReflectionException
      */
@@ -36,15 +36,15 @@ final class LiteralFieldCompiler
         TypeCompiler $types,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionType $type,
+        PhpDocType $doc,
     ): Node|DecodeError {
         $accepts = self::accepts($type);
-        $doc = $accepts ? PhpDocFieldType::resolve($field) : null;
-        if ($doc === null) {
+        if (!$accepts) {
             return $types->declared($field, $type);
         }
         $path = $field->getName();
         $declared = $doc->members();
-        $items = new PhpDocItemCompiler($types, $field);
+        $items = new PhpDocItemCompiler($field);
         $members = $items->unions()->members($declared, $path);
         if (!is_array($members)) {
             return $members ?? self::native($types, $field, $type, $declared, $items);
@@ -60,16 +60,15 @@ final class LiteralFieldCompiler
     }
 
     /**
-     * Literals restrict scalars and backed enums. Collection items declare their literals in the collection type.
+     * Literals restrict scalars, backed enums, and unions of them. Collections don't get here: the type compiler
+     * compiles them from their native declaration, and their items declare literals in the collection type.
      */
     private static function accepts(ReflectionType $type): bool
     {
-        if ($type instanceof ReflectionUnionType) {
-            return !NativeUnionCompiler::hasCollection($type);
-        }
         return (
-            $type instanceof ReflectionNamedType
-            && ($type->isBuiltin() ? $type->getName() !== 'array' : enum_exists($type->getName()))
+            $type instanceof ReflectionUnionType
+            || $type instanceof ReflectionNamedType
+            && ($type->isBuiltin() || enum_exists($type->getName()))
         );
     }
 

@@ -26,10 +26,9 @@ final readonly class CollectionCompiler
     private PhpDocCollectionCompiler $collections;
 
     public function __construct(
-        TypeCompiler $types,
         private ReflectionParameter|ReflectionProperty $field,
     ) {
-        $this->collections = new PhpDocItemCompiler($types, $field)->collections();
+        $this->collections = new PhpDocItemCompiler($field)->collections();
     }
 
     /** @throws ReflectionException */

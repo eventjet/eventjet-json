@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
+use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\ExtendedLiteralFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralConstantFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\LiteralFields;
@@ -47,6 +48,9 @@ final class LiteralTypeCases
             ];
             yield 'unknown names leave a literal declaration unchecked ' . $tag => [
                 CollectionDeclarationFixture::object('string', "UnknownLiteralClass|'x'", $tag, 'y'),
+            ];
+            yield 'a PHPDoc literal does not restrict an object field ' . $tag => [
+                CollectionDeclarationFixture::object('?\\' . EmptyObject::class, 'null', $tag, new EmptyObject()),
             ];
             $name = $tag === 'param' ? ' $value' : '';
             yield 'a word that only starts with the tag name declares nothing ' . $tag => [
