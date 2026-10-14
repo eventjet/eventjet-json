@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use function array_key_exists;
 use function array_pop;
 use function count;
-use function in_array;
+use function ltrim;
 use function preg_match;
 use function str_contains;
-use function strspn;
 
 /** @internal */
 final readonly class PhpDocType
 {
+    private const array BOOLEANS = ['true' => true, 'false' => true];
+
     /**
      * @param list<self> $arguments
      * @param list<PhpDocTupleEntry> $entries
@@ -96,8 +98,8 @@ final readonly class PhpDocType
     public static function literalSyntax(string $name): bool
     {
         return (
-            in_array($name, ['true', 'false'], strict: true)
-            || strspn($name, characters: "'\"0123456789.+-", length: 1) === 1
+            array_key_exists($name, self::BOOLEANS)
+            || ltrim($name, characters: "'\"0123456789.+-") !== $name
             || str_contains($name, '::')
         );
     }

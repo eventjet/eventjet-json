@@ -6,7 +6,6 @@ namespace Eventjet\Json\Test\Unit;
 
 use DateTimeImmutable;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
@@ -76,7 +75,6 @@ use const PHP_INT_MIN;
 #[CoversClass(FieldTypeNameResolver::class)]
 #[CoversClass(PhpDocImportStatement::class)]
 #[CoversClass(PhpDocConstantImportStatement::class)]
-#[UsesClass(ClassFieldTypeValidator::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(UnsupportedField::class)]
 #[UsesClass(UnsupportedFieldClass::class)]

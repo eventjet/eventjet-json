@@ -11,11 +11,11 @@ use ReflectionProperty;
 
 use function array_any;
 use function array_filter;
+use function array_key_exists;
 use function array_map;
 use function array_merge;
 use function array_values;
 use function count;
-use function in_array;
 use function strcasecmp;
 
 /**
@@ -26,6 +26,30 @@ use function strcasecmp;
  */
 final readonly class PhpDocTypeResolver
 {
+    private const array COLLECTIONS = [
+        'list' => true,
+        'non-empty-list' => true,
+        'array' => true,
+        'non-empty-array' => true,
+        'non-empty-map' => true,
+    ];
+
+    /** Names that resolve to themselves. */
+    private const array KEYWORDS = [
+        'null' => true,
+        'true' => true,
+        'false' => true,
+        'resource' => true,
+        'open-resource' => true,
+        'closed-resource' => true,
+        'bool' => true,
+        'float' => true,
+        'int' => true,
+        'string' => true,
+    ];
+
+    private const array SCALARS = ['bool' => true, 'float' => true, 'int' => true, 'string' => true];
+
     public function __construct(
         private ReflectionParameter|ReflectionProperty $field,
     ) {}
@@ -37,13 +61,13 @@ final readonly class PhpDocTypeResolver
      */
     public function resolve(PhpDocType $type): PhpDocType|null
     {
-        $integerRange = $type->isIntegerRange();
+        $integerRange = $type->name === 'int' && $type->isIntegerRange();
         return match (true) {
             $type->name === '|' => $this->union($type->arguments),
             $type->name === 'array{}' => $this->shape($type->entries),
             $integerRange => new PhpDocType('int'),
             $type->arguments !== [] => $this->generic($type),
-            default => $this->name($type->name),
+            default => $this->name($type),
         };
     }
 
@@ -117,28 +141,23 @@ final readonly class PhpDocTypeResolver
     /** @throws ReflectionException */
     private function generic(PhpDocType $type): PhpDocType|null
     {
-        $collection = in_array(
-            $type->name,
-            ['list', 'non-empty-list', 'array', 'non-empty-array', 'non-empty-map'],
-            strict: true,
-        );
-        $name = $collection ? $type->name : $this->container($type->name);
+        $name = array_key_exists($type->name, self::COLLECTIONS) ? $type->name : $this->container($type->name);
         $arguments = $this->each($type->arguments);
         return $name === null || $arguments === null ? null : new PhpDocType($name, $arguments);
     }
 
     /** @throws ReflectionException */
-    private function name(string $name): PhpDocType|null
+    private function name(PhpDocType $type): PhpDocType|null
     {
+        $name = $type->name;
         $names = match (true) {
-            in_array($name, ['null', 'true', 'false', 'resource', 'open-resource', 'closed-resource'], strict: true)
-                => [$name],
+            array_key_exists($name, self::KEYWORDS) => [$name],
             PhpDocType::literalSyntax($name) => PhpDocConstantResolver::literals($this->field, $name),
             default => $this->named($name),
         };
         return match (true) {
             $names === null => null,
-            count($names) === 1 => new PhpDocType($names[0]),
+            count($names) === 1 => $names[0] === $name ? $type : new PhpDocType($names[0]),
             default => new PhpDocType('|', array_map(
                 static fn(string $literal): PhpDocType => new PhpDocType($literal),
                 $names,
@@ -158,7 +177,7 @@ final readonly class PhpDocTypeResolver
         $resolved = FieldTypeNameResolver::resolvePhpDoc($this->field, $name);
         return match (true) {
             $resolved === null => PhpDocConstantResolver::literals($this->field, $name),
-            in_array($resolved, ['bool', 'float', 'int', 'string'], strict: true) => [$resolved],
+            array_key_exists($resolved, self::SCALARS) => [$resolved],
             default => [PhpDocClassNameResolver::canonical($resolved)],
         };
     }

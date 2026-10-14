@@ -36,11 +36,10 @@ final class PhpDocNarrowing
         $narrows = array_intersect($names, ['array', ArrayObject::class]) !== [];
         $declared = [];
         foreach ($doc->members() as $member) {
-            $literal = PhpDocType::literalSyntax($member->name);
+            $name = self::declaredName($member->name);
+            $literal = $name === $member->name && PhpDocType::literalSyntax($name);
             $narrows = $narrows || $literal;
-            $declared[] = $literal
-                ? PhpDocLiteralNativeType::name($member->name, $names)
-                : self::declaredName($member->name);
+            $declared[] = $literal ? PhpDocLiteralNativeType::name($name, $names) : $name;
         }
         if (!$narrows) {
             return null;

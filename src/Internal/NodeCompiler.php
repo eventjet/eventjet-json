@@ -7,14 +7,11 @@ namespace Eventjet\Json\Internal;
 use ArrayObject;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
-use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
-use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\TupleNode;
-use Eventjet\Json\Internal\Node\UncheckedNode;
 use ReflectionException;
 
 use function array_map;
@@ -31,8 +28,7 @@ use function sprintf;
 final readonly class NodeCompiler
 {
     /**
-     * Compiles the whole type of a field. Unlike a list item, a field of a nullable class gets an object node that
-     * accepts null, because lists decode their objects without a null check.
+     * Compiles the whole type of a field.
      *
      * @param string|null $label The type that errors report for a union, if it differs from the member types.
      * @throws ReflectionException
@@ -40,11 +36,10 @@ final readonly class NodeCompiler
     public function field(PhpDocType $type, string $path, string|null $label = null): Node|DecodeError|null
     {
         $inner = $type->withoutNull();
-        $node = $inner === null ? null : $this->compile($inner, $path);
+        $nullable = $inner === null ? null : NullableNode::of($this->compile($inner, $path));
         return match (true) {
-            $node instanceof ObjectNode => new ObjectNode($node->target, nullable: true),
-            $node instanceof UncheckedNode => $node,
-            $type->name === '|' => self::nullable($node) ?? $this->union($type->arguments, $path, $label),
+            $nullable !== null => $nullable,
+            $type->name === '|' => $this->union($type->arguments, $path, $label),
             default => $this->compile($type, $path),
         };
     }
@@ -71,7 +66,7 @@ final readonly class NodeCompiler
     private function nested(PhpDocType $type, string $path): Node|DecodeError|null
     {
         $inner = $type->withoutNull();
-        $nullable = self::nullable($inner === null ? null : $this->compile($inner, $path));
+        $nullable = $inner === null ? null : NullableNode::of($this->compile($inner, $path));
         return $nullable ?? $this->union($type->arguments, $path, null);
     }
 
@@ -96,19 +91,6 @@ final readonly class NodeCompiler
             $union->add($node);
         }
         return $union->build($label);
-    }
-
-    /** A collection or enum that may be null checks for null before its own checks. */
-    private static function nullable(Node|DecodeError|null $node): NullableNode|null
-    {
-        return match (true) {
-            $node instanceof EnumNode,
-            $node instanceof ListNode,
-            $node instanceof MapNode,
-            $node instanceof TupleNode,
-                => new NullableNode($node),
-            default => null,
-        };
     }
 
     /**

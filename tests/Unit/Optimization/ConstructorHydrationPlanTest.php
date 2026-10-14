@@ -9,7 +9,6 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
-use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\ConstructorParameter;
@@ -69,7 +68,6 @@ use stdClass;
 #[CoversClass(RenamedArguments::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
-#[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(ValueTypeMatcher::class)]
@@ -79,7 +77,7 @@ use stdClass;
 #[UsesClass(Field::class)]
 #[CoversClass(PublicProperties::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
-#[UsesClass(NamedTypeCompiler::class)]
+#[CoversClass(NamedTypeCompiler::class)]
 #[UsesClass(NodeCompiler::class)]
 #[UsesClass(PhpDocNarrowing::class)]
 #[UsesClass(PhpDocTypeResolver::class)]

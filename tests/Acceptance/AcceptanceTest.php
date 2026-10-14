@@ -9,7 +9,6 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
-use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\ConstructorParameter;
@@ -94,7 +93,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(JsonType::class)]
 #[CoversClass(RootDescriptor::class)]
 #[CoversClass(DecodeError::class)]
-#[CoversClass(ClassFieldTypeValidator::class)]
 #[CoversClass(PhpDocTupleEntry::class)]
 #[CoversClass(FieldPath::class)]
 #[CoversClass(FieldTypeNameResolver::class)]

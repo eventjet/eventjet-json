@@ -9,7 +9,6 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
-use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\ConstructorParameter;
@@ -102,10 +101,9 @@ use function class_alias;
 #[UsesClass(PhpDocTypeParser::class)]
 #[UsesClass(PhpDocTypeTokens::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[CoversClass(ClassFieldTypeValidator::class)]
 #[UsesClass(TargetClass::class)]
 #[UsesClass(FieldNameRules::class)]
-#[UsesClass(NamedTypeCompiler::class)]
+#[CoversClass(NamedTypeCompiler::class)]
 #[CoversClass(NodeCompiler::class)]
 #[UsesClass(PhpDocNarrowing::class)]
 #[UsesClass(PhpDocTypeResolver::class)]
