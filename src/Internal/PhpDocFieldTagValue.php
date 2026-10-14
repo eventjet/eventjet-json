@@ -20,7 +20,7 @@ final class PhpDocFieldTagValue
     public static function param(PhpDocTokens $tokens, string $tag): array|null
     {
         $typed = !$tokens->is(PhpDocLexer::VARIABLE);
-        $type = $typed ? PhpDocTypeParser::type($tokens) : null;
+        $type = $typed ? PhpDocTypeTree::limit(PhpDocTypeParser::type($tokens)) : null;
         $tokens->tryConsume(PhpDocLexer::REFERENCE);
         $tokens->tryConsume(PhpDocLexer::VARIADIC);
         $variable = $tokens->value();
@@ -37,7 +37,7 @@ final class PhpDocFieldTagValue
      */
     public static function variable(PhpDocTokens $tokens, string $tag): array
     {
-        $type = PhpDocTypeParser::type($tokens);
+        $type = PhpDocTypeTree::limit(PhpDocTypeParser::type($tokens));
         $variable = match (true) {
             $tokens->is(PhpDocLexer::VARIABLE) => $tokens->value(),
             $tokens->is(PhpDocLexer::THIS_VARIABLE) => '$this',

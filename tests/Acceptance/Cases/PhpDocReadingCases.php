@@ -105,6 +105,16 @@ final class PhpDocReadingCases
                 "/**\n * @param list<int> \$value\n * @param ?list<int> \$value\n */",
                 'param',
             ],
+            '64 nested lists exceed the depth limit' => [
+                'array',
+                str_repeat('list<', times: 64) . 'int' . str_repeat('>', times: 64),
+                'param',
+            ],
+            '64 nested lists in a property exceed the depth limit' => [
+                'array',
+                str_repeat('list<', times: 64) . 'int' . str_repeat('>', times: 64),
+                'var',
+            ],
             'two unnamed @var tags' => ['array', "/**\n * @var list<int>\n * @var list<int>\n */", 'var'],
             'a @var named for another property' => ['array', '/** @var list<int> $other */', 'var'],
             'text after an import-type tag invalidates the whole doc comment' => [

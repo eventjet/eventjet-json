@@ -6,11 +6,12 @@ namespace Eventjet\Json\Internal;
 
 use function count;
 use function preg_match_all;
+use function substr_count;
 
 /**
  * Parses a single-line type for {@see PhpDocSimpleTags}: names, generics, unions, integers, quoted strings without
  * escapes, and class constants such as `Foo::BAR`. Returns null for any other type, which then needs the full parser,
- * and for the names `covariant` and `contravariant`.
+ * for the names `covariant` and `contravariant`, and for types with 64 or more `<`.
  *
  * @internal
  */
@@ -53,6 +54,10 @@ final class PhpDocSimpleType
 
     public static function parse(string $source): PhpDocType|null
     {
+        // A type nested 64 levels deep has at least 64 `<`, and only the full parser applies the depth limit.
+        if (substr_count($source, needle: '<') >= 64) {
+            return null;
+        }
         $matches = [];
         preg_match_all(self::TOKEN, $source, $matches);
         // Every character outside whitespace starts a token, so the parser fails on anything that the grammar does not cover.
@@ -110,10 +115,8 @@ final class PhpDocSimpleType
 
     private function accept(string $punctuation): bool
     {
-        if (($this->values[$this->index] ?? '') !== $punctuation) {
-            return false;
-        }
-        $this->index++;
-        return true;
+        $accepted = ($this->values[$this->index] ?? '') === $punctuation;
+        $this->index += (int) $accepted;
+        return $accepted;
     }
 }

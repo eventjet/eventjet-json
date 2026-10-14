@@ -91,6 +91,7 @@ use function enum_exists;
 use function json_encode;
 use function spl_autoload_register;
 use function spl_autoload_unregister;
+use function str_repeat;
 
 use const JSON_THROW_ON_ERROR;
 
@@ -415,6 +416,12 @@ final class AutoloadingTest extends TestCase
                 'param',
                 [1],
             ),
+            CollectionDeclarationFixture::object(
+                'array',
+                '/** @param ' . str_repeat('list<', times: 63) . 'int' . str_repeat('>', times: 63) . ' $value */',
+                'param',
+                self::nestedList(62),
+            ),
         ];
         $decode = static fn(object $original): object => Json::decode(
             json_encode($original, JSON_THROW_ON_ERROR),
@@ -447,5 +454,15 @@ final class AutoloadingTest extends TestCase
         static::assertTrue(class_exists(PhpDocLexer::class, autoload: false));
         static::assertFalse(class_exists(PhpDocHtmlDetector::class, autoload: false));
         static::assertFalse(class_exists(PhpDocCallableParser::class, autoload: false));
+    }
+
+    /** @return list<mixed> */
+    private static function nestedList(int $depth): array
+    {
+        $list = [1];
+        for ($level = 0; $level < $depth; ++$level) {
+            $list = [$list];
+        }
+        return $list;
     }
 }
