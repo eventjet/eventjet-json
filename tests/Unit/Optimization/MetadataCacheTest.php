@@ -22,6 +22,7 @@ use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
+use Eventjet\Json\Internal\LiteralFieldCompiler;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\NativeUnionCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
@@ -51,7 +52,6 @@ use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\PublicPropertyValues;
 use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\TargetClass;
@@ -95,7 +95,6 @@ use function class_alias;
 #[UsesClass(FieldPath::class)]
 #[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(PublicProperties::class)]
-#[CoversClass(PublicPropertyValues::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(DecodeError::class)]
 #[CoversClass(PhpDocFieldType::class)]
@@ -132,6 +131,8 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTagSelector::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNumbers::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[UsesClass(TargetClass::class)]
@@ -158,6 +159,7 @@ use function class_alias;
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(ScalarItems::class)]
 #[UsesClass(TupleNode::class)]
+#[UsesClass(LiteralFieldCompiler::class)]
 #[UsesClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
@@ -360,6 +362,41 @@ final class MetadataCacheTest extends TestCase
     }
 
     /**
+     * A constructor's doc comment declares all parameters, so it is read once and not once for each parameter. This
+     * holds for doc comments that need the full PHPDoc parser, too.
+     *
+     * @throws ReflectionException
+     * @throws RuntimeException
+     */
+    public function testDocCommentsAreParsedOnce(): void
+    {
+        $object = new class(1, 2) {
+            /** @var 3 */
+            public int $third = 3;
+
+            /**
+             * @param 1 $first
+             * @param 2 $second
+             */
+            public function __construct(
+                public int $first,
+                public int $second,
+            ) {}
+        };
+        foreach ([
+            new ReflectionParameter([$object::class, '__construct'], 'first'),
+            new ReflectionParameter([$object::class, '__construct'], 'second'),
+            new ReflectionProperty($object, 'third'),
+            self::docParameter("/**\n * @param list<int> \$value\n */"),
+            self::docParameter("/**\n * @return void\n * @param list<int> \$value\n */"),
+        ] as $field) {
+            $type = PhpDocFieldType::resolve($field);
+            static::assertNotNull($type);
+            static::assertSame($type, PhpDocFieldType::resolve($field));
+        }
+    }
+
+    /**
      * @throws ReflectionException
      * @throws RuntimeException
      * @throws JsonException
@@ -441,20 +478,12 @@ final class MetadataCacheTest extends TestCase
     }
 
     /**
-     * A constructor's doc comment declares all parameters, so it is read once and not once for each parameter.
-     *
      * @throws ReflectionException
      * @throws RuntimeException
      */
-    public function testEachDocCommentIsReadOnce(): void
+    private static function docParameter(string $doc): ReflectionParameter
     {
-        foreach ([
-            "/**\n * @param list<int> \$value\n */",
-            "/**\n * @return void\n * @param list<int> \$value\n */",
-        ] as $doc) {
-            $class = CollectionDeclarationFixture::create('array', $doc, 'param');
-            $value = new ReflectionParameter([$class, '__construct'], 'value');
-            static::assertSame(PhpDocFieldType::resolve($value), PhpDocFieldType::resolve($value));
-        }
+        $class = CollectionDeclarationFixture::create('array', $doc, 'param');
+        return new ReflectionParameter([$class, '__construct'], 'value');
     }
 }

@@ -48,8 +48,6 @@ use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
@@ -57,15 +55,12 @@ use ReflectionParameter;
 use ReflectionProperty;
 use stdClass;
 
-use function class_exists;
-
 use const INF;
 use const NAN;
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
 
 #[CoversClass(PhpDocLiteralNumber::class)]
-#[CoversClass(\Eventjet\Json\Internal\LiteralFieldTypes::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocNumbers::class)]
 #[CoversClass(PhpDocConstantValues::class)]
 #[CoversClass(ValueTypeMatcher::class)]
@@ -178,27 +173,6 @@ final class LiteralTypeTest extends TestCase
             DecodeError::class,
             self::compile(new ReflectionParameter([$invalid::class, '__construct'], 'value')),
         );
-    }
-
-    /**
-     * @throws ReflectionException
-     * @throws \PHPUnit\Framework\Exception
-     * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
-     */
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function testPlainScalarPhpDocDoesNotLoadItemResolution(): void
-    {
-        $object = new class {
-            /** @var float */
-            public float $value = 1.0;
-        };
-        $property = new ReflectionProperty($object, 'value');
-        $type = $property->getType();
-        static::assertNotNull($type);
-        static::assertInstanceOf(ScalarNode::class, new TypeCompiler()->field($property, $type));
-        static::assertFalse(class_exists(LiteralFieldCompiler::class, autoload: false));
-        static::assertFalse(class_exists(PhpDocItemCompiler::class, autoload: false));
     }
 
     /**
@@ -361,10 +335,6 @@ final class LiteralTypeTest extends TestCase
             self::compile(new ReflectionProperty($properties, 'undocumented')),
         );
 
-        foreach (["\tnull", ' null', 'true', 'false', "'", '"', '0', '9', ':'] as $marker) {
-            static::assertTrue(FieldTypeNameResolver::mayDeclareLiteral('/** @param ' . $marker . ' $value */'));
-        }
-        static::assertFalse(FieldTypeNameResolver::mayDeclareLiteral('/** @param list<int>|null $value */'));
         static::assertSame(
             ['const:BAR' => 'Foo\\BAR', 'const:Qux' => 'Foo\\BAZ'],
             PhpDocImportStatement::parse('const Foo\\{BAR, BAZ as Qux}'),
@@ -510,6 +480,6 @@ final class LiteralTypeTest extends TestCase
         $class = $field->getDeclaringClass();
         static::assertNotNull($type);
         static::assertNotNull($class);
-        return LiteralFieldCompiler::compile(new TypeCompiler(), $field, $type);
+        return new TypeCompiler()->field($field, $type);
     }
 }

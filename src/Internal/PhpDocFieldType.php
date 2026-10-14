@@ -31,10 +31,17 @@ final class PhpDocFieldType
         );
     }
 
+    /**
+     * Returns the PHPDoc type of a field: the `@var` tag that counts, or the constructor's `@param` tag that counts for a
+     * parameter. Each doc comment is read once, even if it declares several parameters, and only if it has the tag.
+     */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|null
     {
-        $doc = FieldTypeNameResolver::docComment($field);
         $parameter = $field instanceof ReflectionParameter;
+        $doc = $field instanceof ReflectionParameter
+            ? $field->getDeclaringFunction()->getDocComment()
+            : $field->getDocComment();
+        $doc = (string) $doc;
         if (!str_contains($doc, $parameter ? 'param' : 'var')) {
             return null;
         }
@@ -46,11 +53,12 @@ final class PhpDocFieldType
         return PhpDocTypeTree::limit($type);
     }
 
-    /** Returns an error if the declared type has a number literal that PHP and PHPStan can read differently. */
-    public static function unsupportedNumber(ReflectionParameter|ReflectionProperty $field): DecodeError|null
-    {
-        $type = self::resolve($field);
-        $number = $type === null ? null : PhpDocNumbers::unsupported($type);
+    /** Returns an error if a field's PHPDoc type has a number literal that PHP and PHPStan can read differently. */
+    public static function unsupportedNumber(
+        ReflectionParameter|ReflectionProperty $field,
+        PhpDocType $type,
+    ): DecodeError|null {
+        $number = PhpDocNumbers::unsupported($type);
         return $number === null ? null : UnsupportedField::number($field->getName(), $number);
     }
 }

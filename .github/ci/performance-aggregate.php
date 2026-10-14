@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Eventjet\Json\Ci\FpmMeasurements;
 use Eventjet\Json\Ci\PerformanceShards;
 
 require __DIR__ . '/PerformanceShards.php';
@@ -19,16 +20,16 @@ if (
     );
 }
 $comparison = PerformanceShards::collect($options['artifacts'], $options['opcache']);
-$comment = performanceSummary($comparison['comparisons'], $comparison['status'], $options['opcache']);
+$comment = performanceSummary($comparison['comparisons'], $options['opcache'], $comparison['fpm']);
 if (!is_dir($options['output'])) {
     mkdir($options['output'], 0777, true);
 }
 file_put_contents($options['output'] . '/comment.md', $comment);
-$summary = $comment . "\n" . $comparison['fpm'];
+$summary = $comment . cliReport($comparison['comparisons']) . FpmMeasurements::report($comparison['fpm'], $options['opcache'] === 'on');
 file_put_contents($options['output'] . '/summary.md', $summary);
 $stepSummary = getenv('GITHUB_STEP_SUMMARY');
 if ($stepSummary !== false && $stepSummary !== '') {
     file_put_contents($stepSummary, $summary, FILE_APPEND);
 }
 echo $summary;
-exit($comparison['status']);
+exit(performanceStatus($comparison['comparisons'], $options['opcache'], $comparison['fpm']));
