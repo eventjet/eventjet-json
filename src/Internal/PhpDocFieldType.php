@@ -11,6 +11,7 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function str_contains;
+use function strpbrk;
 
 /** @internal */
 final class PhpDocFieldType
@@ -38,19 +39,15 @@ final class PhpDocFieldType
     public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|null
     {
         $parameter = $field instanceof ReflectionParameter;
-        $doc = $field instanceof ReflectionParameter
-            ? $field->getDeclaringFunction()->getDocComment()
-            : $field->getDocComment();
-        $doc = (string) $doc;
+        $doc = self::docComment($field);
         if (!str_contains($doc, $parameter ? 'param' : 'var')) {
             return null;
         }
         self::$tags[$doc] ??= PhpDocSimpleTags::tags($doc) ?? PhpDocTagParser::tags($doc);
         $tags = self::$tags[$doc];
-        $type = $parameter
+        return $parameter
             ? PhpDocTagSelector::parameter($tags, $field->getName())
             : PhpDocTagSelector::property($tags, $field->getName());
-        return PhpDocTypeTree::limit($type);
     }
 
     /** Returns an error if a field's PHPDoc type has a number literal that PHP and PHPStan can read differently. */
@@ -58,7 +55,18 @@ final class PhpDocFieldType
         ReflectionParameter|ReflectionProperty $field,
         PhpDocType $type,
     ): DecodeError|null {
-        $number = PhpDocNumbers::unsupported($type);
+        // Every number literal has a digit, so a doc comment without digits has none.
+        $digits = strpbrk(self::docComment($field), characters: '0123456789') !== false;
+        $number = $digits ? PhpDocNumbers::unsupported($type) : null;
         return $number === null ? null : UnsupportedField::number($field->getName(), $number);
+    }
+
+    /** Returns the doc comment that declares a field: the constructor's for a parameter. */
+    private static function docComment(ReflectionParameter|ReflectionProperty $field): string
+    {
+        $doc = $field instanceof ReflectionParameter
+            ? $field->getDeclaringFunction()->getDocComment()
+            : $field->getDocComment();
+        return (string) $doc;
     }
 }
