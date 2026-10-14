@@ -253,7 +253,7 @@ final class LiteralTypeTest extends TestCase
              */
             public string $value = 'a@b';
         };
-        static::assertSame("'a@b'", FieldTypeNameResolver::phpDoc(new ReflectionProperty($tagged, 'value'))?->name);
+        static::assertSame("'a@b'", PhpDocFieldType::resolve(new ReflectionProperty($tagged, 'value'))?->name);
 
         $enum = new class {
             /** @var StringBackedStatus::Ready */

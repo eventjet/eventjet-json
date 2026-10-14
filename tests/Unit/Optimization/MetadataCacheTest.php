@@ -98,11 +98,11 @@ use function class_alias;
 #[CoversClass(PublicProperties::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(DecodeError::class)]
-#[UsesClass(PhpDocFieldType::class)]
+#[CoversClass(PhpDocFieldType::class)]
 #[UsesClass(PhpDocType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
 #[UsesClass(PhpDocTypeTokens::class)]
-#[CoversClass(FieldTypeNameResolver::class)]
+#[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[UsesClass(TargetClass::class)]
 #[UsesClass(FieldNameRules::class)]
@@ -351,9 +351,9 @@ final class MetadataCacheTest extends TestCase
             new ReflectionParameter([$object::class, '__construct'], 'second'),
             new ReflectionProperty($object, 'third'),
         ] as $field) {
-            $type = FieldTypeNameResolver::phpDoc($field);
+            $type = PhpDocFieldType::resolve($field);
             static::assertNotNull($type);
-            static::assertSame($type, FieldTypeNameResolver::phpDoc($field));
+            static::assertSame($type, PhpDocFieldType::resolve($field));
         }
     }
 

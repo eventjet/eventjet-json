@@ -9,17 +9,29 @@ use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
-use ReflectionType;
-use ReflectionUnionType;
 
-use function str_contains;
+use function class_exists;
+use function enum_exists;
+use function interface_exists;
 use function strcasecmp;
 
 /** @internal */
 final class FieldTypeNameResolver
 {
-    /** @var array<string, array<string, PhpDocType>> Keyed by tag and doc comment, then by parameter name. */
-    private static array $phpDocs = [];
+    private const array PRIMITIVE_PHPDOC = [
+        'non-empty-string' => 'string',
+        'numeric-string' => 'string',
+        'literal-string' => 'string',
+        'positive-int' => 'int',
+        'negative-int' => 'int',
+        'non-positive-int' => 'int',
+        'non-negative-int' => 'int',
+        'non-zero-int' => 'int',
+        'bool' => 'bool',
+        'float' => 'float',
+        'int' => 'int',
+        'string' => 'string',
+    ];
 
     public static function resolve(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): string
     {
@@ -41,38 +53,31 @@ final class FieldTypeNameResolver
         return $parent === false ? $name : $parent->getName();
     }
 
-    /**
-     * Returns the PHPDoc type of a field: its `@var` tag, or the constructor's `@param` tag for a parameter. Each doc
-     * comment is parsed once, even if it declares several parameters, and only if it has the tag.
-     */
-    public static function phpDoc(ReflectionParameter|ReflectionProperty $field): PhpDocType|null
-    {
-        [$doc, $tag, $name] = $field instanceof ReflectionParameter
-            ? [$field->getDeclaringFunction()->getDocComment(), '@param', $field->getName()]
-            : [$field->getDocComment(), '@var', ''];
-        $doc = (string) $doc;
-        self::$phpDocs[$tag . $doc] ??= str_contains($doc, $tag) ? PhpDocFieldType::types($doc, $tag) : [];
-        return self::$phpDocs[$tag . $doc][$name] ?? null;
-    }
-
-    /**
-     * Returns the PHPDoc type of a field whose native type a PHPDoc literal can restrict: a scalar, a backed enum, or a
-     * union without collections. Collection items declare their literals in the collection type.
-     */
-    public static function literalDeclaration(
-        ReflectionParameter|ReflectionProperty $field,
-        ReflectionType $type,
-    ): PhpDocType|null {
-        $accepts = $type instanceof ReflectionUnionType
-            ? !NativeUnionCompiler::hasCollection($type)
-            : $type instanceof ReflectionNamedType
-            && ($type->isBuiltin() ? $type->getName() !== 'array' : enum_exists($type->getName()));
-        return $accepts ? self::phpDoc($field) : null;
-    }
-
     /** Returns the type that errors report for a nullable declaration of a type. */
     public static function withNull(string $name): string
     {
         return $name === 'null' ? $name : $name . '|null';
+    }
+
+    /** @return 'bool'|'float'|'int'|'string'|class-string|null */
+    public static function resolvePhpDoc(ReflectionParameter|ReflectionProperty $field, string $type): string|null
+    {
+        $primitive = self::PRIMITIVE_PHPDOC[$type] ?? null;
+        if ($primitive !== null) {
+            return $primitive;
+        }
+
+        /** @var ReflectionClass<object> $declaringClass */
+        $declaringClass = $field->getDeclaringClass();
+
+        if ($type === 'self') {
+            return $declaringClass->getName();
+        }
+
+        $resolvedType = PhpDocClassNameResolver::resolve($declaringClass, $type);
+
+        return enum_exists($resolvedType) || class_exists($resolvedType) || interface_exists($resolvedType)
+            ? $resolvedType
+            : null;
     }
 }

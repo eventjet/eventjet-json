@@ -6,16 +6,13 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedCollection;
-use ReflectionClass;
 use ReflectionParameter;
 use ReflectionProperty;
 
-use function class_exists;
-use function enum_exists;
-use function interface_exists;
 use function preg_match;
 use function preg_match_all;
 use function preg_replace;
+use function str_contains;
 use function str_replace;
 use function strpbrk;
 use function trim;
@@ -23,20 +20,8 @@ use function trim;
 /** @internal */
 final class PhpDocFieldType
 {
-    private const array PRIMITIVE_PHPDOC = [
-        'non-empty-string' => 'string',
-        'numeric-string' => 'string',
-        'literal-string' => 'string',
-        'positive-int' => 'int',
-        'negative-int' => 'int',
-        'non-positive-int' => 'int',
-        'non-negative-int' => 'int',
-        'non-zero-int' => 'int',
-        'bool' => 'bool',
-        'float' => 'float',
-        'int' => 'int',
-        'string' => 'string',
-    ];
+    /** @var array<string, array<string, PhpDocType>> Keyed by tag and doc comment, then by parameter name. */
+    private static array $types = [];
 
     /** Returns the error for an `array` or `ArrayObject` field without a supported PHPDoc collection declaration. */
     public static function unrecognized(ReflectionParameter|ReflectionProperty $field): DecodeError
@@ -48,13 +33,27 @@ final class PhpDocFieldType
     }
 
     /**
+     * Returns the PHPDoc type of a field: its `@var` tag, or the constructor's `@param` tag for a parameter. Each doc
+     * comment is parsed once, even if it declares several parameters, and only if it has the tag.
+     */
+    public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|null
+    {
+        [$doc, $tag, $name] = $field instanceof ReflectionParameter
+            ? [$field->getDeclaringFunction()->getDocComment(), '@param', $field->getName()]
+            : [$field->getDocComment(), '@var', ''];
+        $doc = (string) $doc;
+        self::$types[$tag . $doc] ??= str_contains($doc, $tag) ? self::types($doc, $tag) : [];
+        return self::$types[$tag . $doc][$name] ?? null;
+    }
+
+    /**
      * Returns the first valid type of each field that a doc comment declares with a tag: `@param` types keyed by
      * parameter name, or the `@var` type keyed by an empty string.
      *
      * @param '@param'|'@var' $tag
      * @return array<string, PhpDocType>
      */
-    public static function types(string $doc, string $tag): array
+    private static function types(string $doc, string $tag): array
     {
         $doc =
             preg_replace('/^[ \t]*\*[ \t]?/m', replacement: '', subject: str_replace('*/', replace: '', subject: $doc))
@@ -79,31 +78,5 @@ final class PhpDocFieldType
             }
         }
         return $types;
-    }
-
-    /**
-     * Resolves a PHPDoc scalar, enum, or class name, or returns null if it names none of them.
-     *
-     * @return 'bool'|'float'|'int'|'string'|class-string|null
-     */
-    public static function resolveName(ReflectionParameter|ReflectionProperty $field, string $type): string|null
-    {
-        $primitive = self::PRIMITIVE_PHPDOC[$type] ?? null;
-        if ($primitive !== null) {
-            return $primitive;
-        }
-
-        /** @var ReflectionClass<object> $declaringClass */
-        $declaringClass = $field->getDeclaringClass();
-
-        if ($type === 'self') {
-            return $declaringClass->getName();
-        }
-
-        $resolvedType = PhpDocClassNameResolver::resolve($declaringClass, $type);
-
-        return enum_exists($resolvedType) || class_exists($resolvedType) || interface_exists($resolvedType)
-            ? $resolvedType
-            : null;
     }
 }
