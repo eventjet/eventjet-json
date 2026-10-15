@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Parity;
 
-use Eventjet\Json\Internal\PhpDocLiteralNumber;
-use Eventjet\Json\Internal\PhpDocNumbers;
-use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Test\Parity\Reference\PhpStanNumber;
 
 use function count;
@@ -49,21 +46,33 @@ final class NumberLiterals
         };
     }
 
+    /** @param list<PhpStanNumber> $numbers */
+    public static function rejectsAny(array $numbers): bool
+    {
+        foreach ($numbers as $number) {
+            $reason = self::rejection($number);
+            if ($reason !== null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Returns the differences between how the decoder reads the number literals of a type and how PHPStan reads them,
      * apart from the deliberate rejections. The second value counts the deliberate rejections.
      *
+     * @param string|null $unsupported The number that makes the decoder reject the type.
      * @param list<PhpStanNumber> $numbers The literals that PHPStan reads in the type.
      * @return array{list<string>, int}
      */
-    public static function differences(PhpDocType $type, array $numbers): array
+    public static function differences(string|null $unsupported, array $numbers): array
     {
         $differences = [];
         $rejected = [];
         foreach ($numbers as $number) {
             $reason = self::rejection($number);
-            $accepted = !$number->bound || PhpDocLiteralNumber::isRangeBound($number->literal);
-            $value = $accepted ? PhpDocLiteralNumber::parse($number->literal) : null;
+            $value = DecoderNumber::value($number);
             if ($reason !== null) {
                 $rejected[] = $number->literal;
             }
@@ -79,7 +88,6 @@ final class NumberLiterals
                 );
             }
         }
-        $unsupported = PhpDocNumbers::unsupported($type);
         $consistent = $unsupported === null ? $rejected === [] : in_array($unsupported, $rejected, strict: true);
         if (!$consistent) {
             $differences[] = sprintf(

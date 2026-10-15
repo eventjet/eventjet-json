@@ -102,7 +102,8 @@ final class PhpStanTypeTranslator
             if ($type === null) {
                 return null;
             }
-            $entries[] = new PhpDocTupleEntry($type, $this->constants->key($item->keyName), $item->optional);
+            $key = $this->constants->key($item->keyName);
+            $entries[] = new PhpDocTupleEntry($type, $key === null ? null : new PhpDocType($key), $item->optional);
         }
         return new PhpDocType($shape->kind . '{}', entries: $entries);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Parity;
 
+use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\PhpDocSimpleTags;
 use Eventjet\Json\Internal\PhpDocTag;
 use Eventjet\Json\Internal\PhpDocTagParser;
@@ -55,8 +56,9 @@ final class ParityCheck
         }
         $theirs = TypeDescription::tags($referenceTags);
         $differences = $ours === $theirs ? [] : ['decoder: ' . $ours, 'PHPStan: ' . $theirs];
-        foreach ($reference as $tag) {
-            $differences = [...$differences, ...self::numbers($tag->type, $report)];
+        foreach ($reference as $index => $tag) {
+            $unsupported = ($tags[$index] ?? null)?->type?->unsupportedNumber;
+            $differences = [...$differences, ...self::numbers($unsupported, $tag->type, $report)];
         }
         $report->compare($doc, $differences);
     }
@@ -64,32 +66,38 @@ final class ParityCheck
     /** Checks that the decoder parses a standalone type like PHPStan. */
     public static function type(string $source, ParityReport $report): void
     {
-        $ours = TypeDescription::type(PhpDocTypeParser::parse($source));
+        $type = PhpDocTypeParser::parse($source);
+        $ours = TypeDescription::type($type);
         $reference = PhpStanReader::type($source);
         $theirs = TypeDescription::type($reference->type);
         $differences = $ours === $theirs ? [] : ['decoder: ' . $ours, 'PHPStan: ' . $theirs];
-        $report->compare($source, [...$differences, ...self::numbers($reference, $report)]);
+        $numbers = self::numbers($type?->unsupportedNumber, $reference, $report);
+        $report->compare($source, [...$differences, ...$numbers]);
     }
 
-    /** Checks that the decoder selects the same type for a field as PHPStan. */
+    /**
+     * Checks that the decoder selects the same type for a field as PHPStan, or rejects it for a number literal that it
+     * deliberately rejects.
+     */
     public static function field(
         string $label,
-        PhpDocType|null $ours,
+        PhpDocType|DecodeError|null $ours,
         PhpStanType|null $reference,
         ParityReport $report,
     ): void {
-        $decoder = TypeDescription::type($ours);
-        $phpstan = TypeDescription::type($reference?->type);
+        $rejected = NumberLiterals::rejectsAny($reference->numbers ?? []);
+        $decoder = $ours instanceof DecodeError ? 'rejected' : TypeDescription::type($ours);
+        $phpstan = $rejected ? 'rejected' : TypeDescription::type($reference?->type);
         $report->compare($label, $decoder === $phpstan ? [] : ['decoder: ' . $decoder, 'PHPStan: ' . $phpstan]);
     }
 
     /** @return list<string> */
-    private static function numbers(PhpStanType $reference, ParityReport $report): array
+    private static function numbers(string|null $unsupported, PhpStanType $reference, ParityReport $report): array
     {
         if ($reference->type === null) {
             return [];
         }
-        [$differences, $rejected] = NumberLiterals::differences($reference->type, $reference->numbers);
+        [$differences, $rejected] = NumberLiterals::differences($unsupported, $reference->numbers);
         $report->count('number literals', count($reference->numbers));
         $report->count('deliberately rejected number literals', $rejected);
         return $differences;

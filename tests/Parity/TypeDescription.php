@@ -55,7 +55,7 @@ final class TypeDescription
         }
         $entries = [];
         foreach ($type->entries as $entry) {
-            $entries[] = [self::tree($entry->type), $entry->key, $entry->optional];
+            $entries[] = [self::tree($entry->type), $entry->key?->name, $entry->optional];
         }
         return [$type->name, array_map(self::tree(...), $type->arguments), $entries];
     }
