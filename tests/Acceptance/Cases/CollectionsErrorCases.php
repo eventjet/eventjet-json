@@ -24,8 +24,37 @@ final class CollectionsErrorCases
     {
         yield from self::declarations();
         yield from self::cachedShapes();
+        yield from self::positions();
         yield from self::scalarItems();
         yield from self::objectItems();
+    }
+
+    /**
+     * A collection declaration reports the same error as a constructor field and as a public property.
+     *
+     * @return iterable<string, array{string, class-string, string, int}>
+     */
+    private static function positions(): iterable
+    {
+        foreach ([
+            ['list<int>',                    'list<int>'],
+            ['array{int, string}',           'array{int, string}'],
+            ['non-empty-array<string, int>', 'JSON object'],
+        ] as [$declaration, $expected]) {
+            foreach (['param' => 'constructor field', 'var' => 'public property'] as $tag => $position) {
+                $class = CollectionDeclarationFixture::create('array', $declaration, $tag);
+                yield $declaration . ' ' . $position . ' rejects a boolean' => [
+                    '{"value":true}',
+                    $class,
+                    'Could not create '
+                        . $class
+                        . ' from the JSON object: Field value must be of type '
+                        . $expected
+                        . ', bool given.',
+                    DecodeErrorKind::InvalidValue->value,
+                ];
+            }
+        }
     }
 
     /** @return iterable<string, array{string, JsonType<list<Person>>, string, int}> */
@@ -179,13 +208,13 @@ final class CollectionsErrorCases
         yield 'cached list field rejects a boolean after valid objects' => [
             '[{},{},{},{"list":true}]',
             JsonType::array(StringCollectionValidationFields::class),
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].list must be of type array, bool given.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].list must be of type list<string>, bool given.',
             DecodeErrorKind::InvalidValue->value,
         ];
         yield 'cached non-empty-list field rejects null after valid objects' => [
             '[{},{},{},{"nonEmptyList":null}]',
             JsonType::array(StringCollectionValidationFields::class),
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].nonEmptyList must be of type array, null given.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields from the JSON object: Field [3].nonEmptyList must be of type non-empty-list<string>, null given.',
             DecodeErrorKind::InvalidValue->value,
         ];
     }

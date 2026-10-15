@@ -47,11 +47,11 @@ final class ClassGraphValidator
         if ($decoder instanceof DecodeError) {
             return $decoder;
         }
-        foreach ($decoder->fields() as $field => $node) {
-            foreach ($node->dependencies() as $dependency) {
+        foreach ($decoder->fields as $field) {
+            foreach ($field->node->dependencies() as $dependency) {
                 $error = class_exists($dependency)
                     ? $this->validate($dependency)
-                    : UnsupportedFieldClass::unknown($field, $dependency)->whileCreating($class);
+                    : UnsupportedFieldClass::unknown($field->name, $dependency)->whileCreating($class);
                 if ($error !== null) {
                     return $error;
                 }

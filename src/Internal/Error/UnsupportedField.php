@@ -37,15 +37,6 @@ final class UnsupportedField
         ));
     }
 
-    public static function publicProperty(string $field, string $type): DecodeError
-    {
-        return self::error(sprintf(
-            'Field %s uses unsupported public property type %s. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
-            $field,
-            $type,
-        ));
-    }
-
     public static function nonEncodable(string $field, string $type): DecodeError
     {
         return self::error(sprintf(

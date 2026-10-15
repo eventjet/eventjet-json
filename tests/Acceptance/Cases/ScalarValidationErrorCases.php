@@ -200,7 +200,7 @@ final class ScalarValidationErrorCases
                 'Could not create '
                     . $class
                     . ' from the JSON object: Field value must be of type '
-                    . $type
+                    . $declaration
                     . ', string given.',
                 DecodeErrorKind::InvalidValue->value,
             ];
@@ -225,7 +225,7 @@ final class ScalarValidationErrorCases
                 'Could not create '
                     . $class
                     . ' from the JSON object: Field [1].value must be of type '
-                    . $type
+                    . $declaration
                     . ', '
                     . $actual
                     . ' given.',

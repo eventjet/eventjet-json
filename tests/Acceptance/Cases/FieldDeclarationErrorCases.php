@@ -48,19 +48,68 @@ final class FieldDeclarationErrorCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\MixedField from the JSON object: Field value uses unsupported type mixed. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
+        yield from self::imprecise();
         yield 'intersection public property is unsupported' => [
             '{"value":{}}',
             new IntersectionPublicProperty()::class,
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntersectionPublicProperty from the JSON object: Field value uses unsupported public property type Countable&Iterator. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntersectionPublicProperty from the JSON object: Field value uses unsupported intersection type Countable&Iterator. JSON does not identify a concrete class to instantiate.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
-        yield 'unknown public property type is unsupported' => [
-            '{}',
+        yield 'public property of an unknown class rejects an object' => [
+            '{"value":{}}',
             CollectionDeclarationFixture::create('UnknownPublicPropertyType', '', 'var'),
             'Could not create '
                 . CollectionDeclarationFixture::create('UnknownPublicPropertyType', '', 'var')
-                . ' from the JSON object: Field value uses unsupported public property type UnknownPublicPropertyType. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
+                . ' from the JSON object: Field value uses unknown class UnknownPublicPropertyType, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
+    }
+
+    /**
+     * @return iterable<string, array{string, class-string, string, int}>
+     * @throws \RuntimeException
+     */
+    private static function imprecise(): iterable
+    {
+        $callable = CollectionNameSource::load(
+            'CallableParameter',
+            'final class CallableParameter { public $value; public function __construct(callable $value) { $this->value = $value; } }',
+        );
+        $callableUnion = CollectionNameSource::load(
+            'CallableUnionParameter',
+            'final class CallableUnionParameter { public int|string $value; public function __construct(callable|int $value) { $this->value = is_int($value) ? $value : "callable"; } }',
+        );
+        foreach ([
+            'iterable constructor field' => [CollectionDeclarationFixture::create('iterable', '', 'param'), 'iterable'],
+            'iterable constructor field with a list declaration' => [
+                CollectionDeclarationFixture::create('iterable', 'list<int>', 'param'),
+                'iterable',
+            ],
+            'nullable iterable public property' => [
+                CollectionDeclarationFixture::create('?iterable', '', 'var'),
+                'iterable',
+            ],
+            'callable constructor field' => [$callable, 'callable'],
+            'callable union constructor field' => [$callableUnion, 'callable'],
+        ] as $label => [$class, $type]) {
+            $message =
+                'Could not create '
+                . $class
+                . ' from the JSON object: Field value uses unsupported type '
+                . $type
+                . '. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.';
+            yield $label . ' is rejected even when absent' => [
+                '{}',
+                $class,
+                $message,
+                DecodeErrorKind::UnsupportedDeclaration->value,
+            ];
+            yield $label . ' is rejected before PHP sees a value' => [
+                '{"value":"s"}',
+                $class,
+                $message,
+                DecodeErrorKind::UnsupportedDeclaration->value,
+            ];
+        }
     }
 }
