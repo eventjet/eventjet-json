@@ -13,14 +13,6 @@ namespace Eventjet\Json\Internal;
  */
 final class PhpDocTagParser
 {
-    private const int TEXT = 0;
-
-    /** A tag that phpdoc-parser does not know, which the next tag may follow on the same line. */
-    private const int GENERIC = 1;
-
-    private const int INVALID = 2;
-    private const int VALID = 3;
-
     private const int PARAM = 1;
     private const int TYPED_VARIABLE = 3;
     private const int VAR = 4;
@@ -154,10 +146,10 @@ final class PhpDocTagParser
     }
 
     /**
-     * Returns the tag name, variable name, and type of each tag in order. The type is null if the decoder does not
-     * support it. A doc comment that phpdoc-parser cannot parse as a whole has no tags.
+     * Returns the `@param` and `@var` tags in order. A doc comment that phpdoc-parser cannot parse as a whole has no
+     * tags.
      *
-     * @return list<array{string, string, PhpDocType|null}>
+     * @return list<PhpDocTag>
      */
     public static function tags(string $doc): array
     {
@@ -169,7 +161,7 @@ final class PhpDocTagParser
     }
 
     /**
-     * @return list<array{string, string, PhpDocType|null}>
+     * @return list<PhpDocTag>
      * @throws PhpDocSyntaxError
      */
     private function children(): array
@@ -179,12 +171,12 @@ final class PhpDocTagParser
         $tags = [];
         $separated = true;
         while ($separated && !$tokens->is(PhpDocLexer::CLOSE_PHPDOC)) {
-            [$kind, $tag] = $this->child();
-            if ($tag !== null) {
-                $tags[] = $tag;
+            $child = $this->child();
+            if ($child instanceof PhpDocTag) {
+                $tags[] = $child;
             }
             $lineEnd = $tokens->tryConsume(PhpDocLexer::PHPDOC_EOL);
-            $separated = $lineEnd || $kind === self::GENERIC;
+            $separated = $lineEnd || $child === PhpDocChildKind::Generic;
         }
         // phpdoc-parser replaces all tags with one invalid tag if the comment does not end here.
         $complete = $tokens->is(PhpDocLexer::CLOSE_PHPDOC) && !$tokens->hasComments();
@@ -192,12 +184,11 @@ final class PhpDocTagParser
     }
 
     /**
-     * Returns the kind of child, and the tag if it is a `@param` or `@var` tag.
+     * Returns the tag if the child is a `@param` or `@var` tag that PHPStan reads, and the kind of child otherwise.
      *
-     * @return array{int, array{string, string, PhpDocType|null}|null}
      * @throws PhpDocSyntaxError
      */
-    private function child(): array
+    private function child(): PhpDocTag|PhpDocChildKind
     {
         $tokens = $this->tokens;
         $name = $tokens->value();
@@ -208,19 +199,17 @@ final class PhpDocTagParser
         if ($tokens->is(PhpDocLexer::DOCTRINE_TAG)) {
             $tokens->next();
             $this->doctrineAnnotation();
-            return [self::GENERIC, null];
+            return PhpDocChildKind::Generic;
         }
         $this->text();
-        return [self::TEXT, null];
+        return PhpDocChildKind::Text;
     }
 
     /**
-     * Parses a tag value after its name and returns its kind, and the tag if it is a `@param` or `@var` tag. An
-     * invalid value is skipped as text.
-     *
-     * @return array{int, array{string, string, PhpDocType|null}|null}
+     * Parses a tag value after its name. Returns the tag if it is a `@param` or `@var` tag that PHPStan reads, and the
+     * kind of tag otherwise. An invalid value is skipped as text.
      */
-    private function tagValue(string $tag): array
+    private function tagValue(string $tag): PhpDocTag|PhpDocChildKind
     {
         $tokens = $this->tokens;
         try {
@@ -231,29 +220,26 @@ final class PhpDocTagParser
         } catch (PhpDocSyntaxError) {
             $tokens->rollback();
             $this->text();
-            return [self::INVALID, null];
+            return PhpDocChildKind::Invalid;
         }
     }
 
-    /**
-     * @return array{int, array{string, string, PhpDocType|null}|null}
-     * @throws PhpDocSyntaxError
-     */
-    private function validTagValue(string $tag): array
+    /** @throws PhpDocSyntaxError */
+    private function validTagValue(string $tag): PhpDocTag|PhpDocChildKind
     {
         $kind = self::KINDS[$tag] ?? null;
         if ($kind === null) {
             $this->doctrineAnnotation();
-            return [self::GENERIC, null];
+            return PhpDocChildKind::Generic;
         }
         if ($kind === self::PARAM) {
-            return [self::VALID, $this->paramValue($tag)];
+            return $this->paramValue($tag) ?? PhpDocChildKind::Valid;
         }
         if ($kind === self::VAR) {
-            return [self::VALID, $this->varValue($tag)];
+            return $this->varValue($tag);
         }
         $this->otherValue($kind);
-        return [self::VALID, null];
+        return PhpDocChildKind::Valid;
     }
 
     /**
@@ -295,12 +281,11 @@ final class PhpDocTagParser
     }
 
     /**
-     * Returns the tag, or null for a `@param` tag without a type.
+     * Returns the tag, or null for a `@param` tag without a type, which PHPStan does not read.
      *
-     * @return array{string, string, PhpDocType|null}|null
      * @throws PhpDocSyntaxError
      */
-    private function paramValue(string $tag): array|null
+    private function paramValue(string $tag): PhpDocTag|null
     {
         $tokens = $this->tokens;
         $typed = !$tokens->is(PhpDocLexer::VARIABLE);
@@ -310,16 +295,15 @@ final class PhpDocTagParser
         $variable = $tokens->value();
         $tokens->consume(PhpDocLexer::VARIABLE);
         $this->text();
-        return $typed ? [$tag, $variable, $type] : null;
+        return $typed ? new PhpDocTag($tag, $variable, $type) : null;
     }
 
     /**
      * Returns the tag with its variable name, which is empty if the tag has none.
      *
-     * @return array{string, string, PhpDocType|null}
      * @throws PhpDocSyntaxError
      */
-    private function varValue(string $tag): array
+    private function varValue(string $tag): PhpDocTag
     {
         $tokens = $this->tokens;
         $type = PhpDocTypeTree::limit($this->types->type());
@@ -332,7 +316,7 @@ final class PhpDocTagParser
             $this->limitedDescription();
         }
         $this->text();
-        return [$tag, $variable, $type];
+        return new PhpDocTag($tag, $variable, $type);
     }
 
     /**
@@ -560,9 +544,9 @@ final class PhpDocTagParser
         $tokens->pushSavePoint();
         $name = $tokens->value();
         $tokens->next();
-        [$kind] = $this->tagValue($name);
+        $value = $this->tagValue($name);
         $tokens->rollback();
-        return $kind === self::GENERIC;
+        return $value === PhpDocChildKind::Generic;
     }
 
     /**
