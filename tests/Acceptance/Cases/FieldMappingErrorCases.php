@@ -35,6 +35,11 @@ final class FieldMappingErrorCases
                 '',
                 '#[Field] requires the target class to implement JsonSerializable.',
             ],
+            'mapping error precedes a private constructor' => [
+                '#[Field("wire")] public string $ref = ""; private function __construct() {}',
+                '',
+                '#[Field] requires the target class to implement JsonSerializable.',
+            ],
             'invalid attribute argument' => [
                 '#[Field(missing: "wire")] public string $ref = "";',
                 ' implements JsonSerializable',

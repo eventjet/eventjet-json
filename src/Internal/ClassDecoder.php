@@ -12,9 +12,7 @@ use ReflectionProperty;
 
 use function array_all;
 use function array_filter;
-use function assert;
 use function class_exists;
-use function is_array;
 
 /**
  * The compiled decoder of one class: its constructor arguments and its public properties outside the constructor.
@@ -49,12 +47,10 @@ final readonly class ClassDecoder
      */
     public static function compile(ReflectionClass $class): self|DecodeError
     {
-        $error = TargetClass::validate($class);
-        if ($error !== null) {
-            return $error;
+        $names = TargetClass::validate($class);
+        if ($names instanceof DecodeError) {
+            return $names;
         }
-        $names = TargetClass::fieldNames($class);
-        assert(is_array($names), description: 'The target validation rejects invalid field names.');
         $constructor = self::constructor($class, $names);
         if ($constructor instanceof DecodeError) {
             return $constructor;

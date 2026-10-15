@@ -28,12 +28,14 @@ final class TargetClass
     private static array $names = [];
 
     /**
-     * Rejects a class that cannot be instantiated from a JSON object.
+     * Rejects a class that cannot be instantiated from a JSON object, or returns the JSON names of its renamed
+     * properties, keyed by property name.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
+     * @return array<string, string>|DecodeError
      */
-    public static function validate(ReflectionClass $class): DecodeError|null
+    public static function validate(ReflectionClass $class): array|DecodeError
     {
         $className = $class->getName();
 
@@ -64,7 +66,7 @@ final class TargetClass
             return UnsupportedTarget::nonBackedEnum($className);
         }
 
-        return null;
+        return $names;
     }
 
     /**
