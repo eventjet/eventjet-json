@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use function array_intersect;
-use function array_key_last;
 use function array_pop;
 use function in_array;
-use function preg_match;
 
 /**
  * Walks the tokens of a doc comment like phpstan/phpdoc-parser's token iterator. Horizontal whitespace is skipped.
@@ -38,20 +35,9 @@ final class PhpDocTokens
     /** @var non-empty-list<int> */
     private readonly array $types;
 
-    /**
-     * Whether the source has a slash between two other characters. An HTML end tag needs one, and the slashes that
-     * open and close a doc comment are not.
-     */
-    private readonly bool $slash;
-
-    /** The index of the last `(`, after which no callable can start, or null if there is none. */
-    private readonly int|null $lastParenthesis;
-
     public function __construct(string $source)
     {
         [$this->values, $this->types] = PhpDocLexer::tokenize($source);
-        $this->slash = preg_match('~./.~', $source) === 1;
-        $this->lastParenthesis = array_key_last(array_intersect($this->types, [PhpDocLexer::OPEN_PARENTHESES]));
         $this->next();
     }
 
@@ -82,22 +68,6 @@ final class PhpDocTokens
     public function precededByWhitespace(): bool
     {
         return ($this->types[$this->index - 1] ?? null) === PhpDocLexer::HORIZONTAL_WS;
-    }
-
-    /** @mutation-free */
-    public function mayHaveHtmlEndTag(): bool
-    {
-        return $this->slash;
-    }
-
-    /**
-     * Whether a `(` is at or after the current position. A callable needs one.
-     *
-     * @mutation-free
-     */
-    public function parenthesisFollows(): bool
-    {
-        return $this->lastParenthesis !== null && $this->index <= $this->lastParenthesis;
     }
 
     public function next(): void

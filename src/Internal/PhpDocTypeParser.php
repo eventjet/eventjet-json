@@ -326,7 +326,7 @@ final class PhpDocTypeParser
     private function named(string $name): PhpDocType|null
     {
         $tokens = $this->tokens;
-        $html = $tokens->is(PhpDocLexer::OPEN_ANGLE_BRACKET) && $tokens->mayHaveHtmlEndTag() && $this->isHtml();
+        $html = $tokens->is(PhpDocLexer::OPEN_ANGLE_BRACKET) && $this->isHtml();
         if ($html) {
             return new PhpDocType($name);
         }
@@ -480,9 +480,6 @@ final class PhpDocTypeParser
     private function tryCallable(): bool
     {
         $tokens = $this->tokens;
-        if (!$tokens->parenthesisFollows()) {
-            return false;
-        }
         try {
             $tokens->pushSavePoint();
             $this->callable();

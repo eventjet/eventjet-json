@@ -126,7 +126,7 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(PhpDocType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLexer::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokens::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocSyntaxError::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTree::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocConstantParser::class)]

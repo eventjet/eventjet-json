@@ -16,6 +16,6 @@ paths = [
 minimum-fail-level = "note"
 
 [linter.rules]
-cyclomatic-complexity = { threshold = 82 }
-kan-defect = { threshold = 5.98 }
+cyclomatic-complexity = { threshold = 80 }
+kan-defect = { threshold = 5.9 }
 too-many-methods = { threshold = 43 }

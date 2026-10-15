@@ -20,7 +20,6 @@ minimum-fail-level = "note"
 cyclomatic-complexity = { exclude = [
     "src/Internal/PhpDocConstantParser.php",
     "src/Internal/PhpDocTagParser.php",
-    "src/Internal/PhpDocTokens.php",
     "src/Internal/PhpDocTypeParser.php",
 ] }
 kan-defect = { exclude = [
