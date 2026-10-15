@@ -12,6 +12,7 @@
 /docs/research/ export-ignore
 /infection.json export-ignore
 /mago.toml export-ignore
+/mago-phpdoc-parser.toml export-ignore
 /phpbench.json export-ignore
 /phpstan.neon export-ignore
 /phpunit.xml export-ignore

@@ -35,11 +35,9 @@ use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\TupleNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
-use Eventjet\Json\Internal\PhpDocCallableParser;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocCollectionCompiler;
 use Eventjet\Json\Internal\PhpDocFieldType;
-use Eventjet\Json\Internal\PhpDocHtmlDetector;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
 use Eventjet\Json\Internal\PhpDocImportStatement;
@@ -130,32 +128,12 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLexer::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocTokens::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocSyntaxError::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocTokenState::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTree::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocNestedTypeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocAtomicTypeParser::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocNamedTypeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocHtmlDetector::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocGenericParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocConstantParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantNameParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableReturnParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocArrayShapeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocShapeItemParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocTagValues::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocFieldTagValue::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocOtherTagValue::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodTagValue::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodParameterTagValue::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocTextParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocSimpleTags::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocSimpleTag::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTagSelector::class)]
 #[UsesClass(PhpDocUnionCompiler::class)]
@@ -333,8 +311,7 @@ final class AutoloadingTest extends TestCase
 
     /**
      * Doc comments without tags are not read. Doc comments with only `@param` and `@var` tags whose types fit on one
-     * line are read without the full PHPDoc parser. The full parser looks for HTML and callables only where they can
-     * follow: an HTML end tag needs a slash after the opening, and a callable needs a later `(`.
+     * line are read without the full PHPDoc parser.
      *
      * @throws ReflectionException
      * @throws JsonException
@@ -447,8 +424,6 @@ final class AutoloadingTest extends TestCase
         ];
         self::assertRoundTrips($full);
         static::assertTrue(class_exists(PhpDocLexer::class, autoload: false));
-        static::assertFalse(class_exists(PhpDocHtmlDetector::class, autoload: false));
-        static::assertFalse(class_exists(PhpDocCallableParser::class, autoload: false));
     }
 
     /**

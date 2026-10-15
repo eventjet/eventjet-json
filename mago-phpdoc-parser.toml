@@ -1,0 +1,21 @@
+#:schema vendor/carthage-software/mago/schema.json
+# Checks the PHPDoc parser classes, which mago.toml excludes from these rules, with the limits they need. Run with
+# `mago --config mago-phpdoc-parser.toml lint --only cyclomatic-complexity,kan-defect,too-many-methods`.
+php-version = "8.4"
+version = "1"
+
+[source]
+paths = [
+    "src/Internal/PhpDocConstantParser.php",
+    "src/Internal/PhpDocTagParser.php",
+    "src/Internal/PhpDocTokens.php",
+    "src/Internal/PhpDocTypeParser.php",
+]
+
+[linter]
+minimum-fail-level = "note"
+
+[linter.rules]
+cyclomatic-complexity = { threshold = 82 }
+kan-defect = { threshold = 5.98 }
+too-many-methods = { threshold = 43 }

@@ -62,7 +62,10 @@
             "@mago-analyze"
         ],
         "mago-analyze": "mago analyze",
-        "mago-lint": "mago lint",
+        "mago-lint": [
+            "mago lint",
+            "mago --config mago-phpdoc-parser.toml lint --only cyclomatic-complexity,kan-defect,too-many-methods"
+        ],
         "phpstan": "phpstan analyze",
         "phpunit": "phpunit",
         "psalm": "psalm"

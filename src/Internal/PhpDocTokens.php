@@ -6,45 +6,53 @@ namespace Eventjet\Json\Internal;
 
 use function array_intersect;
 use function array_key_last;
+use function array_pop;
+use function in_array;
 use function preg_match;
 
 /**
  * Walks the tokens of a doc comment like phpstan/phpdoc-parser's token iterator. Horizontal whitespace is skipped.
  *
+ * It also holds the save points and whether comments were consumed inside types. Parsers that throw between pushing
+ * and dropping a save point leave it on the stack, as phpdoc-parser does, so a later rollback can restore an earlier
+ * position than the one it saved.
+ *
  * @internal
  */
 final class PhpDocTokens
 {
-    public int $index = -1;
+    private int $index = -1;
 
     /** Whether line ends are skipped like whitespace, as inside the arguments of a Doctrine annotation. */
-    public bool $lineEndsAreWhitespace = false;
+    private bool $lineEndsAreWhitespace = false;
 
-    public readonly PhpDocTokenState $state;
+    /** Whether comments were consumed inside types and not yet attached to a type, which phpdoc-parser forbids. */
+    private bool $comments = false;
 
-    /** The index of the last `(`, after which no callable can start, or null if there is none. */
-    public readonly int|null $lastParenthesis;
+    /** @var list<array{int, bool}> */
+    private array $savePoints = [];
+
+    /** @var non-empty-list<string> */
+    private readonly array $values;
+
+    /** @var non-empty-list<int> */
+    private readonly array $types;
 
     /**
-     * @param non-empty-list<string> $values
-     * @param non-empty-list<int> $types
-     * @param bool $slash Whether the source has a slash between two other characters. An HTML end tag needs one,
-     *     and the slashes that open and close a doc comment are not.
+     * Whether the source has a slash between two other characters. An HTML end tag needs one, and the slashes that
+     * open and close a doc comment are not.
      */
-    private function __construct(
-        public readonly array $values,
-        public readonly array $types,
-        public readonly bool $slash,
-    ) {
-        $this->state = new PhpDocTokenState($this);
-        $this->lastParenthesis = array_key_last(array_intersect($types, [PhpDocLexer::OPEN_PARENTHESES]));
-        $this->next();
-    }
+    private readonly bool $slash;
 
-    public static function of(string $source): self
+    /** The index of the last `(`, after which no callable can start, or null if there is none. */
+    private readonly int|null $lastParenthesis;
+
+    public function __construct(string $source)
     {
-        [$values, $types] = PhpDocLexer::tokenize($source);
-        return new self($values, $types, preg_match('~./.~', $source) === 1);
+        [$this->values, $this->types] = PhpDocLexer::tokenize($source);
+        $this->slash = preg_match('~./.~', $source) === 1;
+        $this->lastParenthesis = array_key_last(array_intersect($this->types, [PhpDocLexer::OPEN_PARENTHESES]));
+        $this->next();
     }
 
     /**
@@ -76,6 +84,22 @@ final class PhpDocTokens
         return ($this->types[$this->index - 1] ?? null) === PhpDocLexer::HORIZONTAL_WS;
     }
 
+    /** @mutation-free */
+    public function mayHaveHtmlEndTag(): bool
+    {
+        return $this->slash;
+    }
+
+    /**
+     * Whether a `(` is at or after the current position. A callable needs one.
+     *
+     * @mutation-free
+     */
+    public function parenthesisFollows(): bool
+    {
+        return $this->lastParenthesis !== null && $this->index <= $this->lastParenthesis;
+    }
+
     public function next(): void
     {
         do {
@@ -103,5 +127,70 @@ final class PhpDocTokens
             throw PhpDocSyntaxError::instance();
         }
         $this->next();
+    }
+
+    /**
+     * Moves to the next token of one of the given types, without skipping whitespace on the way.
+     *
+     * @param list<int> $types
+     */
+    public function skipUntil(array $types): void
+    {
+        while (!in_array($this->types[$this->index] ?? PhpDocLexer::END, $types, strict: true)) {
+            $this->index++;
+        }
+    }
+
+    public function skipLineEndsAsWhitespace(bool $skip): void
+    {
+        $this->lineEndsAreWhitespace = $skip;
+    }
+
+    /** Skips line ends inside a type, together with any comments before or between them. */
+    public function skipLineEnds(): void
+    {
+        $this->skipComment();
+        $found = $this->is(PhpDocLexer::PHPDOC_EOL);
+        while ($found) {
+            $found = $this->tryConsume(PhpDocLexer::PHPDOC_EOL);
+            $this->skipComment();
+        }
+    }
+
+    public function flushComments(): void
+    {
+        $this->comments = false;
+    }
+
+    /** @mutation-free */
+    public function hasComments(): bool
+    {
+        return $this->comments;
+    }
+
+    public function pushSavePoint(): void
+    {
+        $this->savePoints[] = [$this->index, $this->comments];
+    }
+
+    public function dropSavePoint(): void
+    {
+        array_pop($this->savePoints);
+    }
+
+    public function rollback(): void
+    {
+        $savePoint = array_pop($this->savePoints);
+        if ($savePoint !== null) {
+            [$this->index, $this->comments] = $savePoint;
+        }
+    }
+
+    private function skipComment(): void
+    {
+        if ($this->is(PhpDocLexer::COMMENT)) {
+            $this->next();
+            $this->comments = true;
+        }
     }
 }

@@ -14,6 +14,26 @@ preset = "default"
 integrations = ["phpunit"]
 minimum-fail-level = "note"
 
+# The PHPDoc parser classes follow the classes of phpstan/phpdoc-parser, with one method per grammar rule, so they exceed
+# these limits. mago-phpdoc-parser.toml checks them with higher limits.
+[linter.rules]
+cyclomatic-complexity = { exclude = [
+    "src/Internal/PhpDocConstantParser.php",
+    "src/Internal/PhpDocTagParser.php",
+    "src/Internal/PhpDocTokens.php",
+    "src/Internal/PhpDocTypeParser.php",
+] }
+kan-defect = { exclude = [
+    "src/Internal/PhpDocConstantParser.php",
+    "src/Internal/PhpDocTagParser.php",
+    "src/Internal/PhpDocTypeParser.php",
+] }
+too-many-methods = { exclude = [
+    "src/Internal/PhpDocTagParser.php",
+    "src/Internal/PhpDocTokens.php",
+    "src/Internal/PhpDocTypeParser.php",
+] }
+
 [analyzer]
 allow-side-effects-in-conditions = false
 analyze-dead-code = true
