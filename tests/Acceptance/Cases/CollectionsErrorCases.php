@@ -139,7 +139,7 @@ final class CollectionsErrorCases
                     PhpType::union(PhpType::list(PhpType::Int), PhpType::String),
                     'var',
                 )
-                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var, @phpstan-var, @psalm-var, or @phan-var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'nested map declaration requires string keys' => [
@@ -147,7 +147,7 @@ final class CollectionsErrorCases
             CollectionDeclarationFixture::create('array', 'list<non-empty-array<int, int>>', 'param'),
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'list<non-empty-array<int, int>>', 'param')
-                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param, @phpstan-param, @psalm-param, or @phan-param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'list items cannot be non-backed enums' => [
@@ -163,7 +163,7 @@ final class CollectionsErrorCases
             CollectionDeclarationFixture::create('array', 'list<>', 'var'),
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'list<>', 'var')
-                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var, @phpstan-var, @psalm-var, or @phan-var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         $nullableList = CollectionDeclarationFixture::create(
@@ -185,7 +185,7 @@ final class CollectionsErrorCases
             $bareMapItems,
             'Could not create '
                 . $bareMapItems
-                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var, @phpstan-var, @psalm-var, or @phan-var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         $nullableGeneric = CollectionDeclarationFixture::create('?array', 'array<string, int>', 'param');
@@ -194,7 +194,7 @@ final class CollectionsErrorCases
             $nullableGeneric,
             'Could not create '
                 . $nullableGeneric
-                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param, @phpstan-param, @psalm-param, or @phan-param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'nullable array declaration must include null' => [
@@ -202,7 +202,7 @@ final class CollectionsErrorCases
             CollectionDeclarationFixture::create('?array', 'list<int>', 'var'),
             'Could not create '
                 . CollectionDeclarationFixture::create('?array', 'list<int>', 'var')
-                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var, @phpstan-var, @psalm-var, or @phan-var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
     }

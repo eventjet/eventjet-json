@@ -185,7 +185,7 @@ final class UnsupportedUnionErrorCases
             CollectionDeclarationFixture::create('array|\ArrayObject', 'list<int>|ArrayObject', 'var'),
             'Could not create '
                 . CollectionDeclarationFixture::create('array|\ArrayObject', 'list<int>|ArrayObject', 'var')
-                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var, @phpstan-var, @psalm-var, or @phan-var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'collection union declaration must match its native members' => [
@@ -206,13 +206,13 @@ final class UnsupportedUnionErrorCases
                     ),
                     'param',
                 )
-                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param, @phpstan-param, @psalm-param, or @phan-param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'array union property requires a collection declaration' => [
             '{}',
             ArrayScalarUnionPublicProperty::class,
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ArrayScalarUnionPublicProperty from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ArrayScalarUnionPublicProperty from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var, @phpstan-var, @psalm-var, or @phan-var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
     }

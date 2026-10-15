@@ -52,7 +52,7 @@ final class NodeCompiler
             'list', 'non-empty-list' => self::list($type, $path),
             'non-empty-array', 'non-empty-map', ArrayObject::class => self::map($type, $path),
             'array' => null,
-            default => $arguments === [] ? NamedTypeCompiler::compile($type->name, $path) : null,
+            default => $arguments === [] ? NamedTypeCompiler::compile($type, $path) : null,
         };
     }
 

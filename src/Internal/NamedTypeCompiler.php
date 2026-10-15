@@ -69,12 +69,13 @@ final class NamedTypeCompiler
     }
 
     /** @throws ReflectionException */
-    public static function compile(string $name, string $path): Node|DecodeError
+    public static function compile(PhpDocType $type, string $path): Node|DecodeError
     {
+        $name = $type->name;
         return match (true) {
+            $type->literal !== null => self::literal($type->literal, $path),
             array_key_exists($name, self::SCALARS) => new ScalarNode($name, false),
             $name === 'null' => new NullOnlyNode('null'),
-            PhpDocType::literalSyntax($name) => self::literal($name, $path),
             array_key_exists($name, self::RESOURCES) => UnsupportedField::nonEncodable($path, $name),
             default => self::named($name, $path),
         };
@@ -128,10 +129,12 @@ final class NamedTypeCompiler
     }
 
     /** A literal enum case is subject to the rules of its enum. */
-    private static function literal(string $name, string $path): Node|DecodeError
+    private static function literal(PhpDocLiteral $literal, string $path): Node|DecodeError
     {
-        $value = PhpDocLiteral::value($name);
-        return $value instanceof JsonSerializable ? self::serializedEnum($value::class, $path) : LiteralNode::of($name);
+        $value = $literal->value;
+        return $value instanceof JsonSerializable
+            ? self::serializedEnum($value::class, $path)
+            : LiteralNode::of($literal);
     }
 
     private static function serializedEnum(string $enum, string $path): DecodeError

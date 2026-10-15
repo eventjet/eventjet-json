@@ -37,8 +37,6 @@ final readonly class PhpDocTypeResolver
     /** Names that resolve to themselves. */
     private const array KEYWORDS = [
         'null' => true,
-        'true' => true,
-        'false' => true,
         'resource' => true,
         'open-resource' => true,
         'closed-resource' => true,
@@ -47,6 +45,9 @@ final readonly class PhpDocTypeResolver
         'int' => true,
         'string' => true,
     ];
+
+    /** Names of boolean literals. Constants resolve when no class has their name. */
+    private const array BOOLEANS = ['true' => true, 'false' => true];
 
     private const array SCALARS = ['bool' => true, 'float' => true, 'int' => true, 'string' => true];
 
@@ -61,18 +62,19 @@ final readonly class PhpDocTypeResolver
      */
     public function resolve(PhpDocType $type): PhpDocType|null
     {
-        $integerRange = $type->name === 'int' && $type->isIntegerRange();
         return match (true) {
+            $type->literal !== null => $type,
             $type->name === '|' => $this->union($type->arguments),
             $type->name === 'array{}' => $this->shape($type->entries),
-            $integerRange => new PhpDocType('int'),
-            $type->arguments !== [] => $this->generic($type),
-            default => $this->name($type),
+            $type->arguments === [] => $this->name($type),
+            $type->name !== 'int' => $this->generic($type),
+            PhpDocIntegerRange::matches($type) => new PhpDocType('int'),
+            default => $this->generic($type),
         };
     }
 
     /**
-     * Returns the first member that looks like a literal but resolves to no value, such as `1e999`.
+     * Returns the first member that names literals by its syntax but resolves to none, such as `Foo::MISSING`.
      *
      * @throws ReflectionException
      */
@@ -82,7 +84,7 @@ final readonly class PhpDocTypeResolver
             $type->members(),
             /** @throws ReflectionException */
             fn(PhpDocType $member): bool => (
-                PhpDocType::literalSyntax($member->name)
+                PhpDocConstantResolver::namesLiteral($member->name)
                 && $this->resolve($member) === null
             ),
         );
@@ -151,17 +153,18 @@ final readonly class PhpDocTypeResolver
     {
         $name = $type->name;
         $names = match (true) {
+            $name === 'array-key' => ['int', 'string'],
             array_key_exists($name, self::KEYWORDS) => [$name],
-            PhpDocType::literalSyntax($name) => PhpDocConstantResolver::literals($this->field, $name),
+            array_key_exists($name, self::BOOLEANS) => PhpDocConstantResolver::literals($this->field, $name),
             default => $this->named($name),
         };
+        $toType = static fn(PhpDocLiteral|string $name): PhpDocType => $name instanceof PhpDocLiteral
+            ? PhpDocType::literal($name)
+            : new PhpDocType($name);
         return match (true) {
             $names === null => null,
-            count($names) === 1 => $names[0] === $name ? $type : new PhpDocType($names[0]),
-            default => new PhpDocType('|', array_map(
-                static fn(string $literal): PhpDocType => new PhpDocType($literal),
-                $names,
-            )),
+            count($names) === 1 => $names[0] === $name ? $type : array_map($toType, $names)[0],
+            default => new PhpDocType('|', array_map($toType, $names)),
         };
     }
 
@@ -169,7 +172,7 @@ final readonly class PhpDocTypeResolver
      * Resolves a scalar or class name, or else a constant. Class names take their declared spelling, which can differ
      * in case from the PHPDoc reference.
      *
-     * @return list<string>|null
+     * @return non-empty-list<PhpDocLiteral|string>|null
      * @throws ReflectionException
      */
     private function named(string $name): array|null

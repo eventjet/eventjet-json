@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Unit\Optimization;
 
+use ArrayObject;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
@@ -33,31 +34,39 @@ use Eventjet\Json\Internal\Node\TupleNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\NodeCompiler;
+use Eventjet\Json\Internal\PhpDocCallableParser;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocConstantImportStatement;
 use Eventjet\Json\Internal\PhpDocConstantResolver;
 use Eventjet\Json\Internal\PhpDocFieldType;
+use Eventjet\Json\Internal\PhpDocHtmlDetector;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
 use Eventjet\Json\Internal\PhpDocImportStatement;
+use Eventjet\Json\Internal\PhpDocIntegerRange;
+use Eventjet\Json\Internal\PhpDocLexer;
 use Eventjet\Json\Internal\PhpDocLiteral;
-use Eventjet\Json\Internal\PhpDocLiteralNumber;
+use Eventjet\Json\Internal\PhpDocLiteralNativeType;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
 use Eventjet\Json\Internal\PhpDocNarrowing;
+use Eventjet\Json\Internal\PhpDocSimpleTags;
 use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
-use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\ValueTypeMatcher;
+use Eventjet\Json\Json;
+use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
+use Eventjet\Json\Test\Acceptance\Fixtures\ExtendedLiteralFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedReference;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredEnumBacking;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredListItem;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredValueEnum;
@@ -76,13 +85,18 @@ use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
+use RuntimeException;
 use stdClass;
 use TypeError;
 
 use function class_exists;
 use function enum_exists;
+use function json_encode;
 use function spl_autoload_register;
 use function spl_autoload_unregister;
+use function str_repeat;
+
+use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(PhpDocClassNameResolver::class)]
 #[CoversClass(ConstructorPlan::class)]
@@ -115,7 +129,38 @@ use function spl_autoload_unregister;
 #[UsesClass(PhpDocTupleEntry::class)]
 #[UsesClass(PhpDocType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
-#[UsesClass(PhpDocTypeTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLexer::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSyntaxError::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokenState::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTree::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNestedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocAtomicTypeParser::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocNamedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocHtmlDetector::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocGenericParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantNameParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableReturnParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocArrayShapeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocShapeItemParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagValues::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocFieldTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocOtherTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodParameterTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTextParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocChildKind::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocSimpleTags::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocSimpleTag::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(ScalarItems::class)]
@@ -127,7 +172,6 @@ use function spl_autoload_unregister;
 #[UsesClass(PhpDocConstantImportStatement::class)]
 #[UsesClass(PhpDocConstantResolver::class)]
 #[UsesClass(PhpDocLiteral::class)]
-#[UsesClass(PhpDocLiteralNumber::class)]
 #[CoversClass(UnionNode::class)]
 #[UsesClass(ClassDecoder::class)]
 #[UsesClass(ClassDecoders::class)]
@@ -136,6 +180,12 @@ use function spl_autoload_unregister;
 #[UsesClass(InvalidValue::class)]
 #[UsesClass(UnsupportedField::class)]
 #[UsesClass(MappedObjectSerializer::class)]
+#[UsesClass(\Eventjet\Json\Internal\Error\UnsupportedCollection::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantValues::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocIntegerRange::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
+#[UsesClass(\Eventjet\Json\Json::class)]
+#[UsesClass(PhpDocLiteralNativeType::class)]
 final class AutoloadingTest extends TestCase
 {
     /**
@@ -201,6 +251,19 @@ final class AutoloadingTest extends TestCase
             'nullable' => null,
         ];
         $class = new ReflectionClass($target);
+        // A PHPDoc type that does not narrow an unsupported native type leaves the native type in charge.
+        $imprecise = new ReflectionProperty(
+            new class {
+                /** @var stdClass */
+                public object $value;
+
+                public function __construct()
+                {
+                    $this->value = new stdClass();
+                }
+            },
+            'value',
+        );
         $requests = new class {
             /** @var list<string> */
             public array $names = [];
@@ -225,11 +288,14 @@ final class AutoloadingTest extends TestCase
                     static::assertSame($value, $node->decode($value, $name));
                 }
             }
+            $impreciseType = $imprecise->getType();
+            static::assertNotNull($impreciseType);
+            static::assertInstanceOf(DecodeError::class, new TypeCompiler()->field($imprecise, $impreciseType));
         } finally {
             spl_autoload_unregister($autoload);
         }
 
-        foreach (['int', 'float', 'string', 'bool'] as $builtin) {
+        foreach (['int', 'float', 'string', 'bool', 'object'] as $builtin) {
             static::assertNotContains($builtin, $requests->names);
         }
     }
@@ -238,67 +304,41 @@ final class AutoloadingTest extends TestCase
      * @throws Exception
      * @throws ReflectionException
      * @throws TypeError
+     * @throws JsonException
+     * @throws UnknownClassOrInterfaceException
      */
-    public function testPhpDocThatDoesNotNarrowNeverInvokesAutoloadersForBuiltinNames(): void
+    public function testLiteralFieldsNeverInvokeAutoloaders(): void
     {
-        $target = new class {
-            /** @var stdClass */
-            public object $value;
+        $target = new class('a', 1, true) {
+            /** @var \Eventjet\Json\Test\Acceptance\Fixtures\ExtendedLiteralFields::NUMBER */
+            public int $constant = ExtendedLiteralFields::NUMBER;
 
-            public function __construct()
-            {
-                $this->value = new stdClass();
-            }
-        };
-        $property = new ReflectionProperty($target, 'value');
-        $type = $property->getType();
-        static::assertNotNull($type);
-        $requests = new class {
+            /** @var list<bool> */
+            public array $booleans = [true];
+
+            /** @var list<float> */
+            public array $floats = [1.5];
+
+            /** @var list<int> */
+            public array $integers = [1];
+
             /** @var list<string> */
-            public array $names = [];
-        };
-        $autoload = static function (string $name) use ($requests): void {
-            $requests->names[] = $name;
-        };
-        spl_autoload_register($autoload, prepend: true);
+            public array $strings = ['value'];
 
-        try {
-            static::assertInstanceOf(DecodeError::class, new TypeCompiler()->field($property, $type));
-        } finally {
-            spl_autoload_unregister($autoload);
-        }
+            /** @var list<42> */
+            public array $literals = [42];
 
-        static::assertNotContains('object', $requests->names);
-    }
-
-    /**
-     * @throws Exception
-     * @throws TypeError
-     */
-    public function testPhpDocScalarAndLiteralItemsNeverInvokeAutoloaders(): void
-    {
-        $target = new class([true], [1.5], [1], ['value'], [42]) {
             /**
-             * @param list<bool> $booleans
-             * @param list<float> $floats
-             * @param list<int> $integers
-             * @param list<string> $strings
-             * @param list<42> $literals
+             * @param 'a'|"b" $string
+             * @param 1|-7 $integer
+             * @param true $boolean
              */
             public function __construct(
-                public array $booleans,
-                public array $floats,
-                public array $integers,
-                public array $strings,
-                public array $literals,
+                public string $string,
+                public int $integer,
+                public bool $boolean,
             ) {}
         };
-        $input = new stdClass();
-        $input->booleans = [true];
-        $input->floats = [1.5];
-        $input->integers = [1];
-        $input->strings = ['value'];
-        $input->literals = [42];
         $requests = new class {
             /** @var list<string> */
             public array $names = [];
@@ -306,17 +346,33 @@ final class AutoloadingTest extends TestCase
         $autoload = static function (string $name) use ($requests): void {
             $requests->names[] = $name;
         };
-        spl_autoload_register($autoload, prepend: true);
+        spl_autoload_register($autoload);
 
         try {
-            static::assertEquals($target, ClassDecoders::hydrate($target::class, $input));
+            $constructor = [$target::class, '__construct'];
+            $fields = [
+                'string' => [new ReflectionParameter($constructor, 'string'), 'a'],
+                'integer' => [new ReflectionParameter($constructor, 'integer'), 1],
+                'boolean' => [new ReflectionParameter($constructor, 'boolean'), true],
+                'constant' => [new ReflectionProperty($target, 'constant'), ExtendedLiteralFields::NUMBER],
+                'booleans' => [new ReflectionProperty($target, 'booleans'), [true]],
+                'floats' => [new ReflectionProperty($target, 'floats'), [1.5]],
+                'integers' => [new ReflectionProperty($target, 'integers'), [1]],
+                'strings' => [new ReflectionProperty($target, 'strings'), ['value']],
+                'literals' => [new ReflectionProperty($target, 'literals'), [42]],
+            ];
+            foreach ($fields as $name => [$field, $value]) {
+                $type = $field->getType();
+                static::assertNotNull($type);
+                $node = new TypeCompiler()->field($field, $type);
+                static::assertNotInstanceOf(DecodeError::class, $node);
+                static::assertSame($value, $node->decode($value, $name));
+            }
         } finally {
             spl_autoload_unregister($autoload);
         }
 
-        foreach (['array', 'bool', 'float', 'int', 'string', '42'] as $name) {
-            static::assertNotContains($name, $requests->names);
-        }
+        static::assertSame([], $requests->names);
     }
 
     /**
@@ -367,5 +423,154 @@ final class AutoloadingTest extends TestCase
             static::assertSame(1, $class->propertyLookups);
             static::assertSame(1, $class->parentLookups);
         }
+    }
+
+    /**
+     * Doc comments without tags are not read. Doc comments with only `@param` and `@var` tags whose types fit on one
+     * line are read without the full PHPDoc parser. The full parser looks for HTML and callables only where they can
+     * follow: an HTML end tag needs a slash after the opening, and a callable needs a later `(`.
+     *
+     * @throws ReflectionException
+     * @throws JsonException
+     * @throws RuntimeException
+     * @throws \PHPUnit\Framework\Exception
+     * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
+     */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testDocCommentsLoadOnlyTheParsersTheyNeed(): void
+    {
+        $untagged = new class([1]) {
+            /** Takes 1 list. */
+            public function __construct(
+                /** @var list<int> */
+                public array $items,
+            ) {}
+        };
+        static::assertInstanceOf(DecodeError::class, Json::decode('{"items":[1]}', $untagged::class));
+        static::assertFalse(class_exists(PhpDocSimpleTags::class, autoload: false));
+
+        $number = '\\' . ExtendedLiteralFields::class . '::NUMBER';
+        $status = '\\' . StringBackedStatus::class;
+        $simple = [
+            CollectionDeclarationFixture::object('array', '/** @param list<int> $value */', 'param', [1]),
+            CollectionDeclarationFixture::object('array', "/**\n * @param list<int> \$value\n */", 'param', [1]),
+            CollectionDeclarationFixture::object('array', "/**\r\n * @var list<string>\r\n */", 'var', ['a']),
+            CollectionDeclarationFixture::object(
+                'array',
+                "/**\n\t * @phpstan-param list<string> \$value Text.\n\t * More text.\n\t */",
+                'param',
+                ['a'],
+            ),
+            CollectionDeclarationFixture::object(
+                'array',
+                "/**\n * Summary.\n *\n * @psalm-var non-empty-list<'a'|\"b\"> \$value\n */",
+                'var',
+                ['b'],
+            ),
+            CollectionDeclarationFixture::object('?array', '/** @phan-var list<int>|null */', 'var', null),
+            CollectionDeclarationFixture::object(
+                'array',
+                '/** @var list<' . $number . '|-1|0> $value */',
+                'var',
+                [42, -1],
+            ),
+            CollectionDeclarationFixture::object(
+                'ArrayObject',
+                '/** @param ArrayObject < string , int > $value */',
+                'param',
+                new ArrayObject(['a' => 1]),
+            ),
+            CollectionDeclarationFixture::object('array', "/**\n   @param list< int > \$value\n */", 'param', [1]),
+            CollectionDeclarationFixture::object('array', "/**\n *@var list<int>\n **/", 'var', [1]),
+            CollectionDeclarationFixture::object('array', '/**  @var  list<int>  */', 'var', [1]),
+            CollectionDeclarationFixture::object(
+                'array',
+                "/**\n * @param list<int> \$other\n * @param list<" . $status . "> \$value\n */",
+                'param',
+                [StringBackedStatus::Ready],
+            ),
+            CollectionDeclarationFixture::object(
+                'array',
+                "/**\n * @var list<int>|list<string> \$other A | B\n * @var list<bool> \$value\n */",
+                'var',
+                [true],
+            ),
+            CollectionDeclarationFixture::object(
+                'array',
+                '/** @var non-empty-array<string, list<int>> */',
+                'var',
+                ['a' => [1]],
+            ),
+            CollectionDeclarationFixture::object('array', '/** @param list<int>    $value  */', 'param', [1]),
+            CollectionDeclarationFixture::object(
+                'array',
+                "/**\n * {@inheritDoc}\n * @param list<int> \$value\n */",
+                'param',
+                [1],
+            ),
+            CollectionDeclarationFixture::object(
+                'array',
+                '/** @param ' . str_repeat('list<', times: 63) . 'int' . str_repeat('>', times: 63) . ' $value */',
+                'param',
+                self::nestedList(62),
+            ),
+        ];
+        self::assertRoundTrips($simple);
+        static::assertFalse(class_exists(PhpDocLexer::class, autoload: false));
+        static::assertFalse(class_exists(PhpDocIntegerRange::class, autoload: false));
+
+        $full = [
+            CollectionDeclarationFixture::object(
+                'array',
+                "/**\n * @return void\n * @param list<int> \$value\n */",
+                'param',
+                [1],
+            ),
+            CollectionDeclarationFixture::object(
+                'array',
+                "/**\n * @param list<array{int}> \$value\n * @param-out int \$value\n */",
+                'param',
+                [[1]],
+            ),
+            CollectionDeclarationFixture::object(
+                'array',
+                "/**\n * (Text.)\n * @return void\n * @param list<int> \$value\n */",
+                'param',
+                [1],
+            ),
+        ];
+        self::assertRoundTrips($full);
+        static::assertTrue(class_exists(PhpDocLexer::class, autoload: false));
+        static::assertFalse(class_exists(PhpDocHtmlDetector::class, autoload: false));
+        static::assertFalse(class_exists(PhpDocCallableParser::class, autoload: false));
+    }
+
+    /**
+     * Checks each object right after decoding it. When a mutant makes the parser loop, the time limit aborts the decode,
+     * which returns the abort as a decode error. Checking it right away ends the test before the next decode loops
+     * without a limit.
+     *
+     * @param list<object> $originals
+     * @throws JsonException
+     */
+    private static function assertRoundTrips(array $originals): void
+    {
+        foreach ($originals as $original) {
+            static::assertEquals($original, Json::decode(
+                json_encode($original, JSON_THROW_ON_ERROR),
+                $original::class,
+            ));
+        }
+    }
+
+    /** @return list<mixed> */
+    private static function nestedList(int $depth): array
+    {
+        $list = [1];
+        for ($level = 0; $level < $depth; ++$level) {
+            $list = [$list];
+        }
+        return $list;
     }
 }

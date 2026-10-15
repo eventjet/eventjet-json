@@ -38,6 +38,9 @@ final readonly class TypeCompiler
     public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|DecodeError
     {
         $declared = PhpDocFieldType::resolve($field);
+        if ($declared instanceof DecodeError) {
+            return $declared;
+        }
         $doc = $declared === null
             ? null
             : self::narrowing(new PhpDocTypeResolver($field)->resolve($declared), $field, $type);

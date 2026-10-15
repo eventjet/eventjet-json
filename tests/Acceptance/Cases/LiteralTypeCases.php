@@ -29,6 +29,7 @@ final class LiteralTypeCases
         yield 'constant imports and null constant' => [new LiteralConstantFields()];
         yield from LiteralSyntaxRoundTripCases::objects();
         yield from LiteralConstantCases::objects();
+        yield from NumberLiteralPrecedenceCases::ignored();
         yield 'extended literal syntax and constant values' => [new ExtendedLiteralFields()];
         yield 'single literal constructor fields' => [new SingleLiteralFields()];
         yield 'literal string field' => [new LiteralFields('foo')];
@@ -73,6 +74,8 @@ final class LiteralTypeCases
     public static function errors(): iterable
     {
         yield from LiteralDeclarationErrorCases::errors();
+        yield from NumberLiteralErrorCases::errors();
+        yield from NumberLiteralPrecedenceCases::errors();
         yield from self::mismatches();
         yield from self::repeatedTags();
         yield from self::collectionUnionErrors();
@@ -207,13 +210,12 @@ final class LiteralTypeCases
     private static function repeatedTags(): iterable
     {
         foreach (['param', 'var'] as $tag) {
-            $name = $tag === 'param' ? ' $value' : '';
-            $doc = "/**\n * @" . $tag . ' 42' . $name . "\n * @" . $tag . ' 43' . $name . "\n */";
+            $doc = "/**\n * @" . $tag . ' 42 $value' . "\n * @" . $tag . ' 43 $value' . "\n */";
             $class = CollectionDeclarationFixture::create('int', $doc, $tag);
-            yield 'the first of repeated tags declares the field ' . $tag => [
-                '{"value":43}',
+            yield 'the last of repeated tags declares the field ' . $tag => [
+                '{"value":42}',
                 $class,
-                'Could not create ' . $class . ' from the JSON object: Field value must be of type 42, int given.',
+                'Could not create ' . $class . ' from the JSON object: Field value must be of type 43, int given.',
                 DecodeErrorKind::InvalidValue->value,
             ];
         }

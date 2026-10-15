@@ -12,7 +12,6 @@ use Override;
 use function array_column;
 use function array_unique;
 use function array_values;
-use function assert;
 use function get_debug_type;
 use function is_float;
 
@@ -35,11 +34,10 @@ final readonly class LiteralNode implements Node
         private Node|null $fallback,
     ) {}
 
-    /** Returns the node of a single literal that resolves to a value. */
-    public static function of(string $name): self
+    /** Returns the node of a single literal. */
+    public static function of(PhpDocLiteral $literal): self
     {
-        $value = PhpDocLiteral::value($name);
-        assert($value !== null, description: 'Compilers only pass literals that resolve to a value.');
+        $value = $literal->value;
         $json = $value instanceof BackedEnum ? $value->value : $value;
         $type = match ($json) {
             true => 'true',
@@ -52,7 +50,13 @@ final readonly class LiteralNode implements Node
         if ($whole) {
             $values[] = ['int', (int) $json, $value];
         }
-        return new self($name, $values, null);
+        return new self($literal->name, $values, null);
+    }
+
+    /** Returns the PHP value of a single literal. */
+    public function value(): string|int|float|bool|BackedEnum
+    {
+        return $this->values[0][2];
     }
 
     /**

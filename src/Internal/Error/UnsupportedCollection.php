@@ -20,7 +20,7 @@ final class UnsupportedCollection
     public static function unrecognized(string $field, string $tag): DecodeError
     {
         return self::error(sprintf(
-            'Field %s has a missing or unrecognized collection declaration. Use @%s with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            'Field %1$s has a missing or unrecognized collection declaration. Use @%2$s, @phpstan-%2$s, @psalm-%2$s, or @phan-%2$s with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             $field,
             $tag,
         ));

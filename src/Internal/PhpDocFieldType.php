@@ -4,37 +4,46 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedField;
 use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
 
 use function array_key_exists;
-use function preg_match;
-use function preg_match_all;
-use function preg_replace;
 use function str_contains;
-use function str_replace;
-use function strpbrk;
-use function trim;
 
 /** @internal */
 final class PhpDocFieldType
 {
-    /** @var array<string, array<string, PhpDocType>> Keyed by tag and doc comment, then by parameter name. */
-    private static array $types = [];
+    /**
+     * The tags of each doc comment read so far, so that a constructor's doc comment is read once for all parameters.
+     *
+     * @var array<string, list<PhpDocTag>>
+     */
+    private static array $tags = [];
 
     /**
-     * Returns the PHPDoc type of a field: its `@var` tag, or the constructor's `@param` tag for a parameter. Each doc
-     * comment is parsed once, even if it declares several parameters, and only if it has the tag.
+     * Returns the PHPDoc type of a field: the `@var` tag that counts, or the constructor's `@param` tag that counts for a
+     * parameter. Returns null if no tag counts or the decoder does not support the type of the tag that does. Each doc
+     * comment is read once, even if it declares several parameters, and only if it has the tag. Returns an error if the
+     * type has a number that PHP and PHPStan can read differently.
      */
-    public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|null
+    public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|DecodeError|null
     {
-        [$doc, $tag, $name] = $field instanceof ReflectionParameter
-            ? [$field->getDeclaringFunction()->getDocComment(), '@param', $field->getName()]
-            : [$field->getDocComment(), '@var', ''];
-        $doc = (string) $doc;
-        self::$types[$tag . $doc] ??= str_contains($doc, $tag) ? self::types($doc, $tag) : [];
-        return self::$types[$tag . $doc][$name] ?? null;
+        $parameter = $field instanceof ReflectionParameter;
+        $doc = self::docComment($field);
+        if (!str_contains($doc, $parameter ? 'param' : 'var')) {
+            return null;
+        }
+        self::$tags[$doc] ??= PhpDocSimpleTags::tags($doc) ?? PhpDocTagParser::tags($doc);
+        $tags = self::$tags[$doc];
+        $tag = $parameter
+            ? PhpDocTag::forParameter($tags, $field->getName())
+            : PhpDocTag::forProperty($tags, $field->getName());
+        $type = $tag?->type;
+        $number = $type?->unsupportedNumber;
+        return $number === null ? $type : UnsupportedField::number($field->getName(), $number);
     }
 
     /**
@@ -46,50 +55,24 @@ final class PhpDocFieldType
      */
     public static function narrowing(PhpDocType $doc, string $native): PhpDocType|null
     {
-        $name = $doc->name;
-        $literal = PhpDocType::literalSyntax($name);
-        $declared = $literal
-            ? PhpDocLiteralNativeType::name($name, [$native])
-            : PhpDocType::COLLECTIONS[$name] ?? $name;
+        $literal = $doc->literal;
+        $declared = $literal === null
+            ? PhpDocType::COLLECTIONS[$doc->name] ?? $doc->name
+            : PhpDocLiteralNativeType::name($literal, [$native]);
         $canonical = match (true) {
-            !$literal && !array_key_exists($native, PhpDocType::CONTAINERS) => null,
+            $literal === null && !array_key_exists($native, PhpDocType::CONTAINERS) => null,
             $declared === $native => $native,
             default => PhpDocClassNameResolver::canonical($native),
         };
         return $canonical === $declared ? $doc : null;
     }
 
-    /**
-     * Returns the first valid type of each field that a doc comment declares with a tag: `@param` types keyed by
-     * parameter name, or the `@var` type keyed by an empty string.
-     *
-     * @param '@param'|'@var' $tag
-     * @return array<string, PhpDocType>
-     */
-    private static function types(string $doc, string $tag): array
+    /** Returns the doc comment that declares a field: the constructor's for a parameter. */
+    private static function docComment(ReflectionParameter|ReflectionProperty $field): string
     {
-        $doc =
-            preg_replace('/^[ \t]*\*[ \t]?/m', replacement: '', subject: str_replace('*/', replace: '', subject: $doc))
-            ?? '';
-        // Quoted literals may contain "@", so each source then extends to the end and the parser finds where the type ends.
-        $source = strpbrk($doc, characters: "'\"") === false ? '([^@]+)' : '(?=([\s\S]*))';
-        $matches = [];
-        preg_match_all('/' . $tag . '\s+' . $source . '/', $doc, $matches);
-        $suffix = $tag === '@param'
-            ? '/\A\s+\$([A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)(?:\s|$)/'
-            : '/\A()(?:\s+[^\s|&<>\[\],?:{}].*)?\z/s';
-        /** @var array{list<string>, list<string>} $matches */
-        $sources = $matches[1];
-        $types = [];
-        foreach ($sources as $source) {
-            $parsed = PhpDocTypeParser::prefix(trim($source, characters: " \t\r\n\v\f"));
-            $name = [];
-            $valid = $parsed !== null && preg_match($suffix, $parsed[1], $name) === 1;
-            if ($valid) {
-                /** @var array{string, string} $name */
-                $types[$name[1]] ??= $parsed[0];
-            }
-        }
-        return $types;
+        $doc = $field instanceof ReflectionParameter
+            ? $field->getDeclaringFunction()->getDocComment()
+            : $field->getDocComment();
+        return (string) $doc;
     }
 }

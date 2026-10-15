@@ -33,11 +33,11 @@ final class PhpDocNarrowing
         $narrows = array_intersect_key(array_flip($names), PhpDocType::CONTAINERS) !== [];
         $declared = [];
         foreach ($doc->members() as $member) {
-            $literal = PhpDocType::literalSyntax($member->name);
-            $narrows = $narrows || $literal;
-            $declared[] = $literal
-                ? PhpDocLiteralNativeType::name($member->name, $names)
-                : PhpDocType::COLLECTIONS[$member->name] ?? $member->name;
+            $literal = $member->literal;
+            $narrows = $narrows || $literal !== null;
+            $declared[] = $literal === null
+                ? PhpDocType::COLLECTIONS[$member->name] ?? $member->name
+                : PhpDocLiteralNativeType::name($literal, $names);
         }
         if (!$narrows) {
             return null;

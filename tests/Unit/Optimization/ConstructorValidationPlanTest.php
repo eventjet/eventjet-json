@@ -46,7 +46,6 @@ use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
-use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\RenamedArguments;
@@ -106,7 +105,38 @@ use function class_alias;
 #[UsesClass(PhpDocTupleEntry::class)]
 #[UsesClass(PhpDocType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
-#[UsesClass(PhpDocTypeTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLexer::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSyntaxError::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokenState::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTree::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNestedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocAtomicTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNamedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocHtmlDetector::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocGenericParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantNameParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableReturnParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocArrayShapeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocShapeItemParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagValues::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocFieldTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocOtherTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodParameterTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTextParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocChildKind::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTags::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTag::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(ScalarItems::class)]
 #[UsesClass(TupleNode::class)]

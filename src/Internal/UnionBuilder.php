@@ -103,12 +103,7 @@ final class UnionBuilder
     private function literals(array $members): DecodeError|null
     {
         $literal = array_any($members, static fn(Node $member): bool => $member instanceof LiteralNode);
-        return $literal
-            ? PhpDocLiteralUnionValidator::validate(
-                $this->path,
-                array_map(static fn(Node $member): string => (string) $member, $members),
-            )
-            : null;
+        return $literal ? PhpDocLiteralUnionValidator::validate($this->path, $members) : null;
     }
 
     /** @param list<Node> $members */
