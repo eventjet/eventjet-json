@@ -83,8 +83,8 @@ final class PhpDocCallableReturnParser
      */
     private static function constant(PhpDocTokens $tokens): void
     {
-        $name = PhpDocConstantParser::constant($tokens);
-        if ($name === null) {
+        $constant = PhpDocConstantParser::constant($tokens);
+        if ($constant === null) {
             throw PhpDocSyntaxError::instance();
         }
     }

@@ -61,13 +61,17 @@ final readonly class PhpDocItemCompiler
     }
 
     /**
-     * Returns the literal names that a PHPDoc type stands for, expanding constants, or null if it is no literal.
+     * Returns the literals, or `null`, that a PHPDoc type stands for, expanding constants. Returns null if it stands for
+     * none.
      *
-     * @return non-empty-list<string>|null
+     * @return non-empty-list<PhpDocLiteral|'null'>|null
      * @throws ReflectionException
      */
     public function literals(PhpDocType $type): array|null
     {
+        if ($type->literal !== null) {
+            return [$type->literal];
+        }
         return $type->arguments === [] ? PhpDocConstantResolver::literals($this->field, $type->name) : null;
     }
 
@@ -81,7 +85,7 @@ final readonly class PhpDocItemCompiler
         if ($type->arguments === []) {
             return FieldTypeNameResolver::resolvePhpDoc($this->field, $type->name);
         }
-        $isIntegerRange = $type->isIntegerRange();
+        $isIntegerRange = PhpDocIntegerRange::matches($type);
         return $isIntegerRange ? 'int' : null;
     }
 
@@ -104,22 +108,20 @@ final readonly class PhpDocItemCompiler
     }
 
     /**
-     * Compiles a member that is a name: a literal, a scalar, an enum, or a class.
+     * Compiles a member that is not a collection: a literal, null, a scalar, an enum, or a class.
      *
      * @throws ReflectionException
      */
-    public function member(string $member, string $path): Node|DecodeError
+    public function member(PhpDocLiteral|string $member, string $path): Node|DecodeError
     {
-        $literal = $member === 'null' || PhpDocType::literalSyntax($member);
-        return $literal ? $this->literal($member) : $this->named($member, $path);
+        return $member instanceof PhpDocLiteral || $member === 'null'
+            ? $this->literal($member)
+            : $this->named($member, $path);
     }
 
-    /** Compiles null or a literal that resolves to a value. */
-    public function literal(string $name): Node
+    /** Compiles a literal or null. */
+    public function literal(PhpDocLiteral|string $member): Node
     {
-        if ($name === 'null') {
-            return new NullOnlyNode('null');
-        }
-        return LiteralNode::of($name);
+        return $member instanceof PhpDocLiteral ? LiteralNode::of($member) : new NullOnlyNode('null');
     }
 }

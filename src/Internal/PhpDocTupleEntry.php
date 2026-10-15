@@ -7,11 +7,16 @@ namespace Eventjet\Json\Internal;
 /** @internal */
 final readonly class PhpDocTupleEntry
 {
+    /** The first number in the key or type that PHP and PHPStan can read differently. See {@see PhpDocType}. */
+    public string|null $unsupportedNumber;
+
     public function __construct(
         public PhpDocType $type,
-        public string|null $key = null,
+        public PhpDocType|null $key = null,
         public bool $optional = false,
-    ) {}
+    ) {
+        $this->unsupportedNumber = $key->unsupportedNumber ?? $type->unsupportedNumber;
+    }
 
     /**
      * Returns the number of required entries, or null if the entries are not positional with optional entries last.
@@ -22,7 +27,7 @@ final readonly class PhpDocTupleEntry
     {
         $required = 0;
         foreach ($entries as $index => $entry) {
-            $positional = $entry->key === null || $entry->key === (string) $index;
+            $positional = $entry->key === null || $entry->key->name === (string) $index;
             if (!$positional || $required < $index && !$entry->optional) {
                 return null;
             }

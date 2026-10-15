@@ -12,9 +12,9 @@ use function is_bool;
 final class PhpDocLiteralNativeType
 {
     /** @param list<string> $expected */
-    public static function name(string $name, array $expected): string
+    public static function name(PhpDocLiteral $literal, array $expected): string
     {
-        $literal = PhpDocLiteral::value($name);
+        $literal = $literal->value;
         if (is_bool($literal) && !in_array('bool', $expected, strict: true)) {
             return $literal ? 'true' : 'false';
         }

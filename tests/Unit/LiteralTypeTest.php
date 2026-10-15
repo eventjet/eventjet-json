@@ -36,7 +36,6 @@ use Eventjet\Json\Internal\PhpDocImportScanner;
 use Eventjet\Json\Internal\PhpDocImportStatement;
 use Eventjet\Json\Internal\PhpDocItemCompiler;
 use Eventjet\Json\Internal\PhpDocLiteral;
-use Eventjet\Json\Internal\PhpDocLiteralNumber;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
 use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocType;
@@ -60,8 +59,8 @@ use const NAN;
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
 
-#[CoversClass(PhpDocLiteralNumber::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocNumbers::class)]
+#[CoversClass(PhpDocLiteral::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocIntegerRange::class)]
 #[CoversClass(PhpDocConstantValues::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(LiteralFieldCompiler::class)]
@@ -89,7 +88,6 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocImports::class)]
 #[UsesClass(PhpDocImportScanner::class)]
 #[CoversClass(PhpDocItemCompiler::class)]
-#[UsesClass(PhpDocLiteral::class)]
 #[UsesClass(PhpDocNamespaceDeclaration::class)]
 #[UsesClass(PhpDocTokenStream::class)]
 #[UsesClass(PhpDocTypeParser::class)]
@@ -280,7 +278,9 @@ final class LiteralTypeTest extends TestCase
              */
             public string $value = 'a@b';
         };
-        static::assertSame("'a@b'", PhpDocFieldType::resolve(new ReflectionProperty($tagged, 'value'))?->name);
+        $taggedType = PhpDocFieldType::resolve(new ReflectionProperty($tagged, 'value'));
+        static::assertInstanceOf(PhpDocType::class, $taggedType);
+        static::assertSame('a@b', $taggedType->literal?->value);
 
         $enum = new class {
             /** @var StringBackedStatus::Ready */
@@ -291,11 +291,11 @@ final class LiteralTypeTest extends TestCase
                 $this->status = StringBackedStatus::Ready;
             }
         };
-        $whole = LiteralNode::of('3.0');
+        $whole = LiteralNode::of(new PhpDocLiteral(3.0, '3.0'));
         static::assertSame(['float', 'int'], $whole->valueTypes());
         static::assertSame(3.0, $whole->decode(3.0, 'value'));
         static::assertSame(3.0, $whole->decode(3, 'value'));
-        static::assertSame(['string'], LiteralNode::of("'3'")->valueTypes());
+        static::assertSame(['string'], LiteralNode::of(PhpDocLiteral::string('3'))->valueTypes());
 
         $status = self::compile(new ReflectionProperty($enum, 'status'));
         static::assertInstanceOf(LiteralNode::class, $status);
@@ -390,8 +390,6 @@ final class LiteralTypeTest extends TestCase
             ['+42', 42],
             ['-42', -42],
             ['42', 42],
-            ['1E2', 100.0],
-            ['+1.5e-1', 0.15],
             [(string) PHP_INT_MIN, PHP_INT_MIN],
             [(string) PHP_INT_MAX, PHP_INT_MAX],
             ['9223372036854775808', null],
@@ -404,10 +402,14 @@ final class LiteralTypeTest extends TestCase
             ['052', null],
             ['00', null],
             ['4_2', null],
-            ['foo', null],
-            ['1e999', null],
         ] as [$source, $expected]) {
-            static::assertSame($expected, PhpDocLiteralNumber::parse($source), $source);
+            static::assertSame($expected, PhpDocLiteral::integer($source)?->value, $source);
+        }
+        foreach ([['1E2', 100.0], ['+1.5e-1', 0.15], ['1e999', null], ['-1e999', null], ['foo', null]] as [
+            $source,
+            $expected,
+        ]) {
+            static::assertSame($expected, PhpDocLiteral::float($source)?->value, $source);
         }
     }
 
@@ -415,7 +417,7 @@ final class LiteralTypeTest extends TestCase
     {
         $literal = static function (string $source): string|int|float|bool|BackedEnum|null {
             $type = PhpDocTypeParser::parse($source);
-            return $type === null ? null : PhpDocLiteral::value($type->name);
+            return $type?->literal?->value;
         };
         foreach ([
             ['0',                        "\u{0}"],
@@ -441,18 +443,18 @@ final class LiteralTypeTest extends TestCase
     /** @throws ReflectionException */
     public function testConstantValuesKeepScalarTypesAndEscapedStrings(): void
     {
-        static::assertSame("'a\\\\b\\'c'", PhpDocConstantValues::name("a\\b'c"));
-        static::assertSame("'a\0b'", PhpDocConstantValues::name("a\0b"));
-        static::assertSame('null', PhpDocConstantValues::name(null));
-        static::assertSame('true', PhpDocConstantValues::name(true));
-        static::assertSame('false', PhpDocConstantValues::name(false));
-        static::assertSame(
-            StringBackedStatus::class . '::Ready',
-            PhpDocConstantValues::name(StringBackedStatus::Ready),
+        static::assertEquals(new PhpDocLiteral("a\\b'c", "'a\\\\b\\'c'"), PhpDocConstantValues::literal("a\\b'c"));
+        static::assertEquals(new PhpDocLiteral("a\0b", "'a\0b'"), PhpDocConstantValues::literal("a\0b"));
+        static::assertSame('null', PhpDocConstantValues::literal(null));
+        static::assertEquals(new PhpDocLiteral(true, 'true'), PhpDocConstantValues::literal(true));
+        static::assertEquals(new PhpDocLiteral(false, 'false'), PhpDocConstantValues::literal(false));
+        static::assertEquals(
+            new PhpDocLiteral(StringBackedStatus::Ready, StringBackedStatus::class . '::Ready'),
+            PhpDocConstantValues::literal(StringBackedStatus::Ready),
         );
-        static::assertNull(PhpDocConstantValues::name(INF));
-        static::assertNull(PhpDocConstantValues::name(NAN));
-        static::assertNull(PhpDocConstantValues::name([]));
+        static::assertNull(PhpDocConstantValues::literal(INF));
+        static::assertNull(PhpDocConstantValues::literal(NAN));
+        static::assertNull(PhpDocConstantValues::literal([]));
         $object = new class {
             public const array VALUES = [42];
         };

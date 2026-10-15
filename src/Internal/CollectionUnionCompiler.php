@@ -40,6 +40,9 @@ final readonly class CollectionUnionCompiler
     public function compile(ReflectionNamedType|ReflectionUnionType $native): Node|DecodeError
     {
         $doc = PhpDocFieldType::resolve($this->field);
+        if ($doc instanceof DecodeError) {
+            return $doc;
+        }
         $path = $this->field->getName();
         $members = $doc?->name === '|' ? $this->items->unions()->members($doc->arguments, $path) : null;
         if (!is_array($members)) {
@@ -55,7 +58,7 @@ final readonly class CollectionUnionCompiler
             return $error ?? PhpDocFieldType::unrecognized($this->field);
         }
         foreach ($members as $member) {
-            $nativeMember = is_string($member) && $member !== 'null' && !PhpDocType::literalSyntax($member);
+            $nativeMember = is_string($member) && $member !== 'null';
             if ($nativeMember) {
                 continue;
             }

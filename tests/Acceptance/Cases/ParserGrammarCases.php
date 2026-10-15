@@ -41,68 +41,7 @@ final class ParserGrammarCases
         'max',
     ];
 
-    /** Pairs of a constant expression and the name that the parser returns for it. */
-    private const array CONSTANTS = [
-        ['42',                                  '42'],
-        ['-7',                                  '-7'],
-        ['+3',                                  '+3'],
-        ['1_000',                               '1000'],
-        ['0',                                   '0'],
-        ['0x1F',                                '0x1F'],
-        ['0X1f',                                '0X1f'],
-        ['0b101',                               '0b101'],
-        ['0B1_0',                               '0B10'],
-        ['0o17',                                '0o17'],
-        ['0O7',                                 '0O7'],
-        ['017',                                 '017'],
-        ['1.5',                                 '1.5'],
-        ['.5',                                  '.5'],
-        ['1.',                                  '1.'],
-        ['-1e3',                                '-1e3'],
-        ['1E+3',                                '1E+3'],
-        ['1_0.5_0e-1_0',                        '10.50e-10'],
-        ["'foo'",                               "'foo'"],
-        ["''",                                  "''"],
-        ['""',                                  '""'],
-        ["'it\\'s'",                            "'it\\'s'"],
-        ["'a\\\\b'",                            "'a\\\\b'"],
-        ["'a\\nb'",                             "'a\\\\nb'"],
-        ["'\"'",                                "'\"'"],
-        ['"a\\"b"',                             '"a\\"b"'],
-        ['"\\n\\t\\r\\v\\f\\e"',                "\"\n\t\r\v\f\e\""],
-        ['"\\x41\\X4a\\101\\0"',                "\"AJA\0\""],
-        ['"\\u{41}\\u{e9}\\u{20ac}\\u{1f600}"', "\"A\u{e9}\u{20ac}\u{1f600}\""],
-        ['"\\$a\\q\\\\"',                       '"\\\\$a\\\\q\\\\"'],
-        ["'\\u{41}'",                           "'\\\\u{41}'"],
-        ['"<>{}|,()"',                          '"<>{}|,()"'],
-        ['Foo::BAR',                            'Foo::BAR'],
-        ['\\Foo\\Bar::BAZ_9',                   '\\Foo\\Bar::BAZ_9'],
-        ['Foo::BAR_*',                          'Foo::BAR_*'],
-        ['Foo::*',                              'Foo::*'],
-        ['Foo::*_BAR',                          'Foo::*_BAR'],
-        ['Foo::A*B',                            'Foo::A*B'],
-        ['self::class',                         'self::class'],
-        ['Foo :: BAR',                          'Foo::BAR'],
-        ['Foo::is',                             'Foo::is'],
-    ];
-
     private const array SHAPES = ['array', 'list', 'non-empty-array', 'non-empty-list'];
-
-    /** Pairs of a shape key and the name that the parser returns for it. */
-    private const array KEYS = [
-        ['0',        '0'],
-        ['1_2',      '12'],
-        ['-1',       '-1'],
-        ['0x1',      '0x1'],
-        ['foo',      'foo'],
-        ['Foo\\Bar', 'Foo\\Bar'],
-        ["'a b'",    "'a b'"],
-        ["'it\\'s'", "'it\\'s'"],
-        ['"\\x41"',  '"A"'],
-        ['Foo::BAR', 'Foo::BAR'],
-        ['int',      'int'],
-        ['list',     'list'],
-    ];
 
     /**
      * @api Called by PHPUnit through DataProviderExternal.
@@ -163,8 +102,7 @@ final class ParserGrammarCases
     /** @return array{string, PhpDocType} */
     private static function constant(): array
     {
-        [$source, $name] = ParserGrammarSource::pick(self::CONSTANTS);
-        return [$source, new PhpDocType($name)];
+        return ParserGrammarSource::pick(ParserGrammarConstants::constants());
     }
 
     /** @return array{string, PhpDocType} */
@@ -198,7 +136,7 @@ final class ParserGrammarCases
         for ($entry = ParserGrammarSource::count(0, 3); $entry > 0; $entry--) {
             [$source, $tree] = self::type($depth + 1, ParserGrammarSource::space(...));
             $keyed = ParserGrammarSource::chance(50);
-            [$key, $name] = $keyed ? ParserGrammarSource::pick(self::KEYS) : ['', null];
+            [$key, $name] = $keyed ? ParserGrammarSource::pick(ParserGrammarConstants::keys()) : ['', null];
             $optional = $keyed && ParserGrammarSource::chance(30);
             $space = ParserGrammarSource::space(...);
             $prefix = $key . $space() . ($optional ? '?' . $space() : '') . ':' . $space();
