@@ -256,6 +256,13 @@ final class PhpDocDocumentCases
         ["/**\n * @param list<int(): int> \$value\n */", 'param', null],
         ["/** @param list<int> \$value*/", 'param', 'int'],
         ["/**\n * @param list<string> \$value\n * @param Closure<T\n * ,>(): T \$value\n */", 'param', null],
+        ["/**\n * @param list<int> \$value\n * @psalm-type A = Foo<int, // c\n * *,\n */", 'param', 'int'],
+        ["/**\n * @param list<int> \$value\n * @psalm-type A = int|list{ // c\n * 1: e(): o\n */", 'param', 'int'],
+        ["/**\n * @param list<int> \$value\n * @return int // c\n * |'a'\n */", 'param', 'int'],
+        ["/**\n * @param list<int> \$value\n * @return int // c\n * |\$this\n */", 'param', 'int'],
+        ["/**\n * @param list<int> \$value\n * @return int|list{int // c\n * }\n */", 'param', 'int'],
+        ["/**\n * @param list<int> \$value\n * @psalm-type A = Foo<1 // c\n */", 'param', 'int'],
+        ["/**\n * @param list<int> \$value\n * @psalm-type A = (?int[] // c\n * )|\n */", 'param', 'int'],
     ];
 
     /**

@@ -57,6 +57,8 @@ final class PhpDocGenericParser
     {
         if ($tokens->is(PhpDocLexer::WILDCARD)) {
             $tokens->next();
+            // phpdoc-parser attaches the comments read so far to the wildcard, like to any other type.
+            $tokens->state->flushComments();
             return null;
         }
         $variance = self::keyword($tokens, ['contravariant', 'covariant']);

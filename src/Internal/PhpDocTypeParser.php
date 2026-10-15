@@ -63,7 +63,11 @@ final class PhpDocTypeParser
             return $compound;
         }
         $state->rollback();
-        return self::compound($tokens, $type);
+        $compound = self::compound($tokens, $type);
+        // The rollback can restore comments from a save point that a failed parse left on the stack, and phpdoc-parser
+        // gives them to the type it returns.
+        $state->flushComments();
+        return $compound;
     }
 
     /**

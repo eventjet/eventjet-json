@@ -192,6 +192,7 @@ final class Examples
         "/**\n * @param list<int>\n *     \$value\n */",
         "/**\n * {@inheritDoc}\n * @param list<int> \$value\n */",
         "/**\n * @param list<int> \$value\n * @psalm-type A = Foo<int, // c\n * *,\n */",
+        "/**\n * @param list<int> \$value\n * @psalm-type A = int|list{ // c\n * 1: e(): o\n */",
     ];
 
     private const array PROPERTY_DOCS = [
