@@ -486,6 +486,9 @@ dependencies. It deliberately differs in two ways:
   [Number literals](#number-literals).
 - `non-empty-map<string, T>` is an alias for `non-empty-array<string, T>`.
 
+The `parity` test suite compares this with phpdoc-parser itself. See
+[PHPDoc parity](../CONTRIBUTING.md#phpdoc-parity).
+
 ### Tags
 
 A constructor parameter takes its type from the constructor's doc comment.
