@@ -19,12 +19,8 @@ final class PhpDocSimpleTag
         '~\A(@(?:phpstan-|psalm-|phan-)?+(?:param|var))[ \t]++(.+?)'
             . '(?:[ \t]++(\$(?![Tt][Hh][Ii][Ss](?![0-9A-Z_a-z]))[A-Z_a-z][0-9A-Z_a-z]*+)(?:[ \t][^"]*+)?)?\z~';
 
-    /**
-     * Returns the tag name, variable name, and type, or null if the line needs the full parser.
-     *
-     * @return array{string, string, PhpDocType}|null
-     */
-    public static function parse(string $line): array|null
+    /** Returns the tag, or null if the line needs the full parser. */
+    public static function parse(string $line): PhpDocTag|null
     {
         $matches = [];
         preg_match(self::TAG, $line, $matches);
@@ -32,6 +28,6 @@ final class PhpDocSimpleTag
         $variable = $matches[3] ?? '';
         $typed = $variable !== '' || str_ends_with($tag, needle: 'var');
         $type = $typed ? PhpDocSimpleType::parse($matches[2] ?? '') : null;
-        return $type === null ? null : [$tag, $variable, $type];
+        return $type === null ? null : new PhpDocTag($tag, $variable, $type);
     }
 }
