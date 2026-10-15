@@ -16,6 +16,7 @@ use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
 
+use function array_column;
 use function array_key_exists;
 use function assert;
 
@@ -39,9 +40,12 @@ final readonly class TypeCompiler
         $declared = PhpDocFieldType::resolve($field);
         $doc = $declared === null
             ? null
-            : PhpDocNarrowing::narrowing(new PhpDocTypeResolver($field)->resolve($declared), self::tree($field, $type));
+            : PhpDocNarrowing::narrowing(
+                new PhpDocTypeResolver($field)->resolve($declared),
+                self::names($field, $type),
+            );
         $node = match (true) {
-            $doc !== null => new NodeCompiler()->field($doc, $field->getName()),
+            $doc !== null => NodeCompiler::field($doc, $field->getName()),
             $type instanceof ReflectionNamedType => NamedTypeCompiler::field($field, $type) ?? $this->native(
                 $field,
                 $type,
@@ -72,7 +76,23 @@ final readonly class TypeCompiler
             && !array_key_exists($type->getName(), self::IMPRECISE);
         return $scalar
             ? new ScalarNode($type->getName(), $type->allowsNull())
-            : new NodeCompiler()->field(self::tree($field, $type), $field->getName(), (string) $type);
+            : NodeCompiler::field(self::tree($field, $type), $field->getName(), (string) $type);
+    }
+
+    /**
+     * Returns the member names of the type tree of a native type.
+     *
+     * @return list<string>
+     */
+    private static function names(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): array
+    {
+        return match (true) {
+            !$type instanceof ReflectionNamedType, $type->allowsNull() => array_column(
+                self::tree($field, $type)->members(),
+                'name',
+            ),
+            default => [FieldTypeNameResolver::resolve($field, $type)],
+        };
     }
 
     /** Returns a native type as the type tree that PHPDoc types parse into, with `?T` as `T|null`. */

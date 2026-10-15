@@ -64,7 +64,7 @@ final class NamedTypeCompiler
             return null;
         }
         $name = FieldTypeNameResolver::resolve($field, $type);
-        $node = $name === ArrayObject::class ? null : self::compile($name, $field->getName());
+        $node = $name === ArrayObject::class ? null : self::named($name, $field->getName());
         return $type->allowsNull() ? NullableNode::field($node) : $node;
     }
 
@@ -75,29 +75,40 @@ final class NamedTypeCompiler
             array_key_exists($name, self::SCALARS) => new ScalarNode($name, false),
             $name === 'null' => new NullOnlyNode('null'),
             PhpDocType::literalSyntax($name) => self::literal($name, $path),
-            array_key_exists($name, self::IMPRECISE) => UnsupportedField::imprecise($path, $name),
             array_key_exists($name, self::RESOURCES) => UnsupportedField::nonEncodable($path, $name),
+            default => self::named($name, $path),
+        };
+    }
+
+    /**
+     * Compiles the name of a class or an enum.
+     *
+     * @throws ReflectionException
+     */
+    private static function named(string $name, string $path): Node|DecodeError
+    {
+        return match (true) {
+            array_key_exists($name, self::IMPRECISE) => UnsupportedField::imprecise($path, $name),
             enum_exists($name) => self::enum($name, $path),
             default => self::object($name, $path),
         };
     }
 
     /**
-     * Returns the error of a union member whose values have no JSON representation: a resource, or a non-backed enum
-     * without custom serialization. Unions skip such members if another member remains.
+     * Returns the error of a union member that failed to compile if its values have no JSON representation: a resource,
+     * or a non-backed enum without custom serialization. Unions skip such members if another member remains.
      *
      * @throws ReflectionException
      */
-    public static function unrepresentable(PhpDocType $member, Node|DecodeError|null $node): DecodeError|null
+    public static function unrepresentable(string $name, DecodeError|null $error): DecodeError|null
     {
-        $name = $member->name;
-        $enum = $node instanceof DecodeError && enum_exists($name);
+        $enum = $error !== null && enum_exists($name);
         $unrepresentable =
             array_key_exists($name, self::RESOURCES)
             || $enum
             && !new ReflectionEnum($name)->isBacked()
             && !is_a($name, JsonSerializable::class, allow_string: true);
-        return $unrepresentable && $node instanceof DecodeError ? $node : null;
+        return $unrepresentable ? $error : null;
     }
 
     /**

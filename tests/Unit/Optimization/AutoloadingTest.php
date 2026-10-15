@@ -14,6 +14,7 @@ use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
@@ -73,6 +74,7 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionProperty;
 use stdClass;
 use TypeError;
 
@@ -94,7 +96,7 @@ use function spl_autoload_unregister;
 #[CoversClass(FieldNameRules::class)]
 #[UsesClass(NamedTypeCompiler::class)]
 #[UsesClass(NodeCompiler::class)]
-#[UsesClass(PhpDocNarrowing::class)]
+#[CoversClass(PhpDocNarrowing::class)]
 #[CoversClass(PhpDocTypeResolver::class)]
 #[UsesClass(EnumNode::class)]
 #[UsesClass(ListNode::class)]
@@ -130,6 +132,7 @@ use function spl_autoload_unregister;
 #[UsesClass(ClassGraphValidator::class)]
 #[UsesClass(DecodeErrorKind::class)]
 #[UsesClass(InvalidValue::class)]
+#[UsesClass(UnsupportedField::class)]
 #[UsesClass(MappedObjectSerializer::class)]
 final class AutoloadingTest extends TestCase
 {
@@ -231,6 +234,38 @@ final class AutoloadingTest extends TestCase
 
     /**
      * @throws Exception
+     * @throws ReflectionException
+     * @throws TypeError
+     */
+    public function testPhpDocThatDoesNotNarrowNeverInvokesAutoloadersForBuiltinNames(): void
+    {
+        $target = new class {
+            /** @var string */
+            public mixed $value = '';
+        };
+        $property = new ReflectionProperty($target, 'value');
+        $type = $property->getType();
+        static::assertNotNull($type);
+        $requests = new class {
+            /** @var list<string> */
+            public array $names = [];
+        };
+        $autoload = static function (string $name) use ($requests): void {
+            $requests->names[] = $name;
+        };
+        spl_autoload_register($autoload, prepend: true);
+
+        try {
+            static::assertInstanceOf(DecodeError::class, new TypeCompiler()->field($property, $type));
+        } finally {
+            spl_autoload_unregister($autoload);
+        }
+
+        static::assertNotContains('mixed', $requests->names);
+    }
+
+    /**
+     * @throws Exception
      * @throws TypeError
      */
     public function testPhpDocScalarAndLiteralItemsNeverInvokeAutoloaders(): void
@@ -272,7 +307,7 @@ final class AutoloadingTest extends TestCase
             spl_autoload_unregister($autoload);
         }
 
-        foreach (['bool', 'float', 'int', 'string', '42'] as $name) {
+        foreach (['array', 'bool', 'float', 'int', 'string', '42'] as $name) {
             static::assertNotContains($name, $requests->names);
         }
     }
