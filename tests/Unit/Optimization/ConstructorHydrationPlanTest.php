@@ -126,6 +126,7 @@ use stdClass;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocChildKind::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTags::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTag::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
