@@ -18,7 +18,7 @@ final class PhpDocFieldType
     /**
      * The tags of each doc comment read so far, so that a constructor's doc comment is read once for all parameters.
      *
-     * @var array<string, list<array{string, string, PhpDocType|null}>>
+     * @var array<string, list<PhpDocTag>>
      */
     private static array $tags = [];
 
@@ -33,8 +33,9 @@ final class PhpDocFieldType
 
     /**
      * Returns the PHPDoc type of a field: the `@var` tag that counts, or the constructor's `@param` tag that counts for a
-     * parameter. Each doc comment is read once, even if it declares several parameters, and only if it has the tag.
-     * Returns an error if the type has a number that PHP and PHPStan can read differently.
+     * parameter. Returns null if no tag counts or the decoder does not support the type of the tag that does. Each doc
+     * comment is read once, even if it declares several parameters, and only if it has the tag. Returns an error if the
+     * type has a number that PHP and PHPStan can read differently.
      */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|DecodeError|null
     {
@@ -45,9 +46,10 @@ final class PhpDocFieldType
         }
         self::$tags[$doc] ??= PhpDocSimpleTags::tags($doc) ?? PhpDocTagParser::tags($doc);
         $tags = self::$tags[$doc];
-        $type = $parameter
-            ? PhpDocTagSelector::parameter($tags, $field->getName())
-            : PhpDocTagSelector::property($tags, $field->getName());
+        $tag = $parameter
+            ? PhpDocTag::forParameter($tags, $field->getName())
+            : PhpDocTag::forProperty($tags, $field->getName());
+        $type = $tag?->type;
         $number = $type?->unsupportedNumber;
         return $number === null ? $type : UnsupportedField::number($field->getName(), $number);
     }
