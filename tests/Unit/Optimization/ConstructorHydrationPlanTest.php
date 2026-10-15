@@ -131,7 +131,7 @@ use stdClass;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocTagSelector::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(PhpDocUnionCompiler::class)]
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(ScalarItems::class)]

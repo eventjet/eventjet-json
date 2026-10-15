@@ -119,9 +119,9 @@ final class PhpDocTagValues
     ];
 
     /**
-     * Returns the kind of value, and the tag if it is a `@param` or `@var` tag with a type.
+     * Returns the kind of value, and the tag if it is a `@param` or `@var` tag that PHPStan reads.
      *
-     * @return array{int, array{string, string, PhpDocType|null}|null}
+     * @return array{int, PhpDocTag|null}
      * @throws PhpDocSyntaxError
      */
     public static function parse(PhpDocTokens $tokens, string $tag): array

@@ -123,7 +123,7 @@ use const PHP_INT_MIN;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocTagSelector::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(PhpDocUnionCompiler::class)]
 #[UsesClass(TargetClass::class)]
 #[UsesClass(ScalarItems::class)]

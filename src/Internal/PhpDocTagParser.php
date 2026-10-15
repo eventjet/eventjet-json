@@ -22,10 +22,10 @@ final class PhpDocTagParser
     public const int VALID = 3;
 
     /**
-     * Returns the tag name, variable name, and type of each tag in order. The type is null if the decoder does not
-     * support it. A doc comment that phpdoc-parser cannot parse as a whole has no tags.
+     * Returns the `@param` and `@var` tags in order. A doc comment that phpdoc-parser cannot parse as a whole has no
+     * tags.
      *
-     * @return list<array{string, string, PhpDocType|null}>
+     * @return list<PhpDocTag>
      */
     public static function tags(string $doc): array
     {
@@ -40,7 +40,7 @@ final class PhpDocTagParser
     /**
      * Parses a tag value after its name and returns its kind, and the tag if it is a `@param` or `@var` tag.
      *
-     * @return array{int, array{string, string, PhpDocType|null}|null}
+     * @return array{int, PhpDocTag|null}
      */
     public static function tagValue(PhpDocTokens $tokens, string $tag): array
     {
@@ -58,7 +58,7 @@ final class PhpDocTagParser
     }
 
     /**
-     * @return list<array{string, string, PhpDocType|null}>
+     * @return list<PhpDocTag>
      * @throws PhpDocSyntaxError
      */
     private static function children(PhpDocTokens $tokens): array
@@ -80,7 +80,7 @@ final class PhpDocTagParser
     }
 
     /**
-     * @return array{int, array{string, string, PhpDocType|null}|null}
+     * @return array{int, PhpDocTag|null}
      * @throws PhpDocSyntaxError
      */
     private static function child(PhpDocTokens $tokens): array

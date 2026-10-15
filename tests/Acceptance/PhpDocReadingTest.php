@@ -58,7 +58,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocTagSelector::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocNumbers::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]
 #[UsesClass(\Eventjet\Json\Internal\Error\AmbiguousUnion::class)]

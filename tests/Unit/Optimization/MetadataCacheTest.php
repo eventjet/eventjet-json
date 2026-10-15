@@ -130,7 +130,7 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocTagSelector::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocNumbers::class)]
 #[UsesClass(FieldTypeNameResolver::class)]

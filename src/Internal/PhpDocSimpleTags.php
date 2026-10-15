@@ -32,7 +32,7 @@ final class PhpDocSimpleTags
     /**
      * Returns the tags like {@see PhpDocTagParser::tags()}, or null if the doc comment needs the full parser.
      *
-     * @return list<array{string, string, PhpDocType}>|null
+     * @return list<PhpDocTag>|null
      */
     public static function tags(string $doc): array|null
     {
