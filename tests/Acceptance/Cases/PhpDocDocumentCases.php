@@ -172,7 +172,7 @@ final class PhpDocDocumentCases
             null,
         ],
         ["/** @param l\$value\n@psalm-type(//\n * @param list<int> \$value\n */", 'param', 'int'],
-        ["/** @var list<string>\n|list<string>*/", 'var', null],
+        ["/** @var list<string>\n|null*/", 'var', null],
         ["/**\n * @var list<int>\n * @phpstan-param l\$value\n@psalm-type A(//*/", 'var', null],
         [
             "/**\n * @var list<int>\n * @phpstan-param l\$value\n@psalm-type A(//\n!\n@param-closure-this i\$this*/",

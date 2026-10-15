@@ -78,6 +78,12 @@ final readonly class Result
 }
 ```
 
+The PHPDoc type must name the same types as the native declaration, where each
+literal stands for its type: `'foo'|42` names `string|int`. If it leaves out a
+native type or adds one, the native declaration applies instead. For example,
+`@param 'foo'|'bar' $value` on `?string $value` leaves out `null`, so the field
+accepts any string or `null`. Write `'foo'|'bar'|null` to restrict it.
+
 The same literals work in collection declarations, including `list<'foo'|42>`,
 `ArrayObject<string, true>`, and `array{'foo', 42, false}`. String delimiters
 inside quotes are literal characters; escape the matching quote or a backslash

@@ -10,22 +10,20 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
-use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
-use Eventjet\Json\Internal\CollectionCompiler;
-use Eventjet\Json\Internal\CollectionUnionCompiler;
-use Eventjet\Json\Internal\CollectionUnionNatives;
+use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\ConstructorParameter;
 use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\LiteralFieldCompiler;
 use Eventjet\Json\Internal\MappedObjectSerializer;
-use Eventjet\Json\Internal\NativeUnionCompiler;
+use Eventjet\Json\Internal\NamedTypeCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
+use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
@@ -35,23 +33,28 @@ use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\TupleNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
+use Eventjet\Json\Internal\NodeCompiler;
 use Eventjet\Json\Internal\PhpDocCallableParser;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
-use Eventjet\Json\Internal\PhpDocCollectionCompiler;
+use Eventjet\Json\Internal\PhpDocConstantImportStatement;
+use Eventjet\Json\Internal\PhpDocConstantResolver;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocHtmlDetector;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
 use Eventjet\Json\Internal\PhpDocImportStatement;
-use Eventjet\Json\Internal\PhpDocItemCompiler;
+use Eventjet\Json\Internal\PhpDocIntegerRange;
 use Eventjet\Json\Internal\PhpDocLexer;
+use Eventjet\Json\Internal\PhpDocLiteral;
+use Eventjet\Json\Internal\PhpDocLiteralNativeType;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
+use Eventjet\Json\Internal\PhpDocNarrowing;
 use Eventjet\Json\Internal\PhpDocSimpleTags;
 use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
-use Eventjet\Json\Internal\PhpDocUnionCompiler;
+use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\TargetClass;
@@ -81,6 +84,7 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionProperty;
 use RuntimeException;
 use stdClass;
 use TypeError;
@@ -98,7 +102,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ConstructorPlan::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
-#[UsesClass(ClassFieldTypeValidator::class)]
 #[UsesClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(PublicProperties::class)]
@@ -106,22 +109,21 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(TargetClass::class)]
 #[CoversClass(FieldNameRules::class)]
-#[UsesClass(CollectionCompiler::class)]
-#[UsesClass(CollectionUnionCompiler::class)]
-#[UsesClass(CollectionUnionNatives::class)]
+#[UsesClass(NamedTypeCompiler::class)]
+#[UsesClass(NodeCompiler::class)]
+#[CoversClass(PhpDocNarrowing::class)]
+#[CoversClass(PhpDocTypeResolver::class)]
 #[UsesClass(EnumNode::class)]
 #[UsesClass(ListNode::class)]
 #[UsesClass(MapNode::class)]
-#[UsesClass(NativeUnionCompiler::class)]
 #[UsesClass(NullOnlyNode::class)]
 #[UsesClass(NullableNode::class)]
 #[UsesClass(ObjectNode::class)]
-#[UsesClass(PhpDocCollectionCompiler::class)]
 #[CoversClass(PhpDocFieldType::class)]
+#[UsesClass(CollectionDeclarationError::class)]
 #[UsesClass(PhpDocImportScanner::class)]
 #[UsesClass(PhpDocImportStatement::class)]
 #[UsesClass(PhpDocImports::class)]
-#[UsesClass(PhpDocItemCompiler::class)]
 #[UsesClass(PhpDocNamespaceDeclaration::class)]
 #[UsesClass(PhpDocTokenStream::class)]
 #[UsesClass(PhpDocTupleEntry::class)]
@@ -159,30 +161,31 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
-#[CoversClass(PhpDocUnionCompiler::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(ScalarItems::class)]
 #[UsesClass(TupleNode::class)]
-#[UsesClass(LiteralFieldCompiler::class)]
 #[UsesClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
+#[UsesClass(LiteralNode::class)]
+#[UsesClass(PhpDocConstantImportStatement::class)]
+#[UsesClass(PhpDocConstantResolver::class)]
+#[UsesClass(PhpDocLiteral::class)]
 #[CoversClass(UnionNode::class)]
 #[UsesClass(ClassDecoder::class)]
 #[UsesClass(ClassDecoders::class)]
 #[UsesClass(ClassGraphValidator::class)]
 #[UsesClass(DecodeErrorKind::class)]
 #[UsesClass(InvalidValue::class)]
+#[UsesClass(UnsupportedField::class)]
 #[UsesClass(MappedObjectSerializer::class)]
 #[UsesClass(\Eventjet\Json\Internal\Error\UnsupportedCollection::class)]
-#[UsesClass(\Eventjet\Json\Internal\Node\LiteralNode::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocConstantValues::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocIntegerRange::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Json::class)]
+#[UsesClass(PhpDocLiteralNativeType::class)]
 final class AutoloadingTest extends TestCase
 {
     /**
@@ -248,6 +251,19 @@ final class AutoloadingTest extends TestCase
             'nullable' => null,
         ];
         $class = new ReflectionClass($target);
+        // A PHPDoc type that does not narrow an unsupported native type leaves the native type in charge.
+        $imprecise = new ReflectionProperty(
+            new class {
+                /** @var stdClass */
+                public object $value;
+
+                public function __construct()
+                {
+                    $this->value = new stdClass();
+                }
+            },
+            'value',
+        );
         $requests = new class {
             /** @var list<string> */
             public array $names = [];
@@ -272,11 +288,14 @@ final class AutoloadingTest extends TestCase
                     static::assertSame($value, $node->decode($value, $name));
                 }
             }
+            $impreciseType = $imprecise->getType();
+            static::assertNotNull($impreciseType);
+            static::assertInstanceOf(DecodeError::class, new TypeCompiler()->field($imprecise, $impreciseType));
         } finally {
             spl_autoload_unregister($autoload);
         }
 
-        foreach (['int', 'float', 'string', 'bool'] as $builtin) {
+        foreach (['int', 'float', 'string', 'bool', 'object'] as $builtin) {
             static::assertNotContains($builtin, $requests->names);
         }
     }
@@ -291,6 +310,24 @@ final class AutoloadingTest extends TestCase
     public function testLiteralFieldsNeverInvokeAutoloaders(): void
     {
         $target = new class('a', 1, true) {
+            /** @var \Eventjet\Json\Test\Acceptance\Fixtures\ExtendedLiteralFields::NUMBER */
+            public int $constant = ExtendedLiteralFields::NUMBER;
+
+            /** @var list<bool> */
+            public array $booleans = [true];
+
+            /** @var list<float> */
+            public array $floats = [1.5];
+
+            /** @var list<int> */
+            public array $integers = [1];
+
+            /** @var list<string> */
+            public array $strings = ['value'];
+
+            /** @var list<42> */
+            public array $literals = [42];
+
             /**
              * @param 'a'|"b" $string
              * @param 1|-7 $integer
@@ -312,11 +349,22 @@ final class AutoloadingTest extends TestCase
         spl_autoload_register($autoload);
 
         try {
-            foreach (['string' => 'a', 'integer' => 1, 'boolean' => true] as $name => $value) {
-                $parameter = new ReflectionParameter([$target::class, '__construct'], $name);
-                $type = $parameter->getType();
+            $constructor = [$target::class, '__construct'];
+            $fields = [
+                'string' => [new ReflectionParameter($constructor, 'string'), 'a'],
+                'integer' => [new ReflectionParameter($constructor, 'integer'), 1],
+                'boolean' => [new ReflectionParameter($constructor, 'boolean'), true],
+                'constant' => [new ReflectionProperty($target, 'constant'), ExtendedLiteralFields::NUMBER],
+                'booleans' => [new ReflectionProperty($target, 'booleans'), [true]],
+                'floats' => [new ReflectionProperty($target, 'floats'), [1.5]],
+                'integers' => [new ReflectionProperty($target, 'integers'), [1]],
+                'strings' => [new ReflectionProperty($target, 'strings'), ['value']],
+                'literals' => [new ReflectionProperty($target, 'literals'), [42]],
+            ];
+            foreach ($fields as $name => [$field, $value]) {
+                $type = $field->getType();
                 static::assertNotNull($type);
-                $node = new TypeCompiler()->field($parameter, $type);
+                $node = new TypeCompiler()->field($field, $type);
                 static::assertNotInstanceOf(DecodeError::class, $node);
                 static::assertSame($value, $node->decode($value, $name));
             }
@@ -470,6 +518,7 @@ final class AutoloadingTest extends TestCase
         ];
         self::assertRoundTrips($simple);
         static::assertFalse(class_exists(PhpDocLexer::class, autoload: false));
+        static::assertFalse(class_exists(PhpDocIntegerRange::class, autoload: false));
 
         $full = [
             CollectionDeclarationFixture::object(

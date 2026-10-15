@@ -100,6 +100,19 @@ final class MapsErrorCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\BoolCollectionValidationFields from the JSON object: Field map[invalid] must be of type bool, int given.',
             DecodeErrorKind::InvalidValue->value,
         ];
+        $nullableMap = CollectionDeclarationFixture::create(
+            '?\\ArrayObject',
+            PhpType::union(PhpType::arrayObject(PhpType::Int), PhpType::Null),
+            'var',
+        );
+        yield 'nullable map field rejects a string' => [
+            '{"value":"text"}',
+            $nullableMap,
+            'Could not create '
+                . $nullableMap
+                . ' from the JSON object: Field value must be of type JSON object, string given.',
+            DecodeErrorKind::InvalidValue->value,
+        ];
         yield 'map inside a list rejects an array' => [
             '[[]]',
             JsonType::array(JsonType::map(EmptyObject::class)),

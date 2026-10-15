@@ -8,6 +8,7 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 
 /** @internal */
 final class EnumsErrorCases
@@ -31,6 +32,32 @@ final class EnumsErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', PhpType::list(IntBackedStatus::class), 'param')
                 . ' from the JSON object: Field value[0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus, which expects a int backing value; null given.',
+            DecodeErrorKind::InvalidValue->value,
+        ];
+        $nullableItems = CollectionDeclarationFixture::create(
+            'array',
+            PhpType::list(PhpType::union(StringBackedStatus::class, PhpType::Null)),
+            'param',
+        );
+        yield 'nullable enum list item rejects the wrong backing type' => [
+            '{"value":[1]}',
+            $nullableItems,
+            'Could not create '
+                . $nullableItems
+                . ' from the JSON object: Field value[0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus, which expects a string backing value; int given.',
+            DecodeErrorKind::InvalidValue->value,
+        ];
+        $repeatedEnum = CollectionDeclarationFixture::create(
+            'array',
+            PhpType::list(PhpType::union(StringBackedStatus::class, StringBackedStatus::class)),
+            'param',
+        );
+        yield 'repeated enum union member decodes like the enum' => [
+            '{"value":[1]}',
+            $repeatedEnum,
+            'Could not create '
+                . $repeatedEnum
+                . ' from the JSON object: Field value[0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus, which expects a string backing value; int given.',
             DecodeErrorKind::InvalidValue->value,
         ];
         yield 'nullable non-backed enum rejects a non-null value' => [

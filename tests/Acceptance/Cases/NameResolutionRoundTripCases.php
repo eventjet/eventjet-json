@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use ArrayObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 
@@ -69,6 +70,12 @@ final class NameResolutionRoundTripCases
             ],
             'param',
             'list',
+            'semicolon',
+        )];
+        yield 'fully qualified import aliases the map container' => [CollectionNameFixture::create(
+            ['use \\ArrayObject as Map;', 'LocalPerson', null, 'Map'],
+            'var',
+            ArrayObject::class,
             'semicolon',
         )];
     }
