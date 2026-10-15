@@ -13,6 +13,7 @@
         "infection/infection": "^0.35.5",
         "maglnet/composer-require-checker": "^4.20",
         "phpbench/phpbench": "^1.7",
+        "phpstan/phpdoc-parser": "2.3.6",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan": "^2.2",
         "phpstan/phpstan-phpunit": "^2.0",
@@ -50,6 +51,7 @@
             "@phpstan",
             "@mago",
             "@phpunit",
+            "@parity",
             "@infection"
         ],
         "check-deps": "composer-require-checker",
@@ -63,6 +65,15 @@
         ],
         "mago-analyze": "mago analyze",
         "mago-lint": "mago lint",
+        "parity": [
+            "Composer\\Config::disableProcessTimeout",
+            "phpunit --testsuite=parity"
+        ],
+        "parity-sweep": [
+            "Composer\\Config::disableProcessTimeout",
+            "@putenv PHPDOC_PARITY_SCALE=10",
+            "phpunit --testsuite=parity"
+        ],
         "phpstan": "phpstan analyze",
         "phpunit": "phpunit",
         "psalm": "psalm"

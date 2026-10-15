@@ -76,6 +76,20 @@ jobs:
         timeout-minutes: 2
         run: composer phpunit -- --no-progress
 
+  parity:
+    name: PHPDoc parity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # phpdoc-parser 2.3.6 triggers PHP 8.5 warnings when it casts oversized Unicode escapes to int.
+      - uses: ./.github/actions/setup-php
+      - name: Compare with phpstan/phpdoc-parser
+        timeout-minutes: 8
+        run: composer parity -- --no-progress
+
   mutation:
     name: Mutation tests
     runs-on: ubuntu-24.04
