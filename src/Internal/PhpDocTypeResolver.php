@@ -158,13 +158,16 @@ final readonly class PhpDocTypeResolver
             array_key_exists($name, self::BOOLEANS) => PhpDocConstantResolver::literals($this->field, $name),
             default => $this->named($name),
         };
-        $toType = static fn(PhpDocLiteral|string $name): PhpDocType => $name instanceof PhpDocLiteral
-            ? PhpDocType::literal($name)
-            : new PhpDocType($name);
         return match (true) {
             $names === null => null,
-            count($names) === 1 => $names[0] === $name ? $type : array_map($toType, $names)[0],
-            default => new PhpDocType('|', array_map($toType, $names)),
+            count($names) > 1 => new PhpDocType('|', array_map(
+                static fn(PhpDocLiteral|string $name): PhpDocType => $name instanceof PhpDocLiteral
+                    ? PhpDocType::literal($name)
+                    : new PhpDocType($name),
+                $names,
+            )),
+            $names[0] instanceof PhpDocLiteral => PhpDocType::literal($names[0]),
+            default => $names[0] === $name ? $type : new PhpDocType($names[0]),
         };
     }
 
