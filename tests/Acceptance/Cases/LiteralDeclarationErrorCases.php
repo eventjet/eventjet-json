@@ -24,6 +24,7 @@ final class LiteralDeclarationErrorCases
             ['int', '\\' . ExtendedLiteralFields::class . '::MISSING'],
             ['int', 'parent::NUMBER'],
             ['int', 'MissingLiteralClass::VALUE'],
+            ['string', '\\' . StringBackedStatus::class . '::Missing'],
         ] as [$native, $declaration]) {
             foreach (['param', 'var'] as $tag) {
                 $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
@@ -38,6 +39,20 @@ final class LiteralDeclarationErrorCases
                     DecodeErrorKind::UnsupportedDeclaration->value,
                 ];
             }
+        }
+        $case = '\\' . StringBackedStatus::class . '::Ready';
+        foreach (['param', 'var'] as $tag) {
+            $class = CollectionDeclarationFixture::create('\\' . StringBackedStatus::class, $case, $tag);
+            yield 'an enum case keeps its name as written in ' . $tag => [
+                '{"value":"pending"}',
+                $class,
+                'Could not create '
+                    . $class
+                    . ' from the JSON object: Field value must be of type '
+                    . $case
+                    . ', string given.',
+                DecodeErrorKind::InvalidValue->value,
+            ];
         }
         $classes = '\\' . Coordinates::class . '|\\' . Person::class;
         $enum = '\\' . StringBackedStatus::class;

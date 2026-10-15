@@ -29,19 +29,33 @@ final class NumberLiteralErrorCases
     {
         foreach (self::declarations() as [$native, $declaration, $literal]) {
             foreach (['param', 'var'] as $tag) {
-                $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
-                yield 'unsupported number literal ' . $declaration . ' in ' . $tag => [
-                    '{}',
-                    $class,
-                    'Could not create '
-                        . $class
-                        . ' from the JSON object: Field value uses unsupported number literal '
-                        . str_replace('_', replace: '', subject: $literal)
-                        . ', which PHP and PHPStan can read differently. Use a plain decimal number, such as 42, -7, or 1.5.',
-                    DecodeErrorKind::UnsupportedDeclaration->value,
-                ];
+                yield 'unsupported number literal ' . $declaration . ' in ' . $tag => self::error(
+                    $native,
+                    $declaration,
+                    $tag,
+                    $literal,
+                );
             }
         }
+    }
+
+    /**
+     * @return array{string, class-string, string, int}
+     * @throws RuntimeException
+     */
+    public static function error(string $native, string $declaration, string $tag, string $literal): array
+    {
+        $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
+        return [
+            '{}',
+            $class,
+            'Could not create '
+                . $class
+                . ' from the JSON object: Field value uses unsupported number literal '
+                . str_replace('_', replace: '', subject: $literal)
+                . ', which PHP and PHPStan can read differently. Use a plain decimal number, such as 42, -7, or 1.5.',
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
     }
 
     /** Pairs of a native type and a declaration with `%s` where the literal goes. */
