@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
 
+use function array_key_exists;
 use function preg_match;
 use function preg_match_all;
 use function preg_replace;
@@ -33,6 +35,28 @@ final class PhpDocFieldType
         $doc = (string) $doc;
         self::$types[$tag . $doc] ??= str_contains($doc, $tag) ? self::types($doc, $tag) : [];
         return self::$types[$tag . $doc][$name] ?? null;
+    }
+
+    /**
+     * Returns a PHPDoc type with resolved names that is no union if it narrows a native type that names one type: it
+     * names the same type, but declares the items of `array` or `ArrayObject`, or is a literal, which names the type of
+     * its value. PHPDoc class names have their declared spelling; a native one may differ in case or be an alias.
+     *
+     * @throws ReflectionException
+     */
+    public static function narrowing(PhpDocType $doc, string $native): PhpDocType|null
+    {
+        $name = $doc->name;
+        $literal = PhpDocType::literalSyntax($name);
+        $declared = $literal
+            ? PhpDocLiteralNativeType::name($name, [$native])
+            : PhpDocType::COLLECTIONS[$name] ?? $name;
+        $canonical = match (true) {
+            !$literal && !array_key_exists($native, PhpDocType::CONTAINERS) => null,
+            $declared === $native => $native,
+            default => PhpDocClassNameResolver::canonical($native),
+        };
+        return $canonical === $declared ? $doc : null;
     }
 
     /**

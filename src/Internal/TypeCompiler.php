@@ -40,10 +40,7 @@ final readonly class TypeCompiler
         $declared = PhpDocFieldType::resolve($field);
         $doc = $declared === null
             ? null
-            : PhpDocNarrowing::narrowing(
-                new PhpDocTypeResolver($field)->resolve($declared),
-                self::names($field, $type),
-            );
+            : self::narrowing(new PhpDocTypeResolver($field)->resolve($declared), $field, $type);
         $node = match (true) {
             $doc !== null => NodeCompiler::field($doc, $field->getName()),
             $type instanceof ReflectionNamedType => NamedTypeCompiler::field($field, $type) ?? $this->native(
@@ -80,18 +77,23 @@ final readonly class TypeCompiler
     }
 
     /**
-     * Returns the member names of the type tree of a native type.
+     * Returns the PHPDoc type if it narrows the native type. PhpDocNarrowing compares unions, so a field whose PHPDoc
+     * type and native type each name one type doesn't load it.
      *
-     * @return list<string>
+     * @throws ReflectionException
      */
-    private static function names(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): array
-    {
+    private static function narrowing(
+        PhpDocType|null $doc,
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionType $type,
+    ): PhpDocType|null {
         return match (true) {
-            !$type instanceof ReflectionNamedType, $type->allowsNull() => array_column(
-                self::tree($field, $type)->members(),
-                'name',
-            ),
-            default => [FieldTypeNameResolver::resolve($field, $type)],
+            $doc === null => null,
+            $doc->name === '|',
+            !$type instanceof ReflectionNamedType,
+            $type->allowsNull(),
+                => PhpDocNarrowing::narrowing($doc, array_column(self::tree($field, $type)->members(), 'name')),
+            default => PhpDocFieldType::narrowing($doc, FieldTypeNameResolver::resolve($field, $type)),
         };
     }
 

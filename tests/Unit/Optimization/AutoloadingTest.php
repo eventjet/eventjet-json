@@ -34,6 +34,7 @@ use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\NodeCompiler;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
+use Eventjet\Json\Internal\PhpDocConstantImportStatement;
 use Eventjet\Json\Internal\PhpDocConstantResolver;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
@@ -104,7 +105,7 @@ use function spl_autoload_unregister;
 #[UsesClass(NullOnlyNode::class)]
 #[UsesClass(NullableNode::class)]
 #[UsesClass(ObjectNode::class)]
-#[UsesClass(PhpDocFieldType::class)]
+#[CoversClass(PhpDocFieldType::class)]
 #[UsesClass(CollectionDeclarationError::class)]
 #[UsesClass(PhpDocImportScanner::class)]
 #[UsesClass(PhpDocImportStatement::class)]
@@ -123,6 +124,7 @@ use function spl_autoload_unregister;
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
 #[UsesClass(LiteralNode::class)]
+#[UsesClass(PhpDocConstantImportStatement::class)]
 #[UsesClass(PhpDocConstantResolver::class)]
 #[UsesClass(PhpDocLiteral::class)]
 #[UsesClass(PhpDocLiteralNumber::class)]
@@ -240,8 +242,13 @@ final class AutoloadingTest extends TestCase
     public function testPhpDocThatDoesNotNarrowNeverInvokesAutoloadersForBuiltinNames(): void
     {
         $target = new class {
-            /** @var string */
-            public mixed $value = '';
+            /** @var stdClass */
+            public object $value;
+
+            public function __construct()
+            {
+                $this->value = new stdClass();
+            }
         };
         $property = new ReflectionProperty($target, 'value');
         $type = $property->getType();
@@ -261,7 +268,7 @@ final class AutoloadingTest extends TestCase
             spl_autoload_unregister($autoload);
         }
 
-        static::assertNotContains('mixed', $requests->names);
+        static::assertNotContains('object', $requests->names);
     }
 
     /**
