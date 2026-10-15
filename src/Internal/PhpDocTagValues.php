@@ -119,27 +119,24 @@ final class PhpDocTagValues
     ];
 
     /**
-     * Returns the kind of value, and the tag if it is a `@param` or `@var` tag with a type.
+     * Returns the tag if it is a `@param` or `@var` tag that PHPStan reads, and the kind of tag otherwise.
      *
-     * @return array{int, array{string, string, PhpDocType|null}|null}
      * @throws PhpDocSyntaxError
      */
-    public static function parse(PhpDocTokens $tokens, string $tag): array
+    public static function parse(PhpDocTokens $tokens, string $tag): PhpDocTag|PhpDocChildKind
     {
         $kind = self::KINDS[$tag] ?? null;
         if ($kind === null) {
             PhpDocDoctrineParser::annotation($tokens);
-            return [PhpDocTagParser::GENERIC, null];
+            return PhpDocChildKind::Generic;
         }
-        return [
-            PhpDocTagParser::VALID,
-            match ($kind) {
-                self::PARAM => PhpDocFieldTagValue::param($tokens, $tag),
-                self::VAR => PhpDocFieldTagValue::variable($tokens, $tag),
-                self::METHOD => PhpDocMethodTagValue::method($tokens),
-                default => self::other($tokens, $kind),
-            },
-        ];
+        $value = match ($kind) {
+            self::PARAM => PhpDocFieldTagValue::param($tokens, $tag),
+            self::VAR => PhpDocFieldTagValue::variable($tokens, $tag),
+            self::METHOD => PhpDocMethodTagValue::method($tokens),
+            default => self::other($tokens, $kind),
+        };
+        return $value ?? PhpDocChildKind::Valid;
     }
 
     /** @throws PhpDocSyntaxError */

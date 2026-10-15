@@ -12,12 +12,11 @@ namespace Eventjet\Json\Internal;
 final class PhpDocFieldTagValue
 {
     /**
-     * Returns the tag, or null for a `@param` tag without a type.
+     * Returns the tag, or null for a `@param` tag without a type, which PHPStan does not read.
      *
-     * @return array{string, string, PhpDocType|null}|null
      * @throws PhpDocSyntaxError
      */
-    public static function param(PhpDocTokens $tokens, string $tag): array|null
+    public static function param(PhpDocTokens $tokens, string $tag): PhpDocTag|null
     {
         $typed = !$tokens->is(PhpDocLexer::VARIABLE);
         $type = $typed ? PhpDocTypeTree::limit(PhpDocTypeParser::type($tokens)) : null;
@@ -26,16 +25,15 @@ final class PhpDocFieldTagValue
         $variable = $tokens->value();
         $tokens->consume(PhpDocLexer::VARIABLE);
         PhpDocTextParser::text($tokens);
-        return $typed ? [$tag, $variable, $type] : null;
+        return $typed ? new PhpDocTag($tag, $variable, $type) : null;
     }
 
     /**
      * Returns the tag with its variable name, which is empty if the tag has none.
      *
-     * @return array{string, string, PhpDocType|null}
      * @throws PhpDocSyntaxError
      */
-    public static function variable(PhpDocTokens $tokens, string $tag): array
+    public static function variable(PhpDocTokens $tokens, string $tag): PhpDocTag
     {
         $type = PhpDocTypeTree::limit(PhpDocTypeParser::type($tokens));
         $variable = match (true) {
@@ -47,6 +45,6 @@ final class PhpDocFieldTagValue
             PhpDocDescriptionParser::limited($tokens);
         }
         PhpDocTextParser::text($tokens);
-        return [$tag, $variable, $type];
+        return new PhpDocTag($tag, $variable, $type);
     }
 }

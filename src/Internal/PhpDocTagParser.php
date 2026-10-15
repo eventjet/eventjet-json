@@ -13,19 +13,11 @@ namespace Eventjet\Json\Internal;
  */
 final class PhpDocTagParser
 {
-    public const int TEXT = 0;
-
-    /** A tag that phpdoc-parser does not know, which the next tag may follow on the same line. */
-    public const int GENERIC = 1;
-
-    public const int INVALID = 2;
-    public const int VALID = 3;
-
     /**
-     * Returns the tag name, variable name, and type of each tag in order. The type is null if the decoder does not
-     * support it. A doc comment that phpdoc-parser cannot parse as a whole has no tags.
+     * Returns the `@param` and `@var` tags in order. A doc comment that phpdoc-parser cannot parse as a whole has no
+     * tags.
      *
-     * @return list<array{string, string, PhpDocType|null}>
+     * @return list<PhpDocTag>
      */
     public static function tags(string $doc): array
     {
@@ -38,11 +30,10 @@ final class PhpDocTagParser
     }
 
     /**
-     * Parses a tag value after its name and returns its kind, and the tag if it is a `@param` or `@var` tag.
-     *
-     * @return array{int, array{string, string, PhpDocType|null}|null}
+     * Parses a tag value after its name. Returns the tag if it is a `@param` or `@var` tag that PHPStan reads, and the
+     * kind of tag otherwise.
      */
-    public static function tagValue(PhpDocTokens $tokens, string $tag): array
+    public static function tagValue(PhpDocTokens $tokens, string $tag): PhpDocTag|PhpDocChildKind
     {
         $state = $tokens->state;
         try {
@@ -53,12 +44,12 @@ final class PhpDocTagParser
         } catch (PhpDocSyntaxError) {
             $state->rollback();
             PhpDocTextParser::text($tokens);
-            return [self::INVALID, null];
+            return PhpDocChildKind::Invalid;
         }
     }
 
     /**
-     * @return list<array{string, string, PhpDocType|null}>
+     * @return list<PhpDocTag>
      * @throws PhpDocSyntaxError
      */
     private static function children(PhpDocTokens $tokens): array
@@ -67,23 +58,20 @@ final class PhpDocTagParser
         $tags = [];
         $separated = true;
         while ($separated && !$tokens->is(PhpDocLexer::CLOSE_PHPDOC)) {
-            [$kind, $tag] = self::child($tokens);
-            if ($tag !== null) {
-                $tags[] = $tag;
+            $child = self::child($tokens);
+            if ($child instanceof PhpDocTag) {
+                $tags[] = $child;
             }
             $lineEnd = $tokens->tryConsume(PhpDocLexer::PHPDOC_EOL);
-            $separated = $lineEnd || $kind === self::GENERIC;
+            $separated = $lineEnd || $child === PhpDocChildKind::Generic;
         }
         // phpdoc-parser replaces all tags with one invalid tag if the comment does not end here.
         $complete = $tokens->is(PhpDocLexer::CLOSE_PHPDOC) && !$tokens->state->hasComments();
         return $complete ? $tags : [];
     }
 
-    /**
-     * @return array{int, array{string, string, PhpDocType|null}|null}
-     * @throws PhpDocSyntaxError
-     */
-    private static function child(PhpDocTokens $tokens): array
+    /** @throws PhpDocSyntaxError */
+    private static function child(PhpDocTokens $tokens): PhpDocTag|PhpDocChildKind
     {
         $name = $tokens->value();
         if ($tokens->is(PhpDocLexer::PHPDOC_TAG)) {
@@ -93,9 +81,9 @@ final class PhpDocTagParser
         if ($tokens->is(PhpDocLexer::DOCTRINE_TAG)) {
             $tokens->next();
             PhpDocDoctrineParser::annotation($tokens);
-            return [self::GENERIC, null];
+            return PhpDocChildKind::Generic;
         }
         PhpDocTextParser::text($tokens);
-        return [self::TEXT, null];
+        return PhpDocChildKind::Text;
     }
 }

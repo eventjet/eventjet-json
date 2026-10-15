@@ -68,8 +68,8 @@ final class PhpDocDescriptionParser
         $state->push();
         $name = $tokens->value();
         $tokens->next();
-        [$kind] = PhpDocTagParser::tagValue($tokens, $name);
+        $value = PhpDocTagParser::tagValue($tokens, $name);
         $state->rollback();
-        return $kind === PhpDocTagParser::GENERIC;
+        return $value === PhpDocChildKind::Generic;
     }
 }
