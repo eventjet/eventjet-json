@@ -54,7 +54,6 @@ use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
-use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
@@ -73,7 +72,6 @@ use Eventjet\Json\Test\Acceptance\Cases\EmptyShapeRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\JsonFormattingRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\NumericObjectKeyCases;
 use Eventjet\Json\Test\Acceptance\Cases\ObjectRoundTripCases;
-use Eventjet\Json\Test\Acceptance\Cases\ParserSyntaxCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootCollectionRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\SupportedDocumentRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\TypeValidationCases;
@@ -83,6 +81,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
@@ -107,18 +106,47 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(PhpDocClassNameResolver::class)]
 #[CoversClass(PhpDocImports::class)]
 #[CoversClass(PhpDocFieldType::class)]
-#[CoversClass(PhpDocTypeTokens::class)]
 #[CoversClass(PhpDocType::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocIntegerRange::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocConstantResolver::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocConstantValues::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocStringEscape::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralEnumOverlap::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralNativeType::class)]
-#[CoversClass(PhpDocTypeParser::class)]
+#[UsesClass(PhpDocTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLexer::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSyntaxError::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokenState::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTree::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNestedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocAtomicTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNamedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocHtmlDetector::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocGenericParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantNameParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableReturnParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocArrayShapeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocShapeItemParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagValues::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocFieldTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocOtherTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodParameterTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTextParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocChildKind::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTags::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTag::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[CoversClass(PhpDocTokenStream::class)]
 #[CoversClass(PhpDocNamespaceDeclaration::class)]
 #[CoversClass(ConstructorPlan::class)]
@@ -166,12 +194,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ClassDecoders::class)]
 final class AcceptanceTest extends TestCase
 {
-    #[DataProviderExternal(ParserSyntaxCases::class, 'types')]
-    public function testPhpDocParserReturnsExpectedSyntaxTree(string $source, PhpDocType|null $expected): void
-    {
-        static::assertEquals($expected, PhpDocTypeParser::parse($source));
-    }
-
     /** @param class-string|JsonType<mixed> $type */
     #[DataProviderExternal(TypeValidationCases::class, 'declarations')]
     public function testTypeDeclarationsCanBeValidatedWithoutValues(

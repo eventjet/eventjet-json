@@ -7,6 +7,8 @@ namespace Eventjet\Json\Internal;
 use BackedEnum;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
+use Eventjet\Json\Internal\Node\LiteralNode;
+use Eventjet\Json\Internal\Node\Node;
 use ReflectionException;
 
 use function get_debug_type;
@@ -18,17 +20,17 @@ use function json_encode;
 final class PhpDocLiteralUnionValidator
 {
     /**
-     * @param list<string> $names
+     * @param list<Node> $members
      * @throws ReflectionException
      */
-    public static function validate(string $path, array $names): DecodeError|null
+    public static function validate(string $path, array $members): DecodeError|null
     {
-        foreach ($names as $name) {
-            $literal = PhpDocLiteral::value($name);
-            if ($literal === null) {
+        foreach ($members as $member) {
+            if (!$member instanceof LiteralNode) {
                 continue;
             }
-            foreach ($names as $other) {
+            $literal = $member->value();
+            foreach ($members as $other) {
                 $overlaps = self::overlaps($literal, $other);
                 if ($overlaps) {
                     return AmbiguousUnion::overlappingLiterals($path);
@@ -39,24 +41,25 @@ final class PhpDocLiteralUnionValidator
     }
 
     /** @throws ReflectionException */
-    private static function overlaps(string|int|float|bool|BackedEnum $literal, string $other): bool
+    private static function overlaps(string|int|float|bool|BackedEnum $literal, Node $other): bool
     {
         $value = $literal instanceof BackedEnum ? $literal->value : $literal;
-        $candidate = PhpDocLiteral::value($other);
-        if ($candidate !== null) {
+        if ($other instanceof LiteralNode) {
+            $candidate = $other->value();
             $raw = $candidate instanceof BackedEnum ? $candidate->value : $candidate;
             return $candidate !== $literal && json_encode($raw) === json_encode($value);
         }
-        $enumOverlap = PhpDocLiteralEnumOverlap::matches($literal, $other);
+        $name = (string) $other;
+        $enumOverlap = PhpDocLiteralEnumOverlap::matches($literal, $name);
         return (
             $enumOverlap
             || $literal instanceof BackedEnum
-            && $other === get_debug_type($value)
+            && $name === get_debug_type($value)
             || is_float($literal)
-            && $other === 'int'
+            && $name === 'int'
             && $literal === (float) (int) $literal
             || is_int($literal)
-            && $other === 'float'
+            && $name === 'float'
         );
     }
 }

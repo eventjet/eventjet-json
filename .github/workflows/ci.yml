@@ -76,10 +76,28 @@ jobs:
         timeout-minutes: 2
         run: composer phpunit -- --no-progress
 
-  mutation:
-    name: Mutation tests
+  parity:
+    name: PHPDoc parity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # phpdoc-parser 2.3.6 triggers PHP 8.5 warnings when it casts oversized Unicode escapes to int.
+      - uses: ./.github/actions/setup-php
+      - name: Compare with phpstan/phpdoc-parser
+        timeout-minutes: 8
+        run: composer parity -- --no-progress
+
+  mutation-shard:
+    name: Mutation tests (shard ${{ matrix.shard }})
     runs-on: ubuntu-24.04
     timeout-minutes: 17
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -94,19 +112,36 @@ jobs:
           path: .cache
           key: analysis-${{ runner.os }}-php8.4-${{ hashFiles('vendor/composer/installed.json', 'phpstan.neon', 'psalm.xml') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: analysis-${{ runner.os }}-php8.4-${{ hashFiles('vendor/composer/installed.json', 'phpstan.neon', 'psalm.xml') }}-
-      - name: Full mutation coverage
+      - name: Full mutation coverage of this shard's files
         shell: bash
         timeout-minutes: 15
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ strategy.job-total }}
         run: |
           mkdir -p build
-          composer infection -- --threads=4 --no-progress --initial-tests-php-options="-d pcov.enabled=1" --logger-summary-json=build/mutation-summary.json 2>&1 | tee "$RUNNER_TEMP/mutation-output.txt"
+          php .github/ci/mutation-shard.php "$SHARD" "$SHARDS" > "$RUNNER_TEMP/mutation-files.txt"
+          mapfile -t files < "$RUNNER_TEMP/mutation-files.txt"
+          composer infection -- --threads=4 --no-progress --initial-tests-php-options="-d pcov.enabled=1" --logger-summary-json=build/mutation-summary.json "${files[@]}" 2>&1 | tee "$RUNNER_TEMP/mutation-output.txt"
       - name: Save mutation report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: mutation-report
+          name: mutation-report-${{ matrix.shard }}
           path: |
             infection-log.txt
             build/mutation-summary.json
             ${{ runner.temp }}/mutation-output.txt
           retention-days: 7
+
+  mutation:
+    name: Mutation tests
+    needs: mutation-shard
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every shard to pass
+        env:
+          RESULT: ${{ needs.mutation-shard.result }}
+        run: test "$RESULT" = success

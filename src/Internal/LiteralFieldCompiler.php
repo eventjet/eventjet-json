@@ -15,10 +15,10 @@ use ReflectionType;
 use ReflectionUnionType;
 
 use function array_any;
-use function array_keys;
 use function enum_exists;
 use function implode;
 use function is_array;
+use function str_contains;
 
 /**
  * Compiles a field with a PHPDoc type, which may restrict a scalar, enum, or union field to literals, such as
@@ -73,13 +73,21 @@ final class LiteralFieldCompiler
         );
     }
 
-    /** @param array<array-key, Node|string> $members */
+    /**
+     * Whether the members are `null` or include a literal. A collection whose items are class constants or enum cases,
+     * such as `list<Status::Ready>`, counts as a literal too.
+     *
+     * @param array<array-key, Node|PhpDocLiteral|string> $members
+     */
     private static function declaresLiteral(array $members): bool
     {
-        $names = array_keys($members);
         return (
-            implode('|', $names) === 'null'
-            || array_any($names, static fn(int|string $name): bool => PhpDocType::literalSyntax((string) $name))
+            implode('|', $members) === 'null'
+            || array_any(
+                $members,
+                static fn(Node|PhpDocLiteral|string $member): bool => $member instanceof PhpDocLiteral
+                || str_contains((string) $member, '::'),
+            )
         );
     }
 
@@ -99,7 +107,7 @@ final class LiteralFieldCompiler
     ): Node|DecodeError {
         $native = $types->declared($field, $type);
         foreach ($declared as $member) {
-            $unresolved = PhpDocType::literalSyntax($member->name) && $items->literals($member) === null;
+            $unresolved = PhpDocConstantResolver::namesLiteral($member->name) && $items->literals($member) === null;
             if ($unresolved && !$native instanceof DecodeError) {
                 return UnsupportedField::literal($field->getName(), $member->name);
             }

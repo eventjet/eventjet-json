@@ -36,7 +36,7 @@ final readonly class CollectionUnionNatives
     /**
      * Whether the PHPDoc names the same types as the native declaration. A literal names its native type.
      *
-     * @param array<string, Node|string> $members
+     * @param array<array-key, Node|PhpDocLiteral|string> $members
      * @throws ReflectionException
      */
     public function match(array $members): bool
@@ -52,10 +52,10 @@ final readonly class CollectionUnionNatives
                 $natives[] = 'null';
             }
         }
-        $declared = array_unique(array_map(static fn(Node|string $member): string => match (true) {
+        $declared = array_unique(array_map(static fn(Node|PhpDocLiteral|string $member): string => match (true) {
             $member instanceof MapNode && $member->arrayObject => ArrayObject::class,
             $member instanceof Node => 'array',
-            PhpDocType::literalSyntax($member) => PhpDocLiteralNativeType::name($member, $natives),
+            $member instanceof PhpDocLiteral => PhpDocLiteralNativeType::name($member, $natives),
             default => $member,
         }, $members));
         sort($declared);
@@ -86,7 +86,7 @@ final readonly class CollectionUnionNatives
      * Returns the native members that the PHPDoc names as types. Literals restrict their native type, so a native type
      * that only literals name gets no member of its own. Collections get none either, because the PHPDoc declares them.
      *
-     * @param array<string, Node|string> $members
+     * @param array<array-key, Node|PhpDocLiteral|string> $members
      * @return list<ReflectionType>
      * @throws ReflectionException
      */

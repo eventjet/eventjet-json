@@ -19,6 +19,9 @@ use function unlink;
 /** @internal */
 final class CollectionDeclarationFixture
 {
+    /** @var array<string, string> The field of each fixture class, by class name. */
+    private static array $fields = [];
+
     /**
      * @throws \RuntimeException
      * @throws \ReflectionException
@@ -38,8 +41,10 @@ final class CollectionDeclarationFixture
     }
 
     /**
+     * Returns the name of a class with the field. The class is declared when it is first used, so that data providers
+     * stay cheap: mutation testing builds every data set of a test class for each mutant. See {@see self::autoload()}.
+     *
      * @return class-string
-     * @throws RuntimeException
      */
     public static function create(string $nativeType, string|PhpTypeExpression $declaration, string $tag): string
     {
@@ -53,8 +58,21 @@ final class CollectionDeclarationFixture
             ? $doc . "\n" . 'public function __construct(public ' . $nativeType . ' $value) {}'
             : $doc . "\n" . 'public ' . $nativeType . ' $value;';
         $class = 'InvalidCollection_' . sha1($field);
-        if (class_exists($class)) {
-            return $class;
+        self::$fields[$class] = $field;
+        /** @var class-string */
+        return $class;
+    }
+
+    /**
+     * Declares a fixture class. The PHPUnit bootstrap registers this as an autoloader.
+     *
+     * @throws RuntimeException
+     */
+    public static function autoload(string $class): void
+    {
+        $field = self::$fields[$class] ?? null;
+        if ($field === null) {
+            return;
         }
         // Invalid PHPDoc is input data for the decoder, not a declaration in the test implementation.
         $path = tempnam(sys_get_temp_dir(), prefix: 'json-collection-');
@@ -74,9 +92,8 @@ final class CollectionDeclarationFixture
         } finally {
             unlink($path);
         }
-        if (!class_exists($class)) {
+        if (!class_exists($class, autoload: false)) {
             throw new RuntimeException('The collection fixture did not declare its class.');
         }
-        return $class;
     }
 }

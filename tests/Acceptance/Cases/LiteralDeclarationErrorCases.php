@@ -11,8 +11,6 @@ use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use RuntimeException;
 
-use const PHP_INT_MAX;
-
 /** @internal */
 final class LiteralDeclarationErrorCases
 {
@@ -23,12 +21,10 @@ final class LiteralDeclarationErrorCases
     public static function errors(): iterable
     {
         foreach ([
-            ['int', (string) PHP_INT_MAX . '0'],
-            ['float', '1e999'],
-            ['string', '"\\u{110000}"'],
             ['int', '\\' . ExtendedLiteralFields::class . '::MISSING'],
             ['int', 'parent::NUMBER'],
             ['int', 'MissingLiteralClass::VALUE'],
+            ['string', '\\' . StringBackedStatus::class . '::Missing'],
         ] as [$native, $declaration]) {
             foreach (['param', 'var'] as $tag) {
                 $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
@@ -43,6 +39,20 @@ final class LiteralDeclarationErrorCases
                     DecodeErrorKind::UnsupportedDeclaration->value,
                 ];
             }
+        }
+        $case = '\\' . StringBackedStatus::class . '::Ready';
+        foreach (['param', 'var'] as $tag) {
+            $class = CollectionDeclarationFixture::create('\\' . StringBackedStatus::class, $case, $tag);
+            yield 'an enum case keeps its name as written in ' . $tag => [
+                '{"value":"pending"}',
+                $class,
+                'Could not create '
+                    . $class
+                    . ' from the JSON object: Field value must be of type '
+                    . $case
+                    . ', string given.',
+                DecodeErrorKind::InvalidValue->value,
+            ];
         }
         $classes = '\\' . Coordinates::class . '|\\' . Person::class;
         $enum = '\\' . StringBackedStatus::class;

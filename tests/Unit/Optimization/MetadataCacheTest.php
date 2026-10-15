@@ -49,7 +49,6 @@ use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
-use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\PublicProperties;
 use Eventjet\Json\Internal\PublicPropertyTypeValidator;
@@ -101,7 +100,39 @@ use function class_alias;
 #[CoversClass(PhpDocFieldType::class)]
 #[UsesClass(PhpDocType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
-#[UsesClass(PhpDocTypeTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLexer::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSyntaxError::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokenState::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTree::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNestedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocAtomicTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNamedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocHtmlDetector::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocGenericParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantNameParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableReturnParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocArrayShapeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocShapeItemParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagValues::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocFieldTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocOtherTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodParameterTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTextParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocChildKind::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTags::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTag::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(ClassFieldTypeValidator::class)]
 #[UsesClass(TargetClass::class)]
@@ -330,7 +361,13 @@ final class MetadataCacheTest extends TestCase
         static::assertSame($decoder, ClassDecoders::get($name));
     }
 
-    /** @throws ReflectionException */
+    /**
+     * A constructor's doc comment declares all parameters, so it is read once and not once for each parameter. This
+     * holds for doc comments that need the full PHPDoc parser, too.
+     *
+     * @throws ReflectionException
+     * @throws RuntimeException
+     */
     public function testDocCommentsAreParsedOnce(): void
     {
         $object = new class(1, 2) {
@@ -350,6 +387,8 @@ final class MetadataCacheTest extends TestCase
             new ReflectionParameter([$object::class, '__construct'], 'first'),
             new ReflectionParameter([$object::class, '__construct'], 'second'),
             new ReflectionProperty($object, 'third'),
+            self::docParameter("/**\n * @param list<int> \$value\n */"),
+            self::docParameter("/**\n * @return void\n * @param list<int> \$value\n */"),
         ] as $field) {
             $type = PhpDocFieldType::resolve($field);
             static::assertNotNull($type);
@@ -436,5 +475,15 @@ final class MetadataCacheTest extends TestCase
         static::assertNotNull($type);
         $node = new TypeCompiler()->field($property, $type);
         return [$node, $node instanceof DecodeError ? [] : $node->dependencies()];
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws RuntimeException
+     */
+    private static function docParameter(string $doc): ReflectionParameter
+    {
+        $class = CollectionDeclarationFixture::create('array', $doc, 'param');
+        return new ReflectionParameter([$class, '__construct'], 'value');
     }
 }

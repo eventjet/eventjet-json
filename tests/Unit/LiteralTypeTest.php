@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Unit;
 
+use BackedEnum;
 use DateTimeImmutable;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\ClassFieldTypeValidator;
@@ -35,14 +36,10 @@ use Eventjet\Json\Internal\PhpDocImportScanner;
 use Eventjet\Json\Internal\PhpDocImportStatement;
 use Eventjet\Json\Internal\PhpDocItemCompiler;
 use Eventjet\Json\Internal\PhpDocLiteral;
-use Eventjet\Json\Internal\PhpDocLiteralNumber;
-use Eventjet\Json\Internal\PhpDocLiteralString;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
-use Eventjet\Json\Internal\PhpDocStringEscape;
 use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
-use Eventjet\Json\Internal\PhpDocTypeTokens;
 use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
@@ -62,9 +59,8 @@ use const NAN;
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
 
-#[CoversClass(PhpDocLiteralNumber::class)]
-#[CoversClass(PhpDocLiteralString::class)]
-#[CoversClass(PhpDocStringEscape::class)]
+#[CoversClass(PhpDocLiteral::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocIntegerRange::class)]
 #[CoversClass(PhpDocConstantValues::class)]
 #[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(LiteralFieldCompiler::class)]
@@ -92,11 +88,41 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocImports::class)]
 #[UsesClass(PhpDocImportScanner::class)]
 #[CoversClass(PhpDocItemCompiler::class)]
-#[UsesClass(PhpDocLiteral::class)]
 #[UsesClass(PhpDocNamespaceDeclaration::class)]
 #[UsesClass(PhpDocTokenStream::class)]
-#[CoversClass(PhpDocTypeParser::class)]
-#[CoversClass(PhpDocTypeTokens::class)]
+#[UsesClass(PhpDocTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLexer::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSyntaxError::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokenState::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTree::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNestedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocAtomicTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNamedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocHtmlDetector::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocGenericParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantNameParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableReturnParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocArrayShapeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocShapeItemParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagValues::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocFieldTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocOtherTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodParameterTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTextParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocChildKind::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTags::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTag::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(PhpDocUnionCompiler::class)]
 #[UsesClass(TargetClass::class)]
 #[UsesClass(ScalarItems::class)]
@@ -253,7 +279,9 @@ final class LiteralTypeTest extends TestCase
              */
             public string $value = 'a@b';
         };
-        static::assertSame("'a@b'", PhpDocFieldType::resolve(new ReflectionProperty($tagged, 'value'))?->name);
+        $taggedType = PhpDocFieldType::resolve(new ReflectionProperty($tagged, 'value'));
+        static::assertInstanceOf(PhpDocType::class, $taggedType);
+        static::assertSame('a@b', $taggedType->literal?->value);
 
         $enum = new class {
             /** @var StringBackedStatus::Ready */
@@ -264,11 +292,11 @@ final class LiteralTypeTest extends TestCase
                 $this->status = StringBackedStatus::Ready;
             }
         };
-        $whole = LiteralNode::of('3.0');
+        $whole = LiteralNode::of(new PhpDocLiteral(3.0, '3.0'));
         static::assertSame(['float', 'int'], $whole->valueTypes());
         static::assertSame(3.0, $whole->decode(3.0, 'value'));
         static::assertSame(3.0, $whole->decode(3, 'value'));
-        static::assertSame(['string'], LiteralNode::of("'3'")->valueTypes());
+        static::assertSame(['string'], LiteralNode::of(PhpDocLiteral::string('3'))->valueTypes());
 
         $status = self::compile(new ReflectionProperty($enum, 'status'));
         static::assertInstanceOf(LiteralNode::class, $status);
@@ -362,29 +390,36 @@ final class LiteralTypeTest extends TestCase
             ['-0', 0],
             ['+42', 42],
             ['-42', -42],
-            ['4_2', 42],
-            ['0X2A', 42],
-            ['0B101010', 42],
-            ['0O52', 42],
-            ['1E2', 100.0],
+            ['42', 42],
             [(string) PHP_INT_MIN, PHP_INT_MIN],
             [(string) PHP_INT_MAX, PHP_INT_MAX],
             ['9223372036854775808', null],
             ['-9223372036854775809', null],
             ['92233720368547758070', null],
             ['-92233720368547758080', null],
-            ['0xffffffffffffffffffff', null],
-            ['0b11111111111111111111111111111111111111111111111111111111111111111', null],
-            ['foo', null],
-            ['0xg', null],
-            ['1e999', null],
+            ['0X2A', null],
+            ['0B101010', null],
+            ['0O52', null],
+            ['052', null],
+            ['00', null],
+            ['4_2', null],
         ] as [$source, $expected]) {
-            static::assertSame($expected, PhpDocLiteralNumber::parse($source), $source);
+            static::assertSame($expected, PhpDocLiteral::integer($source)?->value, $source);
+        }
+        foreach ([['1E2', 100.0], ['+1.5e-1', 0.15], ['1e999', null], ['-1e999', null], ['foo', null]] as [
+            $source,
+            $expected,
+        ]) {
+            static::assertSame($expected, PhpDocLiteral::float($source)?->value, $source);
         }
     }
 
     public function testUnicodeScalarBoundaries(): void
     {
+        $literal = static function (string $source): string|int|float|bool|BackedEnum|null {
+            $type = PhpDocTypeParser::parse($source);
+            return $type?->literal?->value;
+        };
         foreach ([
             ['0',                        "\u{0}"],
             ['d7ff',                     "\u{d7ff}"],
@@ -394,32 +429,33 @@ final class LiteralTypeTest extends TestCase
             ['103ff',                    "\u{103ff}"],
             ['10400',                    "\u{10400}"],
             ['10ffff',                   "\u{10ffff}"],
-            ['d800',                     null],
-            ['dfff',                     null],
-            ['110000',                   null],
-            ['ffffffffffffffffffffffff', null],
+            ['d800',                     "\xED\xA0\x80"],
+            ['dfff',                     "\xED\xBF\xBF"],
+            ['110000',                   "\xF4\x90\x80\x80"],
+            ['ffffffff',                 "\u{fffd}"],
+            ['ffffffffffffffffffffffff', "\0"],
         ] as [$code, $expected]) {
-            static::assertSame($expected, PhpDocLiteralString::parse('"\\u{' . $code . '}"'), $code);
+            static::assertSame($expected, $literal('"\\u{' . $code . '}"'), $code);
         }
-        static::assertNull(PhpDocLiteralString::parse('not quoted'));
-        static::assertNull(PhpDocLiteralString::parse("'mismatched\""));
+        static::assertNull($literal('not quoted'));
+        static::assertNull($literal("'mismatched\""));
     }
 
     /** @throws ReflectionException */
     public function testConstantValuesKeepScalarTypesAndEscapedStrings(): void
     {
-        static::assertSame("'a\\\\b\\'c'", PhpDocConstantValues::name("a\\b'c"));
-        static::assertSame("'a\0b'", PhpDocConstantValues::name("a\0b"));
-        static::assertSame('null', PhpDocConstantValues::name(null));
-        static::assertSame('true', PhpDocConstantValues::name(true));
-        static::assertSame('false', PhpDocConstantValues::name(false));
-        static::assertSame(
-            StringBackedStatus::class . '::Ready',
-            PhpDocConstantValues::name(StringBackedStatus::Ready),
+        static::assertEquals(new PhpDocLiteral("a\\b'c", "'a\\\\b\\'c'"), PhpDocConstantValues::literal("a\\b'c"));
+        static::assertEquals(new PhpDocLiteral("a\0b", "'a\0b'"), PhpDocConstantValues::literal("a\0b"));
+        static::assertSame('null', PhpDocConstantValues::literal(null));
+        static::assertEquals(new PhpDocLiteral(true, 'true'), PhpDocConstantValues::literal(true));
+        static::assertEquals(new PhpDocLiteral(false, 'false'), PhpDocConstantValues::literal(false));
+        static::assertEquals(
+            new PhpDocLiteral(StringBackedStatus::Ready, StringBackedStatus::class . '::Ready'),
+            PhpDocConstantValues::literal(StringBackedStatus::Ready),
         );
-        static::assertNull(PhpDocConstantValues::name(INF));
-        static::assertNull(PhpDocConstantValues::name(NAN));
-        static::assertNull(PhpDocConstantValues::name([]));
+        static::assertNull(PhpDocConstantValues::literal(INF));
+        static::assertNull(PhpDocConstantValues::literal(NAN));
+        static::assertNull(PhpDocConstantValues::literal([]));
         $object = new class {
             public const array VALUES = [42];
         };

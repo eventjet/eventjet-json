@@ -15,7 +15,6 @@ use ReflectionException;
 
 use function array_any;
 use function array_intersect;
-use function array_map;
 use function array_unique;
 use function assert;
 use function count;
@@ -87,12 +86,7 @@ final class UnionBuilder
     private function literals(): DecodeError|null
     {
         $literal = array_any($this->members, static fn(Node $member): bool => $member instanceof LiteralNode);
-        return $literal
-            ? PhpDocLiteralUnionValidator::validate(
-                $this->path,
-                array_map(static fn(Node $member): string => (string) $member, $this->members),
-            )
-            : null;
+        return $literal ? PhpDocLiteralUnionValidator::validate($this->path, $this->members) : null;
     }
 
     private function shapes(): DecodeError|null

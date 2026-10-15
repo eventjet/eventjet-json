@@ -2,8 +2,9 @@
 <phpunit
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-    bootstrap="vendor/autoload.php"
+    bootstrap="tests/bootstrap.php"
     cacheDirectory=".phpunit.cache"
+    defaultTestSuite="default,performance-tooling"
     executionOrder="defects"
     requireCoverageMetadata="true"
     beStrictAboutCoverageMetadata="true"
@@ -16,9 +17,13 @@
     <testsuites>
         <testsuite name="default">
             <directory>tests</directory>
+            <exclude>tests/Parity</exclude>
         </testsuite>
         <testsuite name="performance-tooling">
             <directory>.github/ci/tests</directory>
+        </testsuite>
+        <testsuite name="parity">
+            <directory>tests/Parity</directory>
         </testsuite>
     </testsuites>
 

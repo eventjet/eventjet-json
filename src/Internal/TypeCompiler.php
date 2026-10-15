@@ -41,9 +41,11 @@ final class TypeCompiler
     {
         $isCollection = $this->isCollection($field, $type);
         $doc = $isCollection ? null : PhpDocFieldType::resolve($field);
-        return $doc === null
-            ? $this->declared($field, $type)
-            : LiteralFieldCompiler::compile($this, $field, $type, $doc);
+        return match (true) {
+            $doc === null => $this->declared($field, $type),
+            $doc instanceof DecodeError => $doc,
+            default => LiteralFieldCompiler::compile($this, $field, $type, $doc),
+        };
     }
 
     /**
