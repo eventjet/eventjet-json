@@ -9,9 +9,9 @@ use function preg_match_all;
 use function substr_count;
 
 /**
- * Parses a single-line type for {@see PhpDocSimpleTags}: names, generics, unions, integers, quoted strings without
- * escapes, and class constants such as `Foo::BAR`. Returns null for any other type, which then needs the full parser,
- * for the names `covariant` and `contravariant`, and for types with 64 or more `<`.
+ * Parses a single-line type for {@see PhpDocSimpleTags}: names, generics, unions, decimal integers in PHP's range,
+ * quoted strings without escapes, and class constants such as `Foo::BAR`. Returns null for any other type, which then
+ * needs the full parser, for the names `covariant` and `contravariant`, and for types with 64 or more `<`.
  *
  * @internal
  */
@@ -31,13 +31,14 @@ final class PhpDocSimpleType
             . self::KEYWORD
             . ')'
             . self::NAME
-            . '::[A-Z_a-z][0-9A-Z_a-z]*+(*MARK:value)'
+            . '::[A-Z_a-z][0-9A-Z_a-z]*+(*MARK:constant)'
             . '|(?!'
             . self::VARIANCE
             . ')'
             . self::NAME
             . '(*MARK:name)'
-            . '|(?:\'[^"\'\\\\]*+\'|"[^"\'\\\\]*+"|-?+[0-9]++)(*MARK:value)'
+            . '|(?:\'[^"\'\\\\]*+\'|"[^"\'\\\\]*+")(*MARK:string)'
+            . '|-?+[0-9]++(*MARK:integer)'
             . '|[<>,|](*MARK:punctuation)'
             . '|[^ \t](*MARK:other))~';
 
@@ -87,14 +88,26 @@ final class PhpDocSimpleType
         $kind = $this->kinds[$this->index] ?? '';
         $value = $this->values[$this->index] ?? '';
         $this->index++;
-        if ($kind === 'value') {
-            return new PhpDocType($value);
-        }
-        if ($kind !== 'name') {
-            return null;
-        }
+        return match ($kind) {
+            'name' => $this->named($value),
+            'constant' => new PhpDocType($value),
+            'string' => PhpDocType::literal(PhpDocLiteral::quotedWithoutEscapes($value)),
+            'integer' => self::integer($value),
+            default => null,
+        };
+    }
+
+    private function named(string $name): PhpDocType|null
+    {
         $generic = $this->accept('<');
-        return $generic ? $this->generic($value) : new PhpDocType($value);
+        return $generic ? $this->generic($name) : new PhpDocType($name);
+    }
+
+    /** Returns an integer literal. The full parser reports an integer that PHP and PHPStan can read differently. */
+    private static function integer(string $value): PhpDocType|null
+    {
+        $literal = PhpDocLiteral::integer($value);
+        return $literal === null ? null : PhpDocType::literal($literal);
     }
 
     private function generic(string $name): PhpDocType|null

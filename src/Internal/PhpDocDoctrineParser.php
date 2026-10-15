@@ -82,7 +82,7 @@ final class PhpDocDoctrineParser
         }
         $state->rollback();
         $constant = PhpDocConstantParser::doctrineConstant($tokens);
-        if ($constant === null) {
+        if (!$constant) {
             throw PhpDocSyntaxError::instance();
         }
     }

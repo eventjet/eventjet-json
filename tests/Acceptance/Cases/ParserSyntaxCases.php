@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Internal\PhpDocLiteral;
 use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 
@@ -23,13 +24,13 @@ final class ParserSyntaxCases
         yield 'literal union preserves values' => [
             "'foo'|42|true|false",
             new PhpDocType('|', [
-                new PhpDocType("'foo'"),
-                new PhpDocType('42'),
+                self::literal('foo', "'foo'"),
+                self::literal(42, '42'),
                 new PhpDocType('true'),
                 new PhpDocType('false'),
             ]),
         ];
-        yield 'quoted delimiters are part of the literal' => ['"a|b,<>{}"', new PhpDocType('"a|b,<>{}"')];
+        yield 'quoted delimiters are part of the literal' => ['"a|b,<>{}"', self::literal('a|b,<>{}', '"a|b,<>{}"')];
         yield 'unterminated literal is rejected' => ["'foo", null];
         yield 'dangling escape is rejected' => ["'foo\\", null];
         yield 'missing parenthesis is rejected' => ["('foo'|42", null];
@@ -41,7 +42,7 @@ final class ParserSyntaxCases
             str_repeat('(', times: 64) . 'int' . str_repeat(')', times: 64),
             new PhpDocType('int'),
         ];
-        $nested = new PhpDocType("'a'");
+        $nested = self::literal('a', "'a'");
         for ($level = 0; $level < 63; ++$level) {
             $nested = new PhpDocType('list', [$nested]);
         }
@@ -78,17 +79,26 @@ final class ParserSyntaxCases
         yield 'digit separators are removed from numbers' => [
             '1_000|1_0.5',
             new PhpDocType('|', [
-                new PhpDocType('1000'),
-                new PhpDocType('10.5'),
+                self::literal(1000, '1000'),
+                self::literal(10.5, '10.5'),
             ]),
         ];
-        yield 'strings are requoted with their escapes decoded' => [
+        yield 'strings are decoded and requoted' => [
             '"a\\n\\"b\\$"',
-            new PhpDocType("\"a\n\\\"b\\\\\$\""),
+            self::literal("a\n\"b\\\$", "\"a\n\\\"b\\\\\$\""),
         ];
-        yield 'string shape keys are requoted' => [
+        yield 'string shape keys are decoded and requoted' => [
             "array{'a\\'b': int}",
-            new PhpDocType('array{}', entries: [new PhpDocTupleEntry(new PhpDocType('int'), "'a\\'b'")]),
+            new PhpDocType('array{}', entries: [
+                new PhpDocTupleEntry(new PhpDocType('int'), self::literal("a'b", "'a\\'b'")),
+            ]),
+        ];
+        yield 'numbers that PHP and PHPStan read differently are unsupported' => [
+            'int<0x10, max>|int<+5, max>',
+            new PhpDocType('|', [
+                new PhpDocType('int', [new PhpDocType('0x10', unsupportedNumber: '0x10'), new PhpDocType('max')]),
+                new PhpDocType('int', [self::literal(5, '+5'), new PhpDocType('max')]),
+            ]),
         ];
         yield from ParserDepthCases::types();
         yield from ParserGrammarCases::types();
@@ -116,7 +126,7 @@ final class ParserSyntaxCases
         ] as $code => $bytes) {
             yield 'a Unicode escape is encoded as UTF-8: ' . $code => [
                 '"\\u{' . $code . '}"',
-                new PhpDocType('"' . $bytes . '"'),
+                self::literal($bytes, '"' . $bytes . '"'),
             ];
         }
         foreach ([
@@ -128,8 +138,13 @@ final class ParserSyntaxCases
         ] as $escape => $bytes) {
             yield 'a hexadecimal escape is a byte: ' . $escape => [
                 '"' . $escape . '"',
-                new PhpDocType('"' . $bytes . '"'),
+                self::literal($bytes, '"' . $bytes . '"'),
             ];
         }
+    }
+
+    private static function literal(string|int|float $value, string $name): PhpDocType
+    {
+        return PhpDocType::literal(new PhpDocLiteral($value, $name));
     }
 }

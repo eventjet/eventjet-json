@@ -33,22 +33,19 @@ final class TypeCompiler
 
     /**
      * Compiles a field from its native declaration and, unless it is a collection, its PHPDoc type. Collection fields
-     * read their PHPDoc type while compiling the native declaration. A PHPDoc number literal that PHP and PHPStan can
-     * read differently makes any field unsupported.
+     * read their PHPDoc type while compiling the native declaration.
      *
      * @throws ReflectionException
      */
     public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|DecodeError
     {
-        $doc = PhpDocFieldType::resolve($field);
-        $number = $doc === null ? null : PhpDocFieldType::unsupportedNumber($field, $doc);
-        if ($number !== null) {
-            return $number;
-        }
         $isCollection = $this->isCollection($field, $type);
-        return $doc === null || $isCollection
-            ? $this->declared($field, $type)
-            : LiteralFieldCompiler::compile($this, $field, $type, $doc);
+        $doc = $isCollection ? null : PhpDocFieldType::resolve($field);
+        return match (true) {
+            $doc === null => $this->declared($field, $type),
+            $doc instanceof DecodeError => $doc,
+            default => LiteralFieldCompiler::compile($this, $field, $type, $doc),
+        };
     }
 
     /**

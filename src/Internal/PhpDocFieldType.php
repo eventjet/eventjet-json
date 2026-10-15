@@ -11,7 +11,6 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function str_contains;
-use function strpbrk;
 
 /** @internal */
 final class PhpDocFieldType
@@ -35,9 +34,10 @@ final class PhpDocFieldType
     /**
      * Returns the PHPDoc type of a field: the `@var` tag that counts, or the constructor's `@param` tag that counts for a
      * parameter. Returns null if no tag counts or the decoder does not support the type of the tag that does. Each doc
-     * comment is read once, even if it declares several parameters, and only if it has the tag.
+     * comment is read once, even if it declares several parameters, and only if it has the tag. Returns an error if the
+     * type has a number that PHP and PHPStan can read differently.
      */
-    public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|null
+    public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|DecodeError|null
     {
         $parameter = $field instanceof ReflectionParameter;
         $doc = self::docComment($field);
@@ -49,18 +49,9 @@ final class PhpDocFieldType
         $tag = $parameter
             ? PhpDocTag::forParameter($tags, $field->getName())
             : PhpDocTag::forProperty($tags, $field->getName());
-        return $tag?->type;
-    }
-
-    /** Returns an error if a field's PHPDoc type has a number literal that PHP and PHPStan can read differently. */
-    public static function unsupportedNumber(
-        ReflectionParameter|ReflectionProperty $field,
-        PhpDocType $type,
-    ): DecodeError|null {
-        // Every number literal has a digit, so a doc comment without digits has none.
-        $digits = strpbrk(self::docComment($field), characters: '0123456789') !== false;
-        $number = $digits ? PhpDocNumbers::unsupported($type) : null;
-        return $number === null ? null : UnsupportedField::number($field->getName(), $number);
+        $type = $tag?->type;
+        $number = $type?->unsupportedNumber;
+        return $number === null ? $type : UnsupportedField::number($field->getName(), $number);
     }
 
     /** Returns the doc comment that declares a field: the constructor's for a parameter. */

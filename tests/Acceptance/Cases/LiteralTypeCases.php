@@ -29,6 +29,7 @@ final class LiteralTypeCases
         yield 'constant imports and null constant' => [new LiteralConstantFields()];
         yield from LiteralSyntaxRoundTripCases::objects();
         yield from LiteralConstantCases::objects();
+        yield from NumberLiteralPrecedenceCases::ignored();
         yield 'extended literal syntax and constant values' => [new ExtendedLiteralFields()];
         yield 'single literal constructor fields' => [new SingleLiteralFields()];
         yield 'literal string field' => [new LiteralFields('foo')];
@@ -71,6 +72,7 @@ final class LiteralTypeCases
     {
         yield from LiteralDeclarationErrorCases::errors();
         yield from NumberLiteralErrorCases::errors();
+        yield from NumberLiteralPrecedenceCases::errors();
         yield from self::mismatches();
         yield from self::repeatedTags();
         yield from self::collectionUnionErrors();

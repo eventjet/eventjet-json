@@ -159,7 +159,7 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
-#[UsesClass(PhpDocUnionCompiler::class)]
+#[CoversClass(PhpDocUnionCompiler::class)]
 #[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(ScalarItems::class)]
@@ -180,9 +180,8 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocConstantResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocConstantValues::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralNumber::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocIntegerRange::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocNumbers::class)]
 #[UsesClass(\Eventjet\Json\Json::class)]
 final class AutoloadingTest extends TestCase
 {
@@ -280,6 +279,52 @@ final class AutoloadingTest extends TestCase
         foreach (['int', 'float', 'string', 'bool'] as $builtin) {
             static::assertNotContains($builtin, $requests->names);
         }
+    }
+
+    /**
+     * @throws Exception
+     * @throws ReflectionException
+     * @throws TypeError
+     * @throws JsonException
+     * @throws UnknownClassOrInterfaceException
+     */
+    public function testLiteralFieldsNeverInvokeAutoloaders(): void
+    {
+        $target = new class('a', 1, true) {
+            /**
+             * @param 'a'|"b" $string
+             * @param 1|-7 $integer
+             * @param true $boolean
+             */
+            public function __construct(
+                public string $string,
+                public int $integer,
+                public bool $boolean,
+            ) {}
+        };
+        $requests = new class {
+            /** @var list<string> */
+            public array $names = [];
+        };
+        $autoload = static function (string $name) use ($requests): void {
+            $requests->names[] = $name;
+        };
+        spl_autoload_register($autoload);
+
+        try {
+            foreach (['string' => 'a', 'integer' => 1, 'boolean' => true] as $name => $value) {
+                $parameter = new ReflectionParameter([$target::class, '__construct'], $name);
+                $type = $parameter->getType();
+                static::assertNotNull($type);
+                $node = new TypeCompiler()->field($parameter, $type);
+                static::assertNotInstanceOf(DecodeError::class, $node);
+                static::assertSame($value, $node->decode($value, $name));
+            }
+        } finally {
+            spl_autoload_unregister($autoload);
+        }
+
+        static::assertSame([], $requests->names);
     }
 
     /**

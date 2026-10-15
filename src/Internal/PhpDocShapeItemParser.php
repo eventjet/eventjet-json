@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use function str_replace;
-
 /**
  * Parses array shape entries and object shapes with phpstan/phpdoc-parser 2.x's grammar.
  *
@@ -63,19 +61,18 @@ final class PhpDocShapeItemParser
     }
 
     /** @throws PhpDocSyntaxError */
-    private static function key(PhpDocTokens $tokens): string
+    private static function key(PhpDocTokens $tokens): PhpDocType
     {
         $value = $tokens->value();
         if ($tokens->is(PhpDocLexer::INTEGER)) {
-            $tokens->next();
-            return str_replace('_', replace: '', subject: $value);
+            return PhpDocConstantParser::number($tokens);
         }
-        $quote = PhpDocConstantParser::quote($tokens);
-        if ($quote !== null) {
+        $quoted = PhpDocConstantParser::isQuoted($tokens);
+        if ($quoted) {
             $tokens->next();
-            return PhpDocLiteral::quote(PhpDocLiteralString::unescape($value), $quote);
+            return PhpDocType::literal(PhpDocLiteral::quoted($value));
         }
-        return self::name($tokens, $value);
+        return new PhpDocType(self::name($tokens, $value));
     }
 
     /**
@@ -98,7 +95,7 @@ final class PhpDocShapeItemParser
     /** @throws PhpDocSyntaxError */
     private static function objectItem(PhpDocTokens $tokens): void
     {
-        $quoted = PhpDocConstantParser::quote($tokens) !== null;
+        $quoted = PhpDocConstantParser::isQuoted($tokens);
         if ($quoted) {
             $tokens->next();
         }

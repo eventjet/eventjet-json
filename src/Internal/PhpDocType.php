@@ -6,23 +6,48 @@ namespace Eventjet\Json\Internal;
 
 use function array_pop;
 use function count;
-use function in_array;
-use function preg_match;
-use function str_contains;
-use function strspn;
 
 /** @internal */
 final readonly class PhpDocType
 {
     /**
+     * The first number, shape key, or integer range bound in this type that PHP and PHPStan can read differently, which
+     * makes the declaration unsupported. See {@see PhpDocLiteral}.
+     */
+    public string|null $unsupportedNumber;
+
+    /**
      * @param list<self> $arguments
      * @param list<PhpDocTupleEntry> $entries
+     * @param string|null $unsupportedNumber A number token that reads as no literal, which this type stands for.
      */
     public function __construct(
         public string $name,
         public array $arguments = [],
         public array $entries = [],
-    ) {}
+        public PhpDocLiteral|null $literal = null,
+        string|null $unsupportedNumber = null,
+    ) {
+        $this->unsupportedNumber = $unsupportedNumber === null ? $this->nestedUnsupportedNumber() : $unsupportedNumber;
+    }
+
+    public static function literal(PhpDocLiteral $literal): self
+    {
+        return new self($literal->name, literal: $literal);
+    }
+
+    private function nestedUnsupportedNumber(): string|null
+    {
+        if ($this->name === 'int' && count($this->arguments) === 2) {
+            return PhpDocIntegerRange::unsupportedNumber($this);
+        }
+        foreach ([...$this->arguments, ...$this->entries] as $child) {
+            if ($child->unsupportedNumber !== null) {
+                return $child->unsupportedNumber;
+            }
+        }
+        return null;
+    }
 
     /** @return array{self, self}|null */
     private function argumentPair(): array|null
@@ -34,22 +59,6 @@ final readonly class PhpDocType
         $first = $arguments[0];
         $second = array_pop($arguments);
         return [$first, $second];
-    }
-
-    /** Whether this is an integer range such as `int<0, max>`. */
-    public function isIntegerRange(): bool
-    {
-        if ($this->name !== 'int' || count($this->arguments) !== 2) {
-            return false;
-        }
-        foreach ($this->arguments as $index => $bound) {
-            $endpoint = $index === 0 ? 'min' : 'max';
-            $valid = preg_match('/\A(?:' . $endpoint . '|-?[0-9]+)\z/', $bound->name) === 1;
-            if ($bound->arguments !== [] || !$valid) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /** Returns `T` if this is `T|null` or `null|T`. */
@@ -91,15 +100,5 @@ final readonly class PhpDocType
     public function members(): array
     {
         return $this->name === '|' ? $this->arguments : [$this];
-    }
-
-    /** @pure */
-    public static function literalSyntax(string $name): bool
-    {
-        return (
-            in_array($name, ['true', 'false'], strict: true)
-            || strspn($name, characters: "'\"0123456789.+-", length: 1) === 1
-            || str_contains($name, '::')
-        );
     }
 }

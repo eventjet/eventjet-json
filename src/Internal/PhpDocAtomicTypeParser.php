@@ -108,11 +108,11 @@ final class PhpDocAtomicTypeParser
     /** @throws PhpDocSyntaxError */
     private static function constant(PhpDocTokens $tokens): PhpDocType|null
     {
-        $name = PhpDocConstantParser::constant($tokens);
-        if ($name === null) {
+        $type = PhpDocConstantParser::constant($tokens);
+        if ($type === null) {
             throw PhpDocSyntaxError::instance();
         }
         $tokens->state->flushComments();
-        return self::arrayOrOffsetAccess($tokens, new PhpDocType($name));
+        return self::arrayOrOffsetAccess($tokens, $type);
     }
 }

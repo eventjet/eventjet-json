@@ -18,7 +18,7 @@ final class PhpDocConstantNameParser
     /**
      * Returns the literal name, or null for an array.
      *
-     * @param callable(PhpDocTokens): (string|null) $item
+     * @param callable(PhpDocTokens): mixed $item
      * @throws PhpDocSyntaxError
      */
     public static function name(PhpDocTokens $tokens, callable $item): string|null
@@ -44,7 +44,7 @@ final class PhpDocConstantNameParser
     /**
      * Parses array items up to the given closing token.
      *
-     * @param callable(PhpDocTokens): (string|null) $item
+     * @param callable(PhpDocTokens): mixed $item
      * @throws PhpDocSyntaxError
      */
     public static function array(PhpDocTokens $tokens, int $end, callable $item): void

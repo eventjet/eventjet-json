@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\Internal\PhpDocLiteral;
 use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 
@@ -27,9 +28,10 @@ final class ParserDepthCases
         }
         foreach ([62, 64] as $depth) {
             $tree = new PhpDocType('int');
+            $key = PhpDocType::literal(new PhpDocLiteral(0, '0'));
             $source = 'int';
             for ($level = 0; $level < $depth; $level++) {
-                $tree = new PhpDocType('array{}', entries: [new PhpDocTupleEntry($tree, key: '0', optional: true)]);
+                $tree = new PhpDocType('array{}', entries: [new PhpDocTupleEntry($tree, $key, optional: true)]);
                 $source = 'array{0?: ' . $source . '}';
             }
             yield 'tuple depth ' . $depth => [$source, $depth < 64 ? $tree : null];
