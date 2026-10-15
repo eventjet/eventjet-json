@@ -73,7 +73,7 @@ final class TypeCompiler
                 ? new CollectionUnionCompiler($this, $field)->compile($type)
                 : new CollectionCompiler($field)->compile($name);
         }
-        if (in_array($name, ['mixed', 'object', stdClass::class], strict: true)) {
+        if (in_array($name, ['callable', 'iterable', 'mixed', 'object', stdClass::class], strict: true)) {
             return UnsupportedField::imprecise($field->getName(), $name);
         }
         if ($type->isBuiltin()) {
@@ -83,7 +83,7 @@ final class TypeCompiler
             return ClassFieldTypeValidator::enum($field->getName(), $name, $type);
         }
         $object = ClassFieldTypeValidator::object($field->getName(), $name, $type->allowsNull());
-        return $object ?? new UncheckedNode($name, $field->getName());
+        return $object ?? new UncheckedNode($name, $field->getName(), $type->allowsNull());
     }
 
     /** Whether a field is declared as a collection, alone or in a union. */

@@ -152,7 +152,7 @@ final class UnsupportedUnionErrorCases
         yield 'nullable intersection public property is unsupported' => [
             '{"value":null}',
             NullableIntersectionPublicProperty::class,
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionPublicProperty from the JSON object: Field value uses unsupported public property type (Countable&Iterator)|null. Public properties outside the constructor support declared scalar, array, backed enum, and final class types, including unions that follow the constructor-field rules.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionPublicProperty from the JSON object: Field value uses unsupported intersection type Countable&Iterator. JSON does not identify a concrete class to instantiate.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'collection union cannot contain an intersection member' => [

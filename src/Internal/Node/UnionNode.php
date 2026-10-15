@@ -22,20 +22,17 @@ final readonly class UnionNode implements Node
     /**
      * @param array<string, Node> $members Keyed by the get_debug_type() of the decoded JSON values they accept, or by
      *     true or false for booleans.
-     * @param Node|null $fallback Accepts values of every other type, for members that PHP checks itself.
      * @param list<string> $dependencies The classes of all members, including members that are not indexed.
      */
     public function __construct(
         private string $type,
         private array $members,
-        private Node|null $fallback,
         private array $dependencies,
     ) {}
 
     /**
      * Indexes valid union members by the JSON value types they accept, rejecting enums that JSON cannot tell apart from
      * other members. Enums that share a backing type are combined, and so are literals that share a JSON value type.
-     * A `callable` member accepts every other value, because PHP checks callable arguments itself.
      *
      * @param list<Node> $members
      */
@@ -71,7 +68,7 @@ final readonly class UnionNode implements Node
             $indexed['int'] = $indexed['float'];
         }
         $indexed = $literals === [] ? $indexed : LiteralNode::index($type, $literals, $indexed);
-        return new self($type, $indexed, $indexed['callable'] ?? null, $dependencies);
+        return new self($type, $indexed, $dependencies);
     }
 
     #[Override]
@@ -82,7 +79,7 @@ final readonly class UnionNode implements Node
             false => 'false',
             default => get_debug_type($value),
         };
-        $member = $this->members[$valueType] ?? $this->fallback;
+        $member = $this->members[$valueType] ?? null;
         return $member === null
             ? InvalidValue::typeMismatch($path, $this->type, $value)
             : $member->decode($value, $path);
