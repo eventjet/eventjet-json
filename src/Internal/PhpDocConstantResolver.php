@@ -22,17 +22,14 @@ use function strtolower;
 final class PhpDocConstantResolver
 {
     /**
-     * Returns the literals, or `null`, that a PHPDoc name stands for: `null`, `true`, `false`, or the values of the
-     * constants it refers to. Returns null if it is none of these.
+     * Returns the literals, or `null`, that a PHPDoc name stands for: `true`, `false`, or the values of the constants it
+     * refers to. Returns null if it is none of these. Callers handle the name `null` themselves.
      *
      * @return non-empty-list<PhpDocLiteral|'null'>|null
      * @throws ReflectionException
      */
     public static function literals(ReflectionParameter|ReflectionProperty $field, string $name): array|null
     {
-        if ($name === 'null') {
-            return [$name];
-        }
         return (
             in_array($name, ['true', 'false'], strict: true)
                 ? [new PhpDocLiteral($name === 'true', $name)]
