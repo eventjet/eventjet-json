@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Parity;
 
 use Eventjet\Json\Internal\PhpDocSimpleTags;
+use Eventjet\Json\Internal\PhpDocTag;
 use Eventjet\Json\Internal\PhpDocTagParser;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
@@ -50,7 +51,7 @@ final class ParityCheck
         $ours = TypeDescription::tags($tags);
         $referenceTags = [];
         foreach ($reference as $tag) {
-            $referenceTags[] = [$tag->name, $tag->variable, $tag->type->type];
+            $referenceTags[] = new PhpDocTag($tag->name, $tag->variable, $tag->type->type);
         }
         $theirs = TypeDescription::tags($referenceTags);
         $differences = $ours === $theirs ? [] : ['decoder: ' . $ours, 'PHPStan: ' . $theirs];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Parity;
 
+use Eventjet\Json\Internal\PhpDocTag;
 use Eventjet\Json\Internal\PhpDocType;
 
 use function array_map;
@@ -21,12 +22,12 @@ use const JSON_UNESCAPED_UNICODE;
  */
 final class TypeDescription
 {
-    /** @param list<array{string, string, PhpDocType|null}> $tags */
+    /** @param list<PhpDocTag> $tags */
     public static function tags(array $tags): string
     {
         $trees = [];
-        foreach ($tags as [$name, $variable, $type]) {
-            $trees[] = [$name, $variable, self::tree($type)];
+        foreach ($tags as $tag) {
+            $trees[] = [$tag->name, $tag->variable, self::tree($tag->type)];
         }
         return self::json($trees);
     }
