@@ -90,11 +90,7 @@ final readonly class ClassDecoder
                     default => false,
                 };
             if (!$unchanged) {
-                try {
-                    $value = $field->node->decode($value, $path === '' ? $name : FieldPath::field($path, $name));
-                } catch (DecodeError $error) {
-                    throw $error->whileCreating($this->class);
-                }
+                $value = $field->node->decode($value, $path === '' ? $name : FieldPath::field($path, $name));
             }
             if ($field->property === null) {
                 $arguments[$field->name] = $value;
@@ -111,13 +107,13 @@ final readonly class ClassDecoder
         } catch (Throwable $error) {
             $missing = $this->missesArgument($arguments);
             $failure = $missing ? InvalidValue::missingArgument($error) : ConstructorFailure::constructorThrew($error);
-            throw $failure->whileCreating($this->class);
+            throw $failure;
         }
         foreach ($assignments as [$property, $value]) {
             try {
                 $property->setValue($created, $value);
             } catch (Throwable $error) {
-                throw ConstructorFailure::assignmentThrew($property, $error)->whileCreating($this->class);
+                throw ConstructorFailure::assignmentThrew($property, $error);
             }
         }
         return $created;

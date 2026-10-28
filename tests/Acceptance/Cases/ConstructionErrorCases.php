@@ -78,6 +78,7 @@ final class ConstructionErrorCases
         ];
         yield from self::fieldOrder();
         yield from self::targetFailures();
+        yield from self::unresolvableEnumCases();
         yield from self::declarations();
     }
 
@@ -192,6 +193,38 @@ final class ConstructionErrorCases
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield from self::unknownClasses(Person::class);
+    }
+
+    /**
+     * PHP evaluates the case values of an enum when the first value arrives, so an error from a case value that refers
+     * to a missing class names the innermost class that could not be created.
+     *
+     * @return iterable<string, array{string, class-string, string, int}>
+     * @throws \RuntimeException
+     */
+    private static function unresolvableEnumCases(): iterable
+    {
+        $target = CollectionNameSource::load(
+            'UnresolvableEnumCaseTarget',
+            'enum UnresolvableEnumCase: string { case Ready = \MissingEnumCaseValues::READY; } final class UnresolvableEnumCaseTarget { public function __construct(public UnresolvableEnumCase $status) {} }',
+        );
+        $parent = CollectionNameSource::load(
+            'UnresolvableEnumCaseParent',
+            'final class UnresolvableEnumCaseParent { public function __construct(public UnresolvableEnumCaseTarget $child) {} }',
+        );
+        $message = 'Could not create ' . $target . ' from the JSON object: Class "MissingEnumCaseValues" not found';
+        yield 'enum case value that refers to a missing class' => [
+            '{"status":"ready"}',
+            $target,
+            $message,
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
+        yield 'nested enum case value that refers to a missing class' => [
+            '{"child":{"status":"ready"}}',
+            $parent,
+            $message,
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
     }
 
     /**

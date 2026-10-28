@@ -65,10 +65,6 @@ final class Json
             return DecodeError::unexpectedRootValue($values);
         }
 
-        try {
-            return ClassDecoders::hydrate($class, $values);
-        } catch (DecodeError $error) {
-            return $error;
-        }
+        return ClassDecoders::decodeRoot($class, $values);
     }
 }

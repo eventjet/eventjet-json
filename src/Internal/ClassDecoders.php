@@ -54,11 +54,51 @@ final class ClassDecoders
      */
     public static function hydrate(string $class, stdClass $object, string $path = ''): object
     {
+        // Skips the call to get() for cached decoders, because a call per object slows down hydration measurably.
+        $decoder = self::$decoders[$class] ?? self::compiled($class);
         try {
-            // Skips the call to get() for cached decoders, because a call per object slows down hydration measurably.
-            $decoder = self::$decoders[$class] ?? self::get($class);
             /** @var T */
             return $decoder->decode($object, $path);
+        } catch (DecodeError $error) {
+            throw $error->whileCreating($decoder->class);
+        } catch (Throwable $error) {
+            throw UnsupportedTarget::unreadable($error)->whileCreating($class);
+        }
+    }
+
+    /**
+     * Decodes the root object of a document. Unlike hydrate(), it returns the error, because throwing it once more
+     * slows down every rejected document measurably.
+     *
+     * @template T of object
+     * @param class-string<T> $class
+     * @return T|DecodeError
+     */
+    public static function decodeRoot(string $class, stdClass $object): object
+    {
+        try {
+            $decoder = self::$decoders[$class] ?? self::compiled($class);
+        } catch (DecodeError $error) {
+            return $error;
+        }
+        try {
+            /** @var T */
+            return $decoder->decode($object, '');
+        } catch (DecodeError $error) {
+            return $error->whileCreating($decoder->class);
+        } catch (Throwable $error) {
+            return UnsupportedTarget::unreadable($error)->whileCreating($class);
+        }
+    }
+
+    /**
+     * @param class-string $class
+     * @throws DecodeError
+     */
+    private static function compiled(string $class): ClassDecoder
+    {
+        try {
+            return self::get($class);
         } catch (DecodeError $error) {
             throw $error;
         } catch (Throwable $error) {
