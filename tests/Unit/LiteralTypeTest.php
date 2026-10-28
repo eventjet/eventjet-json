@@ -11,6 +11,7 @@ use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\CollectionCompiler;
 use Eventjet\Json\Internal\CollectionUnionCompiler;
 use Eventjet\Json\Internal\CollectionUnionNatives;
+use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
@@ -44,7 +45,6 @@ use Eventjet\Json\Internal\PhpDocUnionCompiler;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
-use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -62,7 +62,6 @@ use const PHP_INT_MIN;
 #[CoversClass(PhpDocLiteral::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocIntegerRange::class)]
 #[CoversClass(PhpDocConstantValues::class)]
-#[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(LiteralFieldCompiler::class)]
 #[CoversClass(LiteralNode::class)]
 #[CoversClass(PhpDocFieldType::class)]
@@ -76,6 +75,7 @@ use const PHP_INT_MIN;
 #[UsesClass(CollectionUnionNatives::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(UnsupportedField::class)]
+#[UsesClass(InvalidValue::class)]
 #[UsesClass(UnsupportedFieldClass::class)]
 #[UsesClass(EnumNode::class)]
 #[UsesClass(ListNode::class)]
@@ -126,7 +126,7 @@ use const PHP_INT_MIN;
 #[UsesClass(PhpDocUnionCompiler::class)]
 #[UsesClass(TargetClass::class)]
 #[UsesClass(ScalarItems::class)]
-#[UsesClass(ScalarNode::class)]
+#[CoversClass(ScalarNode::class)]
 #[UsesClass(TypeCompiler::class)]
 #[CoversClass(UnionBuilder::class)]
 #[UsesClass(UnionNode::class)]
@@ -463,16 +463,16 @@ final class LiteralTypeTest extends TestCase
     }
 
     /**
-     * @throws \ReflectionException
+     * @throws \JsonException
      * @throws \PHPUnit\Framework\Exception
      * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
      */
     public function testNativeBooleanLiteralsRejectTheirOppositeValues(): void
     {
         foreach (['yes' => true, 'no' => false] as $field => $expected) {
-            $type = $expected ? 'true' : 'false';
-            static::assertTrue(ValueTypeMatcher::matches($expected, $type, false), $field);
-            static::assertFalse(ValueTypeMatcher::matches(!$expected, $type, false), $field);
+            $node = new ScalarNode($expected ? 'true' : 'false', nullable: false);
+            static::assertSame($expected, $node->decode($expected, $field), $field);
+            static::assertInstanceOf(DecodeError::class, $node->decode(!$expected, $field), $field);
         }
     }
 

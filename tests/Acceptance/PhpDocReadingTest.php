@@ -62,6 +62,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(\Eventjet\Json\Internal\Error\AmbiguousUnion::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassDecoder::class)]
+#[UsesClass(\Eventjet\Json\Internal\ClassField::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassDecoders::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassFieldTypeValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassGraphValidator::class)]
@@ -69,8 +70,6 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\CollectionUnionCompiler::class)]
 #[UsesClass(\Eventjet\Json\Internal\CollectionUnionNatives::class)]
 #[UsesClass(\Eventjet\Json\Internal\Error\ConstructorFailure::class)]
-#[UsesClass(\Eventjet\Json\Internal\ConstructorParameter::class)]
-#[UsesClass(\Eventjet\Json\Internal\ConstructorPlan::class)]
 #[UsesClass(\Eventjet\Json\DecodeError::class)]
 #[UsesClass(\Eventjet\Json\DecodeErrorKind::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\EnumNode::class)]
@@ -111,9 +110,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocTupleEntry::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocType::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocUnionCompiler::class)]
-#[UsesClass(\Eventjet\Json\Internal\PublicProperties::class)]
-#[UsesClass(\Eventjet\Json\Internal\PublicPropertyTypeValidator::class)]
-#[UsesClass(\Eventjet\Json\Internal\RenamedArguments::class)]
 #[UsesClass(\Eventjet\Json\Internal\RootDescriptor::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\ScalarItems::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\ScalarNode::class)]
@@ -127,7 +123,6 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\Error\UnsupportedField::class)]
 #[UsesClass(\Eventjet\Json\Internal\Error\UnsupportedFieldClass::class)]
 #[UsesClass(\Eventjet\Json\Internal\Error\UnsupportedTarget::class)]
-#[UsesClass(\Eventjet\Json\Internal\ValueTypeMatcher::class)]
 final class PhpDocReadingTest extends TestCase
 {
     /**

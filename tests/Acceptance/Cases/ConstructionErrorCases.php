@@ -10,6 +10,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\OmittedInitializedReadonlyPublicPrope
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\PrivateConstructorTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\StaticConstructorParameterProperty;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\ThrowingConstructor;
 use Eventjet\Json\Test\Acceptance\Fixtures\VariadicConstructorTarget;
 
@@ -48,6 +49,14 @@ final class ConstructionErrorCases
                 . ' from the JSON object: Field value must be of type UnloadedRequiredClass, null given.',
             DecodeErrorKind::InvalidValue->value,
         ];
+        yield 'unloaded class property rejects null' => [
+            '{"value":null}',
+            CollectionDeclarationFixture::create('UnloadedRequiredClass', '', 'var'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('UnloadedRequiredClass', '', 'var')
+                . ' from the JSON object: Field value must be of type UnloadedRequiredClass, null given.',
+            DecodeErrorKind::InvalidValue->value,
+        ];
         yield 'constructor throws an exception' => [
             '{"value":"rejected"}',
             new ThrowingConstructor('accepted')::class,
@@ -67,8 +76,54 @@ final class ConstructionErrorCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Eventjet\Json\Test\Acceptance\Fixtures\Person::__construct(): Argument #1 ($firstName) not passed',
             DecodeErrorKind::InvalidValue->value,
         ];
+        yield from self::fieldOrder();
         yield from self::targetFailures();
         yield from self::declarations();
+    }
+
+    /**
+     * Fields are decoded in declaration order, constructor parameters first, and the first error wins.
+     *
+     * @return iterable<string, array{string, class-string, string, int}>
+     * @throws \RuntimeException
+     */
+    private static function fieldOrder(): iterable
+    {
+        $fields = CollectionNameSource::load(
+            'FieldOrder',
+            'final class FieldOrder { public bool $third = false; public bool $fourth = false; /** @param list<int> $second */ public function __construct(public \\'
+            . StringBackedStatus::class
+            . ' $first = \\'
+            . StringBackedStatus::class
+            . '::Ready, public array $second = [], public int $fifth = 0) {} }',
+        );
+        foreach ([
+            'an enum parameter error precedes a later scalar parameter error' => [
+                '{"fifth":false,"first":"unknown"}',
+                'Field first uses backed enum '
+                    . StringBackedStatus::class
+                    . ", which has no case with backing value 'unknown'.",
+            ],
+            'a list parameter error precedes a later scalar parameter error' => [
+                '{"second":["wrong"],"fifth":false}',
+                'Field second[0] must be of type int, string given.',
+            ],
+            'a parameter error precedes an earlier declared property error' => [
+                '{"third":1,"fifth":false}',
+                'Field fifth must be of type int, bool given.',
+            ],
+            'property errors follow the property declaration order' => [
+                '{"fourth":1,"third":1}',
+                'Field third must be of type bool, int given.',
+            ],
+        ] as $label => [$json, $message]) {
+            yield $label => [
+                $json,
+                $fields,
+                'Could not create FieldOrder from the JSON object: ' . $message,
+                DecodeErrorKind::InvalidValue->value,
+            ];
+        }
     }
 
     /**

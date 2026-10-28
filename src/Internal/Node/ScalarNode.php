@@ -8,12 +8,13 @@ use Closure;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\ValueTypeMatcher;
 use JsonException;
 use Override;
 
+use function is_bool;
 use function is_float;
 use function is_int;
+use function is_string;
 
 /** @internal */
 final readonly class ScalarNode implements Node
@@ -31,7 +32,17 @@ final readonly class ScalarNode implements Node
     #[Override]
     public function decode(mixed $value, string $path): array|bool|float|int|object|string|null
     {
-        $matches = ValueTypeMatcher::matches($value, $this->name, $this->nullable);
+        $matches = $value === null
+            ? $this->nullable
+            : match ($this->name) {
+                'bool' => is_bool($value),
+                'false' => $value === false,
+                'float' => is_float($value) || is_int($value),
+                'int' => is_int($value),
+                'string' => is_string($value),
+                'true' => $value === true,
+                default => false,
+            };
         if (!$matches) {
             return InvalidValue::typeMismatch($path, $this->expected, $value);
         }

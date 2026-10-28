@@ -139,6 +139,11 @@ final class RootDescriptor
      */
     private static function validateItem(ReflectionClass $class): DecodeError|null
     {
-        return TargetClass::validate($class) ?? ($class->isFinal() ? null : UnsupportedTarget::nonFinalItem());
+        $names = TargetClass::validate($class);
+        return match (true) {
+            $names instanceof DecodeError => $names,
+            $class->isFinal() => null,
+            default => UnsupportedTarget::nonFinalItem(),
+        };
     }
 }
