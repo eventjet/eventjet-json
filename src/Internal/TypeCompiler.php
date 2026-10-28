@@ -52,10 +52,10 @@ final readonly class TypeCompiler
             : self::narrowing(new PhpDocTypeResolver($field)->resolve($declared), $field, $type);
         $node = match (true) {
             $doc !== null => NodeCompiler::field($doc, $field->getName()),
-            $type instanceof ReflectionNamedType => NamedTypeCompiler::field($field, $type) ?? $this->native(
+            $type instanceof ReflectionNamedType && !$type->isBuiltin() => NamedTypeCompiler::field(
                 $field,
                 $type,
-            ),
+            ) ?? $this->native($field, $type),
             default => $this->native($field, $type),
         };
         $literal =

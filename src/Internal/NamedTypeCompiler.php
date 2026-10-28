@@ -56,7 +56,7 @@ final class NamedTypeCompiler
     private const array RESOURCES = ['resource' => true, 'open-resource' => true, 'closed-resource' => true];
 
     /**
-     * Compiles a field whose native type names a class or an enum. Returns null for builtin types, and for a nullable
+     * Compiles a field whose native type names a class or an enum. Returns null for `ArrayObject`, and for a nullable
      * type whose class or enum fails, because the union of the type tree reports it.
      *
      * @throws ReflectionException
@@ -65,9 +65,6 @@ final class NamedTypeCompiler
         ReflectionParameter|ReflectionProperty $field,
         ReflectionNamedType $type,
     ): Node|DecodeError|null {
-        if ($type->isBuiltin()) {
-            return null;
-        }
         $name = FieldTypeNameResolver::resolve($field, $type);
         $node = $name === ArrayObject::class ? null : self::named($name, $field->getName());
         return match (true) {
