@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Node;
 
-use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Override;
@@ -25,12 +24,12 @@ final readonly class UncheckedNode implements Node
     ) {}
 
     #[Override]
-    public function decode(mixed $value, string $path): DecodeError|null
+    public function decode(mixed $value, string $path): null
     {
         return match (true) {
-            $value !== null => UnsupportedFieldClass::unknown($this->field, $this->name),
+            $value !== null => throw UnsupportedFieldClass::unknown($this->field, $this->name),
             $this->nullable => null,
-            default => InvalidValue::typeMismatch($path, $this->name, $value),
+            default => throw InvalidValue::typeMismatch($path, $this->name, $value),
         };
     }
 

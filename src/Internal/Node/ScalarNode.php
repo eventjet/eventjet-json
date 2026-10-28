@@ -44,7 +44,7 @@ final readonly class ScalarNode implements Node
                 default => false,
             };
         if (!$matches) {
-            return InvalidValue::typeMismatch($path, $this->expected, $value);
+            throw InvalidValue::typeMismatch($path, $this->expected, $value);
         }
         /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
         return $this->name === 'float' && is_int($value) ? (float) $value : $value;
@@ -56,18 +56,20 @@ final readonly class ScalarNode implements Node
      * @template TKey of array-key
      * @param array<TKey, mixed> $values
      * @param Closure(TKey): string $path
-     * @return array<TKey, mixed>|DecodeError
+     * @return array<TKey, mixed>
+     * @throws DecodeError
      * @throws JsonException
      */
-    public function decodeEach(array $values, Closure $path): array|DecodeError
+    public function decodeEach(array $values, Closure $path): array
     {
         if ($this->name === 'float') {
             return $this->floats($values, $path);
         }
         $invalid = ScalarItems::firstInvalid($values, $this->name);
-        return $invalid === null
-            ? $values
-            : InvalidValue::typeMismatch($path($invalid), $this->name, $values[$invalid] ?? null);
+        if ($invalid !== null) {
+            throw InvalidValue::typeMismatch($path($invalid), $this->name, $values[$invalid] ?? null);
+        }
+        return $values;
     }
 
     /**
@@ -76,9 +78,10 @@ final readonly class ScalarNode implements Node
      * @template TKey of array-key
      * @param array<TKey, mixed> $values
      * @param Closure(TKey): string $path
-     * @return array<TKey, mixed>|DecodeError
+     * @return array<TKey, mixed>
+     * @throws DecodeError
      */
-    private function floats(array $values, Closure $path): array|DecodeError
+    private function floats(array $values, Closure $path): array
     {
         /** @var mixed $value */
         foreach ($values as $key => $value) {
@@ -86,7 +89,7 @@ final readonly class ScalarNode implements Node
                 continue;
             }
             if (!is_int($value)) {
-                return InvalidValue::typeMismatch($path($key), 'float', $value);
+                throw InvalidValue::typeMismatch($path($key), 'float', $value);
             }
             $values[$key] = (float) $value;
         }

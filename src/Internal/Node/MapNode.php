@@ -24,20 +24,20 @@ final readonly class MapNode implements Node
         public bool $arrayObject,
     ) {}
 
-    /** @return array<string, mixed>|ArrayObject<string, mixed>|DecodeError */
+    /** @return array<string, mixed>|ArrayObject<string, mixed> */
     #[Override]
-    public function decode(mixed $value, string $path): array|ArrayObject|DecodeError
+    public function decode(mixed $value, string $path): array|ArrayObject
     {
         if (!$value instanceof stdClass) {
-            return InvalidValue::typeMismatch($path, 'JSON object', $value);
+            throw InvalidValue::typeMismatch($path, 'JSON object', $value);
         }
         $values = (array) $value;
         if (!$this->arrayObject && $values === []) {
-            return InvalidValue::emptyMap($path);
+            throw InvalidValue::emptyMap($path);
         }
         foreach (array_keys($values) as $key) {
             if (is_int($key)) {
-                return InvalidValue::integerKey($path, $key);
+                throw InvalidValue::integerKey($path, $key);
             }
         }
         /** @var array<string, mixed> $values */
@@ -48,24 +48,21 @@ final readonly class MapNode implements Node
                 static fn(string $key): string => FieldPath::key($path, $key),
             )
             : $this->decodeValues($values, $path);
-        return $decoded instanceof DecodeError || !$this->arrayObject ? $decoded : new ArrayObject($decoded);
+        return $this->arrayObject ? new ArrayObject($decoded) : $decoded;
     }
 
     /**
      * @param array<string, mixed> $values
-     * @return array<string, mixed>|DecodeError
+     * @return array<string, mixed>
+     * @throws DecodeError
      * @throws JsonException
      */
-    private function decodeValues(array $values, string $path): array|DecodeError
+    private function decodeValues(array $values, string $path): array
     {
         $decoded = [];
         /** @var mixed $value */
         foreach ($values as $key => $value) {
-            $value = $this->value->decode($value, FieldPath::key($path, $key));
-            if ($value instanceof DecodeError) {
-                return $value;
-            }
-            $decoded[$key] = $value;
+            $decoded[$key] = $this->value->decode($value, FieldPath::key($path, $key));
         }
         return $decoded;
     }

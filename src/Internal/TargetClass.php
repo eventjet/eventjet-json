@@ -33,37 +33,35 @@ final class TargetClass
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array<string, string>|DecodeError
+     * @return array<string, string>
+     * @throws DecodeError
      */
-    public static function validate(ReflectionClass $class): array|DecodeError
+    public static function validate(ReflectionClass $class): array
     {
         $className = $class->getName();
 
         if ($class->isInterface()) {
-            return UnsupportedTarget::interface();
+            throw UnsupportedTarget::interface();
         }
 
         if ($class->isAbstract()) {
-            return UnsupportedTarget::abstractClass();
+            throw UnsupportedTarget::abstractClass();
         }
 
         $names = self::fieldNames($class);
-        if ($names instanceof DecodeError) {
-            return $names;
-        }
 
         $constructor = $class->getConstructor();
 
         if ($constructor !== null && !$constructor->isPublic()) {
             $visibility = $constructor->isPrivate() ? 'private' : 'protected';
 
-            return UnsupportedTarget::inaccessibleConstructor($visibility);
+            throw UnsupportedTarget::inaccessibleConstructor($visibility);
         }
 
         $classIsNonBackedEnum = self::isNonBackedEnum($className);
 
         if ($classIsNonBackedEnum) {
-            return UnsupportedTarget::nonBackedEnum($className);
+            throw UnsupportedTarget::nonBackedEnum($className);
         }
 
         return $names;
@@ -75,10 +73,11 @@ final class TargetClass
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array<string, string>|DecodeError
+     * @return array<string, string>
+     * @throws DecodeError
      * @phpstan-impure
      */
-    public static function fieldNames(ReflectionClass $class): array|DecodeError
+    public static function fieldNames(ReflectionClass $class): array
     {
         return self::$names[$class->getName()] ?? self::resolve($class);
     }
@@ -86,9 +85,10 @@ final class TargetClass
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array<string, string>|DecodeError
+     * @return array<string, string>
+     * @throws DecodeError
      */
-    private static function resolve(ReflectionClass $class): array|DecodeError
+    private static function resolve(ReflectionClass $class): array
     {
         $className = $class->getName();
         $properties = $class->getProperties();
@@ -98,11 +98,10 @@ final class TargetClass
         );
         if ($annotated === []) {
             return $class->implementsInterface(JsonSerializable::class)
-                ? UnsupportedTarget::jsonSerializable($class)
+                ? throw UnsupportedTarget::jsonSerializable($class)
                 : (self::$names[$className] = []);
         }
-        $names = FieldNameRules::resolve($class, $properties, $annotated);
-        return $names instanceof DecodeError ? $names : (self::$names[$className] = $names);
+        return self::$names[$className] = FieldNameRules::resolve($class, $properties, $annotated);
     }
 
     /**

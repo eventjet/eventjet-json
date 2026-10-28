@@ -52,19 +52,19 @@ final readonly class ClassDecoder
      *
      * @template T of object
      * @param ReflectionClass<T> $class
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function compile(ReflectionClass $class): self|DecodeError
+    public static function compile(ReflectionClass $class): self
     {
-        $names = TargetClass::validate($class);
-        $fields = $names instanceof DecodeError ? $names : ClassField::compile($class, $names);
-        return $fields instanceof DecodeError ? $fields : new self($class->getName(), $fields);
+        return new self($class->getName(), ClassField::compile($class, TargetClass::validate($class)));
     }
 
     /**
      * Decodes the members of a JSON object field by field, stopping at the first error, then creates the object: it
      * calls the constructor and assigns the public properties outside it.
      *
+     * @throws DecodeError
      * @throws JsonException
      */
     public function decode(stdClass $object, string $path): object
@@ -91,9 +91,6 @@ final readonly class ClassDecoder
                 };
             if (!$unchanged) {
                 $value = $field->node->decode($value, $path === '' ? $name : FieldPath::field($path, $name));
-                if ($value instanceof DecodeError) {
-                    return $value->whileCreating($this->class);
-                }
             }
             if ($field->property === null) {
                 $arguments[$field->name] = $value;
@@ -110,13 +107,13 @@ final readonly class ClassDecoder
         } catch (Throwable $error) {
             $missing = $this->missesArgument($arguments);
             $failure = $missing ? InvalidValue::missingArgument($error) : ConstructorFailure::constructorThrew($error);
-            return $failure->whileCreating($this->class);
+            throw $failure;
         }
         foreach ($assignments as [$property, $value]) {
             try {
                 $property->setValue($created, $value);
             } catch (Throwable $error) {
-                return ConstructorFailure::assignmentThrew($property, $error)->whileCreating($this->class);
+                throw ConstructorFailure::assignmentThrew($property, $error);
             }
         }
         return $created;

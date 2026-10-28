@@ -30,7 +30,7 @@ final readonly class ObjectNode implements Node
         }
         if (!$value instanceof stdClass) {
             $expected = $this->nullable ? FieldTypeNameResolver::withNull($this->target) : $this->target;
-            return InvalidValue::typeMismatch($path, $expected, $value);
+            throw InvalidValue::typeMismatch($path, $expected, $value);
         }
         return ClassDecoders::hydrate($this->target, $value, $path);
     }
@@ -39,22 +39,19 @@ final readonly class ObjectNode implements Node
      * Decodes the items of a list without a node call per item, because lists of objects are common.
      *
      * @param list<mixed> $values
-     * @return list<object>|DecodeError
+     * @return list<object>
+     * @throws DecodeError
      */
-    public function decodeEach(array $values, string $path): array|DecodeError
+    public function decodeEach(array $values, string $path): array
     {
         $decoded = [];
         /** @var mixed $value */
         foreach ($values as $index => $value) {
             $itemPath = sprintf('%s[%d]', $path, $index);
             if (!$value instanceof stdClass) {
-                return InvalidValue::typeMismatch($itemPath, $this->target, $value);
+                throw InvalidValue::typeMismatch($itemPath, $this->target, $value);
             }
-            $object = ClassDecoders::hydrate($this->target, $value, $itemPath);
-            if ($object instanceof DecodeError) {
-                return $object;
-            }
-            $decoded[] = $object;
+            $decoded[] = ClassDecoders::hydrate($this->target, $value, $itemPath);
         }
         return $decoded;
     }

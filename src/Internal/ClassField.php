@@ -57,10 +57,11 @@ final readonly class ClassField
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<string, string> $names JSON names of renamed properties, keyed by property name.
-     * @return list<self>|DecodeError
+     * @return list<self>
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function compile(ReflectionClass $class, array $names): array|DecodeError
+    public static function compile(ReflectionClass $class, array $names): array
     {
         $properties = [];
         foreach ($class->getProperties() as $property) {
@@ -75,18 +76,11 @@ final readonly class ClassField
         $fields = [];
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $field = self::parameter($parameter, $names, $properties);
-            if ($field instanceof DecodeError) {
-                return $field;
-            }
             $fields[] = $field;
             unset($properties[$field->name]);
         }
         foreach ($properties as $name => $property) {
-            $node = self::node($property);
-            if ($node instanceof DecodeError) {
-                return $node;
-            }
-            $fields[] = new self($names[$name] ?? $name, $name, $node, $property, false);
+            $fields[] = new self($names[$name] ?? $name, $name, self::node($property), $property, false);
         }
         return $fields;
     }
@@ -97,27 +91,30 @@ final readonly class ClassField
      *
      * @param array<string, string> $names
      * @param array<string, ReflectionProperty> $properties The public instance properties of the class, keyed by name.
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function parameter(ReflectionParameter $parameter, array $names, array $properties): self|DecodeError
+    private static function parameter(ReflectionParameter $parameter, array $names, array $properties): self
     {
         $name = $parameter->getName();
         if ($parameter->isVariadic()) {
-            return UnsupportedField::variadic($name);
+            throw UnsupportedField::variadic($name);
         }
         $node = self::node($parameter);
-        if ($node instanceof DecodeError) {
-            return $node;
-        }
         return array_key_exists($name, $properties)
             ? new self($names[$name] ?? $name, $name, $node, null, !$parameter->isOptional())
-            : UnsupportedField::withoutProperty($name);
+            : throw UnsupportedField::withoutProperty($name);
     }
 
-    /** @throws ReflectionException */
-    private static function node(ReflectionParameter|ReflectionProperty $field): Node|DecodeError
+    /**
+     * @throws DecodeError
+     * @throws ReflectionException
+     */
+    private static function node(ReflectionParameter|ReflectionProperty $field): Node
     {
         $type = $field->getType();
-        return $type === null ? UnsupportedField::untyped($field->getName()) : new TypeCompiler()->field($field, $type);
+        return $type === null
+            ? throw UnsupportedField::untyped($field->getName())
+            : new TypeCompiler()->field($field, $type);
     }
 }

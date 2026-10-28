@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Node;
 
-use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Override;
 
@@ -31,17 +30,17 @@ final readonly class TupleNode implements Node
         $this->expected = 'array{' . implode(', ', $positions) . '}';
     }
 
-    /** @return list<mixed>|DecodeError */
+    /** @return list<mixed> */
     #[Override]
-    public function decode(mixed $value, string $path): array|DecodeError
+    public function decode(mixed $value, string $path): array
     {
         if (!is_array($value)) {
-            return InvalidValue::typeMismatch($path, $this->expected, $value);
+            throw InvalidValue::typeMismatch($path, $this->expected, $value);
         }
         $count = count($value);
         $max = count($this->items);
         if ($count < $this->required || $count > $max) {
-            return InvalidValue::tupleLength($path, $this->expected, $this->required, $max, $count);
+            throw InvalidValue::tupleLength($path, $this->expected, $this->required, $max, $count);
         }
         $decoded = [];
         /** @var list<mixed> $items JSON arrays decode to lists. */
@@ -50,11 +49,7 @@ final readonly class TupleNode implements Node
         foreach ($items as $index => $item) {
             $node = $this->items[$index] ?? null;
             assert($node !== null, description: 'The length check guarantees a node for every item.');
-            $item = $node->decode($item, sprintf('%s[%d]', $path, $index));
-            if ($item instanceof DecodeError) {
-                return $item;
-            }
-            $decoded[] = $item;
+            $decoded[] = $node->decode($item, sprintf('%s[%d]', $path, $index));
         }
         return $decoded;
     }

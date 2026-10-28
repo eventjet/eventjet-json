@@ -59,30 +59,40 @@ final class NamedTypeCompiler
      * Compiles a field whose native type names a class or an enum. Returns null for `ArrayObject`, and for a nullable
      * type whose class or enum fails, because the union of the type tree reports it.
      *
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function field(
-        ReflectionParameter|ReflectionProperty $field,
-        ReflectionNamedType $type,
-    ): Node|DecodeError|null {
+    public static function field(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): Node|null
+    {
         $name = FieldTypeNameResolver::resolve($field, $type);
-        $node = $name === ArrayObject::class ? null : self::named($name, $field->getName());
-        return match (true) {
-            !$type->allowsNull() => $node,
-            $node instanceof UncheckedNode => new UncheckedNode($name, $field->getName(), nullable: true),
-            default => NullableNode::field($node),
-        };
+        if ($name === ArrayObject::class) {
+            return null;
+        }
+        if (!$type->allowsNull()) {
+            return self::named($name, $field->getName());
+        }
+        try {
+            $node = self::named($name, $field->getName());
+        } catch (DecodeError) {
+            return null;
+        }
+        return $node instanceof UncheckedNode
+            ? new UncheckedNode($name, $field->getName(), nullable: true)
+            : NullableNode::field($node);
     }
 
-    /** @throws ReflectionException */
-    public static function compile(PhpDocType $type, string $path): Node|DecodeError
+    /**
+     * @throws DecodeError
+     * @throws ReflectionException
+     */
+    public static function compile(PhpDocType $type, string $path): Node
     {
         $name = $type->name;
         return match (true) {
             $type->literal !== null => self::literal($type->literal, $path),
             array_key_exists($name, self::SCALARS) => new ScalarNode($name, false),
             $name === 'null' => new NullOnlyNode('null'),
-            array_key_exists($name, self::RESOURCES) => UnsupportedField::nonEncodable($path, $name),
+            array_key_exists($name, self::RESOURCES) => throw UnsupportedField::nonEncodable($path, $name),
             default => self::named($name, $path),
         };
     }
@@ -90,56 +100,61 @@ final class NamedTypeCompiler
     /**
      * Compiles the name of a class or an enum.
      *
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function named(string $name, string $path): Node|DecodeError
+    private static function named(string $name, string $path): Node
     {
         return match (true) {
-            array_key_exists($name, self::IMPRECISE) => UnsupportedField::imprecise($path, $name),
+            array_key_exists($name, self::IMPRECISE) => throw UnsupportedField::imprecise($path, $name),
             enum_exists($name) => self::enum($name, $path),
             default => self::object($name, $path),
         };
     }
 
     /**
-     * Returns the error of a union member that failed to compile if its values have no JSON representation: a resource,
-     * or a non-backed enum without custom serialization. Unions skip such members if another member remains.
+     * Whether the values of a union member that failed to compile have no JSON representation: a resource, or a
+     * non-backed enum without custom serialization. Unions skip such members if another member remains.
      *
      * @throws ReflectionException
      */
-    public static function unrepresentable(string $name, DecodeError|null $error): DecodeError|null
+    public static function unrepresentable(string $name): bool
     {
-        $enum = $error !== null && enum_exists($name);
-        $unrepresentable =
+        return (
             array_key_exists($name, self::RESOURCES)
-            || $enum
+            || enum_exists($name)
             && !new ReflectionEnum($name)->isBacked()
-            && !is_a($name, JsonSerializable::class, allow_string: true);
-        return $unrepresentable ? $error : null;
+            && !is_a($name, JsonSerializable::class, allow_string: true)
+        );
     }
 
     /**
      * Rejects enums whose values JSON cannot restore: non-backed enums, and backed enums with a custom JSON
      * representation, which may not match their backing values.
      *
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function enum(string $enum, string $path): Node|DecodeError
+    private static function enum(string $enum, string $path): Node
     {
         $node = EnumNode::of($enum);
         return match (true) {
-            $node === null => UnsupportedFieldClass::nonBackedEnum($path, $enum),
-            is_a($enum, JsonSerializable::class, allow_string: true) => self::serializedEnum($enum, $path),
+            $node === null => throw UnsupportedFieldClass::nonBackedEnum($path, $enum),
+            is_a($enum, JsonSerializable::class, allow_string: true) => throw self::serializedEnum($enum, $path),
             default => $node,
         };
     }
 
-    /** A literal enum case is subject to the rules of its enum. */
-    private static function literal(PhpDocLiteral $literal, string $path): Node|DecodeError
+    /**
+     * A literal enum case is subject to the rules of its enum.
+     *
+     * @throws DecodeError
+     */
+    private static function literal(PhpDocLiteral $literal, string $path): Node
     {
         $value = $literal->value;
         return $value instanceof JsonSerializable
-            ? self::serializedEnum($value::class, $path)
+            ? throw self::serializedEnum($value::class, $path)
             : LiteralNode::of($literal);
     }
 
@@ -153,24 +168,29 @@ final class NamedTypeCompiler
      * PHP checks a class that is not loaded yet when the field is assigned. Errors in the declarations of the class
      * itself name that class.
      *
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function object(string $name, string $path): Node|DecodeError
+    private static function object(string $name, string $path): Node
     {
         if (interface_exists($name)) {
-            return UnsupportedFieldClass::interface($path, $name);
+            throw UnsupportedFieldClass::interface($path, $name);
         }
         if (!class_exists($name)) {
             return new UncheckedNode($name, $path, nullable: false);
         }
         $class = new ReflectionClass($name);
         if ($class->isAbstract()) {
-            return UnsupportedFieldClass::abstractClass($path, $name);
+            throw UnsupportedFieldClass::abstractClass($path, $name);
         }
         if (!$class->isFinal()) {
-            return UnsupportedFieldClass::nonFinal($path, $name);
+            throw UnsupportedFieldClass::nonFinal($path, $name);
         }
-        $names = TargetClass::fieldNames($class);
-        return $names instanceof DecodeError ? $names->whileCreating($class->getName()) : new ObjectNode($name, false);
+        try {
+            TargetClass::fieldNames($class);
+        } catch (DecodeError $error) {
+            throw $error->whileCreating($class->getName());
+        }
+        return new ObjectNode($name, false);
     }
 }

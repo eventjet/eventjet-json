@@ -22,41 +22,36 @@ final class ClassGraphValidator
 
     /**
      * @param class-string $class
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    public function validateRoot(string $class): DecodeError|null
+    public function validateRoot(string $class): void
     {
         if (is_subclass_of($class, BackedEnum::class)) {
-            return UnsupportedTarget::backedEnum()->whileCreating($class);
+            throw UnsupportedTarget::backedEnum()->whileCreating($class);
         }
-        return $this->validate($class);
+        $this->validate($class);
     }
 
     /**
      * @param class-string $class
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    public function validate(string $class): DecodeError|null
+    public function validate(string $class): void
     {
         $class = new ReflectionClass($class)->getName();
         if ($this->visited[$class] ?? false) {
-            return null;
+            return;
         }
         $this->visited[$class] = true;
-        $decoder = ClassDecoders::get($class);
-        if ($decoder instanceof DecodeError) {
-            return $decoder;
-        }
-        foreach ($decoder->fields as $field) {
+        foreach (ClassDecoders::get($class)->fields as $field) {
             foreach ($field->node->dependencies() as $dependency) {
-                $error = class_exists($dependency)
-                    ? $this->validate($dependency)
-                    : UnsupportedFieldClass::unknown($field->name, $dependency)->whileCreating($class);
-                if ($error !== null) {
-                    return $error;
+                if (!class_exists($dependency)) {
+                    throw UnsupportedFieldClass::unknown($field->name, $dependency)->whileCreating($class);
                 }
+                $this->validate($dependency);
             }
         }
-        return null;
     }
 }

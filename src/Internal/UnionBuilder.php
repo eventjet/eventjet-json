@@ -47,10 +47,18 @@ final class UnionBuilder
     }
 
     /**
-     * Records a member that has no JSON representation. Its error is reported only if no other member remains.
+     * Records a member that failed to compile. If its values have no JSON representation, its error is reported only if
+     * no other member remains. Otherwise, the error applies to the whole union.
+     *
+     * @throws DecodeError
+     * @throws ReflectionException
      */
     public function reject(string $type, DecodeError $error): void
     {
+        $unrepresentable = NamedTypeCompiler::unrepresentable($type);
+        if (!$unrepresentable) {
+            throw $error;
+        }
         $this->types[$type] = null;
         $this->rejected ??= $error;
     }
@@ -59,21 +67,30 @@ final class UnionBuilder
      * Returns the union of the members, or the only member if there is one.
      *
      * @param string|null $type The type that errors report, if it differs from the member types.
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    public function build(string|null $type = null): Node|DecodeError
+    public function build(string|null $type = null): Node
     {
         $members = $this->members();
         if ($members === []) {
             assert($this->rejected !== null, description: 'A union with no members rejected at least one.');
-            return $this->rejected;
+            throw $this->rejected;
         }
         if (count($members) === 1 && $this->rejected === null) {
             return $members[0];
         }
         $type ??= implode('|', array_keys($this->types));
-        $union = $this->literals($members) ?? $this->classes($members) ?? UnionNode::of($this->path, $type, $members);
-        return $union instanceof DecodeError ? $union : $this->shapes($members) ?? $union;
+        $error = $this->literals($members) ?? $this->classes($members);
+        if ($error !== null) {
+            throw $error;
+        }
+        $union = UnionNode::of($this->path, $type, $members);
+        $error = $this->shapes($members);
+        if ($error !== null) {
+            throw $error;
+        }
+        return $union;
     }
 
     /** @return list<Node> */

@@ -35,8 +35,9 @@ final readonly class UnionNode implements Node
      * other members. Enums that share a backing type are combined, and so are literals that share a JSON value type.
      *
      * @param list<Node> $members
+     * @throws DecodeError
      */
-    public static function of(string $path, string $type, array $members): self|DecodeError
+    public static function of(string $path, string $type, array $members): self
     {
         /** @var array<string, Node> $indexed */
         $indexed = [];
@@ -58,11 +59,7 @@ final readonly class UnionNode implements Node
         }
         $valueTypes = array_keys($indexed);
         foreach ($enums as $backingType => $names) {
-            $node = EnumNode::union($path, $backingType, $names, $valueTypes);
-            if ($node instanceof DecodeError) {
-                return $node;
-            }
-            $indexed[$backingType] = $node;
+            $indexed[$backingType] = EnumNode::union($path, $backingType, $names, $valueTypes);
         }
         if (array_key_exists('float', $indexed) && !array_key_exists('int', $indexed)) {
             $indexed['int'] = $indexed['float'];
@@ -81,7 +78,7 @@ final readonly class UnionNode implements Node
         };
         $member = $this->members[$valueType] ?? null;
         return $member === null
-            ? InvalidValue::typeMismatch($path, $this->type, $value)
+            ? throw InvalidValue::typeMismatch($path, $this->type, $value)
             : $member->decode($value, $path);
     }
 

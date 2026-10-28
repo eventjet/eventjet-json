@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Node;
 
-use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Override;
 
@@ -20,9 +19,9 @@ final readonly class NullOnlyNode implements Node
     ) {}
 
     #[Override]
-    public function decode(mixed $value, string $path): DecodeError|null
+    public function decode(mixed $value, string $path): null
     {
-        return $value === null ? null : InvalidValue::typeMismatch($path, $this->type, $value);
+        return $value === null ? null : throw InvalidValue::typeMismatch($path, $this->type, $value);
     }
 
     #[Override]

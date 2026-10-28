@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Parity;
 
 use Eventjet\Json\Internal\PhpDocFieldType;
+use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Test\Parity\Corpus\ParityCorpus;
 use Eventjet\Json\Test\Parity\Corpus\TestSuiteDocs;
 use Eventjet\Json\Test\Parity\Reference\PhpStanReader;
 use Eventjet\Json\Test\Parity\Reference\PhpStanTagSelector;
+use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeError;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -74,7 +76,12 @@ final class PhpDocParserParityTest extends TestCase
                 $field->getName(),
                 $field->getDeclaringClass()?->getName() ?? 'a function',
             );
-            ParityCheck::field($label, PhpDocFieldType::resolve($field), $reference, $report);
+            $ours = ThrownDecodeError::orResult(
+                /** @throws \Eventjet\Json\DecodeError */ static fn(): PhpDocType|null => PhpDocFieldType::resolve(
+                    $field,
+                ),
+            );
+            ParityCheck::field($label, $ours, $reference, $report);
         }
 
         static::assertSame([], $report->differences());
