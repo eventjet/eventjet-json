@@ -58,6 +58,12 @@ if (!str_contains(performanceSummary($result['comparisons'], 'on', $result['fpm'
     throw new RuntimeException('Summary must use validated comparisons without reopening measurement files');
 }
 rename($measurementPath . '.saved', $measurementPath);
+// PHPBench lists benchmark files in filesystem order, which can differ between runners.
+file_put_contents($directory . '/8/discovery.xml', measurement(array_reverse(range(0, 8))));
+if (PerformanceShards::collect($directory, 'on')['comparisons'] != $result['comparisons']) {
+    throw new RuntimeException('Shards must agree on workloads that a runner discovered in another order');
+}
+file_put_contents($directory . '/8/discovery.xml', measurement(range(0, 8)));
 for ($count = 0; $count <= 25; $count++) {
     $all = PerformanceShards::assignedIndices($count, null);
     $partitioned = [];

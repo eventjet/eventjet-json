@@ -239,19 +239,19 @@ fi
 grep -Fq 'OPcache must be on or off' invalid.log
 echo 'OPcache modes and explicit frozen workloads passed.'
 
-EXPLICIT_WORKLOADS=1 php "$runner" --base "$baseline" --candidate "$candidate" --workloads "$candidate" --shard 2 > shard.log 2>&1 && status=0 || status=$?
+EXPLICIT_WORKLOADS=1 php "$runner" --base "$baseline" --candidate "$candidate" --workloads "$candidate" --shard 3 > shard.log 2>&1 && status=0 || status=$?
 if [ "$status" -ne 2 ]; then cat shard.log; exit 1; fi
 PROJECT="$project" php <<'PHP'
 <?php
 require getenv('PROJECT') . '/.github/ci/BenchmarkComparison.php';
 use Eventjet\Json\Ci\BenchmarkComparison;
 $completion = json_decode(file_get_contents('.perf/results/complete.json'), true, flags: JSON_THROW_ON_ERROR);
-if ($completion !== ['indices' => [1]]
+if ($completion !== ['indices' => [2]]
     || count(glob('.perf/results/candidate-*.xml')) !== BenchmarkComparison::ROUNDS
-    || count(glob('.perf/results/baseline-1-*.xml')) !== BenchmarkComparison::ROUNDS) {
+    || count(glob('.perf/results/baseline-2-*.xml')) !== BenchmarkComparison::ROUNDS) {
     throw new RuntimeException('Shard must measure exactly its assigned workload in every round');
 }
-foreach (glob('.perf/results/*-1-*.xml') as $file) {
+foreach (glob('.perf/results/*-2-*.xml') as $file) {
     if (count(simplexml_load_file($file)->xpath('//variant/iteration')) !== BenchmarkComparison::ITERATIONS) {
         throw new RuntimeException('Sharding must preserve every iteration');
     }
