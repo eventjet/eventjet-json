@@ -414,10 +414,7 @@ final class AutoloadingTest extends TestCase
         }
     }
 
-    /**
-     * @throws DecodeError
-     * @throws ReflectionException
-     */
+    /** @throws DecodeError */
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
     public function testFieldNameLookupsReuseMetadataIncludingUnannotatedClasses(): void
@@ -426,6 +423,7 @@ final class AutoloadingTest extends TestCase
             [MappedReference::class, ['ref' => '$ref']],
             [EmptyObject::class, []],
         ] as [$name, $expected]) {
+            /** @mago-expect analysis:unhandled-thrown-type Reflecting an existing class cannot throw. */
             $class = new PropertyCountingReflection($name);
             static::assertSame($expected, TargetClass::fieldNames($class));
             static::assertSame($expected, TargetClass::fieldNames($class));
