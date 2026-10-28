@@ -195,7 +195,9 @@ workloads and installed dependencies. CLI and FPM reuse these environments; chan
 candidate workloads receive a separate environment for verification.
 
 CI splits the discovered workload list across eight runners per OPcache mode,
-using the workload index modulo eight. Each baseline/candidate pair stays on one
+using the workload index modulo eight. The list is sorted by benchmark class,
+subject, and parameter set, because PHPBench lists benchmark files in
+filesystem order, which can differ between runners. Each baseline/candidate pair stays on one
 runner; measurements never run concurrently on that runner. Each shard retains
 the full discovery list and its assigned workload indices. Only shard one runs
 the FPM measurements. Local comparisons remain unsharded unless `--shard N` is

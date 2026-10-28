@@ -65,11 +65,14 @@ final readonly class BenchmarkReport
         if ($workloads === [] || $variants === []) {
             throw new RuntimeException('No benchmark workloads discovered');
         }
-        $report = new self($xml, $workloads, $variants);
-        if (count(array_unique($report->identities())) !== count($workloads)) {
+        $identities = array_map(static fn(BenchmarkWorkload $workload): string => $workload->identity(), $workloads);
+        if (count(array_unique($identities)) !== count($identities)) {
             throw new RuntimeException('Workloads must be unique');
         }
-        return $report;
+        // PHPBench lists benchmark files in filesystem order, which differs between runners. Shards assign workloads
+        // by position, so every runner needs the same order.
+        array_multisort($identities, SORT_STRING, $workloads, $variants);
+        return new self($xml, $workloads, $variants);
     }
 
     /** @return non-empty-list<string> */

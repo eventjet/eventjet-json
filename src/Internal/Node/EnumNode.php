@@ -44,9 +44,7 @@ final readonly class EnumNode implements Node
     ) {
         /** @var callable(int|string): (BackedEnum|null) $tryFrom */
         $tryFrom = [$enums[0], 'tryFrom'];
-        /** @mago-var Closure(int|string): (BackedEnum|null) $find */
-        $find = Closure::fromCallable($tryFrom);
-        $this->find = $find;
+        $this->find = $tryFrom(...);
     }
 
     /**
