@@ -54,6 +54,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Unit\Fixtures\JsonObject;
+use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeError;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -249,16 +250,21 @@ final class ConstructorValidationPlanTest extends TestCase
         $dependency = 'ConstructorPlanDeferredEnum';
         $class = CollectionDeclarationFixture::create($dependency, '', 'param');
         $decoder = ClassDecoders::get($class);
-        static::assertInstanceOf(ClassDecoder::class, $decoder);
         static::assertFalse($decoder->complete);
         static::assertNotSame($decoder, ClassDecoders::get($class));
         static::assertTrue(class_alias(NonBackedStatus::class, $dependency));
-        static::assertInstanceOf(DecodeError::class, ClassDecoders::get($class));
+        static::assertSame(
+            DecodeErrorKind::UnsupportedDeclaration,
+            ThrownDecodeError::of(
+                /** @throws DecodeError|ReflectionException */ static fn(): object => ClassDecoders::get($class),
+            )->kind,
+        );
     }
 
     /**
      * @throws ReflectionException
      * @throws JsonException
+     * @throws DecodeError
      */
     public function testMappedPlansKeepInputNamesAndArgumentsSeparate(): void
     {
@@ -362,9 +368,16 @@ final class ConstructorValidationPlanTest extends TestCase
         $error = InvalidFieldMapping::collision('value', 'ref', 'ref');
         $named = InvalidFieldMapping::collision('value', 'ref', 'ref')->whileCreating($class);
         for ($attempt = 0; $attempt < 2; ++$attempt) {
-            static::assertEquals($error, TargetClass::validate($reflection));
+            static::assertEquals($error, ThrownDecodeError::of(
+                /**
+                 * @throws DecodeError
+                 */
+                static fn(): mixed => TargetClass::validate($reflection),
+            ));
             static::assertEquals($named, self::decode($reflection, [], ''));
-            static::assertEquals($named, ClassDecoders::get($class));
+            static::assertEquals($named, ThrownDecodeError::of(
+                /** @throws DecodeError|ReflectionException */ static fn(): object => ClassDecoders::get($class),
+            ));
             try {
                 MappedObjectSerializer::serialize($reflection->newInstance());
                 static::fail('Invalid mappings must not serialize.');
@@ -408,9 +421,20 @@ final class ConstructorValidationPlanTest extends TestCase
                 $error = InvalidFieldMapping::nonPublicProperty('value');
                 $named = InvalidFieldMapping::nonPublicProperty('value')->whileCreating($class);
                 for ($attempt = 0; $attempt < 2; ++$attempt) {
-                    static::assertEquals($error, TargetClass::validate($reflection));
+                    static::assertEquals($error, ThrownDecodeError::of(
+                        /**
+                         * @throws DecodeError
+                         */
+                        static fn(): mixed => TargetClass::validate($reflection),
+                    ));
                     static::assertEquals($named, self::decode($reflection, [], ''));
-                    static::assertEquals($named, ClassDecoders::get($class));
+                    static::assertEquals($named, ThrownDecodeError::of(
+                        /**
+                         * @throws DecodeError
+                         * @throws ReflectionException
+                         */
+                        static fn(): object => ClassDecoders::get($class),
+                    ));
                     try {
                         MappedObjectSerializer::serialize($reflection->newInstance());
                         static::fail('Private ancestor mappings must not serialize.');
@@ -444,6 +468,8 @@ final class ConstructorValidationPlanTest extends TestCase
     }
 
     /**
+     * Hydrates the class and returns the object, or the error, as Json::decode() does.
+     *
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<array-key, bool|float|int|string|null> $values
@@ -451,6 +477,9 @@ final class ConstructorValidationPlanTest extends TestCase
      */
     private static function decode(ReflectionClass $class, array $values, string $path): object
     {
-        return ClassDecoders::hydrate($class->getName(), JsonObject::of($values), $path);
+        $object = JsonObject::of($values);
+        return ThrownDecodeError::orResult(
+            /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class->getName(), $object, $path),
+        );
     }
 }

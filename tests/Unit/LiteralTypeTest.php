@@ -7,6 +7,7 @@ namespace Eventjet\Json\Test\Unit;
 use BackedEnum;
 use DateTimeImmutable;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
@@ -44,6 +45,7 @@ use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
+use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeError;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
@@ -131,6 +133,7 @@ final class LiteralTypeTest extends TestCase
      * @throws ReflectionException
      * @throws \PHPUnit\Framework\Exception
      * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
+     * @throws DecodeError
      */
     public function testLiteralAndCollectionDeclarationsStayDistinct(): void
     {
@@ -163,15 +166,20 @@ final class LiteralTypeTest extends TestCase
                 public int|float $value,
             ) {}
         };
-        static::assertInstanceOf(
-            DecodeError::class,
-            self::compile(new ReflectionParameter([$invalid::class, '__construct'], 'value')),
+        static::assertSame(
+            DecodeErrorKind::UnsupportedDeclaration,
+            ThrownDecodeError::of(
+                /** @throws DecodeError|ReflectionException */ static fn(): Node => self::compile(
+                    new ReflectionParameter([$invalid::class, '__construct'], 'value'),
+                ),
+            )->kind,
         );
     }
 
     /**
      * @throws ReflectionException
      * @throws \PHPUnit\Framework\Exception
+     * @throws DecodeError
      */
     public function testOrdinaryPhpDocDoesNotConstrainScalarValues(): void
     {
@@ -196,6 +204,7 @@ final class LiteralTypeTest extends TestCase
      * @throws \PHPUnit\Framework\Exception
      * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
      * @throws \JsonException
+     * @throws DecodeError
      */
     public function testLiteralFieldDeclarations(): void
     {
@@ -250,7 +259,15 @@ final class LiteralTypeTest extends TestCase
                 $this->nonLiteral = [];
             }
         };
-        static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($ordinary, 'object')));
+        static::assertSame(
+            DecodeErrorKind::UnsupportedDeclaration,
+            ThrownDecodeError::of(
+                /** @throws DecodeError|ReflectionException */ static fn(): Node => self::compile(new ReflectionProperty(
+                    $ordinary,
+                    'object',
+                )),
+            )->kind,
+        );
         static::assertNotInstanceOf(
             LiteralNode::class,
             self::compile(new ReflectionProperty($ordinary, 'undocumented')),
@@ -298,7 +315,10 @@ final class LiteralTypeTest extends TestCase
         static::assertSame(StringBackedStatus::Ready, $status->decode('ready', 'status'));
     }
 
-    /** @throws \PHPUnit\Framework\Exception|ReflectionException */
+    /**
+     * @throws \PHPUnit\Framework\Exception|ReflectionException
+     * @throws DecodeError
+     */
     public function testLiteralMarkers(): void
     {
         $properties = new class {
@@ -325,7 +345,15 @@ final class LiteralTypeTest extends TestCase
         static::assertInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($properties, 'literal')));
         static::assertInstanceOf(ScalarNode::class, self::compile(new ReflectionProperty($properties, 'nothing')));
         static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($properties, 'refined')));
-        static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($properties, 'object')));
+        static::assertSame(
+            DecodeErrorKind::UnsupportedDeclaration,
+            ThrownDecodeError::of(
+                /** @throws DecodeError|ReflectionException */ static fn(): Node => self::compile(new ReflectionProperty(
+                    $properties,
+                    'object',
+                )),
+            )->kind,
+        );
         static::assertNotInstanceOf(
             LiteralNode::class,
             self::compile(new ReflectionProperty($properties, 'undocumented')),
@@ -461,18 +489,28 @@ final class LiteralTypeTest extends TestCase
      * @throws \JsonException
      * @throws \PHPUnit\Framework\Exception
      * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
+     * @throws DecodeError
      */
     public function testNativeBooleanLiteralsRejectTheirOppositeValues(): void
     {
         foreach (['yes' => true, 'no' => false] as $field => $expected) {
             $node = new ScalarNode($expected ? 'true' : 'false', nullable: false);
             static::assertSame($expected, $node->decode($expected, $field), $field);
-            static::assertInstanceOf(DecodeError::class, $node->decode(!$expected, $field), $field);
+            static::assertSame(
+                DecodeErrorKind::InvalidValue,
+                ThrownDecodeError::of(
+                    /** @throws DecodeError|\JsonException */ static fn(): mixed => $node->decode(!$expected, $field),
+                )->kind,
+                $field,
+            );
         }
     }
 
-    /** @throws ReflectionException */
-    private static function compile(ReflectionParameter|ReflectionProperty $field): Node|DecodeError
+    /**
+     * @throws DecodeError
+     * @throws ReflectionException
+     */
+    private static function compile(ReflectionParameter|ReflectionProperty $field): Node
     {
         $type = $field->getType();
         $class = $field->getDeclaringClass();

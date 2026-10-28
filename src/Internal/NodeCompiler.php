@@ -31,20 +31,24 @@ final class NodeCompiler
      * Compiles the whole type of a field.
      *
      * @param string|null $label The type that errors report for a union, if it differs from the member types.
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function field(PhpDocType $type, string $path, string|null $label = null): Node|DecodeError|null
+    public static function field(PhpDocType $type, string $path, string|null $label = null): Node|null
     {
         return $type->name === '|' ? self::nested($type, $path, $label) : self::compile($type, $path);
     }
 
-    /** @throws ReflectionException */
-    private static function compile(PhpDocType $type, string $path): Node|DecodeError|null
+    /**
+     * @throws DecodeError
+     * @throws ReflectionException
+     */
+    private static function compile(PhpDocType $type, string $path): Node|null
     {
         $arguments = $type->arguments;
         return match ($type->name) {
             '|' => self::nested($type, $path),
-            '&' => UnsupportedField::intersection($path, implode('&', array_map(
+            '&' => throw UnsupportedField::intersection($path, implode('&', array_map(
                 static fn(PhpDocType $member): string => $member->name,
                 $arguments,
             ))),
@@ -60,43 +64,50 @@ final class NodeCompiler
      * Compiles a union. `T|null` is a nullable `T` if `T` is a collection or an enum.
      *
      * @param string|null $label The type that errors report, if it differs from the member types.
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function nested(PhpDocType $type, string $path, string|null $label = null): Node|DecodeError|null
+    private static function nested(PhpDocType $type, string $path, string|null $label = null): Node|null
     {
         $inner = $type->withoutNull();
-        $nullable = $inner === null ? null : NullableNode::of(self::compile($inner, $path));
+        try {
+            $nullable = $inner === null ? null : NullableNode::of(self::compile($inner, $path));
+        } catch (DecodeError) {
+            // The union reports the error.
+            $nullable = null;
+        }
         return $nullable ?? self::union($type->arguments, $path, $label);
     }
 
     /**
      * @param list<PhpDocType> $members
      * @param string|null $label The type that errors report, if it differs from the member types.
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function union(array $members, string $path, string|null $label): Node|DecodeError|null
+    private static function union(array $members, string $path, string|null $label): Node|null
     {
         $union = new UnionBuilder($path);
         foreach ($members as $member) {
-            $node = self::compile($member, $path);
-            if ($node instanceof Node) {
+            try {
+                $node = self::compile($member, $path);
+                if ($node === null) {
+                    return null;
+                }
                 $union->add($node);
-                continue;
+            } catch (DecodeError $error) {
+                $union->reject($member->name, $error);
             }
-            $rejected = NamedTypeCompiler::unrepresentable($member->name, $node);
-            if ($rejected === null) {
-                return $node;
-            }
-            $union->reject($member->name, $rejected);
         }
         return $union->build($label);
     }
 
     /**
      * @param list<PhpDocTupleEntry> $entries
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function tuple(array $entries, string $path): Node|DecodeError|null
+    private static function tuple(array $entries, string $path): Node|null
     {
         $required = PhpDocTupleEntry::required($entries);
         if ($required === null) {
@@ -105,24 +116,30 @@ final class NodeCompiler
         $items = [];
         foreach ($entries as $index => $entry) {
             $item = self::compile($entry->type, sprintf('%s[%d]', $path, $index));
-            if (!$item instanceof Node) {
-                return $item;
+            if ($item === null) {
+                return null;
             }
             $items[] = $item;
         }
         return new TupleNode($items, $required);
     }
 
-    /** @throws ReflectionException */
-    private static function list(PhpDocType $type, string $path): Node|DecodeError|null
+    /**
+     * @throws DecodeError
+     * @throws ReflectionException
+     */
+    private static function list(PhpDocType $type, string $path): Node|null
     {
         $arguments = $type->arguments;
         $item = count($arguments) === 1 ? self::compile($arguments[0], $path) : null;
         return $item instanceof Node ? new ListNode($item, $type->name === 'non-empty-list') : $item;
     }
 
-    /** @throws ReflectionException */
-    private static function map(PhpDocType $type, string $path): Node|DecodeError|null
+    /**
+     * @throws DecodeError
+     * @throws ReflectionException
+     */
+    private static function map(PhpDocType $type, string $path): Node|null
     {
         $value = $type->stringKeyedValue();
         $node = $value === null ? null : self::compile($value, $path);

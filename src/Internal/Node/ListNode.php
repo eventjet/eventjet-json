@@ -25,17 +25,17 @@ final readonly class ListNode implements Node
         $this->type = sprintf('%s<%s>', $nonEmpty ? 'non-empty-list' : 'list', $item);
     }
 
-    /** @return list<mixed>|DecodeError */
+    /** @return list<mixed> */
     #[Override]
-    public function decode(mixed $value, string $path): array|DecodeError
+    public function decode(mixed $value, string $path): array
     {
         if (!is_array($value) || !array_is_list($value)) {
-            return InvalidValue::typeMismatch($path, $this->type, $value);
+            throw InvalidValue::typeMismatch($path, $this->type, $value);
         }
         if ($this->nonEmpty && $value === []) {
-            return InvalidValue::emptyList($path, $this->type);
+            throw InvalidValue::emptyList($path, $this->type);
         }
-        /** @var list<mixed>|DecodeError */
+        /** @var list<mixed> */
         return $this->item instanceof ScalarNode
             ? $this->item->decodeEach($value, static fn(int $index): string => sprintf('%s[%d]', $path, $index))
             : $this->decodeItems($value, $path);
@@ -43,10 +43,11 @@ final readonly class ListNode implements Node
 
     /**
      * @param list<mixed> $values
-     * @return list<mixed>|DecodeError
+     * @return list<mixed>
+     * @throws DecodeError
      * @throws JsonException
      */
-    private function decodeItems(array $values, string $path): array|DecodeError
+    private function decodeItems(array $values, string $path): array
     {
         return $this->item instanceof ObjectNode
             ? $this->item->decodeEach($values, $path)
@@ -55,19 +56,16 @@ final readonly class ListNode implements Node
 
     /**
      * @param list<mixed> $values
-     * @return list<mixed>|DecodeError
+     * @return list<mixed>
+     * @throws DecodeError
      * @throws JsonException
      */
-    private function decodeEachItem(array $values, string $path): array|DecodeError
+    private function decodeEachItem(array $values, string $path): array
     {
         $decoded = [];
         /** @var mixed $item */
         foreach ($values as $index => $item) {
-            $item = $this->item->decode($item, sprintf('%s[%d]', $path, $index));
-            if ($item instanceof DecodeError) {
-                return $item;
-            }
-            $decoded[] = $item;
+            $decoded[] = $this->item->decode($item, sprintf('%s[%d]', $path, $index));
         }
         return $decoded;
     }

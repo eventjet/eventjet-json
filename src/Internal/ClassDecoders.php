@@ -25,18 +25,20 @@ final class ClassDecoders
     /**
      * @param class-string $class
      * @phpstan-impure
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function get(string $class): ClassDecoder|DecodeError
+    public static function get(string $class): ClassDecoder
     {
         $decoder = self::$decoders[$class] ?? null;
         if ($decoder !== null) {
             return $decoder;
         }
         $reflection = new ReflectionClass($class);
-        $decoder = ClassDecoder::compile($reflection);
-        if ($decoder instanceof DecodeError) {
-            return $decoder->whileCreating($reflection->getName());
+        try {
+            $decoder = ClassDecoder::compile($reflection);
+        } catch (DecodeError $error) {
+            throw $error->whileCreating($reflection->getName());
         }
         if ($decoder->complete) {
             self::$decoders[$class] = $decoder;
@@ -47,17 +49,20 @@ final class ClassDecoders
     /**
      * @template T of object
      * @param class-string<T> $class
-     * @return T|DecodeError
+     * @return T
+     * @throws DecodeError
      */
     public static function hydrate(string $class, stdClass $object, string $path = ''): object
     {
         try {
             // Skips the call to get() for cached decoders, because a call per object slows down hydration measurably.
             $decoder = self::$decoders[$class] ?? self::get($class);
-            /** @var T|DecodeError */
-            return $decoder instanceof DecodeError ? $decoder : $decoder->decode($object, $path);
+            /** @var T */
+            return $decoder->decode($object, $path);
+        } catch (DecodeError $error) {
+            throw $error;
         } catch (Throwable $error) {
-            return UnsupportedTarget::unreadable($error)->whileCreating($class);
+            throw UnsupportedTarget::unreadable($error)->whileCreating($class);
         }
     }
 }

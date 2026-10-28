@@ -31,7 +31,10 @@ final class Json
             return RootDescriptor::of($type)->validate();
         }
         try {
-            return new ClassGraphValidator()->validateRoot($type);
+            new ClassGraphValidator()->validateRoot($type);
+            return null;
+        } catch (DecodeError $error) {
+            return $error;
         } catch (Throwable $error) {
             return UnsupportedTarget::unreadable($error)->whileCreating($type);
         }
@@ -62,6 +65,10 @@ final class Json
             return DecodeError::unexpectedRootValue($values);
         }
 
-        return ClassDecoders::hydrate($class, $values);
+        try {
+            return ClassDecoders::hydrate($class, $values);
+        } catch (DecodeError $error) {
+            return $error;
+        }
     }
 }

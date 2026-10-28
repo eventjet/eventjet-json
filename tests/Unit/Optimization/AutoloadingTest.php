@@ -68,6 +68,7 @@ use Eventjet\Json\Test\Unit\Fixtures\DeferredListItem;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredValueEnum;
 use Eventjet\Json\Test\Unit\Fixtures\JsonObject;
 use Eventjet\Json\Test\Unit\Fixtures\PropertyCountingReflection;
+use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeError;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -184,6 +185,7 @@ final class AutoloadingTest extends TestCase
      * @throws ReflectionException
      * @throws JsonException
      * @throws TypeError
+     * @throws DecodeError
      */
     public function testEmptyObjectListsDoNotAutoloadItemClasses(): void
     {
@@ -222,6 +224,7 @@ final class AutoloadingTest extends TestCase
      * @throws UnknownClassOrInterfaceException
      * @throws JsonException
      * @throws ReflectionException
+     * @throws DecodeError
      */
     public function testBuiltinFieldsNeverInvokeAutoloaders(): void
     {
@@ -274,14 +277,21 @@ final class AutoloadingTest extends TestCase
                 $compiler = new TypeCompiler();
                 $property = $class->getProperty($name);
                 foreach ([$parameter, $property] as $field) {
-                    $node = $compiler->field($field, $type);
-                    static::assertNotInstanceOf(DecodeError::class, $node);
-                    static::assertSame($value, $node->decode($value, $name));
+                    static::assertSame($value, $compiler->field($field, $type)->decode($value, $name));
                 }
             }
             $impreciseType = $imprecise->getType();
             static::assertNotNull($impreciseType);
-            static::assertInstanceOf(DecodeError::class, new TypeCompiler()->field($imprecise, $impreciseType));
+            static::assertSame(
+                DecodeErrorKind::UnsupportedDeclaration,
+                ThrownDecodeError::of(
+                    /**
+                     * @throws DecodeError
+                     * @throws ReflectionException
+                     */
+                    static fn(): object => new TypeCompiler()->field($imprecise, $impreciseType),
+                )->kind,
+            );
         } finally {
             spl_autoload_unregister($autoload);
         }
@@ -297,6 +307,7 @@ final class AutoloadingTest extends TestCase
      * @throws TypeError
      * @throws JsonException
      * @throws UnknownClassOrInterfaceException
+     * @throws DecodeError
      */
     public function testLiteralFieldsNeverInvokeAutoloaders(): void
     {
@@ -355,9 +366,9 @@ final class AutoloadingTest extends TestCase
             foreach ($fields as $name => [$field, $value]) {
                 $type = $field->getType();
                 static::assertNotNull($type);
-                $node = new TypeCompiler()->field($field, $type);
-                static::assertNotInstanceOf(DecodeError::class, $node);
-                static::assertSame($value, $node->decode($value, $name));
+                static::assertSame($value, new TypeCompiler()
+                    ->field($field, $type)
+                    ->decode($value, $name));
             }
         } finally {
             spl_autoload_unregister($autoload);
@@ -371,6 +382,7 @@ final class AutoloadingTest extends TestCase
      * @throws ReflectionException
      * @throws TypeError
      * @throws JsonException
+     * @throws DecodeError
      */
     public function testEnumBackingConstantsLoadOnlyForMatchingInputTypes(): void
     {
@@ -388,7 +400,12 @@ final class AutoloadingTest extends TestCase
         try {
             $enum = EnumNode::of(DeferredValueEnum::class);
             static::assertNotNull($enum);
-            static::assertInstanceOf(DecodeError::class, $enum->decode(1, 'value'));
+            static::assertSame(
+                DecodeErrorKind::InvalidValue,
+                ThrownDecodeError::of(
+                    /** @throws DecodeError|JsonException */ static fn(): object => $enum->decode(1, 'value'),
+                )->kind,
+            );
             static::assertNotContains(DeferredEnumBacking::class, $requests->names);
             static::assertSame(DeferredValueEnum::Ready, $enum->decode('ready', 'value'));
             static::assertContains(DeferredEnumBacking::class, $requests->names);
@@ -398,6 +415,7 @@ final class AutoloadingTest extends TestCase
     }
 
     /**
+     * @throws DecodeError
      * @throws ReflectionException
      */
     #[RunInSeparateProcess]

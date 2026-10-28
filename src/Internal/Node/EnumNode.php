@@ -72,12 +72,13 @@ final readonly class EnumNode implements Node
      * @param 'int'|'string' $backingType
      * @param non-empty-list<class-string<BackedEnum>> $enums
      * @param list<string> $valueTypes The JSON value types of the other union members.
+     * @throws DecodeError
      */
-    public static function union(string $path, string $backingType, array $enums, array $valueTypes): self|DecodeError
+    public static function union(string $path, string $backingType, array $enums, array $valueTypes): self
     {
         $conflict = self::conflict($path, $backingType, $enums[0], $valueTypes);
         if ($conflict !== null) {
-            return $conflict;
+            throw $conflict;
         }
         $sorted = $enums;
         sort($sorted);
@@ -88,7 +89,7 @@ final readonly class EnumNode implements Node
             foreach ($enumCases() as $case) {
                 $owner = $cases[$case->value] ?? null;
                 if ($owner !== null) {
-                    return AmbiguousUnion::overlappingEnums($path, $owner::class, $enum, $case->value);
+                    throw AmbiguousUnion::overlappingEnums($path, $owner::class, $enum, $case->value);
                 }
                 $cases[$case->value] = $case;
             }
@@ -97,15 +98,15 @@ final readonly class EnumNode implements Node
     }
 
     #[Override]
-    public function decode(mixed $value, string $path): BackedEnum|DecodeError
+    public function decode(mixed $value, string $path): BackedEnum
     {
         $matches = $this->backingType === 'int' ? is_int($value) : is_string($value);
         if (!$matches) {
-            return InvalidValue::enumBackingType($path, $this->enums[0], $this->backingType, $value);
+            throw InvalidValue::enumBackingType($path, $this->enums[0], $this->backingType, $value);
         }
         /** @var int|string $value */
         $case = $this->cases === null ? ($this->find)($value) : $this->cases[$value] ?? null;
-        return $case ?? InvalidValue::unknownEnumCase($path, $this->enums, $value);
+        return $case ?? throw InvalidValue::unknownEnumCase($path, $this->enums, $value);
     }
 
     #[Override]

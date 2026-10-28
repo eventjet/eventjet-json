@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Node;
 
-use Eventjet\Json\DecodeError;
 use Override;
 
 use function sprintf;
@@ -21,7 +20,7 @@ final readonly class NullableNode implements Node
      * list item, a field of a nullable class gets an object node that accepts null, because lists decode their objects
      * without a null check.
      */
-    public static function field(Node|DecodeError|null $node): Node|null
+    public static function field(Node|null $node): Node|null
     {
         if ($node instanceof ObjectNode) {
             return new ObjectNode($node->target, nullable: true);
@@ -30,7 +29,7 @@ final readonly class NullableNode implements Node
     }
 
     /** A collection or enum that may be null checks for null before its own checks. */
-    public static function of(Node|DecodeError|null $node): self|null
+    public static function of(Node|null $node): self|null
     {
         return match (true) {
             $node instanceof EnumNode,

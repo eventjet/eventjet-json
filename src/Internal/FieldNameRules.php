@@ -31,29 +31,31 @@ final class FieldNameRules
      * @param list<ReflectionProperty> $properties The properties of the class.
      * @param array<ReflectionProperty> $annotated The properties that declare #[Field], including private ancestor
      *     properties.
-     * @return array<string, string>|DecodeError JSON names keyed by property name.
+     * @return array<string, string> JSON names keyed by property name.
+     * @throws DecodeError
      */
-    public static function resolve(ReflectionClass $class, array $properties, array $annotated): array|DecodeError
+    public static function resolve(ReflectionClass $class, array $properties, array $annotated): array
     {
         try {
             $names = self::read($annotated);
+        } catch (DecodeError $error) {
+            throw $error;
         } catch (Throwable $error) {
-            return UnsupportedTarget::unreadable($error);
-        }
-        if ($names instanceof DecodeError) {
-            return $names;
+            throw UnsupportedTarget::unreadable($error);
         }
         if (!$class->implementsInterface(JsonSerializable::class)) {
-            return InvalidFieldMapping::withoutJsonSerializable();
+            throw InvalidFieldMapping::withoutJsonSerializable();
         }
-        return self::collision($properties, $names) ?? $names;
+        self::rejectCollisions($properties, $names);
+        return $names;
     }
 
     /**
      * @param array<ReflectionProperty> $properties
-     * @return array<string, string>|DecodeError
+     * @return array<string, string>
+     * @throws DecodeError
      */
-    private static function read(array $properties): array|DecodeError
+    private static function read(array $properties): array
     {
         $names = [];
         foreach ($properties as $property) {
@@ -61,10 +63,10 @@ final class FieldNameRules
             $name = $property->getName();
             $publicInstance = self::isPublicInstance($property);
             if (!$publicInstance) {
-                return InvalidFieldMapping::nonPublicProperty($name);
+                throw InvalidFieldMapping::nonPublicProperty($name);
             }
             if (count($attributes) !== 1) {
-                return InvalidFieldMapping::repeated($name);
+                throw InvalidFieldMapping::repeated($name);
             }
             $names[$name] = $attributes[0]->newInstance()->name;
         }
@@ -76,19 +78,19 @@ final class FieldNameRules
      *
      * @param list<ReflectionProperty> $properties
      * @param array<string, string> $names
+     * @throws DecodeError
      */
-    private static function collision(array $properties, array $names): DecodeError|null
+    private static function rejectCollisions(array $properties, array $names): void
     {
         $owners = [];
         foreach (array_filter($properties, self::isPublicInstance(...)) as $property) {
             $name = $property->getName();
             $wireName = $names[$name] ?? $name;
             if (array_key_exists($wireName, $owners)) {
-                return InvalidFieldMapping::collision($owners[$wireName], $name, $wireName);
+                throw InvalidFieldMapping::collision($owners[$wireName], $name, $wireName);
             }
             $owners[$wireName] = $name;
         }
-        return null;
     }
 
     private static function isPublicInstance(ReflectionProperty $property): bool

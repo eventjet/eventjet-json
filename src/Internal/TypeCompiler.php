@@ -40,13 +40,13 @@ final readonly class TypeCompiler
     /** Builtin types that already include null. */
     private const array NULLS = ['mixed' => true, 'null' => true];
 
-    /** @throws ReflectionException */
-    public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|DecodeError
+    /**
+     * @throws DecodeError
+     * @throws ReflectionException
+     */
+    public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node
     {
         $declared = PhpDocFieldType::resolve($field);
-        if ($declared instanceof DecodeError) {
-            return $declared;
-        }
         $doc = $declared === null
             ? null
             : self::narrowing(new PhpDocTypeResolver($field)->resolve($declared), $field, $type);
@@ -59,12 +59,16 @@ final readonly class TypeCompiler
             default => $this->native($field, $type),
         };
         $literal =
-            $node instanceof Node && $declared !== null && $doc === null
+            $node !== null && $declared !== null && $doc === null
                 ? new PhpDocTypeResolver($field)->unresolvedLiteral($declared)
                 : null;
         return match (true) {
-            $node === null => CollectionDeclarationError::unsupported($field, $declared, self::tree($field, $type)),
-            $literal !== null => UnsupportedField::literal($field->getName(), $literal),
+            $node === null => throw CollectionDeclarationError::unsupported(
+                $field,
+                $declared,
+                self::tree($field, $type),
+            ),
+            $literal !== null => throw UnsupportedField::literal($field->getName(), $literal),
             default => $node,
         };
     }
@@ -72,9 +76,10 @@ final readonly class TypeCompiler
     /**
      * Compiles the native type of a field other than a class or an enum. PHP checks builtin scalar types itself.
      *
+     * @throws DecodeError
      * @throws ReflectionException
      */
-    private function native(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|DecodeError|null
+    private function native(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|null
     {
         $scalar =
             $type instanceof ReflectionNamedType

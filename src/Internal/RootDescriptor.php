@@ -76,20 +76,24 @@ final class RootDescriptor
     public function validate(): DecodeError|null
     {
         try {
-            $node = $this->node();
-            return $node instanceof DecodeError ? $node : new ClassGraphValidator()->validate($this->itemClass);
+            $this->node();
+            new ClassGraphValidator()->validate($this->itemClass);
+            return null;
+        } catch (DecodeError $error) {
+            return $error;
         } catch (Throwable $error) {
             return UnsupportedTarget::unreadable($error)->whileCreating($this->itemClass);
         }
     }
 
     /**
-     * Returns the node that decodes the root value, or why the item class cannot be decoded. Unlike a class decoder, a
-     * compiled node never needs to be compiled again: it refers only to the item class, which validation loads.
+     * Returns the node that decodes the root value. Unlike a class decoder, a compiled node never needs to be compiled
+     * again: it refers only to the item class, which validation loads.
      *
+     * @throws DecodeError If the item class cannot be decoded.
      * @throws ReflectionException
      */
-    public function node(): Node|DecodeError
+    public function node(): Node
     {
         $key = implode(' ', [...$this->shapes, $this->itemClass]);
         $node = self::$nodes[$key] ?? null;
@@ -97,9 +101,10 @@ final class RootDescriptor
             return $node;
         }
         $class = $this->itemClass;
-        $error = self::validateItem(new ReflectionClass($class));
-        if ($error !== null) {
-            return $error->whileCreating($class);
+        try {
+            self::validateItem(new ReflectionClass($class));
+        } catch (DecodeError $error) {
+            throw $error->whileCreating($class);
         }
         $enum = $class;
         $node = enum_exists($enum) ? EnumNode::of($enum) : new ObjectNode($class, nullable: false);
@@ -122,9 +127,9 @@ final class RootDescriptor
             return DecodeError::unexpectedRootValue($value, $shape);
         }
         try {
-            $node = $this->node();
-            $decoded = $node instanceof DecodeError ? $node : $node->decode($value, '');
-            return $decoded instanceof DecodeError ? $decoded->whileCreating($this->itemClass) : $decoded;
+            return $this->node()->decode($value, '');
+        } catch (DecodeError $error) {
+            return $error->whileCreating($this->itemClass);
         } catch (Throwable $error) {
             return UnsupportedTarget::unreadable($error)->whileCreating($this->itemClass);
         }
@@ -136,14 +141,13 @@ final class RootDescriptor
      *
      * @template TClass of object
      * @param ReflectionClass<TClass> $class
+     * @throws DecodeError
      */
-    private static function validateItem(ReflectionClass $class): DecodeError|null
+    private static function validateItem(ReflectionClass $class): void
     {
-        $names = TargetClass::validate($class);
-        return match (true) {
-            $names instanceof DecodeError => $names,
-            $class->isFinal() => null,
-            default => UnsupportedTarget::nonFinalItem(),
-        };
+        TargetClass::validate($class);
+        if (!$class->isFinal()) {
+            throw UnsupportedTarget::nonFinalItem();
+        }
     }
 }

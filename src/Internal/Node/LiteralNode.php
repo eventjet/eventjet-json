@@ -90,7 +90,7 @@ final readonly class LiteralNode implements Node
             }
         }
         return $this->fallback === null
-            ? InvalidValue::typeMismatch($path, $this->type, $value)
+            ? throw InvalidValue::typeMismatch($path, $this->type, $value)
             : $this->fallback->decode($value, $path);
     }
 
