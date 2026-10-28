@@ -457,6 +457,11 @@ This avoids two additional class loads for ordinary cold decodes while retaining
 validation of invalid and inherited attributes. The tables above predate that
 change; use the CI comparison for its effect across the full workload suite.
 
+Later, constructor parameters and public properties moved into one list of
+fields. Each field keeps its JSON name next to its PHP name, so renamed and
+ordinary fields go through the same loop, and renamed constructors no longer
+use a separate wrapper.
+
 For a reproducible revision comparison, use the existing comparison runner with
 this change's commit as candidate and workload revision, and the baseline commit
 above. It measures the ordinary workloads on both revisions, including FPM when

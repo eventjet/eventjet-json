@@ -10,10 +10,9 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
+use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
-use Eventjet\Json\Internal\ConstructorParameter;
-use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\FieldNameRules;
@@ -55,12 +54,9 @@ use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
-use Eventjet\Json\Internal\PublicProperties;
-use Eventjet\Json\Internal\PublicPropertyTypeValidator;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
-use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
@@ -99,14 +95,10 @@ use function str_repeat;
 use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(PhpDocClassNameResolver::class)]
-#[CoversClass(ConstructorPlan::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
-#[UsesClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[CoversClass(PublicProperties::class)]
 #[UsesClass(Field::class)]
-#[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(TargetClass::class)]
 #[CoversClass(FieldNameRules::class)]
 #[UsesClass(NamedTypeCompiler::class)]
@@ -161,7 +153,6 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
-#[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(ScalarItems::class)]
 #[UsesClass(TupleNode::class)]
@@ -174,6 +165,7 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(PhpDocLiteral::class)]
 #[CoversClass(UnionNode::class)]
 #[UsesClass(ClassDecoder::class)]
+#[UsesClass(ClassField::class)]
 #[UsesClass(ClassDecoders::class)]
 #[UsesClass(ClassGraphValidator::class)]
 #[UsesClass(DecodeErrorKind::class)]
@@ -279,7 +271,6 @@ final class AutoloadingTest extends TestCase
                 $parameter = new ReflectionParameter([$class->getName(), '__construct'], $name);
                 $type = $parameter->getType();
                 static::assertInstanceOf(ReflectionNamedType::class, $type);
-                static::assertNotNull(new ConstructorParameter($parameter, $class)->nativeCheck());
                 $compiler = new TypeCompiler();
                 $property = $class->getProperty($name);
                 foreach ([$parameter, $property] as $field) {

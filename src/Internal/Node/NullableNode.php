@@ -26,7 +26,7 @@ final readonly class NullableNode implements Node
         if ($node instanceof ObjectNode) {
             return new ObjectNode($node->target, nullable: true);
         }
-        return $node instanceof UncheckedNode ? $node : self::of($node);
+        return self::of($node);
     }
 
     /** A collection or enum that may be null checks for null before its own checks. */

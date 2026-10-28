@@ -9,7 +9,6 @@ use Eventjet\Json\Test\Acceptance\Fixtures\CollectionUnionDefaults;
 use Eventjet\Json\Test\Acceptance\Fixtures\DefaultedConstructorFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\OmittedInitializedReadonlyPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\OmittedPublicProperties;
-use ReflectionClass;
 use ReflectionException;
 use RuntimeException;
 
@@ -54,13 +53,9 @@ final class ConstructorDefaultCases
             CollectionDeclarationFixture::object('?UnloadedConstructorClass', '', 'param', null),
         ];
 
-        $callable = CollectionNameSource::load(
-            'CallableUnionParameter',
-            'final class CallableUnionParameter { public int|string $value; public function __construct(callable|int $value) { $this->value = is_int($value) ? $value : "callable"; } }',
-        );
-        yield 'PHP checks arguments for callable union parameters' => [
-            '{"value":"strlen"}',
-            new ReflectionClass($callable)->newInstance('strlen'),
+        yield 'null satisfies a nullable public property whose class is not loaded' => [
+            '{"value":null}',
+            CollectionDeclarationFixture::object('?UnloadedPropertyClass', '', 'var', null),
         ];
 
         yield 'omitted public properties keep their constructed state' => [

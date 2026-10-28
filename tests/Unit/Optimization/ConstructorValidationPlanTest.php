@@ -9,10 +9,9 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
+use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
-use Eventjet\Json\Internal\ConstructorParameter;
-use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
@@ -46,13 +45,9 @@ use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
-use Eventjet\Json\Internal\PublicProperties;
-use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
-use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionNameSource;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
@@ -71,17 +66,11 @@ use RuntimeException;
 
 use function class_alias;
 
-#[CoversClass(ConstructorPlan::class)]
-#[CoversClass(RenamedArguments::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
-#[CoversClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
-#[CoversClass(PublicProperties::class)]
-#[UsesClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(TargetClass::class)]
 #[CoversClass(FieldNameRules::class)]
 #[UsesClass(NamedTypeCompiler::class)]
@@ -145,6 +134,7 @@ use function class_alias;
 #[UsesClass(UnionBuilder::class)]
 #[UsesClass(UnionNode::class)]
 #[CoversClass(ClassDecoder::class)]
+#[CoversClass(ClassField::class)]
 #[CoversClass(ClassDecoders::class)]
 #[UsesClass(ClassGraphValidator::class)]
 #[UsesClass(DecodeErrorKind::class)]
@@ -228,8 +218,14 @@ final class ConstructorValidationPlanTest extends TestCase
         $enumClass = new ReflectionClass($enumTarget);
         for ($lookup = 0; $lookup < 3; ++$lookup) {
             static::assertEquals(
+                InvalidValue::unknownEnumCase('nested.first', [StringBackedStatus::class], 'unknown')->whileCreating(
+                    $enumClass->getName(),
+                ),
+                self::decode($enumClass, ['second' => false, 'first' => 'unknown'], 'nested'),
+            );
+            static::assertEquals(
                 InvalidValue::typeMismatch('nested.second', 'int', false)->whileCreating($enumClass->getName()),
-                self::decode($enumClass, ['first' => 'unknown', 'second' => false], 'nested'),
+                self::decode($enumClass, ['first' => StringBackedStatus::Ready->value, 'second' => false], 'nested'),
             );
             static::assertEquals(
                 $enumClass->newInstanceArgs(['first' => StringBackedStatus::Ready, 'second' => 1]),

@@ -9,10 +9,9 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
+use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
-use Eventjet\Json\Internal\ConstructorParameter;
-use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
 use Eventjet\Json\Internal\Error\ConstructorFailure;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
@@ -51,14 +50,10 @@ use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
-use Eventjet\Json\Internal\PublicProperties;
-use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
-use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\MappedJsonFields;
@@ -87,7 +82,6 @@ use function json_encode;
 use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(ClassGraphValidator::class)]
-#[CoversClass(ConstructorParameter::class)]
 #[CoversClass(Json::class)]
 #[CoversClass(JsonType::class)]
 #[CoversClass(RootDescriptor::class)]
@@ -145,11 +139,6 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[CoversClass(PhpDocTokenStream::class)]
 #[CoversClass(PhpDocNamespaceDeclaration::class)]
-#[CoversClass(ConstructorPlan::class)]
-#[CoversClass(RenamedArguments::class)]
-#[CoversClass(PublicProperties::class)]
-#[CoversClass(PublicPropertyTypeValidator::class)]
-#[CoversClass(ValueTypeMatcher::class)]
 #[CoversClass(TypeCompiler::class)]
 #[CoversClass(NamedTypeCompiler::class)]
 #[CoversClass(NodeCompiler::class)]
@@ -183,6 +172,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(UnionBuilder::class)]
 #[CoversClass(LiteralNode::class)]
 #[CoversClass(ClassDecoder::class)]
+#[CoversClass(ClassField::class)]
 #[CoversClass(ClassDecoders::class)]
 final class AcceptanceTest extends TestCase
 {

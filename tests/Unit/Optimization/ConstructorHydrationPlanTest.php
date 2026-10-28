@@ -9,10 +9,9 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
+use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
-use Eventjet\Json\Internal\ConstructorParameter;
-use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
@@ -43,39 +42,35 @@ use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
-use Eventjet\Json\Internal\PublicProperties;
-use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
-use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
+use Eventjet\Json\Test\Unit\Fixtures\JsonObject;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Exception;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\UnknownClassOrInterfaceException;
+use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
 use stdClass;
 
-#[CoversClass(ConstructorPlan::class)]
-#[CoversClass(RenamedArguments::class)]
+use function class_exists;
+
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
-#[CoversClass(ConstructorParameter::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
-#[UsesClass(ValueTypeMatcher::class)]
 #[CoversClass(TargetClass::class)]
 #[CoversClass(FieldNameRules::class)]
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
-#[CoversClass(PublicProperties::class)]
-#[UsesClass(PublicPropertyTypeValidator::class)]
 #[CoversClass(NamedTypeCompiler::class)]
 #[UsesClass(NodeCompiler::class)]
 #[UsesClass(PhpDocNarrowing::class)]
@@ -137,6 +132,7 @@ use stdClass;
 #[UsesClass(UnionBuilder::class)]
 #[UsesClass(UnionNode::class)]
 #[CoversClass(ClassDecoder::class)]
+#[CoversClass(ClassField::class)]
 #[CoversClass(ClassDecoders::class)]
 #[UsesClass(ClassGraphValidator::class)]
 #[UsesClass(DecodeErrorKind::class)]
@@ -189,6 +185,41 @@ final class ConstructorHydrationPlanTest extends TestCase
         ]);
         static::assertInstanceOf(UnionNode::class, $floats);
         static::assertSame(1.0, $floats->decode(1, 'value'));
+    }
+
+    /**
+     * A value that already has its field's scalar type skips the field's node, so no error path is built for it.
+     * FieldPath, which builds error paths, stays unloaded until a value needs its node.
+     *
+     * @throws Exception
+     * @throws JsonException
+     * @throws ReflectionException
+     */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testValuesOfTheDeclaredScalarTypeSkipTheirNodes(): void
+    {
+        $target = new class {
+            public function __construct(
+                public bool $boolean = false,
+                public float $float = 0.5,
+                public int $integer = 0,
+                public string $string = '',
+                public string|null $nullable = '',
+            ) {}
+        };
+        $class = new ReflectionClass($target);
+        $values = ['boolean' => true, 'float' => 1.5, 'integer' => 1, 'string' => 'value', 'nullable' => null];
+        static::assertEquals(
+            $class->newInstanceArgs($values),
+            ClassDecoders::hydrate($class->getName(), JsonObject::of($values), 'nested'),
+        );
+        static::assertFalse(class_exists(FieldPath::class, autoload: false));
+        static::assertEquals(
+            $class->newInstanceArgs(['float' => 2.0]),
+            ClassDecoders::hydrate($class->getName(), JsonObject::of(['float' => 2]), 'nested'),
+        );
+        static::assertTrue(class_exists(FieldPath::class, autoload: false));
     }
 
     /**

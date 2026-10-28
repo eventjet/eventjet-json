@@ -9,10 +9,9 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
+use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
-use Eventjet\Json\Internal\ConstructorParameter;
-use Eventjet\Json\Internal\ConstructorPlan;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
@@ -49,14 +48,10 @@ use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
-use Eventjet\Json\Internal\PublicProperties;
-use Eventjet\Json\Internal\PublicPropertyTypeValidator;
-use Eventjet\Json\Internal\RenamedArguments;
 use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
-use Eventjet\Json\Internal\ValueTypeMatcher;
 use Eventjet\Json\Json;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
@@ -88,13 +83,7 @@ use RuntimeException;
 
 use function class_alias;
 
-#[CoversClass(ConstructorParameter::class)]
-#[UsesClass(ConstructorPlan::class)]
-#[UsesClass(RenamedArguments::class)]
 #[UsesClass(FieldPath::class)]
-#[UsesClass(ValueTypeMatcher::class)]
-#[CoversClass(PublicProperties::class)]
-#[UsesClass(PublicPropertyTypeValidator::class)]
 #[UsesClass(DecodeError::class)]
 #[CoversClass(PhpDocFieldType::class)]
 #[UsesClass(CollectionDeclarationError::class)]
@@ -161,6 +150,7 @@ use function class_alias;
 #[UsesClass(UnionBuilder::class)]
 #[UsesClass(UnionNode::class)]
 #[CoversClass(ClassDecoder::class)]
+#[CoversClass(ClassField::class)]
 #[CoversClass(ClassDecoders::class)]
 #[UsesClass(ClassGraphValidator::class)]
 #[UsesClass(DecodeErrorKind::class)]
@@ -354,7 +344,10 @@ final class MetadataCacheTest extends TestCase
         static::assertSame([], $unresolved);
 
         $name = CollectionDeclarationFixture::create($dependency . $suffix, '', 'var');
-        static::assertInstanceOf(DecodeError::class, ClassDecoders::get($name));
+        $incomplete = ClassDecoders::get($name);
+        static::assertInstanceOf(ClassDecoder::class, $incomplete);
+        static::assertFalse($incomplete->complete);
+        static::assertNotSame($incomplete, ClassDecoders::get($name));
         static::assertTrue(class_alias(ScalarFields::class, $dependency));
         $decoder = ClassDecoders::get($name);
         static::assertInstanceOf(ClassDecoder::class, $decoder);

@@ -14,7 +14,8 @@ PHP types and JSON object/array shapes intact. See the [type reference](docs/typ
 ### Added
 
 - `Json::decode()` supports unions that identify one type unambiguously, such as `Person|string|null`, literal `true`
-  and `false` fields, and public properties outside the constructor, including inherited ones.
+  and `false` fields, and public properties outside the constructor, including inherited ones. Public properties
+  accept the same declarations as constructor parameters and report the same errors.
 - PHPDoc collection declarations: `list<T>`, `non-empty-list<T>`, positional tuples such as `array{int, string}`, and
   maps declared as `non-empty-array<string, T>` or `ArrayObject<string, T>`. Collections can nest in any combination.
 - PHPDoc literal types restrict a field to specific values, such as `@param 'open'|'done' $state` or
@@ -28,7 +29,8 @@ PHP types and JSON object/array shapes intact. See the [type reference](docs/typ
   unsupported declarations before they reach production.
 - `MappedJsonFields`, a trait that implements `jsonSerialize()` for classes that rename fields with `#[Field]`.
 - Conversion errors name the failing field by path, such as `people[1].name`, and keep the constructor's exception as
-  the previous exception.
+  the previous exception. If several fields fail, the error names the first one in declaration order: constructor
+  parameters, then public properties.
 - `DecodeError::$kind` tells bad input apart from a class that cannot be decoded. The `DecodeErrorKind` enum has the
   cases `InvalidJson`, `UnexpectedRootValue`, `InvalidValue`, `UnsupportedDeclaration`, and `ConstructorFailure`, and
   `getCode()` returns the kind's value. An HTTP API can answer the first three with 400 and the others with 500.
@@ -50,7 +52,7 @@ PHP types and JSON object/array shapes intact. See the [type reference](docs/typ
   accepted any string.
 - **BREAKING**: Declarations that cannot round-trip are rejected with a `DecodeError`, even when the member is missing
   from the JSON:
-  - `mixed`, untyped, `object`, and `stdClass` fields. In 0.2.0, `mixed` accepted any value.
+  - `mixed`, untyped, `object`, `stdClass`, `iterable`, and `callable` fields. In 0.2.0, `mixed` accepted any value.
   - Generic `array<K, V>` maps, because an empty PHP array encodes as `[]`. Use `ArrayObject<string, T>` or
     `non-empty-array<string, T>`.
   - Native `array` fields without a supported PHPDoc collection declaration.

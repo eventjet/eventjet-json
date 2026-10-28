@@ -40,13 +40,18 @@ final class NamedTypeCompiler
 {
     private const array SCALARS = [
         'bool' => true,
-        'callable' => true,
         'float' => true,
         'int' => true,
         'string' => true,
     ];
 
-    private const array IMPRECISE = ['mixed' => true, 'object' => true, stdClass::class => true];
+    private const array IMPRECISE = [
+        'callable' => true,
+        'iterable' => true,
+        'mixed' => true,
+        'object' => true,
+        stdClass::class => true,
+    ];
 
     private const array RESOURCES = ['resource' => true, 'open-resource' => true, 'closed-resource' => true];
 
@@ -65,7 +70,11 @@ final class NamedTypeCompiler
         }
         $name = FieldTypeNameResolver::resolve($field, $type);
         $node = $name === ArrayObject::class ? null : self::named($name, $field->getName());
-        return $type->allowsNull() ? NullableNode::field($node) : $node;
+        return match (true) {
+            !$type->allowsNull() => $node,
+            $node instanceof UncheckedNode => new UncheckedNode($name, $field->getName(), nullable: true),
+            default => NullableNode::field($node),
+        };
     }
 
     /** @throws ReflectionException */
@@ -155,7 +164,7 @@ final class NamedTypeCompiler
             return UnsupportedFieldClass::interface($path, $name);
         }
         if (!class_exists($name)) {
-            return new UncheckedNode($name, $path);
+            return new UncheckedNode($name, $path, nullable: false);
         }
         $class = new ReflectionClass($name);
         if ($class->isAbstract()) {

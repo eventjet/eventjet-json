@@ -21,8 +21,8 @@ must not be relied on, even if a particular value happens to decode.
 | General union types | Limited | Nullable scalar declarations, one final class alongside a backed enum and scalar or null members, backed enum/scalar unions with distinct JSON types, and unambiguous unions of backed enums are supported. Scalar members must use JSON types distinct from the enum's backing type. Supported collection declarations may join field, tuple-position, list-item, and map-value unions, with at most one member for each JSON array or object shape. |
 | Intersection types | Rejected | JSON does not identify a concrete class that satisfies the intersection. |
 | Interfaces and abstract classes | Rejected at the root and in field types | Root targets, direct constructor field declarations, union members, list item declarations, and map value declarations return dedicated errors because JSON does not identify a concrete implementation or subclass to instantiate. |
-| Public properties outside the constructor, inherited properties, and other unsupported class shapes | Limited | Declared scalar, array, backed enum, nested final class, and supported union public properties are hydrated after construction, including inherited properties, nullable and recursively nested `self` declarations, and classes without constructors. Public-property unions follow the same class, enum, scalar, null, and ambiguity rules as constructor fields. Supplied property values are validated and converted before the target constructor runs, then assigned after construction. Array properties require the same supported collection declarations as constructor fields. Collection unions require PHPDoc matching the native union members and follow the same JSON-shape selection rules. Constructor-bound properties, including promoted readonly properties, are not assigned again. Omitted public properties keep their state after construction: initialized properties retain their values, while uninitialized properties remain uninitialized, including readonly properties. Targets with private or protected constructors are rejected with a dedicated error. |
-| `mixed`, untyped fields, `object`, and `stdClass` | Rejected | These declarations cannot preserve every value's original PHP type and JSON object/array shape, so they return a dedicated `DecodeError` whether or not the member is present. Use `ArrayObject<string, T>` rather than `stdClass` for a typed JSON object map. |
+| Public properties outside the constructor, inherited properties, and other unsupported class shapes | Limited | Declared scalar, array, backed enum, nested final class, and supported union public properties are hydrated after construction, including inherited properties, nullable and recursively nested `self` declarations, and classes without constructors. Public properties accept the same declarations as constructor fields and report the same errors. Supplied property values are validated and converted before the target constructor runs, then assigned after construction. Constructor-bound properties, including promoted readonly properties, are not assigned again. Omitted public properties keep their state after construction: initialized properties retain their values, while uninitialized properties remain uninitialized, including readonly properties. Targets with private or protected constructors are rejected with a dedicated error. |
+| `mixed`, untyped fields, `object`, `stdClass`, `iterable`, and `callable` | Rejected | These declarations cannot preserve every value's original PHP type and JSON object/array shape, so they return a dedicated `DecodeError` whether or not the member is present. Use `ArrayObject<string, T>` rather than `stdClass` for a typed JSON object map, and a PHPDoc collection declaration on `array` rather than `iterable`. |
 | Root arrays and maps | Limited | `JsonType::array()` returns lists and `JsonType::map()` returns `ArrayObject<string, T>` maps, preserving empty JSON arrays and objects. Values may be final classes, backed enums, or recursively nested array and map descriptors. Map keys must remain PHP strings. |
 | Root scalars, enums, and `null` | Unsupported | There are no descriptors for standalone values of these types. Use a transport class with a typed field. |
 | Classes implementing `JsonSerializable` | Opt-in through `#[Field]` | At least one annotated public instance property is required. Use `MappedJsonFields` or supply a serializer that emits the declared field names and values. Unannotated serializers remain rejected. |
@@ -575,20 +575,20 @@ the kind to tell errors apart. Messages are meant for people.
   `non-empty-array<string, T>`, member names that PHP converts to integer keys,
   tuples of the wrong length, and missing required constructor members. For a
   missing member, the message is PHP's own message about the constructor call.
+  If several members are invalid, the error names the first field in
+  declaration order: constructor parameters first, then public properties
+  outside the constructor.
 - `UnsupportedDeclaration` (4): the class cannot be decoded, whatever the input.
   This includes everything under [Explicitly unsupported](#explicitly-unsupported),
   invalid `#[Field]` annotations, classes that do not exist, and failures while
   reading declarations, such as an attribute that throws. Two cases only show
-  up when the input reaches them: a constructor parameter whose class does not
-  exist, once the JSON gives it a value other than `null`, and a public
-  readonly property that the constructor already set, once the JSON contains
-  it. `json_encode()` writes that property, so decoding its output always
-  fails. `Json::validateType()` returns only errors of this kind.
+  up when the input reaches them: a field whose class does not exist, once the
+  JSON gives it a value other than `null`, and a public readonly property that
+  the constructor already set, once the JSON contains it. `json_encode()` writes
+  that property, so decoding its output always fails. `Json::validateType()`
+  returns only errors of this kind.
 - `ConstructorFailure` (5): the target's constructor, or a `set` hook of one of
-  its public properties, threw. `getPrevious()` returns that exception. PHP
-  checks values for `callable` and `iterable` constructor parameters itself,
-  and the decoder cannot tell PHP rejecting such a value from the constructor
-  throwing, so those errors have this kind, too.
+  its public properties, threw. `getPrevious()` returns that exception.
 
 Apart from the first two kinds, messages start with `Could not create X from
 the JSON object:`, where `X` is the class whose field could not be decoded or
@@ -617,5 +617,5 @@ These exclusions keep decoding unambiguous and preserve PHP types and JSON shape
 | JSON objects with duplicate member names | They cannot be produced by `json_encode()` from supported PHP values. PHP's decoder does not report them separately, and detecting them would require reparsing every document. Callers must not rely on which duplicate value is retained. |
 | Implicit coercion of mismatched scalar types | Converting values such as `"42"` to `42` hides a type mismatch and changes the value's type. Decoding must validate the declared type. |
 | Automatic naming strategies and multiple aliases for one property | Only explicit `#[Field]` mappings are supported. Each property has one accepted JSON name. |
-| `mixed`, untyped, `object`, and `stdClass` constructor fields | These declarations do not provide enough type information to restore every value's original PHP type and JSON shape. In particular, `object` omits the concrete class, while `mixed`, untyped fields, and `stdClass` members can contain PHP arrays that encode as JSON objects. |
+| `mixed`, untyped, `object`, `stdClass`, `iterable`, and `callable` fields | These declarations do not provide enough type information to restore every value's original PHP type and JSON shape. In particular, `object` omits the concrete class, while `mixed`, untyped fields, and `stdClass` members can contain PHP arrays that encode as JSON objects. `iterable` does not declare its items, or whether a JSON array holds a list or a map. A `callable` can be a closure, which has no JSON representation, and a JSON string or array does not show that it names a callable. |
 | Generic `array<TKey, TValue>` map declarations | An empty PHP array encodes as `[]`, so it cannot represent an empty JSON object. Depending on its runtime keys, a nonempty PHP array can also encode as either an array or an object. Use `non-empty-array<string, TValue>` for a map that cannot be empty or `ArrayObject<string, TValue>` for a map that may be empty. |

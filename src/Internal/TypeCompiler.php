@@ -29,7 +29,13 @@ use function assert;
 final readonly class TypeCompiler
 {
     /** Builtin types that PHP does not check precisely enough for JSON. */
-    private const array IMPRECISE = ['array' => true, 'mixed' => true, 'object' => true];
+    private const array IMPRECISE = [
+        'array' => true,
+        'callable' => true,
+        'iterable' => true,
+        'mixed' => true,
+        'object' => true,
+    ];
 
     /** Builtin types that already include null. */
     private const array NULLS = ['mixed' => true, 'null' => true];
