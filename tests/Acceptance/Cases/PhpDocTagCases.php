@@ -223,7 +223,7 @@ final class PhpDocTagCases
             'list<string>|description' => null,
             'list<string>&list<string> | x' => 'int',
             'list<string>|list<string> & x' => 'int',
-            'list<string>|list<string> &$x' => null,
+            'list<string>|null &$x' => null,
             'list<string> | x' => null,
             'list<string>,x' => 'int',
             'list<string> ,x' => 'string',

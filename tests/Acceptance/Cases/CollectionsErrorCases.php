@@ -106,6 +106,19 @@ final class CollectionsErrorCases
                 . ' from the JSON object: Field value[a] must be of type Eventjet\Json\Test\Acceptance\Fixtures\Coordinates, null given.',
             DecodeErrorKind::InvalidValue->value,
         ];
+        $lowercaseItems = CollectionDeclarationFixture::create(
+            'array',
+            'list<\\eventjet\\json\\test\\acceptance\\fixtures\\coordinates>',
+            'param',
+        );
+        yield 'object list reports the declared spelling of its item class' => [
+            '{"value":[null]}',
+            $lowercaseItems,
+            'Could not create '
+                . $lowercaseItems
+                . ' from the JSON object: Field value[0] must be of type Eventjet\Json\Test\Acceptance\Fixtures\Coordinates, null given.',
+            DecodeErrorKind::InvalidValue->value,
+        ];
         yield 'object list declared in PHPDoc rejects null' => [
             '{"value":[null]}',
             CollectionDeclarationFixture::create('array', PhpType::list(Coordinates::class), 'param'),
@@ -180,6 +193,37 @@ final class CollectionsErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'list<>', 'var')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var, @phpstan-var, @psalm-var, or @phan-var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
+        $nullableList = CollectionDeclarationFixture::create(
+            '?array',
+            PhpType::union(PhpType::list(PhpType::Int), PhpType::Null),
+            'var',
+        );
+        yield 'nullable list field rejects a string' => [
+            '{"value":"text"}',
+            $nullableList,
+            'Could not create '
+                . $nullableList
+                . ' from the JSON object: Field value must be of type list<int>, string given.',
+            DecodeErrorKind::InvalidValue->value,
+        ];
+        $bareMapItems = CollectionDeclarationFixture::create('array', 'list<\\ArrayObject>', 'var');
+        yield 'ArrayObject list items require type arguments' => [
+            '{}',
+            $bareMapItems,
+            'Could not create '
+                . $bareMapItems
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var, @phpstan-var, @psalm-var, or @phan-var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
+        $nullableGeneric = CollectionDeclarationFixture::create('?array', 'array<string, int>', 'param');
+        yield 'nullable array field rejects a generic array declaration' => [
+            '{}',
+            $nullableGeneric,
+            'Could not create '
+                . $nullableGeneric
+                . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param, @phpstan-param, @psalm-param, or @phan-param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
         yield 'nullable array declaration must include null' => [

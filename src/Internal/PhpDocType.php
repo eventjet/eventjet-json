@@ -4,12 +4,26 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use ArrayObject;
+
 use function array_pop;
 use function count;
 
 /** @internal */
 final readonly class PhpDocType
 {
+    /** Collection types, which name `array` in a native type. */
+    public const array COLLECTIONS = [
+        'array{}' => 'array',
+        'list' => 'array',
+        'non-empty-list' => 'array',
+        'non-empty-array' => 'array',
+        'non-empty-map' => 'array',
+    ];
+
+    /** Native types whose PHPDoc type may declare their items. */
+    public const array CONTAINERS = ['array' => true, ArrayObject::class => true];
+
     /**
      * The first number, shape key, or integer range bound in this type that PHP and PHPStan can read differently, which
      * makes the declaration unsupported. See {@see PhpDocLiteral}.

@@ -29,6 +29,7 @@ final class UnsupportedTargetErrorCases
     {
         yield from self::rootTypes();
         yield from self::nestedTypes();
+        yield from self::serializedEnums();
     }
 
     /**
@@ -101,6 +102,15 @@ final class UnsupportedTargetErrorCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus from the JSON object: Target type is an enum that implements JsonSerializable. Its custom JSON representation may not match its cases, so it cannot satisfy the round-trip contract.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
+        $objectItems = CollectionDeclarationFixture::create('array', 'list<\\stdClass>', 'var');
+        yield 'stdClass list items are unsupported' => [
+            '{}',
+            $objectItems,
+            'Could not create '
+                . $objectItems
+                . ' from the JSON object: Field value uses unsupported type stdClass. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
         yield 'list item type cannot be an interface' => [
             '[]',
             JsonType::array(RootTargetInterface::class),
@@ -160,5 +170,40 @@ final class Target_d2d5fe3230fd08878644563a847934cf61283e8a {/** @param list<Ite
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ParentClassField from the JSON object: Field value uses non-final class Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase. Values may be subclasses, whose runtime class JSON does not identify.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
+    }
+
+    /**
+     * @return iterable<string, array{string, class-string, string, int}>
+     * @throws \RuntimeException
+     */
+    private static function serializedEnums(): iterable
+    {
+        $enum = JsonSerializableStatus::class;
+        foreach ([
+            'field' => ['\\' . $enum, '', 'value'],
+            'nullable field' => ['?\\' . $enum, '', 'value'],
+            'native union member' => ['\\' . $enum . '|int', '', 'value'],
+            'PHPDoc union member' => ['array', PhpType::list(PhpType::union($enum, PhpType::Int)), 'value'],
+            'list item' => ['array', PhpType::list($enum), 'value'],
+            'map value' => ['\\ArrayObject', PhpType::arrayObject($enum), 'value'],
+            'tuple position' => ['array', PhpType::tuple($enum), 'value[0]'],
+            'literal case' => ['\\' . $enum, '\\' . $enum . '::Ready', 'value'],
+        ] as $position => [$native, $declaration, $path]) {
+            foreach (['param', 'var'] as $tag) {
+                $class = CollectionDeclarationFixture::create($native, $declaration, $tag);
+                yield 'backed enum with custom serialization is rejected as ' . $position . ' in ' . $tag => [
+                    '{}',
+                    $class,
+                    'Could not create '
+                        . $class
+                        . ' from the JSON object: Field '
+                        . $path
+                        . ' uses enum '
+                        . $enum
+                        . ', which implements JsonSerializable. Its custom JSON representation may not match its cases, so it cannot satisfy the round-trip contract.',
+                    DecodeErrorKind::UnsupportedDeclaration->value,
+                ];
+            }
+        }
     }
 }

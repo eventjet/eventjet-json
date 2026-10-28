@@ -17,7 +17,11 @@ use function str_starts_with;
  */
 final class PhpDocIntegerRange
 {
-    /** Whether a type is an integer range. */
+    /**
+     * Whether a type is an integer range.
+     *
+     * @mutation-free
+     */
     public static function matches(PhpDocType $type): bool
     {
         if ($type->name !== 'int' || count($type->arguments) !== 2) {

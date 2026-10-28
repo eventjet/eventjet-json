@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\NamedTypeCompiler;
+use Eventjet\Json\Internal\NodeCompiler;
+use Eventjet\Json\Internal\PhpDocNarrowing;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
+use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\Cases\ParserSyntaxCases;
 use Eventjet\Json\Test\Acceptance\Cases\PhpDocDocumentCases;
@@ -64,11 +69,7 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\ClassDecoder::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassField::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassDecoders::class)]
-#[UsesClass(\Eventjet\Json\Internal\ClassFieldTypeValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassGraphValidator::class)]
-#[UsesClass(\Eventjet\Json\Internal\CollectionCompiler::class)]
-#[UsesClass(\Eventjet\Json\Internal\CollectionUnionCompiler::class)]
-#[UsesClass(\Eventjet\Json\Internal\CollectionUnionNatives::class)]
 #[UsesClass(\Eventjet\Json\Internal\Error\ConstructorFailure::class)]
 #[UsesClass(\Eventjet\Json\DecodeError::class)]
 #[UsesClass(\Eventjet\Json\DecodeErrorKind::class)]
@@ -82,16 +83,13 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Json::class)]
 #[UsesClass(\Eventjet\Json\JsonType::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\ListNode::class)]
-#[UsesClass(\Eventjet\Json\Internal\LiteralFieldCompiler::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\LiteralNode::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\MapNode::class)]
 #[UsesClass(\Eventjet\Json\Internal\MappedObjectSerializer::class)]
-#[UsesClass(\Eventjet\Json\Internal\NativeUnionCompiler::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\NullOnlyNode::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\NullableNode::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\ObjectNode::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocClassNameResolver::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocCollectionCompiler::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocConstantImportStatement::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocConstantResolver::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocConstantValues::class)]
@@ -99,7 +97,6 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocImportScanner::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocImportStatement::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocImports::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocItemCompiler::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocIntegerRange::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralEnumOverlap::class)]
@@ -109,7 +106,6 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTokenStream::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocTupleEntry::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocType::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocUnionCompiler::class)]
 #[UsesClass(\Eventjet\Json\Internal\RootDescriptor::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\ScalarItems::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\ScalarNode::class)]
@@ -123,6 +119,11 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\Error\UnsupportedField::class)]
 #[UsesClass(\Eventjet\Json\Internal\Error\UnsupportedFieldClass::class)]
 #[UsesClass(\Eventjet\Json\Internal\Error\UnsupportedTarget::class)]
+#[UsesClass(CollectionDeclarationError::class)]
+#[UsesClass(NamedTypeCompiler::class)]
+#[UsesClass(NodeCompiler::class)]
+#[UsesClass(PhpDocTypeResolver::class)]
+#[UsesClass(PhpDocNarrowing::class)]
 final class PhpDocReadingTest extends TestCase
 {
     /**

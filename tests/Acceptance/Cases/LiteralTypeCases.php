@@ -50,6 +50,9 @@ final class LiteralTypeCases
             yield 'unknown names leave a literal declaration unchecked ' . $tag => [
                 CollectionDeclarationFixture::object('string', "UnknownLiteralClass|'x'", $tag, 'y'),
             ];
+            yield 'literals that omit a native member leave the native type in charge ' . $tag => [
+                CollectionDeclarationFixture::object('?string', "'a'|'b'", $tag, 'c'),
+            ];
             yield 'a PHPDoc literal does not restrict an object field ' . $tag => [
                 CollectionDeclarationFixture::object('?\\' . EmptyObject::class, 'null', $tag, new EmptyObject()),
             ];
@@ -177,7 +180,7 @@ final class LiteralTypeCases
             ['array', 'list<42>', '[null]', 'value[0]', '42', 'null'],
             ['int', '42', '43', 'value', '42', 'int'],
             ['int', 'PHP_INT_MAX', '43', 'value', (string) PHP_INT_MAX, 'int'],
-            ['string|null', '(null)', '"x"', 'value', 'null', 'string'],
+            ['string|null', "'a'|(null)", '"x"', 'value', "'a'|null", 'string'],
             ['string', '\\' . ExtendedLiteralFields::class . '::WORD_*', '"baz"', 'value', "'foo'|'bar'", 'string'],
         ] as [$native, $declaration, $value, $path, $expected, $actual]) {
             foreach (['param', 'var'] as $tag) {

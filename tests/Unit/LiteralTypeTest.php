@@ -7,16 +7,12 @@ namespace Eventjet\Json\Test\Unit;
 use BackedEnum;
 use DateTimeImmutable;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\ClassFieldTypeValidator;
-use Eventjet\Json\Internal\CollectionCompiler;
-use Eventjet\Json\Internal\CollectionUnionCompiler;
-use Eventjet\Json\Internal\CollectionUnionNatives;
+use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\LiteralFieldCompiler;
-use Eventjet\Json\Internal\NativeUnionCompiler;
+use Eventjet\Json\Internal\NamedTypeCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\LiteralNode;
@@ -26,8 +22,8 @@ use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\ScalarItems;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\UnionNode;
+use Eventjet\Json\Internal\NodeCompiler;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
-use Eventjet\Json\Internal\PhpDocCollectionCompiler;
 use Eventjet\Json\Internal\PhpDocConstantImportStatement;
 use Eventjet\Json\Internal\PhpDocConstantResolver;
 use Eventjet\Json\Internal\PhpDocConstantValues;
@@ -35,13 +31,15 @@ use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
 use Eventjet\Json\Internal\PhpDocImportStatement;
-use Eventjet\Json\Internal\PhpDocItemCompiler;
 use Eventjet\Json\Internal\PhpDocLiteral;
+use Eventjet\Json\Internal\PhpDocLiteralNativeType;
+use Eventjet\Json\Internal\PhpDocLiteralString;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
+use Eventjet\Json\Internal\PhpDocNarrowing;
 use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
-use Eventjet\Json\Internal\PhpDocUnionCompiler;
+use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
@@ -62,17 +60,17 @@ use const PHP_INT_MIN;
 #[CoversClass(PhpDocLiteral::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocIntegerRange::class)]
 #[CoversClass(PhpDocConstantValues::class)]
-#[CoversClass(LiteralFieldCompiler::class)]
+#[CoversClass(NamedTypeCompiler::class)]
+#[CoversClass(NodeCompiler::class)]
+#[CoversClass(PhpDocNarrowing::class)]
+#[CoversClass(PhpDocTypeResolver::class)]
 #[CoversClass(LiteralNode::class)]
 #[CoversClass(PhpDocFieldType::class)]
+#[UsesClass(CollectionDeclarationError::class)]
 #[CoversClass(PhpDocType::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
 #[CoversClass(PhpDocImportStatement::class)]
 #[CoversClass(PhpDocConstantImportStatement::class)]
-#[UsesClass(ClassFieldTypeValidator::class)]
-#[UsesClass(CollectionCompiler::class)]
-#[UsesClass(CollectionUnionCompiler::class)]
-#[UsesClass(CollectionUnionNatives::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(UnsupportedField::class)]
 #[UsesClass(InvalidValue::class)]
@@ -80,17 +78,15 @@ use const PHP_INT_MIN;
 #[UsesClass(EnumNode::class)]
 #[UsesClass(ListNode::class)]
 #[UsesClass(NullOnlyNode::class)]
-#[UsesClass(NativeUnionCompiler::class)]
 #[UsesClass(ObjectNode::class)]
 #[UsesClass(PhpDocClassNameResolver::class)]
-#[UsesClass(PhpDocCollectionCompiler::class)]
 #[UsesClass(PhpDocConstantResolver::class)]
 #[UsesClass(PhpDocImports::class)]
 #[UsesClass(PhpDocImportScanner::class)]
-#[CoversClass(PhpDocItemCompiler::class)]
+#[UsesClass(PhpDocLiteralNativeType::class)]
 #[UsesClass(PhpDocNamespaceDeclaration::class)]
 #[UsesClass(PhpDocTokenStream::class)]
-#[UsesClass(PhpDocTypeParser::class)]
+#[CoversClass(PhpDocTypeParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLexer::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTokens::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocSyntaxError::class)]
@@ -123,7 +119,6 @@ use const PHP_INT_MIN;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
-#[UsesClass(PhpDocUnionCompiler::class)]
 #[UsesClass(TargetClass::class)]
 #[UsesClass(ScalarItems::class)]
 #[CoversClass(ScalarNode::class)]
@@ -328,7 +323,7 @@ final class LiteralTypeTest extends TestCase
         };
 
         static::assertInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($properties, 'literal')));
-        static::assertInstanceOf(NullOnlyNode::class, self::compile(new ReflectionProperty($properties, 'nothing')));
+        static::assertInstanceOf(ScalarNode::class, self::compile(new ReflectionProperty($properties, 'nothing')));
         static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($properties, 'refined')));
         static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($properties, 'object')));
         static::assertNotInstanceOf(

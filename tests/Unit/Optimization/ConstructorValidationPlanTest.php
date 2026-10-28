@@ -10,10 +10,8 @@ use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
-use Eventjet\Json\Internal\ClassFieldTypeValidator;
 use Eventjet\Json\Internal\ClassGraphValidator;
-use Eventjet\Json\Internal\CollectionCompiler;
-use Eventjet\Json\Internal\CollectionUnionCompiler;
+use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
@@ -21,9 +19,8 @@ use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\LiteralFieldCompiler;
 use Eventjet\Json\Internal\MappedObjectSerializer;
-use Eventjet\Json\Internal\NativeUnionCompiler;
+use Eventjet\Json\Internal\NamedTypeCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
@@ -35,19 +32,19 @@ use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\TupleNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
+use Eventjet\Json\Internal\NodeCompiler;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
-use Eventjet\Json\Internal\PhpDocCollectionCompiler;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
 use Eventjet\Json\Internal\PhpDocImportStatement;
-use Eventjet\Json\Internal\PhpDocItemCompiler;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
+use Eventjet\Json\Internal\PhpDocNarrowing;
 use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
-use Eventjet\Json\Internal\PhpDocUnionCompiler;
+use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
@@ -71,28 +68,27 @@ use function class_alias;
 
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
-#[UsesClass(ClassFieldTypeValidator::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(TargetClass::class)]
 #[CoversClass(FieldNameRules::class)]
-#[UsesClass(CollectionCompiler::class)]
-#[UsesClass(CollectionUnionCompiler::class)]
+#[UsesClass(NamedTypeCompiler::class)]
+#[UsesClass(NodeCompiler::class)]
+#[UsesClass(PhpDocNarrowing::class)]
+#[UsesClass(PhpDocTypeResolver::class)]
 #[UsesClass(EnumNode::class)]
 #[UsesClass(ListNode::class)]
 #[UsesClass(MapNode::class)]
-#[UsesClass(NativeUnionCompiler::class)]
 #[UsesClass(NullOnlyNode::class)]
 #[UsesClass(NullableNode::class)]
 #[UsesClass(ObjectNode::class)]
 #[UsesClass(PhpDocClassNameResolver::class)]
-#[UsesClass(PhpDocCollectionCompiler::class)]
 #[UsesClass(PhpDocFieldType::class)]
+#[UsesClass(CollectionDeclarationError::class)]
 #[UsesClass(PhpDocImportScanner::class)]
 #[UsesClass(PhpDocImportStatement::class)]
 #[UsesClass(PhpDocImports::class)]
-#[UsesClass(PhpDocItemCompiler::class)]
 #[UsesClass(PhpDocNamespaceDeclaration::class)]
 #[UsesClass(PhpDocTokenStream::class)]
 #[UsesClass(PhpDocTupleEntry::class)]
@@ -130,11 +126,9 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
-#[UsesClass(PhpDocUnionCompiler::class)]
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(ScalarItems::class)]
 #[UsesClass(TupleNode::class)]
-#[UsesClass(LiteralFieldCompiler::class)]
 #[UsesClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
