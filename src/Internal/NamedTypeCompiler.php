@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use ArrayObject;
+use BackedEnum;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
@@ -18,7 +19,6 @@ use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use JsonSerializable;
 use ReflectionClass;
-use ReflectionEnum;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -56,8 +56,11 @@ final class NamedTypeCompiler
     private const array RESOURCES = ['resource' => true, 'open-resource' => true, 'closed-resource' => true];
 
     /**
-     * Compiles a field whose native type names a class or an enum. Returns null for `ArrayObject`, and for a nullable
-     * type whose values JSON cannot represent, because the union of the type tree accepts only null for it.
+     * Compiles a field whose native type names a class or an enum, without the type tree and union that NodeCompiler
+     * would build for it. NodeCompiler would compile the same nodes, but nullable class and enum fields are common, and
+     * building the type tree and union for each one slows down the first decode in a request. Returns null for
+     * `ArrayObject`, and for a nullable type whose values JSON cannot represent, because the union of the type tree
+     * accepts only null for it.
      *
      * @throws DecodeError
      * @throws ReflectionException
@@ -65,21 +68,13 @@ final class NamedTypeCompiler
     public static function field(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): Node|null
     {
         $name = FieldTypeNameResolver::resolve($field, $type);
-        if ($name === ArrayObject::class) {
+        $nullable = $type->allowsNull();
+        $needsTree = $name === ArrayObject::class || $nullable && self::unrepresentable($name);
+        if ($needsTree) {
             return null;
         }
-        if (!$type->allowsNull()) {
-            return self::named($name, $field->getName());
-        }
-        try {
-            $node = self::named($name, $field->getName());
-        } catch (DecodeError $error) {
-            $unrepresentable = self::unrepresentable($name);
-            return $unrepresentable ? null : throw $error;
-        }
-        return $node instanceof UncheckedNode
-            ? new UncheckedNode($name, $field->getName(), nullable: true)
-            : NullableNode::field($node);
+        $node = self::named($name, $field->getName());
+        return $nullable ? NullableNode::of($node) : $node;
     }
 
     /**
@@ -117,14 +112,13 @@ final class NamedTypeCompiler
      * Whether the values of a union member that failed to compile have no JSON representation: a resource, or a
      * non-backed enum without custom serialization. Unions skip such members if another member remains.
      *
-     * @throws ReflectionException
      */
     public static function unrepresentable(string $name): bool
     {
         return (
             array_key_exists($name, self::RESOURCES)
             || enum_exists($name)
-            && !new ReflectionEnum($name)->isBacked()
+            && !is_a($name, BackedEnum::class, allow_string: true)
             && !is_a($name, JsonSerializable::class, allow_string: true)
         );
     }

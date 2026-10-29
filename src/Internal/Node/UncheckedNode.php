@@ -19,7 +19,7 @@ final readonly class UncheckedNode implements Node
 {
     public function __construct(
         public string $name,
-        private string $field,
+        public string $field,
         private bool $nullable,
     ) {}
 

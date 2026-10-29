@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\DecodeErrorKind;
+use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\DisjointStringBackedEnumUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\UnionPublicProperty;
@@ -48,6 +49,19 @@ final class UnionValueErrorCases
             'Could not create '
                 . $repeatedNullable
                 . ' from the JSON object: Field value must be of type list<int>, string given.',
+            DecodeErrorKind::InvalidValue->value,
+        ];
+        $nullFirst = CollectionDeclarationFixture::create(
+            'array',
+            PhpType::list(PhpType::union(PhpType::Null, Coordinates::class)),
+            'param',
+        );
+        yield 'nullable object list reports null after the class like a single field' => [
+            '{"value":[1]}',
+            $nullFirst,
+            'Could not create '
+                . $nullFirst
+                . ' from the JSON object: Field value[0] must be of type Eventjet\Json\Test\Acceptance\Fixtures\Coordinates|null, int given.',
             DecodeErrorKind::InvalidValue->value,
         ];
         $withoutValues = CollectionDeclarationFixture::create(

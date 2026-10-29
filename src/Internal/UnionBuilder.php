@@ -102,7 +102,7 @@ final class UnionBuilder
     }
 
     /** @param list<Node> $members */
-    private function nullable(array $members): NullableNode|null
+    private function nullable(array $members): Node|null
     {
         if (count($members) !== 2 || $this->rejected !== null) {
             return null;

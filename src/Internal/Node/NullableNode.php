@@ -16,22 +16,14 @@ final readonly class NullableNode implements Node
     ) {}
 
     /**
-     * Returns the node of a field of type `T|null`, given the compiled `T`, or null if `T|null` needs a union. Unlike a
-     * list item, a field of a nullable class gets an object node that accepts null, because lists decode their objects
-     * without a null check.
+     * Returns the node of `T|null`, given the compiled `T`, or null if `T|null` needs a union. A class accepts null
+     * itself. A collection or enum that may be null checks for null before its own checks.
      */
-    public static function field(Node|null $node): Node|null
-    {
-        if ($node instanceof ObjectNode) {
-            return new ObjectNode($node->target, nullable: true);
-        }
-        return self::of($node);
-    }
-
-    /** A collection or enum that may be null checks for null before its own checks. */
-    public static function of(Node|null $node): self|null
+    public static function of(Node $node): Node|null
     {
         return match (true) {
+            $node instanceof ObjectNode => new ObjectNode($node->target, nullable: true),
+            $node instanceof UncheckedNode => new UncheckedNode($node->name, $node->field, nullable: true),
             $node instanceof EnumNode,
             $node instanceof ListNode,
             $node instanceof MapNode,

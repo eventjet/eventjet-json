@@ -8,6 +8,7 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
+use JsonException;
 use Override;
 use stdClass;
 
@@ -39,8 +40,9 @@ final readonly class ObjectNode implements Node
      * Decodes the items of a list without a node call per item, because lists of objects are common.
      *
      * @param list<mixed> $values
-     * @return list<object>
+     * @return list<object|null>
      * @throws DecodeError
+     * @throws JsonException
      */
     public function decodeEach(array $values, string $path): array
     {
@@ -48,10 +50,9 @@ final readonly class ObjectNode implements Node
         /** @var mixed $value */
         foreach ($values as $index => $value) {
             $itemPath = sprintf('%s[%d]', $path, $index);
-            if (!$value instanceof stdClass) {
-                throw InvalidValue::typeMismatch($itemPath, $this->target, $value);
-            }
-            $decoded[] = ClassDecoders::hydrate($this->target, $value, $itemPath);
+            $decoded[] = $value instanceof stdClass
+                ? ClassDecoders::hydrate($this->target, $value, $itemPath)
+                : $this->decode($value, $itemPath);
         }
         return $decoded;
     }
