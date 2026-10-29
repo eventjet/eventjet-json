@@ -66,11 +66,11 @@ final readonly class EnumNode implements Node
      * Combines the enums of a union that share a backing type into one node that finds cases in a table. Union rules
      * ensure that their backing values do not overlap.
      *
-     * @param 'int'|'string' $backingType
      * @param non-empty-list<class-string<BackedEnum>> $enums
      */
     public static function union(string $backingType, array $enums): self
     {
+        assert($backingType === 'int' || $backingType === 'string', description: 'Enums claim their backing type.');
         return new self($enums, $backingType, self::cases($enums));
     }
 
@@ -101,7 +101,7 @@ final readonly class EnumNode implements Node
         return ($this->find)($value) ?? InvalidValue::unknownRootEnumCase($this->enums[0], $value);
     }
 
-    /** An enum takes every value of its backing type, and rejects values that are not its cases. */
+    /** An enum takes every value of its backing type, so that it reports the values that are not its cases. */
     #[Override]
     public function claims(): array
     {
@@ -109,7 +109,7 @@ final readonly class EnumNode implements Node
         foreach (self::cases($this->enums) as $case) {
             $values[var_export($case->value, return: true)] = [$case->value, $case];
         }
-        return [$this->backingType => ['every' => true, 'values' => $values]];
+        return [$this->backingType => ['others' => 'rejects', 'enums' => $this->enums, 'values' => $values]];
     }
 
     #[Override]

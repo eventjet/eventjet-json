@@ -60,7 +60,7 @@ final readonly class ObjectNode implements Node
     #[Override]
     public function claims(): array
     {
-        return ['stdClass' => ['every' => true, 'values' => []]];
+        return ['stdClass' => ['others' => 'accepts', 'enums' => [], 'values' => []]];
     }
 
     #[Override]

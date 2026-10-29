@@ -70,7 +70,7 @@ final readonly class MapNode implements Node
     #[Override]
     public function claims(): array
     {
-        return ['stdClass' => ['every' => true, 'values' => []]];
+        return ['stdClass' => ['others' => 'accepts', 'enums' => [], 'values' => []]];
     }
 
     #[Override]

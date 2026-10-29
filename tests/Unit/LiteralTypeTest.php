@@ -317,6 +317,8 @@ final class LiteralTypeTest extends TestCase
         static::assertSame(3.0, $whole->decode(3.0, 'value'));
         static::assertSame(3.0, $whole->decode(3, 'value'));
         static::assertSame(['string'], array_keys(LiteralNode::of(PhpDocLiteral::string('3'))->claims()));
+        $table = LiteralNode::table('1|2', 'int', ['1' => [1, 1], '2' => [2, 2]], null);
+        static::assertSame(['1' => [1, 1], '2' => [2, 2]], $table->claims()['int']['values'] ?? null);
 
         $status = self::compile(new ReflectionProperty($enum, 'status'));
         static::assertInstanceOf(LiteralNode::class, $status);

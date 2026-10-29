@@ -33,10 +33,14 @@ final readonly class UncheckedNode implements Node
         };
     }
 
+    /**
+     * Claims JSON objects so that other members that take them conflict with this one. The union does not decode them
+     * with this node, so they report the union type.
+     */
     #[Override]
     public function claims(): array
     {
-        return ['stdClass' => ['every' => true, 'values' => []]];
+        return ['stdClass' => ['others' => 'rejects', 'enums' => [], 'values' => []]];
     }
 
     #[Override]

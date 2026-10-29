@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Error;
 
-use BackedEnum;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
-use Eventjet\Json\Internal\Node\EnumNode;
-use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
@@ -30,6 +27,12 @@ use function var_export;
 /**
  * Errors for unions whose members JSON cannot tell apart.
  *
+ * @psalm-import-type Claim from Node
+ * @psalm-import-type ClaimValues from Node
+ * @psalm-import-type Claims from Node
+ * @phpstan-import-type Claim from Node
+ * @phpstan-import-type ClaimValues from Node
+ * @phpstan-import-type Claims from Node
  * @internal
  */
 final class AmbiguousUnion
@@ -41,32 +44,31 @@ final class AmbiguousUnion
      * Returns the kind of conflict between two members of a union that claim the same JSON value and decode it
      * differently, and its error.
      *
-     * @param list<array{Node, array<string, array{every: bool, values: array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}>}>}> $members
-     *     Each member with its claims.
-     * @param array{Node, array<string, array{every: bool, values: array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}>}>} $first
-     * @param array{Node, array<string, array{every: bool, values: array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}>}>} $second
+     * @param list<array{Node, Claims}> $members Each member with its claims.
+     * @param array{Node, Claim} $first A conflicting member with its claim for the JSON value type.
+     * @param array{Node, Claim} $second
      * @return array{string, DecodeError}
      */
-    public static function between(string $field, array $members, array $first, array $second): array
+    public static function between(string $field, array $members, string $valueType, array $first, array $second): array
     {
-        [$a, $aClaims] = $first;
-        [$b, $bClaims] = $second;
+        [$a, $aClaim] = $first;
+        [$b, $bClaim] = $second;
         $classes = self::classNames([$a, $b]);
         return match (true) {
-            $a instanceof LiteralNode, $b instanceof LiteralNode => ['literals', self::overlappingLiterals($field)],
+            $aClaim['others'] === null, $bClaim['others'] === null => ['literals', self::overlappingLiterals($field)],
             count($classes) === 2 => [
                 'classes',
                 self::classes($field, $members),
             ],
-            $a instanceof EnumNode && $b instanceof EnumNode => [
+            $aClaim['enums'] !== [] && $bClaim['enums'] !== [] => [
                 'enums',
                 self::overlappingEnums($field, [
-                    (string) $a => $aClaims[$a->backingType]['values'] ?? [],
-                    (string) $b => $bClaims[$b->backingType]['values'] ?? [],
+                    (string) $a => $aClaim['values'],
+                    (string) $b => $bClaim['values'],
                 ]),
             ],
-            $a instanceof EnumNode => self::enumAndScalar($field, $a, $b),
-            $b instanceof EnumNode => self::enumAndScalar($field, $b, $a),
+            $aClaim['enums'] !== [] => self::enumAndScalar($field, $a, $bClaim, $valueType),
+            $bClaim['enums'] !== [] => self::enumAndScalar($field, $b, $aClaim, $valueType),
             default => ['shapes', self::shapes($field)],
         };
     }
@@ -100,11 +102,11 @@ final class AmbiguousUnion
         }, $members), static fn(string|null $class): bool => $class !== null);
     }
 
-    /** @param list<array{Node, mixed}> $members */
+    /** @param list<array{Node, Claims}> $members */
     private static function classes(string $field, array $members): DecodeError
     {
         $classes = self::classNames(array_map(
-            /** @param array{Node, mixed} $member */
+            /** @param array{Node, Claims} $member */
             static fn(array $member): Node => $member[0],
             $members,
         ));
@@ -127,7 +129,7 @@ final class AmbiguousUnion
     /**
      * Names the enums in alphabetical order, with the first backing value of the second enum that the first shares.
      *
-     * @param array<string, array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}>> $cases
+     * @param array<string, ClaimValues> $cases
      *     The cases of each enum, keyed by its name.
      */
     private static function overlappingEnums(string $field, array $cases): DecodeError
@@ -145,10 +147,13 @@ final class AmbiguousUnion
         ));
     }
 
-    /** @return array{string, DecodeError} */
-    private static function enumAndScalar(string $field, EnumNode $enum, Node $scalar): array
+    /**
+     * @param Claim $scalar
+     * @return array{string, DecodeError}
+     */
+    private static function enumAndScalar(string $field, Node $enum, array $scalar, string $backingType): array
     {
-        if ((string) $scalar === 'float') {
+        if ($scalar['others'] === 'widens') {
             return [
                 'enumAndFloat',
                 self::error(sprintf(
@@ -164,7 +169,7 @@ final class AmbiguousUnion
                 'Field %s uses backed enum %s together with its backing type %s. JSON cannot distinguish an enum case from the scalar value.',
                 $field,
                 $enum,
-                $enum->backingType,
+                $backingType,
             )),
         ];
     }

@@ -73,7 +73,7 @@ final readonly class ListNode implements Node
     #[Override]
     public function claims(): array
     {
-        return ['array' => ['every' => true, 'values' => []]];
+        return ['array' => ['others' => 'accepts', 'enums' => [], 'values' => []]];
     }
 
     #[Override]

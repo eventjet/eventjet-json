@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Node;
 
+use BackedEnum;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Override;
 
 use function array_key_exists;
+use function array_merge;
 use function get_debug_type;
 
 /**
  * Decodes each JSON value with the member registered for its type. Union rules ensure each type has at most one member.
  *
+ * @psalm-import-type ClaimValues from Node
+ * @psalm-import-type Claims from Node
+ * @phpstan-import-type ClaimValues from Node
+ * @phpstan-import-type Claims from Node
  * @internal
  */
 final readonly class UnionNode implements Node
@@ -29,45 +35,43 @@ final readonly class UnionNode implements Node
     ) {}
 
     /**
-     * Indexes union members by the JSON value types they claim. Enums that share a backing type are combined, and
-     * literals pass the other values of their JSON value type to the member that takes every value of it.
+     * Indexes union members by the JSON value types they claim. Enums that claim a type are combined, and the values
+     * that literals list are decoded from a table that passes the other values of their type to the member that takes
+     * them.
      *
-     * @param list<Node> $members Members that claim no JSON value differently.
+     * @param list<array{Node, Claims}> $members Each member with its claims. They claim no JSON value differently.
      */
     public static function of(string $type, array $members): self
     {
         /** @var array<string, Node> $indexed */
         $indexed = [];
+        /** @var array<string, non-empty-list<class-string<BackedEnum>>> $enums */
         $enums = [];
-        $literals = [];
+        /** @var array<string, ClaimValues> $listed */
+        $listed = [];
         $dependencies = [];
-        foreach ($members as $member) {
+        foreach ($members as [$member, $claims]) {
             $dependencies = [...$dependencies, ...$member->dependencies()];
-            if ($member instanceof LiteralNode) {
-                $literals[] = $member;
-                continue;
-            }
-            if ($member instanceof EnumNode) {
-                $enums[$member->backingType][] = $member->enums[0];
-                continue;
-            }
-            // An unknown class claims JSON objects only to conflict with other classes, so values report the union type.
-            if ($member instanceof UncheckedNode) {
-                continue;
-            }
-            foreach ($member->claims() as $valueType => $claim) {
-                // Scalars that claim a type decode it alike, except that `int` takes integers from `float`.
-                $taken = array_key_exists($valueType, $indexed) && (string) $member !== $valueType;
-                if (!$claim['every'] || $taken) {
-                    continue;
+            foreach ($claims as $valueType => $claim) {
+                $others = $claim['others'];
+                $decodes = $others === 'accepts' || $others === 'widens' && !array_key_exists($valueType, $indexed);
+                if ($decodes) {
+                    $indexed[$valueType] = $member;
                 }
-                $indexed[$valueType] = $member;
+                if ($claim['enums'] !== []) {
+                    $enums[$valueType] = array_merge($enums[$valueType] ?? [], $claim['enums']);
+                }
+                if ($others === null) {
+                    $listed[$valueType] = ($listed[$valueType] ?? []) + $claim['values'];
+                }
             }
         }
         foreach ($enums as $backingType => $names) {
             $indexed[$backingType] = EnumNode::union($backingType, $names);
         }
-        $indexed = $literals === [] ? $indexed : LiteralNode::index($type, $literals, $indexed);
+        foreach ($listed as $valueType => $values) {
+            $indexed[$valueType] = LiteralNode::table($type, $valueType, $values, $indexed[$valueType] ?? null);
+        }
         return new self($type, $indexed, $dependencies);
     }
 
