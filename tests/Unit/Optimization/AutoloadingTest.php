@@ -59,6 +59,7 @@ use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
+use Eventjet\Json\Internal\UnionConflicts;
 use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\Address;
@@ -169,6 +170,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
+#[UsesClass(UnionConflicts::class)]
 #[UsesClass(LiteralNode::class)]
 #[UsesClass(PhpDocConstantImportStatement::class)]
 #[UsesClass(PhpDocConstantResolver::class)]
@@ -186,7 +188,6 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\Error\UnsupportedCollection::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocConstantValues::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocIntegerRange::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
 #[UsesClass(\Eventjet\Json\Json::class)]
 #[UsesClass(PhpDocLiteralNativeType::class)]
 final class AutoloadingTest extends TestCase

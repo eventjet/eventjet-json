@@ -41,7 +41,7 @@ final readonly class NullableNode implements Node
     }
 
     #[Override]
-    public function valueTypes(): array
+    public function claims(): array
     {
         return [];
     }

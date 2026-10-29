@@ -46,6 +46,7 @@ use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
+use Eventjet\Json\Internal\UnionConflicts;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeError;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -55,6 +56,8 @@ use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
 use stdClass;
+
+use function array_keys;
 
 use const INF;
 use const NAN;
@@ -130,6 +133,7 @@ use const PHP_INT_MIN;
 #[CoversClass(ScalarNode::class)]
 #[UsesClass(TypeCompiler::class)]
 #[CoversClass(UnionBuilder::class)]
+#[CoversClass(UnionConflicts::class)]
 #[UsesClass(UnionNode::class)]
 final class LiteralTypeTest extends TestCase
 {
@@ -309,10 +313,10 @@ final class LiteralTypeTest extends TestCase
             }
         };
         $whole = LiteralNode::of(new PhpDocLiteral(3.0, '3.0'));
-        static::assertSame(['float', 'int'], $whole->valueTypes());
+        static::assertSame(['float', 'int'], array_keys($whole->claims()));
         static::assertSame(3.0, $whole->decode(3.0, 'value'));
         static::assertSame(3.0, $whole->decode(3, 'value'));
-        static::assertSame(['string'], LiteralNode::of(PhpDocLiteral::string('3'))->valueTypes());
+        static::assertSame(['string'], array_keys(LiteralNode::of(PhpDocLiteral::string('3'))->claims()));
 
         $status = self::compile(new ReflectionProperty($enum, 'status'));
         static::assertInstanceOf(LiteralNode::class, $status);

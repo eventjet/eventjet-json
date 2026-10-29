@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Node;
 
+use BackedEnum;
 use Eventjet\Json\DecodeError;
 use JsonException;
 use Stringable;
@@ -33,10 +34,12 @@ interface Node extends Stringable
     public function dependencies(): array;
 
     /**
-     * Returns the JSON value types for which a union selects this node: their get_debug_type(), or true or false for
-     * booleans. Empty for nodes that are not union members, and for enums, which unions group by backing type.
+     * Returns the JSON values this node claims as a union member, by JSON value type: their get_debug_type(), or true or
+     * false for booleans. For each type, `every` tells whether the node takes every value that it doesn't list, and
+     * `values` lists JSON values with the PHP values the node returns for them, keyed by var_export() of the JSON value.
+     * Empty for nodes that are not union members.
      *
-     * @return list<string>
+     * @return array<string, array{every: bool, values: array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}>}>
      */
-    public function valueTypes(): array;
+    public function claims(): array;
 }

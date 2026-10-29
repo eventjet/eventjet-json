@@ -9,11 +9,11 @@ use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\PhpDocLiteral;
 use Override;
 
-use function array_column;
-use function array_unique;
-use function array_values;
+use function array_map;
+use function array_merge;
 use function get_debug_type;
 use function is_float;
+use function var_export;
 
 /**
  * Accepts the JSON values of PHPDoc literals, such as `'draft'`, `42`, or `Status::Ready`, and returns their PHP values.
@@ -53,12 +53,6 @@ final readonly class LiteralNode implements Node
         return new self($literal->name, $values, null);
     }
 
-    /** Returns the PHP value of a single literal. */
-    public function value(): string|int|float|bool|BackedEnum
-    {
-        return $this->values[0][2];
-    }
-
     /**
      * Combines the literals of a union by the JSON value types they accept. A member that already accepts a value type
      * receives the values that match no literal.
@@ -70,10 +64,13 @@ final readonly class LiteralNode implements Node
     public static function index(string $type, array $literals, array $indexed): array
     {
         $values = [];
-        foreach ($literals as $literal) {
-            foreach ($literal->values as $value) {
-                $values[$value[0]][] = $value;
-            }
+        $all = array_merge(...array_map(
+            /** @return non-empty-list<array{string, string|int|float|bool, string|int|float|bool|BackedEnum}> */
+            static fn(self $literal): array => $literal->values,
+            $literals,
+        ));
+        foreach ($all as $value) {
+            $values[$value[0]][] = $value;
         }
         foreach ($values as $valueType => $accepted) {
             $indexed[$valueType] = new self($type, $accepted, $indexed[$valueType] ?? null);
@@ -95,11 +92,20 @@ final readonly class LiteralNode implements Node
     }
 
     #[Override]
-    public function valueTypes(): array
+    public function claims(): array
     {
-        /** @var list<string> $valueTypes */
-        $valueTypes = array_column($this->values, 0);
-        return array_values(array_unique($valueTypes));
+        $listed = [];
+        foreach ($this->values as [$type, $json, $value]) {
+            $listed[$type][var_export($json, return: true)] = [$json, $value];
+        }
+        return array_map(
+            /**
+             * @param array<string, array{string|int|float|bool, string|int|float|bool|BackedEnum}> $values
+             * @return array{every: false, values: array<string, array{string|int|float|bool, string|int|float|bool|BackedEnum}>}
+             */
+            static fn(array $values): array => ['every' => false, 'values' => $values],
+            $listed,
+        );
     }
 
     #[Override]

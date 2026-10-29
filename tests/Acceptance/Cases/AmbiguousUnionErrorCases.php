@@ -6,11 +6,15 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use ArrayObject;
 use Eventjet\Json\DecodeErrorKind;
+use Eventjet\Json\Test\Acceptance\Fixtures\CaselessIntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\OverlappingEnumUnionField;
+use Eventjet\Json\Test\Acceptance\Fixtures\OverlappingStringBackedOutcome;
+use Eventjet\Json\Test\Acceptance\Fixtures\OverlappingStringBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 
 /** @internal */
@@ -26,6 +30,8 @@ final class AmbiguousUnionErrorCases
         yield from self::enumAlternatives();
         yield from self::classAlternatives();
         yield from self::collectionAlternatives();
+        yield from self::literalAlternatives();
+        yield from self::conflictOrder();
     }
 
     /**
@@ -225,6 +231,104 @@ final class AmbiguousUnionErrorCases
                     'var',
                 )
                 . ' from the JSON object: Field value has multiple union members with the same JSON shape. JSON cannot identify which type to restore.',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+    }
+
+    /**
+     * Literals that JSON cannot tell apart from another member, because both accept a JSON value and restore different
+     * PHP values from it.
+     *
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
+     */
+    private static function literalAlternatives(): iterable
+    {
+        $int = '\\' . IntBackedStatus::class;
+        foreach ([
+            'list<' . $int . '::Ready|float>',
+            'list<-0.0|0>',
+            'list<-0.0|' . $int . '>',
+            'list<' . $int . '::Pending|-0.0>',
+            "list<'ready'|\\" . StringBackedStatus::class . '|string>',
+        ] as $declaration) {
+            yield 'literal union ' . $declaration . ' is ambiguous' => self::declarationError(
+                $declaration,
+                'has overlapping literal union members. JSON cannot identify which PHP type to restore.',
+            );
+        }
+    }
+
+    /**
+     * Unions whose members conflict in several ways report one of the conflicts.
+     *
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
+     */
+    private static function conflictOrder(): iterable
+    {
+        $int = '\\' . IntBackedStatus::class;
+        $string = '\\' . StringBackedStatus::class;
+        $overlapping = '\\' . OverlappingStringBackedStatus::class;
+        $outcome = '\\' . StringBackedOutcome::class;
+        foreach ([
+            [
+                'list<' . $int . '|float|\\' . Coordinates::class . '|\\' . Person::class . '>',
+                'uses multiple class types: '
+                    . Coordinates::class
+                    . ', '
+                    . Person::class
+                    . '. JSON does not identify which class to instantiate.',
+            ],
+            [
+                'list<' . $int . '|int|float>',
+                'uses backed enum '
+                    . IntBackedStatus::class
+                    . ' together with float. Whole-valued floats encode as JSON integers, so JSON cannot distinguish an enum case from a float value.',
+            ],
+            [
+                'list<\\' . CaselessIntBackedStatus::class . '|float>',
+                'uses backed enum '
+                    . CaselessIntBackedStatus::class
+                    . ' together with float. Whole-valued floats encode as JSON integers, so JSON cannot distinguish an enum case from a float value.',
+            ],
+            [
+                'list<' . $string . '|' . $overlapping . '|string>',
+                'uses backed enum '
+                    . StringBackedStatus::class
+                    . ' together with its backing type string. JSON cannot distinguish an enum case from the scalar value.',
+            ],
+            [
+                'list<' . $string . '|' . $outcome . '|string>',
+                'uses backed enum '
+                    . StringBackedStatus::class
+                    . ' together with its backing type string. JSON cannot distinguish an enum case from the scalar value.',
+            ],
+            [
+                'list<' . $string . '|int|string>',
+                'uses backed enum '
+                    . StringBackedStatus::class
+                    . ' together with its backing type string. JSON cannot distinguish an enum case from the scalar value.',
+            ],
+            [
+                'list<' . $outcome . '|\\' . OverlappingStringBackedOutcome::class . '|list<int>|list<string>>',
+                'uses multiple backed enums '
+                    . OverlappingStringBackedOutcome::class
+                    . ' and '
+                    . StringBackedOutcome::class
+                    . " with overlapping backing value 'failed'. JSON cannot identify which enum case to instantiate.",
+            ],
+        ] as [$declaration, $error]) {
+            yield 'union ' . $declaration . ' reports one conflict' => self::declarationError($declaration, $error);
+        }
+    }
+
+    /** @return array{string, class-string, string, DecodeErrorKind} */
+    private static function declarationError(string $declaration, string $error): array
+    {
+        $class = CollectionDeclarationFixture::create('array', $declaration, 'param');
+        return [
+            '{}',
+            $class,
+            'Could not create ' . $class . ' from the JSON object: Field value ' . $error,
             DecodeErrorKind::UnsupportedDeclaration,
         ];
     }
