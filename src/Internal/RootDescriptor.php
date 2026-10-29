@@ -49,7 +49,8 @@ final class RootDescriptor
 
     /**
      * Reads the descriptor of a JsonType. JsonType keeps it private so that users see only its factories, so this reads
-     * it with a closure bound to the scope of JsonType. Psalm needs @psalm-scope-this to know that scope. The closure
+     * it with a closure bound to the scope of JsonType. A ReflectionProperty would make Json::decode() declare a
+     * ReflectionException that cannot happen. Psalm needs @psalm-scope-this to know that scope. The closure
      * type names object because PHPStan infers its parameter as JsonType without a type argument.
      *
      * @template TValue

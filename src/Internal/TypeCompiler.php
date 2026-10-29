@@ -74,7 +74,9 @@ final readonly class TypeCompiler
     }
 
     /**
-     * Compiles the native type of a field other than a class or an enum. PHP checks builtin scalar types itself.
+     * Compiles the native type of a field other than a class or an enum. PHP checks builtin scalar types itself. Such a
+     * field becomes a ScalarNode without NodeCompiler, because compiling scalar fields through it slows down the first
+     * decode in a request.
      *
      * @throws DecodeError
      * @throws ReflectionException
@@ -92,7 +94,8 @@ final readonly class TypeCompiler
 
     /**
      * Returns the PHPDoc type if it narrows the native type. PhpDocNarrowing compares unions, so a field whose PHPDoc
-     * type and native type each name one type doesn't load it.
+     * type and native type each name one type doesn't load it: loading a class is a measurable part of the first
+     * decode in a request.
      *
      * @throws ReflectionException
      */
