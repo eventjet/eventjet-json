@@ -239,7 +239,7 @@ fi
 grep -Fq 'OPcache must be on or off' invalid.log
 echo 'OPcache modes and explicit frozen workloads passed.'
 
-EXPLICIT_WORKLOADS=1 php "$runner" --base "$baseline" --candidate "$candidate" --workloads "$candidate" --shard 3 > shard.log 2>&1 && status=0 || status=$?
+EXPLICIT_WORKLOADS=1 php "$runner" --base "$baseline" --candidate "$candidate" --workloads "$candidate" --shard 4 > shard.log 2>&1 && status=0 || status=$?
 if [ "$status" -ne 2 ]; then cat shard.log; exit 1; fi
 PROJECT="$project" php <<'PHP'
 <?php
@@ -280,7 +280,7 @@ for ($shard = 1; $shard <= Eventjet\Json\Ci\PerformanceShards::SHARDS; $shard++)
     mkdir($directory, 0777, true);
     file_put_contents($directory . '/metadata.json', json_encode(array_replace($metadata, ['shard' => $shard, 'fpm' => $shard === 1]), JSON_THROW_ON_ERROR));
     copy($source . '/discovery.xml', $directory . '/discovery.xml');
-    $indices = $shard <= 4 ? [$shard - 1] : [];
+    $indices = Eventjet\Json\Ci\PerformanceShards::assignedIndices(4, $shard);
     file_put_contents($directory . '/complete.json', json_encode(['indices' => $indices], JSON_THROW_ON_ERROR));
     foreach ($indices as $index) {
         foreach (glob($source . '/*-' . $index . '-*.xml') as $path) {
