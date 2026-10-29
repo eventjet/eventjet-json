@@ -56,7 +56,7 @@ final class FieldTypeNameResolver
     /** Returns the type that errors report for a nullable declaration of a type. */
     public static function withNull(string $name): string
     {
-        return $name === 'null' ? $name : $name . '|null';
+        return $name . '|null';
     }
 
     /** @return 'bool'|'float'|'int'|'string'|class-string|null */

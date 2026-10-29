@@ -16,7 +16,11 @@ use function is_float;
 use function is_int;
 use function is_string;
 
-/** @internal */
+/**
+ * Accepts values of type bool, int, float, or string.
+ *
+ * @internal
+ */
 final readonly class ScalarNode implements Node
 {
     private string $expected;
@@ -36,12 +40,9 @@ final readonly class ScalarNode implements Node
             ? $this->nullable
             : match ($this->name) {
                 'bool' => is_bool($value),
-                'false' => $value === false,
                 'float' => is_float($value) || is_int($value),
                 'int' => is_int($value),
-                'string' => is_string($value),
-                'true' => $value === true,
-                default => false,
+                default => is_string($value),
             };
         if (!$matches) {
             throw InvalidValue::typeMismatch($path, $this->expected, $value);

@@ -34,6 +34,12 @@ final readonly class PhpDocLiteral
         public string $name,
     ) {}
 
+    /** @param 'true'|'false' $name */
+    public static function boolean(string $name): self
+    {
+        return new self($name === 'true', $name);
+    }
+
     /** Reads a quoted string token. */
     public static function quoted(string $quoted): self
     {

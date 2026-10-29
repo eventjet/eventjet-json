@@ -32,7 +32,7 @@ final class PhpDocConstantResolver
     {
         return (
             in_array($name, ['true', 'false'], strict: true)
-                ? [new PhpDocLiteral($name === 'true', $name)]
+                ? [PhpDocLiteral::boolean($name)]
                 : self::resolve($field, $name)
         );
     }

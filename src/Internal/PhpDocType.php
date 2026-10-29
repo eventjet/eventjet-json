@@ -50,6 +50,12 @@ final readonly class PhpDocType
         return new self($literal->name, literal: $literal);
     }
 
+    /** Returns the type of a resolved name, with `true` and `false` as literals. */
+    public static function named(string $name): self
+    {
+        return $name === 'true' || $name === 'false' ? self::literal(PhpDocLiteral::boolean($name)) : new self($name);
+    }
+
     private function nestedUnsupportedNumber(): string|null
     {
         if ($this->name === 'int' && count($this->arguments) === 2) {
