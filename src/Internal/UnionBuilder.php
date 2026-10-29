@@ -70,11 +70,10 @@ final class UnionBuilder
      * Returns the union of the members, or the only member if there is one. `T|null` is a nullable `T` if `T` is a
      * collection or an enum.
      *
-     * @param string|null $type The type that errors report, if it differs from the member types.
      * @throws DecodeError
      * @throws ReflectionException
      */
-    public function build(string|null $type = null): Node
+    public function build(): Node
     {
         $members = $this->members();
         if ($members === []) {
@@ -88,7 +87,7 @@ final class UnionBuilder
         if ($nullable !== null) {
             return $nullable;
         }
-        $type ??= implode('|', array_keys($this->types));
+        $type = implode('|', array_keys($this->types));
         $error = $this->literals($members) ?? $this->classes($members);
         if ($error !== null) {
             throw $error;

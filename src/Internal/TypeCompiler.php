@@ -70,7 +70,7 @@ final readonly class TypeCompiler
     /**
      * Compiles the native type of a field other than a class or an enum. A `bool`, `int`, `float`, or `string` field
      * becomes a ScalarNode without NodeCompiler, because compiling these fields through it slows down the first decode
-     * in a request. Errors name a union as PHP spells it, and `?T` as `T|null`.
+     * in a request.
      *
      * @throws DecodeError
      * @throws ReflectionException
@@ -80,8 +80,7 @@ final readonly class TypeCompiler
         if ($type instanceof ReflectionNamedType && array_key_exists($type->getName(), self::SCALARS)) {
             return new ScalarNode($type->getName(), $type->allowsNull());
         }
-        $label = $type instanceof ReflectionNamedType ? null : (string) $type;
-        return NodeCompiler::field(self::tree($field, $type), $field->getName(), $label);
+        return NodeCompiler::field(self::tree($field, $type), $field->getName());
     }
 
     /**

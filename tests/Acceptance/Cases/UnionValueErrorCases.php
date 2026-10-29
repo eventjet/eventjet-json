@@ -22,12 +22,14 @@ final class UnionValueErrorCases
     {
         yield from NativeBooleanUnionCases::errors();
         $selfUnion = CollectionDeclarationFixture::create('self|int', '', 'param');
-        yield 'native union reports the type as declared' => [
+        yield 'native union names self by the declaring class' => [
             '{"value":"x"}',
             $selfUnion,
             'Could not create '
                 . $selfUnion
-                . ' from the JSON object: Field value must be of type self|int, string given.',
+                . ' from the JSON object: Field value must be of type '
+                . $selfUnion
+                . '|int, string given.',
             DecodeErrorKind::InvalidValue,
         ];
         yield 'tuple-or-string field rejects a boolean' => [
