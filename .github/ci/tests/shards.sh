@@ -35,7 +35,7 @@ for ($shard = 1; $shard <= PerformanceShards::SHARDS; $shard++) {
         'baseline' => 'base', 'candidate' => 'candidate', 'workloads' => 'suite',
         'dependencies_sha256' => 'deps', 'configuration_sha256' => 'config']);
     file_put_contents($path . '/discovery.xml', measurement(range(0, 8)));
-    $indices = array_values(array_filter(range(0, 8), static fn(int $index): bool => $index % PerformanceShards::SHARDS === $shard - 1));
+    $indices = array_values(array_filter(range(0, 8), static fn(int $index): bool => $index % (PerformanceShards::SHARDS - 1) === $shard - 2));
     jsonFile($path . '/complete.json', ['indices' => $indices]);
     foreach ($indices as $index) {
         rounds($path, $index);
@@ -52,7 +52,7 @@ if (performanceStatus($result['comparisons'], 'on', $result['fpm']) !== 0 || cou
     || !str_contains(performanceSummary($result['comparisons'], 'on', $result['fpm']), "⚪ No significant changes · **Overall decode time: +0.00%** · **9 workloads**")) {
     throw new RuntimeException('Complete shards must produce one full comparison');
 }
-$measurementPath = $directory . '/1/candidate-0-0.xml';
+$measurementPath = $directory . '/2/candidate-0-0.xml';
 rename($measurementPath, $measurementPath . '.saved');
 if (!str_contains(performanceSummary($result['comparisons'], 'on', $result['fpm']), '**9 workloads**')) {
     throw new RuntimeException('Summary must use validated comparisons without reopening measurement files');
@@ -73,6 +73,9 @@ for ($count = 0; $count <= 25; $count++) {
     sort($partitioned);
     if ($partitioned !== $all || count($all) !== $count) {
         throw new RuntimeException('Shard assignments must partition every workload exactly once');
+    }
+    if (PerformanceShards::assignedIndices($count, 1) !== []) {
+        throw new RuntimeException('The PHP-FPM shard must not measure workloads');
     }
 }
 function rejects(string $directory, string $file, string $replacement): void {
@@ -97,7 +100,7 @@ rejects($directory, '2/discovery.xml', measurement(range(0, 7)));
 rejects($directory, '1/fpm.json', json_encode(['baseline' => $fpmSample]));
 rejects($directory, '1/fpm.json', json_encode(['baseline' => $fpmSample, 'candidate' => ['document' => ['rounds' => [[100.0]], 'peak_bytes' => 1024]]]));
 rejects($directory, '1/fpm.json', json_encode(['baseline' => fpmSample(false), 'candidate' => fpmSample(false)]));
-$last = '2/candidate-1-' . (BenchmarkComparison::ROUNDS - 1) . '.xml';
+$last = '3/candidate-1-' . (BenchmarkComparison::ROUNDS - 1) . '.xml';
 rejects($directory, $last, measurement([0]));
 rejects($directory, $last, preg_replace('{<iteration [^>]*/>}', '', measurement([1]), 1));
 rejects($directory, $last, str_replace('>1</value>', '>0</value>', measurement([1])));
@@ -112,7 +115,7 @@ function rejectsRounds(string $directory): void {
     }
     throw new RuntimeException('Accepted a shard with missing or extra rounds');
 }
-$extra = $directory . '/2/candidate-1-' . BenchmarkComparison::ROUNDS . '.xml';
+$extra = $directory . '/3/candidate-1-' . BenchmarkComparison::ROUNDS . '.xml';
 file_put_contents($extra, measurement([1]));
 rejectsRounds($directory);
 unlink($extra);
@@ -121,7 +124,7 @@ rejectsRounds($directory);
 rename($directory . '/' . $last . '.saved', $directory . '/' . $last);
 rejects($directory, '2/discovery.xml', measurement([0, 0]));
 rejects($directory, '2/discovery.xml', str_replace('<subject name="bench0">', '<subject name="bench0"><group name="documents"/><group name="errors"/>', measurement(range(0, 8))));
-rounds($directory . '/2', 1, 106);
+rounds($directory . '/3', 1, 106);
 $result = PerformanceShards::collect($directory, 'on');
 if (performanceStatus($result['comparisons'], 'on', $result['fpm']) !== 2) { throw new RuntimeException('Regression verdict was lost'); }
 foreach (glob($directory . '/*/metadata.json') as $path) {

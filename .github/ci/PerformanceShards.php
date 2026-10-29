@@ -21,12 +21,17 @@ final class PerformanceShards
         return (int) $value;
     }
 
-    /** @return list<int> */
+    /**
+     * Shard 1 measures PHP-FPM requests, which take as long as two or three workloads, so the other shards share the
+     * workloads.
+     *
+     * @return list<int>
+     */
     public static function assignedIndices(int $count, int|null $shard): array
     {
         $indices = [];
         for ($index = 0; $index < $count; $index++) {
-            if ($shard === null || ($index % self::SHARDS) === ($shard - 1)) {
+            if ($shard === null || ($index % (self::SHARDS - 1)) === ($shard - 2)) {
                 $indices[] = $index;
             }
         }
