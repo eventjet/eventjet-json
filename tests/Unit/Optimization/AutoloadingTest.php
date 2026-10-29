@@ -59,9 +59,15 @@ use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
+use Eventjet\Json\Test\Acceptance\Fixtures\Address;
+use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\ExtendedLiteralFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedReference;
+use Eventjet\Json\Test\Acceptance\Fixtures\NestedObjectFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredEnumBacking;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredListItem;
@@ -157,7 +163,7 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(ScalarNode::class)]
 #[UsesClass(ScalarItems::class)]
 #[UsesClass(TupleNode::class)]
-#[UsesClass(TypeCompiler::class)]
+#[CoversClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
 #[UsesClass(LiteralNode::class)]
@@ -299,6 +305,30 @@ final class AutoloadingTest extends TestCase
         foreach (['int', 'float', 'string', 'bool', 'object'] as $builtin) {
             static::assertNotContains($builtin, $requests->names);
         }
+    }
+
+    /**
+     * Native class and enum fields, nullable or not, compile without the type tree and union that NodeCompiler would
+     * build for them.
+     *
+     * @throws JsonException
+     * @throws \PHPUnit\Framework\Exception
+     */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testNativeClassAndEnumFieldsSkipTheUnionCompiler(): void
+    {
+        $person = new Person('Ada', 'Lovelace');
+        self::assertRoundTrips([
+            new BackedEnumFields(StringBackedStatus::Ready, null, IntBackedStatus::Ready),
+            new BackedEnumFields(StringBackedStatus::Ready, StringBackedStatus::Pending, IntBackedStatus::Ready),
+            new NestedObjectFields($person, new Address('London', new Coordinates(51.5, -0.1)), null),
+            new NestedObjectFields($person, new Address('London', new Coordinates(51.5, -0.1)), $person),
+        ]);
+
+        static::assertFalse(class_exists(NodeCompiler::class, autoload: false));
+        static::assertFalse(class_exists(UnionBuilder::class, autoload: false));
+        static::assertFalse(class_exists(NullOnlyNode::class, autoload: false));
     }
 
     /**

@@ -52,6 +52,10 @@ final readonly class TypeCompiler
             : self::narrowing(new PhpDocTypeResolver($field)->resolve($declared), $field, $type);
         $node = match (true) {
             $doc !== null => NodeCompiler::field($doc, $field->getName()),
+            $type instanceof ReflectionNamedType && !$type->isBuiltin() => NamedTypeCompiler::field(
+                $field,
+                $type,
+            ) ?? $this->native($field, $type),
             default => $this->native($field, $type),
         };
         $literal =
@@ -70,7 +74,7 @@ final readonly class TypeCompiler
     }
 
     /**
-     * Compiles the native type of a field. PHP checks builtin scalar types itself.
+     * Compiles the native type of a field other than a class or an enum. PHP checks builtin scalar types itself.
      *
      * @throws DecodeError
      * @throws ReflectionException
