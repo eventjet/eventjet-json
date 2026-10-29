@@ -12,7 +12,7 @@ use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
-use Eventjet\Json\Internal\Error\DecodeFailure;
+use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
@@ -50,7 +50,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Unit\Fixtures\JsonObject;
-use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeFailure;
+use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeError;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -68,7 +68,7 @@ use function class_exists;
 
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
-#[UsesClass(DecodeFailure::class)]
+#[UsesClass(DecodeErrors::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(TargetClass::class)]
 #[CoversClass(FieldNameRules::class)]
@@ -147,7 +147,7 @@ final class ConstructorHydrationPlanTest extends TestCase
      * @throws JsonException
      * @throws ReflectionException
      * @throws UnknownClassOrInterfaceException
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     public function testUnionsPreserveJsonValueTypes(): void
     {
@@ -174,8 +174,8 @@ final class ConstructorHydrationPlanTest extends TestCase
         ] as $value) {
             static::assertSame(
                 DecodeErrorKind::InvalidValue,
-                ThrownDecodeFailure::of(
-                    /** @throws DecodeFailure|JsonException */ static fn(): mixed => $union->decode($value, 'value'),
+                ThrownDecodeError::of(
+                    /** @throws DecodeError|JsonException */ static fn(): mixed => $union->decode($value, 'value'),
                 )->kind,
             );
         }
@@ -200,7 +200,7 @@ final class ConstructorHydrationPlanTest extends TestCase
      * @throws Exception
      * @throws JsonException
      * @throws ReflectionException
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
@@ -233,7 +233,7 @@ final class ConstructorHydrationPlanTest extends TestCase
      * @throws ReflectionException
      * @throws Exception
      * @throws UnknownClassOrInterfaceException
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     public function testScalarHydrationReusesPlansButRechecksValuesAndDefaults(): void
     {
@@ -258,8 +258,8 @@ final class ConstructorHydrationPlanTest extends TestCase
         $input->value = null;
         static::assertEquals(
             InvalidValue::typeMismatch('nested.value', 'int', null)->whileCreating($class),
-            ThrownDecodeFailure::of(
-                /** @throws DecodeFailure */ static fn(): object => ClassDecoders::hydrate($class, $input, 'nested'),
+            ThrownDecodeError::of(
+                /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $input, 'nested'),
             ),
         );
         static::assertSame($decoder, self::cached($class));
@@ -268,7 +268,7 @@ final class ConstructorHydrationPlanTest extends TestCase
     /**
      * @throws ReflectionException
      * @throws Exception
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     public function testPublicPropertiesKeepTheirValidationAfterWarming(): void
     {
@@ -292,8 +292,8 @@ final class ConstructorHydrationPlanTest extends TestCase
         $input->label = false;
         static::assertEquals(
             InvalidValue::typeMismatch('nested.label', 'string', false)->whileCreating($class),
-            ThrownDecodeFailure::of(
-                /** @throws DecodeFailure */ static fn(): object => ClassDecoders::hydrate($class, $input, 'nested'),
+            ThrownDecodeError::of(
+                /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $input, 'nested'),
             ),
         );
         static::assertSame($decoder, self::cached($class));
@@ -303,7 +303,7 @@ final class ConstructorHydrationPlanTest extends TestCase
      * @throws ReflectionException
      * @throws Exception
      * @throws UnknownClassOrInterfaceException
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     public function testNonScalarHydrationReusesPlansAndRechecksValues(): void
     {
@@ -329,8 +329,8 @@ final class ConstructorHydrationPlanTest extends TestCase
         $target->value = null;
         static::assertEquals($target, ClassDecoders::hydrate($class, new stdClass()));
         $input->value = [];
-        $error = ThrownDecodeFailure::of(
-            /** @throws DecodeFailure */ static fn(): object => ClassDecoders::hydrate($class, $input, 'nested'),
+        $error = ThrownDecodeError::of(
+            /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $input, 'nested'),
         );
         static::assertStringContainsString('Field nested.value must be of type', $error->getMessage());
         static::assertSame($decoder, self::cached($class));
@@ -339,7 +339,7 @@ final class ConstructorHydrationPlanTest extends TestCase
     /**
      * @throws ReflectionException
      * @throws \PHPUnit\Framework\AssertionFailedError
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     public function testMappedScalarHydrationKeepsJsonNamesAfterWarming(): void
     {
@@ -355,12 +355,8 @@ final class ConstructorHydrationPlanTest extends TestCase
             static::assertEquals(new MappedDefaults(), ClassDecoders::hydrate($class, new stdClass()));
             static::assertEquals(
                 InvalidValue::typeMismatch('nested.$ref', 'string|null', 42)->whileCreating($class),
-                ThrownDecodeFailure::of(
-                    /** @throws DecodeFailure */ static fn(): object => ClassDecoders::hydrate(
-                        $class,
-                        $invalid,
-                        'nested',
-                    ),
+                ThrownDecodeError::of(
+                    /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $invalid, 'nested'),
                 ),
             );
         }

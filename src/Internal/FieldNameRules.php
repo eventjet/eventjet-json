@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use Eventjet\Json\DecodeError;
 use Eventjet\Json\Field;
-use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use JsonSerializable;
@@ -32,13 +32,13 @@ final class FieldNameRules
      * @param array<ReflectionProperty> $annotated The properties that declare #[Field], including private ancestor
      *     properties.
      * @return array<string, string> JSON names keyed by property name.
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     public static function resolve(ReflectionClass $class, array $properties, array $annotated): array
     {
         try {
             $names = self::read($annotated);
-        } catch (DecodeFailure $error) {
+        } catch (DecodeError $error) {
             throw $error;
         } catch (Throwable $error) {
             throw UnsupportedTarget::unreadable($error);
@@ -53,7 +53,7 @@ final class FieldNameRules
     /**
      * @param array<ReflectionProperty> $properties
      * @return array<string, string>
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     private static function read(array $properties): array
     {
@@ -78,7 +78,7 @@ final class FieldNameRules
      *
      * @param list<ReflectionProperty> $properties
      * @param array<string, string> $names
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     private static function rejectCollisions(array $properties, array $names): void
     {

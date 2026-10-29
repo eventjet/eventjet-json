@@ -11,8 +11,7 @@ use function get_debug_type;
 use function sprintf;
 
 /**
- * Errors for documents that fail before any class is involved. Only the public API returns them, so they are created
- * as DecodeErrors directly.
+ * Errors for documents that fail before any class is involved.
  *
  * @internal
  */

@@ -6,7 +6,6 @@ namespace Eventjet\Json\Internal;
 
 use Closure;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\Node\EnumNode;
@@ -81,10 +80,10 @@ final class RootDescriptor
             $this->node();
             new ClassGraphValidator()->validate($this->itemClass);
             return null;
-        } catch (DecodeFailure $error) {
-            return $error->toError();
+        } catch (DecodeError $error) {
+            return $error;
         } catch (Throwable $error) {
-            return UnsupportedTarget::unreadable($error)->whileCreating($this->itemClass)->toError();
+            return UnsupportedTarget::unreadable($error)->whileCreating($this->itemClass);
         }
     }
 
@@ -92,7 +91,7 @@ final class RootDescriptor
      * Returns the node that decodes the root value. Unlike a class decoder, a compiled node never needs to be compiled
      * again: it refers only to the item class, which validation loads.
      *
-     * @throws DecodeFailure If the item class cannot be decoded.
+     * @throws DecodeError If the item class cannot be decoded.
      * @throws ReflectionException
      */
     public function node(): Node
@@ -105,7 +104,7 @@ final class RootDescriptor
         $class = $this->itemClass;
         try {
             self::validateItem(new ReflectionClass($class));
-        } catch (DecodeFailure $error) {
+        } catch (DecodeError $error) {
             throw $error->whileCreating($class);
         }
         $enum = $class;
@@ -130,10 +129,10 @@ final class RootDescriptor
         }
         try {
             return $this->node()->decode($value, '');
-        } catch (DecodeFailure $error) {
-            return $error->whileCreating($this->itemClass)->toError();
+        } catch (DecodeError $error) {
+            return $error->whileCreating($this->itemClass);
         } catch (Throwable $error) {
-            return UnsupportedTarget::unreadable($error)->whileCreating($this->itemClass)->toError();
+            return UnsupportedTarget::unreadable($error)->whileCreating($this->itemClass);
         }
     }
 
@@ -143,7 +142,7 @@ final class RootDescriptor
      *
      * @template TClass of object
      * @param ReflectionClass<TClass> $class
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     private static function validateItem(ReflectionClass $class): void
     {

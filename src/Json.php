@@ -6,7 +6,6 @@ namespace Eventjet\Json;
 
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassGraphValidator;
-use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\RootDescriptor;
@@ -36,10 +35,10 @@ final class Json
         try {
             new ClassGraphValidator()->validateRoot($type);
             return null;
-        } catch (DecodeFailure $error) {
-            return $error->toError();
+        } catch (DecodeError $error) {
+            return $error;
         } catch (Throwable $error) {
-            return UnsupportedTarget::unreadable($error)->whileCreating($type)->toError();
+            return UnsupportedTarget::unreadable($error)->whileCreating($type);
         }
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Error;
 
+use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
 use ReflectionClass;
 use Throwable;
@@ -17,21 +18,21 @@ use function sprintf;
  */
 final class UnsupportedTarget
 {
-    public static function interface(): DecodeFailure
+    public static function interface(): DecodeError
     {
         return self::error(
             'Target type is an interface. JSON does not identify a concrete implementation to instantiate.',
         );
     }
 
-    public static function abstractClass(): DecodeFailure
+    public static function abstractClass(): DecodeError
     {
         return self::error(
             'Target type is an abstract class. JSON does not identify a concrete subclass to instantiate.',
         );
     }
 
-    public static function inaccessibleConstructor(string $visibility): DecodeFailure
+    public static function inaccessibleConstructor(string $visibility): DecodeError
     {
         return self::error(sprintf(
             'Target class has a %s constructor, which cannot be called to create the object.',
@@ -39,7 +40,7 @@ final class UnsupportedTarget
         ));
     }
 
-    public static function nonBackedEnum(string $enum): DecodeFailure
+    public static function nonBackedEnum(string $enum): DecodeError
     {
         return self::error(sprintf(
             'Target type non-backed enum %s, which cannot be decoded because it has no backing value.',
@@ -47,14 +48,14 @@ final class UnsupportedTarget
         ));
     }
 
-    public static function backedEnum(): DecodeFailure
+    public static function backedEnum(): DecodeError
     {
         return self::error(
             'Backed enums are not supported as standalone targets. Use a typed field or a collection descriptor.',
         );
     }
 
-    public static function nonFinalItem(): DecodeFailure
+    public static function nonFinalItem(): DecodeError
     {
         return self::error(
             'Target type is a non-final class. Collection items may be subclasses, whose runtime class JSON does not identify.',
@@ -65,7 +66,7 @@ final class UnsupportedTarget
      * @template T of object
      * @param ReflectionClass<T> $class
      */
-    public static function jsonSerializable(ReflectionClass $class): DecodeFailure
+    public static function jsonSerializable(ReflectionClass $class): DecodeError
     {
         $enum = $class->isEnum();
         return self::error(sprintf(
@@ -76,22 +77,22 @@ final class UnsupportedTarget
     }
 
     /** Reading the declarations threw, for example because a class does not exist or an attribute is invalid. */
-    public static function unreadable(Throwable $error): DecodeFailure
+    public static function unreadable(Throwable $error): DecodeError
     {
-        return DecodeFailure::thrown(DecodeErrorKind::UnsupportedDeclaration, $error);
+        return DecodeErrors::thrown(DecodeErrorKind::UnsupportedDeclaration, $error);
     }
 
     /**
      * PHP refused to assign a public property without a set hook: it is readonly and the constructor already set it,
      * or it is virtual. Either way, the class cannot accept the member that json_encode() writes for the property.
      */
-    public static function unassignableProperty(Throwable $error): DecodeFailure
+    public static function unassignableProperty(Throwable $error): DecodeError
     {
-        return DecodeFailure::thrown(DecodeErrorKind::UnsupportedDeclaration, $error);
+        return DecodeErrors::thrown(DecodeErrorKind::UnsupportedDeclaration, $error);
     }
 
-    private static function error(string $message): DecodeFailure
+    private static function error(string $message): DecodeError
     {
-        return new DecodeFailure(DecodeErrorKind::UnsupportedDeclaration, $message);
+        return new DecodeError(DecodeErrorKind::UnsupportedDeclaration, $message);
     }
 }

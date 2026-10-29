@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Error;
 
+use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
 use PropertyHookType;
 use ReflectionProperty;
@@ -16,20 +17,20 @@ use Throwable;
  */
 final class ConstructorFailure
 {
-    public static function constructorThrew(Throwable $error): DecodeFailure
+    public static function constructorThrew(Throwable $error): DecodeError
     {
-        return DecodeFailure::thrown(DecodeErrorKind::ConstructorFailure, $error);
+        return DecodeErrors::thrown(DecodeErrorKind::ConstructorFailure, $error);
     }
 
     /**
      * Returns the error for a property assignment that threw. Values match the declared type, so without a set hook,
      * PHP refused the assignment itself.
      */
-    public static function assignmentThrew(ReflectionProperty $property, Throwable $error): DecodeFailure
+    public static function assignmentThrew(ReflectionProperty $property, Throwable $error): DecodeError
     {
         $hooked = $property->hasHook(PropertyHookType::Set);
         return $hooked
-            ? DecodeFailure::thrown(DecodeErrorKind::ConstructorFailure, $error)
+            ? DecodeErrors::thrown(DecodeErrorKind::ConstructorFailure, $error)
             : UnsupportedTarget::unassignableProperty($error);
     }
 }

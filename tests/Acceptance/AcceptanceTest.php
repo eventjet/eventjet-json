@@ -14,7 +14,7 @@ use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
 use Eventjet\Json\Internal\Error\ConstructorFailure;
-use Eventjet\Json\Internal\Error\DecodeFailure;
+use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\InvalidValue;
@@ -88,7 +88,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(JsonType::class)]
 #[CoversClass(RootDescriptor::class)]
 #[CoversClass(DecodeError::class)]
-#[CoversClass(DecodeFailure::class)]
+#[CoversClass(DecodeErrors::class)]
 #[CoversClass(InvalidInput::class)]
 #[CoversClass(PhpDocTupleEntry::class)]
 #[CoversClass(FieldPath::class)]

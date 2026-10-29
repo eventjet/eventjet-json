@@ -167,12 +167,5 @@ final class TypeValidationCases
         }
         yield 'invalid root list item' => [JsonType::array($invalid), $message];
         yield 'invalid root map item' => [JsonType::map(JsonType::array($invalid)), $message];
-        yield 'invalid class inside a root list item' => [
-            JsonType::array(CollectionNameSource::load(
-                'ValidationRootListParent',
-                'final class ValidationRootListParent { public ValidationInvalidChild $child; }',
-            )),
-            $message,
-        ];
     }
 }

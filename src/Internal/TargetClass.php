@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use Eventjet\Json\DecodeError;
 use Eventjet\Json\Field;
-use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use JsonSerializable;
 use ReflectionClass;
@@ -34,7 +34,7 @@ final class TargetClass
      * @template T of object
      * @param ReflectionClass<T> $class
      * @return array<string, string>
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     public static function validate(ReflectionClass $class): array
     {
@@ -74,7 +74,7 @@ final class TargetClass
      * @template T of object
      * @param ReflectionClass<T> $class
      * @return array<string, string>
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @phpstan-impure
      */
     public static function fieldNames(ReflectionClass $class): array
@@ -86,7 +86,7 @@ final class TargetClass
      * @template T of object
      * @param ReflectionClass<T> $class
      * @return array<string, string>
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     private static function resolve(ReflectionClass $class): array
     {

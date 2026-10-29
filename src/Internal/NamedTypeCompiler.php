@@ -6,7 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 use BackedEnum;
-use Eventjet\Json\Internal\Error\DecodeFailure;
+use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\Node\EnumNode;
@@ -62,7 +62,7 @@ final class NamedTypeCompiler
      * `ArrayObject`, and for a nullable type whose values JSON cannot represent, because the union of the type tree
      * accepts only null for it.
      *
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     public static function field(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): Node|null
@@ -78,7 +78,7 @@ final class NamedTypeCompiler
     }
 
     /**
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     public static function compile(PhpDocType $type, string $path): Node
@@ -96,7 +96,7 @@ final class NamedTypeCompiler
     /**
      * Compiles the name of a class or an enum.
      *
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     private static function named(string $name, string $path): Node
@@ -127,7 +127,7 @@ final class NamedTypeCompiler
      * Rejects enums whose values JSON cannot restore: non-backed enums, and backed enums with a custom JSON
      * representation, which may not match their backing values.
      *
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     private static function enum(string $enum, string $path): Node
@@ -143,7 +143,7 @@ final class NamedTypeCompiler
     /**
      * A literal enum case is subject to the rules of its enum.
      *
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     private static function literal(PhpDocLiteral $literal, string $path): Node
     {
@@ -153,7 +153,7 @@ final class NamedTypeCompiler
             : LiteralNode::of($literal);
     }
 
-    private static function serializedEnum(string $enum, string $path): DecodeFailure
+    private static function serializedEnum(string $enum, string $path): DecodeError
     {
         return UnsupportedFieldClass::jsonSerializableEnum($path, $enum);
     }
@@ -163,7 +163,7 @@ final class NamedTypeCompiler
      * PHP checks a class that is not loaded yet when the field is assigned. Errors in the declarations of the class
      * itself name that class.
      *
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     private static function object(string $name, string $path): Node
@@ -183,7 +183,7 @@ final class NamedTypeCompiler
         }
         try {
             TargetClass::fieldNames($class);
-        } catch (DecodeFailure $error) {
+        } catch (DecodeError $error) {
             throw $error->whileCreating($class->getName());
         }
         return new ObjectNode($name, false);

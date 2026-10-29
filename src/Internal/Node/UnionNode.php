@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Node;
 
-use Eventjet\Json\Internal\Error\DecodeFailure;
+use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Override;
 
@@ -35,7 +35,7 @@ final readonly class UnionNode implements Node
      * other members. Enums that share a backing type are combined, and so are literals that share a JSON value type.
      *
      * @param list<Node> $members
-     * @throws DecodeFailure
+     * @throws DecodeError
      */
     public static function of(string $path, string $type, array $members): self
     {

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\ConstructorFailure;
-use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use JsonException;
 use ReflectionClass;
@@ -52,7 +52,7 @@ final readonly class ClassDecoder
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     public static function compile(ReflectionClass $class): self
@@ -64,7 +64,7 @@ final readonly class ClassDecoder
      * Decodes the members of a JSON object field by field, stopping at the first error, then creates the object: it
      * calls the constructor and assigns the public properties outside it.
      *
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws JsonException
      */
     public function decode(stdClass $object, string $path): object

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use ArrayObject;
-use Eventjet\Json\Internal\Error\DecodeFailure;
+use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
@@ -30,7 +30,7 @@ final class NodeCompiler
      * Compiles the whole type of a field.
      *
      * @param string|null $label The type that errors report for a union, if it differs from the member types.
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     public static function field(PhpDocType $type, string $path, string|null $label = null): Node|null
@@ -39,7 +39,7 @@ final class NodeCompiler
     }
 
     /**
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     private static function compile(PhpDocType $type, string $path): Node|null
@@ -65,7 +65,7 @@ final class NodeCompiler
      *
      * @param list<PhpDocType> $members
      * @param string|null $label The type that errors report, if it differs from the member types.
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     private static function union(array $members, string $path, string|null $label): Node|null
@@ -74,7 +74,7 @@ final class NodeCompiler
         foreach ($members as $member) {
             try {
                 $node = self::compile($member, $path);
-            } catch (DecodeFailure $error) {
+            } catch (DecodeError $error) {
                 $union->reject($member->name, $error);
                 continue;
             }
@@ -88,7 +88,7 @@ final class NodeCompiler
 
     /**
      * @param list<PhpDocTupleEntry> $entries
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     private static function tuple(array $entries, string $path): Node|null
@@ -109,7 +109,7 @@ final class NodeCompiler
     }
 
     /**
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     private static function list(PhpDocType $type, string $path): Node|null
@@ -120,7 +120,7 @@ final class NodeCompiler
     }
 
     /**
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     private static function map(PhpDocType $type, string $path): Node|null

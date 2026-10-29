@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use Eventjet\Json\Internal\Error\DecodeFailure;
+use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
@@ -58,7 +58,7 @@ final readonly class ClassField
      * @param ReflectionClass<T> $class
      * @param array<string, string> $names JSON names of renamed properties, keyed by property name.
      * @return list<self>
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     public static function compile(ReflectionClass $class, array $names): array
@@ -91,7 +91,7 @@ final readonly class ClassField
      *
      * @param array<string, string> $names
      * @param array<string, ReflectionProperty> $properties The public instance properties of the class, keyed by name.
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     private static function parameter(ReflectionParameter $parameter, array $names, array $properties): self
@@ -107,7 +107,7 @@ final readonly class ClassField
     }
 
     /**
-     * @throws DecodeFailure
+     * @throws DecodeError
      * @throws ReflectionException
      */
     private static function node(ReflectionParameter|ReflectionProperty $field): Node
