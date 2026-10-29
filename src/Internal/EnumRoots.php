@@ -6,8 +6,10 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\InvalidInput;
+use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\Node\EnumNode;
 use ReflectionException;
+use Throwable;
 
 use function enum_exists;
 
@@ -22,7 +24,8 @@ final class EnumRoots
     private static array $nodes = [];
 
     /**
-     * Decodes a root value that is not a JSON object, which only an enum accepts.
+     * Decodes the root value of a document into a case of an enum. For a class, it returns the error for a value that
+     * is not a JSON object.
      *
      * @template T of object
      * @param class-string<T> $class
@@ -32,20 +35,23 @@ final class EnumRoots
     {
         try {
             $node = self::node($class);
+            if ($node === null) {
+                return InvalidInput::rootValue($value);
+            }
+            /** @var T|DecodeError */
+            return $node->decodeRoot($value);
         } catch (DecodeError $error) {
             return $error;
+        } catch (Throwable $error) {
+            return UnsupportedTarget::unreadable($error)->whileCreating($class);
         }
-        if ($node === null) {
-            return InvalidInput::rootValue($value);
-        }
-        /** @var T|DecodeError */
-        return $node->decodeRoot($value);
     }
 
     /**
      * Returns the node of an enum, or null for a class.
      *
      * @throws DecodeError If the enum cannot be decoded.
+     * @throws ReflectionException
      */
     public static function node(string $class): EnumNode|null
     {
@@ -53,16 +59,11 @@ final class EnumRoots
         if ($node !== null || !enum_exists($class)) {
             return $node;
         }
-        return ClassDecoders::readable(
-            $class,
-            /** @throws DecodeError|ReflectionException */ static function () use ($class): EnumNode {
-                try {
-                    TargetClass::validateEnum($class);
-                } catch (DecodeError $error) {
-                    throw $error->whileCreating($class);
-                }
-                return self::$nodes[$class] = EnumNode::of($class);
-            },
-        );
+        try {
+            TargetClass::validateEnum($class);
+        } catch (DecodeError $error) {
+            throw $error->whileCreating($class);
+        }
+        return self::$nodes[$class] = EnumNode::of($class);
     }
 }

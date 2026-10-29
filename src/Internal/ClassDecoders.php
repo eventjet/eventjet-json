@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use Closure;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use ReflectionClass;
-use ReflectionException;
 use stdClass;
 use Throwable;
 
@@ -28,10 +25,12 @@ final class ClassDecoders
     private static array $decoders = [];
 
     /**
+     * Returns the decoder of a class. An exception other than a DecodeError while compiling it is reported as an
+     * unreadable declaration of the class.
+     *
      * @param class-string $class
      * @phpstan-impure
      * @throws DecodeError
-     * @throws ReflectionException
      */
     public static function get(string $class): ClassDecoder
     {
@@ -39,11 +38,15 @@ final class ClassDecoders
         if ($decoder !== null) {
             return $decoder;
         }
-        $reflection = new ReflectionClass($class);
+        $name = $class;
         try {
+            $reflection = new ReflectionClass($class);
+            $name = $reflection->getName();
             $decoder = ClassDecoder::compile($reflection);
         } catch (DecodeError $error) {
-            throw $error->whileCreating($reflection->getName());
+            throw $error->whileCreating($name);
+        } catch (Throwable $error) {
+            throw UnsupportedTarget::unreadable($error)->whileCreating($class);
         }
         if ($decoder->complete) {
             self::$decoders[$class] = $decoder;
@@ -60,7 +63,7 @@ final class ClassDecoders
     public static function hydrate(string $class, stdClass $object, string $path = ''): object
     {
         // Skips the call to get() for cached decoders, because a call per object slows down hydration measurably.
-        $decoder = self::$decoders[$class] ?? self::compiled($class);
+        $decoder = self::$decoders[$class] ?? self::get($class);
         try {
             /** @var T */
             return $decoder->decode($object, $path);
@@ -108,41 +111,10 @@ final class ClassDecoders
         // Classes skip EnumRoots, so that a request that decodes no enum root does not load it.
         $enum = $class;
         if (!enum_exists($enum)) {
-            return self::compiled($class);
+            return self::get($class);
         }
-        $node = EnumRoots::node($enum);
-        assert($node !== null, description: 'EnumRoots has a node for every enum.');
-        throw InvalidInput::enumRootValue($enum, $node->backingType, $object);
-    }
-
-    /**
-     * @param class-string $class
-     * @throws DecodeError
-     */
-    private static function compiled(string $class): ClassDecoder
-    {
-        return self::readable(
-            $class,
-            /** @throws DecodeError|ReflectionException */ static fn(): ClassDecoder => self::get($class),
-        );
-    }
-
-    /**
-     * Runs a compilation, and reports an exception other than a DecodeError as an unreadable declaration of the class.
-     *
-     * @template TResult
-     * @param Closure(): TResult $compile
-     * @return TResult
-     * @throws DecodeError
-     */
-    public static function readable(string $class, Closure $compile): mixed
-    {
-        try {
-            return $compile();
-        } catch (DecodeError $error) {
-            throw $error;
-        } catch (Throwable $error) {
-            throw UnsupportedTarget::unreadable($error)->whileCreating($class);
-        }
+        $error = EnumRoots::decode($enum, $object);
+        assert($error instanceof DecodeError, description: 'An enum rejects every JSON object.');
+        throw $error;
     }
 }

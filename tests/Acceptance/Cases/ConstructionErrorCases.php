@@ -201,6 +201,35 @@ final class ConstructionErrorCases
             DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield from self::unknownClasses(Person::class);
+        yield from self::unresolvableConstants();
+    }
+
+    /**
+     * An error from a class constant that refers to a missing constant names the class that declares it, also when
+     * that class is nested.
+     *
+     * @return iterable<string, array{string, class-string|JsonType<list<mixed>>, string, DecodeErrorKind}>
+     * @throws \RuntimeException
+     */
+    private static function unresolvableConstants(): iterable
+    {
+        $parent = CollectionNameSource::load(
+            'UnresolvableConstantParent',
+            'final class UnresolvableConstantChild { const VALUE = MISSING_CONSTANT_VALUE; /** @param self::VALUE $value */ public function __construct(public string $value) {} } final class UnresolvableConstantParent { public function __construct(public UnresolvableConstantChild $child) {} }',
+        );
+        $message = 'Could not create UnresolvableConstantChild from the JSON object: Undefined constant "MISSING_CONSTANT_VALUE"';
+        yield 'nested class constant that refers to a missing constant' => [
+            '{"child":{"value":"a"}}',
+            $parent,
+            $message,
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        yield 'root list item with a nested class constant that refers to a missing constant' => [
+            '[{"child":{"value":"a"}}]',
+            JsonType::array($parent),
+            $message,
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
     }
 
     /**
@@ -212,10 +241,9 @@ final class ConstructionErrorCases
      */
     private static function unresolvableEnumCases(): iterable
     {
-        $target = CollectionNameSource::load(
-            'UnresolvableEnumCaseTarget',
-            'enum UnresolvableEnumCase: string { case Ready = \MissingEnumCaseValues::READY; } final class UnresolvableEnumCaseTarget { public function __construct(public UnresolvableEnumCase $status) {} }',
-        );
+        $source = 'enum UnresolvableEnumCase: string { case Ready = \MissingEnumCaseValues::READY; } final class UnresolvableEnumCaseTarget { public function __construct(public UnresolvableEnumCase $status) {} }';
+        $enum = CollectionNameSource::load('UnresolvableEnumCase', $source);
+        $target = CollectionNameSource::load('UnresolvableEnumCaseTarget', $source);
         $parent = CollectionNameSource::load(
             'UnresolvableEnumCaseParent',
             'final class UnresolvableEnumCaseParent { public function __construct(public UnresolvableEnumCaseTarget $child) {} }',
@@ -231,6 +259,12 @@ final class ConstructionErrorCases
             '{"child":{"status":"ready"}}',
             $parent,
             $message,
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        yield 'root enum case value that refers to a missing class' => [
+            '"ready"',
+            $enum,
+            'Could not create ' . $enum . ' from the JSON object: Class "MissingEnumCaseValues" not found',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
     }
