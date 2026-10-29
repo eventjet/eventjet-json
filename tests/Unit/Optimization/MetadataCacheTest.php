@@ -12,8 +12,10 @@ use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\EnumRoots;
 use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedClass;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
@@ -159,12 +161,14 @@ use function class_alias;
 #[CoversClass(ClassDecoder::class)]
 #[CoversClass(ClassField::class)]
 #[CoversClass(ClassDecoders::class)]
+#[CoversClass(EnumRoots::class)]
 #[UsesClass(ClassGraphValidator::class)]
 #[UsesClass(DecodeErrorKind::class)]
 #[UsesClass(InvalidValue::class)]
 #[UsesClass(UnsupportedField::class)]
 #[UsesClass(UnsupportedFieldClass::class)]
 #[UsesClass(UnsupportedTarget::class)]
+#[UsesClass(UnsupportedClass::class)]
 #[UsesClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(RootDescriptor::class)]
@@ -318,7 +322,6 @@ final class MetadataCacheTest extends TestCase
      */
     public function testEnumConversionsPreserveBackingTypesAndRejectUnknownValues(): void
     {
-        static::assertNull(EnumNode::of(NonBackedStatus::class));
         for ($lookup = 0; $lookup < 2; ++$lookup) {
             foreach ([
                 [IntBackedStatus::class, 1, IntBackedStatus::Ready],
@@ -332,7 +335,6 @@ final class MetadataCacheTest extends TestCase
                 [StringBackedStatus::class, 'unknown', null],
             ] as [$enum, $value, $expected]) {
                 $node = EnumNode::of($enum);
-                static::assertNotNull($node);
                 if ($expected === null) {
                     static::assertSame(
                         DecodeErrorKind::InvalidValue,

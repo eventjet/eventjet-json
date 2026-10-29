@@ -6,6 +6,7 @@ namespace Eventjet\Json;
 
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassGraphValidator;
+use Eventjet\Json\Internal\EnumRoots;
 use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\RootDescriptor;
@@ -33,7 +34,10 @@ final class Json
             return RootDescriptor::of($type)->validate();
         }
         try {
-            new ClassGraphValidator()->validateRoot($type);
+            $enum = EnumRoots::node($type);
+            if ($enum === null) {
+                new ClassGraphValidator()->validate($type);
+            }
             return null;
         } catch (DecodeError $error) {
             return $error;
@@ -64,7 +68,7 @@ final class Json
         }
 
         if (!$values instanceof stdClass) {
-            return InvalidInput::rootValue($values);
+            return EnumRoots::decode($class, $values);
         }
 
         return ClassDecoders::decodeRoot($class, $values);

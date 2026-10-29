@@ -95,6 +95,15 @@ final class InvalidValue
         ));
     }
 
+    public static function unknownRootEnumCase(string $enum, int|string $value): DecodeError
+    {
+        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
+            'Backed enum %s has no case with backing value %s.',
+            $enum,
+            var_export($value, return: true),
+        ));
+    }
+
     /** PHP rejected the constructor call because a required member is missing from the JSON object. */
     public static function missingArgument(Throwable $error): DecodeError
     {

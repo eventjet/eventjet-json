@@ -14,7 +14,7 @@ enum DecodeErrorKind
     /** The input could not be parsed as JSON. */
     case InvalidJson;
 
-    /** The JSON root is not the object or array that the target needs. */
+    /** The JSON root does not have the type that the target needs, such as an object for a class. */
     case UnexpectedRootValue;
 
     /** A JSON value does not match its declared type, or a required member is missing. */

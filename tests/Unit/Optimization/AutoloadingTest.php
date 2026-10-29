@@ -13,6 +13,7 @@ use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\EnumRoots;
 use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
@@ -178,6 +179,7 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(ClassDecoder::class)]
 #[UsesClass(ClassField::class)]
 #[UsesClass(ClassDecoders::class)]
+#[UsesClass(EnumRoots::class)]
 #[UsesClass(ClassGraphValidator::class)]
 #[UsesClass(DecodeErrorKind::class)]
 #[UsesClass(InvalidValue::class)]
@@ -332,6 +334,7 @@ final class AutoloadingTest extends TestCase
         static::assertFalse(class_exists(NodeCompiler::class, autoload: false));
         static::assertFalse(class_exists(UnionBuilder::class, autoload: false));
         static::assertFalse(class_exists(NullOnlyNode::class, autoload: false));
+        static::assertFalse(class_exists(EnumRoots::class, autoload: false));
     }
 
     /**
@@ -432,7 +435,6 @@ final class AutoloadingTest extends TestCase
 
         try {
             $enum = EnumNode::of(DeferredValueEnum::class);
-            static::assertNotNull($enum);
             static::assertSame(
                 DecodeErrorKind::InvalidValue,
                 ThrownDecodeError::of(

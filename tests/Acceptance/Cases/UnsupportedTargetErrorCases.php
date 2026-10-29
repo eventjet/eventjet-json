@@ -30,6 +30,7 @@ final class UnsupportedTargetErrorCases
         yield from self::rootTypes();
         yield from self::nestedTypes();
         yield from self::serializedEnums();
+        yield from FieldClassErrorCases::errors();
     }
 
     /**
@@ -51,10 +52,29 @@ final class UnsupportedTargetErrorCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface from the JSON object: Target type is an interface. JSON does not identify a concrete implementation to instantiate.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
-        yield 'non-backed enum cannot be a root target' => [
+        foreach (['an object' => '{}', 'a name' => '"Ready"'] as $label => $json) {
+            yield 'non-backed enum cannot be a root target for ' . $label => [
+                $json,
+                NonBackedStatus::class,
+                'Could not create Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus from the JSON object: Target type non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
+                DecodeErrorKind::UnsupportedDeclaration,
+            ];
+        }
+        foreach ([
+            'a backing value' => '"ready"',
+            'an object' => '{"name":"Ready","value":"ready"}',
+        ] as $label => $json) {
+            yield 'enum with custom serialization cannot be a root target for ' . $label => [
+                $json,
+                JsonSerializableStatus::class,
+                'Could not create Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus from the JSON object: Target type is an enum that implements JsonSerializable. Its custom JSON representation may not match its cases, so it cannot satisfy the round-trip contract.',
+                DecodeErrorKind::UnsupportedDeclaration,
+            ];
+        }
+        yield 'root class cannot implement JsonSerializable' => [
             '{}',
-            NonBackedStatus::class,
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus from the JSON object: Target type non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
+            JsonSerializableTarget::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget from the JSON object: Target type implements JsonSerializable. Its custom JSON representation may not match its constructor parameters, so it cannot satisfy the round-trip contract.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
     }

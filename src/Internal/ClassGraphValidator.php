@@ -4,34 +4,18 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use BackedEnum;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
-use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use ReflectionClass;
 use ReflectionException;
 
 use function class_exists;
-use function is_subclass_of;
 
 /** @internal */
 final class ClassGraphValidator
 {
     /** @var array<class-string, true> */
     private array $visited = [];
-
-    /**
-     * @param class-string $class
-     * @throws DecodeError
-     * @throws ReflectionException
-     */
-    public function validateRoot(string $class): void
-    {
-        if (is_subclass_of($class, BackedEnum::class)) {
-            throw UnsupportedTarget::backedEnum()->whileCreating($class);
-        }
-        $this->validate($class);
-    }
 
     /**
      * @param class-string $class
