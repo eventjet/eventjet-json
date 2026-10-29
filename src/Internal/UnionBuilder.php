@@ -8,6 +8,8 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
 use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
+use Eventjet\Json\Internal\Node\NullableNode;
+use Eventjet\Json\Internal\Node\NullOnlyNode;
 use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
@@ -19,6 +21,7 @@ use function array_intersect;
 use function array_keys;
 use function array_map;
 use function array_merge;
+use function array_pop;
 use function array_unique;
 use function array_values;
 use function assert;
@@ -64,7 +67,8 @@ final class UnionBuilder
     }
 
     /**
-     * Returns the union of the members, or the only member if there is one.
+     * Returns the union of the members, or the only member if there is one. `T|null` is a nullable `T` if `T` is a
+     * collection or an enum.
      *
      * @param string|null $type The type that errors report, if it differs from the member types.
      * @throws DecodeError
@@ -80,6 +84,10 @@ final class UnionBuilder
         if (count($members) === 1 && $this->rejected === null) {
             return $members[0];
         }
+        $nullable = $this->nullable($members);
+        if ($nullable !== null) {
+            return $nullable;
+        }
         $type ??= implode('|', array_keys($this->types));
         $error = $this->literals($members) ?? $this->classes($members);
         if ($error !== null) {
@@ -91,6 +99,21 @@ final class UnionBuilder
             throw $error;
         }
         return $union;
+    }
+
+    /** @param list<Node> $members */
+    private function nullable(array $members): NullableNode|null
+    {
+        if (count($members) !== 2 || $this->rejected !== null) {
+            return null;
+        }
+        $first = $members[0];
+        $second = array_pop($members);
+        return match (true) {
+            $first instanceof NullOnlyNode => NullableNode::of($second),
+            $second instanceof NullOnlyNode => NullableNode::of($first),
+            default => null,
+        };
     }
 
     /** @return list<Node> */

@@ -41,6 +41,15 @@ final class UnionValueErrorCases
                 . ' from the JSON object: Field value must be of type non-empty-list<int>, empty list given.',
             DecodeErrorKind::InvalidValue->value,
         ];
+        $repeatedNullable = CollectionDeclarationFixture::create('array|null', 'list<int>|list<int>|null', 'param');
+        yield 'repeated nullable list member reports the list type like a single one' => [
+            '{"value":"x"}',
+            $repeatedNullable,
+            'Could not create '
+                . $repeatedNullable
+                . ' from the JSON object: Field value must be of type list<int>, string given.',
+            DecodeErrorKind::InvalidValue->value,
+        ];
         $withoutValues = CollectionDeclarationFixture::create(
             'array',
             PhpType::list(PhpType::union(NonBackedStatus::class, PhpType::Int)),
