@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\Node\EnumNode;
 use ReflectionException;
-use Throwable;
 
 /**
  * Decodes the root value of a document into a backed enum, and caches the node of each enum.
@@ -21,11 +19,13 @@ final class EnumRoots
     private static array $nodes = [];
 
     /**
-     * Decodes the root value of a document into a case of an enum.
+     * Decodes the root value of a document into a case of an enum. Other exceptions than a DecodeError are left to
+     * ClassDecoders::decodeRoot(), which reports them as unreadable declarations of the enum.
      *
      * @template T of object
      * @param class-string<T> $enum
      * @return T|DecodeError
+     * @throws ReflectionException
      */
     public static function decode(string $enum, mixed $value): object
     {
@@ -34,8 +34,6 @@ final class EnumRoots
             return self::node($enum)->decodeRoot($value);
         } catch (DecodeError $error) {
             return $error;
-        } catch (Throwable $error) {
-            return UnsupportedTarget::unreadable($error)->whileCreating($enum);
         }
     }
 
