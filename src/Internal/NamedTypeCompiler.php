@@ -129,7 +129,7 @@ final class NamedTypeCompiler
      */
     private static function enum(string $enum, string $path): Node
     {
-        TargetPosition::Field->validateEnum($enum, $path);
+        TargetClass::validateEnum($enum, $path);
         return EnumNode::of($enum);
     }
 
@@ -163,7 +163,7 @@ final class NamedTypeCompiler
         if (!class_exists($name) && !interface_exists($name)) {
             return new UncheckedNode($name, $path, nullable: false);
         }
-        TargetPosition::Field->validate(new ReflectionClass($name), $path);
+        TargetClass::validateNested(new ReflectionClass($name), $path);
         return new ObjectNode($name, false);
     }
 }

@@ -48,8 +48,7 @@ final readonly class ClassDecoder
     }
 
     /**
-     * Compiles the decoder of a class, rejecting declarations that cannot round-trip. The class follows the rules of the
-     * root position, because a decoder decodes one JSON object of exactly its class.
+     * Compiles the decoder of a class, rejecting declarations that cannot round-trip.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
@@ -58,7 +57,7 @@ final readonly class ClassDecoder
      */
     public static function compile(ReflectionClass $class): self
     {
-        return new self($class->getName(), ClassField::compile($class, TargetPosition::Root->validate($class)));
+        return new self($class->getName(), ClassField::compile($class, TargetClass::validate($class)));
     }
 
     /**

@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal\Error;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
+use ReflectionMethod;
 use Throwable;
 
 use function enum_exists;
@@ -32,11 +33,11 @@ final class UnsupportedTarget
         );
     }
 
-    public static function inaccessibleConstructor(string $visibility): DecodeError
+    public static function inaccessibleConstructor(ReflectionMethod $constructor): DecodeError
     {
         return self::error(sprintf(
             'Target class has a %s constructor, which cannot be called to create the object.',
-            $visibility,
+            $constructor->isPrivate() ? 'private' : 'protected',
         ));
     }
 

@@ -106,7 +106,7 @@ final class RootDescriptor
         }
         $class = $this->itemClass;
         try {
-            TargetPosition::Item->validate(new ReflectionClass($class));
+            TargetClass::validateNested(new ReflectionClass($class));
         } catch (DecodeError $error) {
             throw $error->whileCreating($class);
         }

@@ -13,6 +13,9 @@ use ReflectionException;
 use stdClass;
 use Throwable;
 
+use function assert;
+use function enum_exists;
+
 /**
  * Caches the decoder of each class. Decoders that refer to classes that are not loaded yet, and declarations that fail,
  * are compiled again on the next use. Errors leave this class naming the class whose object could not be created.
@@ -102,10 +105,14 @@ final class ClassDecoders
      */
     private static function compiledRoot(string $class, stdClass $object): ClassDecoder
     {
-        $enum = EnumRoots::node($class);
-        return $enum === null
-            ? self::compiled($class)
-            : throw InvalidInput::enumRootValue($class, $enum->backingType, $object);
+        // Classes skip EnumRoots, so that a request that decodes no enum root does not load it.
+        $enum = $class;
+        if (!enum_exists($enum)) {
+            return self::compiled($class);
+        }
+        $node = EnumRoots::node($enum);
+        assert($node !== null, description: 'EnumRoots has a node for every enum.');
+        throw InvalidInput::enumRootValue($enum, $node->backingType, $object);
     }
 
     /**

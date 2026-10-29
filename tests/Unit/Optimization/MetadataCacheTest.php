@@ -15,6 +15,7 @@ use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\EnumRoots;
 use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedClass;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
@@ -52,7 +53,6 @@ use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\TargetClass;
-use Eventjet\Json\Internal\TargetPosition;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Json;
@@ -129,7 +129,6 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(TargetClass::class)]
-#[UsesClass(TargetPosition::class)]
 #[UsesClass(FieldNameRules::class)]
 #[CoversClass(NamedTypeCompiler::class)]
 #[CoversClass(NodeCompiler::class)]
@@ -165,6 +164,7 @@ use function class_alias;
 #[UsesClass(UnsupportedField::class)]
 #[UsesClass(UnsupportedFieldClass::class)]
 #[UsesClass(UnsupportedTarget::class)]
+#[UsesClass(UnsupportedClass::class)]
 #[UsesClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(RootDescriptor::class)]

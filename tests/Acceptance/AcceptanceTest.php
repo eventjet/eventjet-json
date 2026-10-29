@@ -19,6 +19,7 @@ use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedClass;
 use Eventjet\Json\Internal\Error\UnsupportedCollection;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
@@ -55,7 +56,6 @@ use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\TargetClass;
-use Eventjet\Json\Internal\TargetPosition;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Json;
@@ -165,7 +165,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversMethod(MappedJsonFields::class, 'jsonSerialize')]
 #[CoversClass(MappedObjectSerializer::class)]
 #[CoversClass(TargetClass::class)]
-#[CoversClass(TargetPosition::class)]
 #[CoversClass(FieldNameRules::class)]
 #[CoversClass(DecodeErrorKind::class)]
 #[CoversClass(AmbiguousUnion::class)]
@@ -176,6 +175,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(UnsupportedField::class)]
 #[CoversClass(UnsupportedFieldClass::class)]
 #[CoversClass(UnsupportedTarget::class)]
+#[CoversClass(UnsupportedClass::class)]
 #[CoversClass(UnionBuilder::class)]
 #[CoversClass(LiteralNode::class)]
 #[CoversClass(ClassDecoder::class)]

@@ -57,7 +57,6 @@ use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\TargetClass;
-use Eventjet\Json\Internal\TargetPosition;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Json;
@@ -111,7 +110,6 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(TargetClass::class)]
-#[CoversClass(TargetPosition::class)]
 #[CoversClass(FieldNameRules::class)]
 #[UsesClass(NamedTypeCompiler::class)]
 #[UsesClass(NodeCompiler::class)]
@@ -335,6 +333,7 @@ final class AutoloadingTest extends TestCase
         static::assertFalse(class_exists(NodeCompiler::class, autoload: false));
         static::assertFalse(class_exists(UnionBuilder::class, autoload: false));
         static::assertFalse(class_exists(NullOnlyNode::class, autoload: false));
+        static::assertFalse(class_exists(EnumRoots::class, autoload: false));
     }
 
     /**

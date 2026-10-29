@@ -10,7 +10,7 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
 use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\InvalidValue;
-use Eventjet\Json\Internal\TargetPosition;
+use Eventjet\Json\Internal\TargetClass;
 use Override;
 use ReflectionEnum;
 use ReflectionException;
@@ -50,7 +50,7 @@ final readonly class EnumNode implements Node
     }
 
     /**
-     * Returns the node for a backed enum. {@see TargetPosition::validateEnum()} rejects non-backed enums first.
+     * Returns the node for a backed enum. {@see TargetClass::validateEnum()} rejects non-backed enums first.
      *
      * @throws ReflectionException
      */
@@ -58,7 +58,7 @@ final readonly class EnumNode implements Node
     {
         /** @var class-string<UnitEnum> $enum */
         $backingType = new ReflectionEnum($enum)->getBackingType();
-        assert($backingType !== null, description: 'TargetPosition rejects non-backed enums.');
+        assert($backingType !== null, description: 'TargetClass rejects non-backed enums.');
         $backingType = (string) $backingType;
         assert($backingType === 'int' || $backingType === 'string', description: 'Enums are backed by int or string.');
         /** @var class-string<BackedEnum> $enum */

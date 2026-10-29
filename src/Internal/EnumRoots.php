@@ -57,7 +57,7 @@ final class EnumRoots
             $class,
             /** @throws DecodeError|ReflectionException */ static function () use ($class): EnumNode {
                 try {
-                    TargetPosition::Root->validateEnum($class);
+                    TargetClass::validateEnum($class);
                 } catch (DecodeError $error) {
                     throw $error->whileCreating($class);
                 }

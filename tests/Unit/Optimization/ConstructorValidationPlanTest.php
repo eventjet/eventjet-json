@@ -16,6 +16,7 @@ use Eventjet\Json\Internal\EnumRoots;
 use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedClass;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\FieldNameRules;
@@ -48,7 +49,6 @@ use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\TargetClass;
-use Eventjet\Json\Internal\TargetPosition;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
@@ -77,7 +77,6 @@ use function class_alias;
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(TargetClass::class)]
-#[CoversClass(TargetPosition::class)]
 #[CoversClass(FieldNameRules::class)]
 #[UsesClass(NamedTypeCompiler::class)]
 #[UsesClass(NodeCompiler::class)]
@@ -148,6 +147,7 @@ use function class_alias;
 #[UsesClass(InvalidFieldMapping::class)]
 #[UsesClass(InvalidValue::class)]
 #[UsesClass(UnsupportedField::class)]
+#[UsesClass(UnsupportedClass::class)]
 #[UsesClass(UnsupportedFieldClass::class)]
 final class ConstructorValidationPlanTest extends TestCase
 {
