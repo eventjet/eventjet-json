@@ -28,14 +28,8 @@ use function assert;
  */
 final readonly class TypeCompiler
 {
-    /** Builtin types that PHP does not check precisely enough for JSON. */
-    private const array IMPRECISE = [
-        'array' => true,
-        'callable' => true,
-        'iterable' => true,
-        'mixed' => true,
-        'object' => true,
-    ];
+    /** Builtin types that PHP checks precisely enough for JSON. */
+    private const array SCALARS = ['bool' => true, 'float' => true, 'int' => true, 'string' => true];
 
     /** Builtin types that already include null. */
     private const array NULLS = ['mixed' => true, 'null' => true];
@@ -74,22 +68,20 @@ final readonly class TypeCompiler
     }
 
     /**
-     * Compiles the native type of a field other than a class or an enum. PHP checks builtin scalar types itself. Such a
-     * field becomes a ScalarNode without NodeCompiler, because compiling scalar fields through it slows down the first
-     * decode in a request.
+     * Compiles the native type of a field other than a class or an enum. A `bool`, `int`, `float`, or `string` field
+     * becomes a ScalarNode without NodeCompiler, because compiling these fields through it slows down the first decode
+     * in a request. Errors name a union as PHP spells it, and `?T` as `T|null`.
      *
      * @throws DecodeError
      * @throws ReflectionException
      */
     private function native(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|null
     {
-        $scalar =
-            $type instanceof ReflectionNamedType
-            && $type->isBuiltin()
-            && !array_key_exists($type->getName(), self::IMPRECISE);
-        return $scalar
-            ? new ScalarNode($type->getName(), $type->allowsNull())
-            : NodeCompiler::field(self::tree($field, $type), $field->getName(), (string) $type);
+        if ($type instanceof ReflectionNamedType && array_key_exists($type->getName(), self::SCALARS)) {
+            return new ScalarNode($type->getName(), $type->allowsNull());
+        }
+        $label = $type instanceof ReflectionNamedType ? null : (string) $type;
+        return NodeCompiler::field(self::tree($field, $type), $field->getName(), $label);
     }
 
     /**
@@ -114,7 +106,10 @@ final readonly class TypeCompiler
         };
     }
 
-    /** Returns a native type as the type tree that PHPDoc types parse into, with `?T` as `T|null`. */
+    /**
+     * Returns a native type as the type tree that PHPDoc types resolve to, with `?T` as `T|null`, and `true` and `false`
+     * as literals.
+     */
     private static function tree(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): PhpDocType
     {
         if ($type instanceof ReflectionUnionType || $type instanceof ReflectionIntersectionType) {
@@ -129,7 +124,7 @@ final readonly class TypeCompiler
             return new PhpDocType($operator, $members);
         }
         assert($type instanceof ReflectionNamedType, description: 'Other types are unions or intersections.');
-        $named = new PhpDocType(FieldTypeNameResolver::resolve($field, $type));
+        $named = PhpDocType::named(FieldTypeNameResolver::resolve($field, $type));
         $nullable = $type->allowsNull() && !array_key_exists($type->getName(), self::NULLS);
         return $nullable ? new PhpDocType('|', [$named, new PhpDocType('null')]) : $named;
     }
