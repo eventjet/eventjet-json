@@ -8,7 +8,6 @@ use ArrayObject;
 use BackedEnum;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
-use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
@@ -17,7 +16,6 @@ use Eventjet\Json\Internal\Node\NullOnlyNode;
 use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
-use JsonSerializable;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
@@ -30,7 +28,6 @@ use function assert;
 use function class_exists;
 use function enum_exists;
 use function interface_exists;
-use function is_a;
 
 /**
  * Compiles a resolved type name: a scalar, a literal, null, an enum, or a class.
@@ -80,7 +77,7 @@ final class NamedTypeCompiler
      * would build for it. NodeCompiler would compile the same nodes, but nullable class and enum fields are common, and
      * building the type tree and union for each one slows down the first decode in a request. Returns null for
      * `ArrayObject`, and for a nullable type whose values JSON cannot represent, because the union of the type tree
-     * accepts only null for it.
+     * accepts only null for it. The type tree reads a class named like a resource type as a resource.
      *
      * @throws DecodeError
      * @throws ReflectionException
@@ -89,68 +86,49 @@ final class NamedTypeCompiler
     {
         $name = FieldTypeNameResolver::resolve($field, $type);
         $nullable = $type->allowsNull();
-        $needsTree = $name === ArrayObject::class || $nullable && self::unrepresentable($name);
-        if ($needsTree) {
+        if ($name === ArrayObject::class || $nullable && array_key_exists($name, self::RESOURCES)) {
             return null;
         }
         $node = self::named($name, $field->getName());
-        return $nullable ? NullableNode::of($node) : $node;
+        return match (true) {
+            $node instanceof DecodeError => $nullable ? null : throw $node,
+            $nullable => NullableNode::of($node),
+            default => $node,
+        };
     }
 
     /**
-     * @throws DecodeError
+     * Compiles a resolved type name. Returns the error for a type whose values JSON cannot represent, a resource or a
+     * non-backed enum without custom serialization, because a union skips such a member if another member remains.
+     *
+     * @throws DecodeError If the type cannot be decoded for another reason.
      * @throws ReflectionException
      */
-    public static function compile(PhpDocType $type, string $path): Node
+    public static function compile(PhpDocType $type, string $path): Node|DecodeError
     {
         $name = $type->name;
         return match (true) {
             $type->literal !== null => self::literal($type->literal, $path),
             array_key_exists($name, self::SCALARS) => new ScalarNode($name, false),
             $name === 'null' => new NullOnlyNode('null'),
-            array_key_exists($name, self::RESOURCES) => throw UnsupportedField::nonEncodable($path, $name),
+            array_key_exists($name, self::RESOURCES) => UnsupportedField::nonEncodable($path, $name),
             default => self::named($name, $path),
         };
     }
 
     /**
-     * Compiles the name of a class or an enum.
+     * Compiles the name of a class or an enum, or returns the error for an enum whose values JSON cannot represent.
      *
      * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function named(string $name, string $path): Node
+    private static function named(string $name, string $path): Node|DecodeError
     {
         return match (true) {
             array_key_exists($name, self::IMPRECISE) => throw UnsupportedField::imprecise($path, $name),
-            enum_exists($name) => self::enum($name, $path),
+            enum_exists($name) => TargetClass::unrepresentableEnum($name, $path) ?? EnumNode::of($name),
             default => self::object($name, $path),
         };
-    }
-
-    /**
-     * Whether the values of a union member that failed to compile have no JSON representation: a resource, or a
-     * non-backed enum without custom serialization. Unions skip such members if another member remains.
-     *
-     */
-    public static function unrepresentable(string $name): bool
-    {
-        return (
-            array_key_exists($name, self::RESOURCES)
-            || enum_exists($name)
-            && !is_a($name, BackedEnum::class, allow_string: true)
-            && !is_a($name, JsonSerializable::class, allow_string: true)
-        );
-    }
-
-    /**
-     * @throws DecodeError
-     * @throws ReflectionException
-     */
-    private static function enum(string $enum, string $path): Node
-    {
-        TargetClass::validateEnum($enum, $path);
-        return EnumNode::of($enum);
     }
 
     /**
@@ -161,14 +139,10 @@ final class NamedTypeCompiler
     private static function literal(PhpDocLiteral $literal, string $path): Node
     {
         $value = $literal->value;
-        return $value instanceof JsonSerializable
-            ? throw self::serializedEnum($value::class, $path)
-            : LiteralNode::of($literal);
-    }
-
-    private static function serializedEnum(string $enum, string $path): DecodeError
-    {
-        return UnsupportedFieldClass::jsonSerializableEnum($path, $enum);
+        if ($value instanceof BackedEnum) {
+            TargetClass::validateEnum($value::class, $path);
+        }
+        return LiteralNode::of($literal);
     }
 
     /**

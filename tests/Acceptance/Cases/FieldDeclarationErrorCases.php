@@ -63,6 +63,15 @@ final class FieldDeclarationErrorCases
                 . ' from the JSON object: Field value uses unknown class UnknownPublicPropertyType, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
+        $resource = CollectionDeclarationFixture::create('\resource', '', 'var');
+        yield 'native class named resource is an unknown class' => [
+            '{"value":{}}',
+            $resource,
+            'Could not create '
+                . $resource
+                . ' from the JSON object: Field value uses unknown class resource, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
     }
 
     /**

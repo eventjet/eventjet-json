@@ -7,6 +7,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\ArrayScalarUnionPublicProperty;
+use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableNonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedOutcome;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\NullableIntersectionPublicProperty;
@@ -77,6 +78,44 @@ final class UnsupportedUnionErrorCases
                 . ' from the JSON object: Field value uses non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
+        $resources = CollectionDeclarationFixture::create('array|int', 'list<resource>|int', 'var');
+        yield 'union member whose items have no JSON representation is rejected' => [
+            '{}',
+            $resources,
+            'Could not create '
+                . $resources
+                . ' from the JSON object: Field value uses non-JSON-encodable type resource, which has no JSON representation.',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        yield from self::serializedNonBackedEnumMembers();
+    }
+
+    /**
+     * A non-backed enum with custom serialization has a JSON representation, so a union cannot skip it.
+     *
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
+     * @throws \RuntimeException
+     */
+    private static function serializedNonBackedEnumMembers(): iterable
+    {
+        $enum = JsonSerializableNonBackedStatus::class;
+        foreach ([
+            'native union member' => ['\\' . $enum . '|int', ''],
+            'nullable field' => ['?\\' . $enum, ''],
+            'PHPDoc union member' => ['array', PhpType::list(PhpType::union($enum, PhpType::Int))],
+        ] as $position => [$native, $declaration]) {
+            $class = CollectionDeclarationFixture::create($native, $declaration, 'param');
+            yield 'non-backed enum with custom serialization is rejected as ' . $position => [
+                '{}',
+                $class,
+                'Could not create '
+                    . $class
+                    . ' from the JSON object: Field value uses non-backed enum '
+                    . $enum
+                    . ', which cannot be decoded because it has no backing value.',
+                DecodeErrorKind::UnsupportedDeclaration,
+            ];
+        }
     }
 
     /**
