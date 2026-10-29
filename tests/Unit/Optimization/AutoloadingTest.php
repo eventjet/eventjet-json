@@ -309,7 +309,7 @@ final class AutoloadingTest extends TestCase
 
     /**
      * Native class and enum fields, nullable or not, compile without the type tree and union that NodeCompiler would
-     * build for them.
+     * build for them. Both paths compile the same nodes; this shortcut only makes the first decode in a request faster.
      *
      * @throws JsonException
      * @throws \PHPUnit\Framework\Exception

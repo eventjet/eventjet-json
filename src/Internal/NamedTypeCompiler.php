@@ -57,8 +57,10 @@ final class NamedTypeCompiler
 
     /**
      * Compiles a field whose native type names a class or an enum, without the type tree and union that NodeCompiler
-     * would build for it. Returns null for `ArrayObject`, and for a nullable type whose values JSON cannot represent,
-     * because the union of the type tree accepts only null for it.
+     * would build for it. NodeCompiler would compile the same nodes, but nullable class and enum fields are common, and
+     * building the type tree and union for each one slows down the first decode in a request. Returns null for
+     * `ArrayObject`, and for a nullable type whose values JSON cannot represent, because the union of the type tree
+     * accepts only null for it.
      *
      * @throws DecodeError
      * @throws ReflectionException
