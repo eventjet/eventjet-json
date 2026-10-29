@@ -10,7 +10,6 @@ use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\Node;
-use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\TupleNode;
 use ReflectionException;
 
@@ -36,7 +35,7 @@ final class NodeCompiler
      */
     public static function field(PhpDocType $type, string $path, string|null $label = null): Node|null
     {
-        return $type->name === '|' ? self::nested($type, $path, $label) : self::compile($type, $path);
+        return $type->name === '|' ? self::union($type->arguments, $path, $label) : self::compile($type, $path);
     }
 
     /**
@@ -47,7 +46,7 @@ final class NodeCompiler
     {
         $arguments = $type->arguments;
         return match ($type->name) {
-            '|' => self::nested($type, $path),
+            '|' => self::union($arguments, $path, null),
             '&' => throw UnsupportedField::intersection($path, implode('&', array_map(
                 static fn(PhpDocType $member): string => $member->name,
                 $arguments,
@@ -61,25 +60,9 @@ final class NodeCompiler
     }
 
     /**
-     * Compiles a union. `T|null` is a nullable `T` if `T` is a collection or an enum.
+     * Compiles a union. A member that fails to compile goes to the union builder, which skips it if JSON cannot
+     * represent its values.
      *
-     * @param string|null $label The type that errors report, if it differs from the member types.
-     * @throws DecodeError
-     * @throws ReflectionException
-     */
-    private static function nested(PhpDocType $type, string $path, string|null $label = null): Node|null
-    {
-        $inner = $type->withoutNull();
-        try {
-            $nullable = $inner === null ? null : NullableNode::of(self::compile($inner, $path));
-        } catch (DecodeError) {
-            // The union reports the error.
-            $nullable = null;
-        }
-        return $nullable ?? self::union($type->arguments, $path, $label);
-    }
-
-    /**
      * @param list<PhpDocType> $members
      * @param string|null $label The type that errors report, if it differs from the member types.
      * @throws DecodeError
@@ -91,13 +74,14 @@ final class NodeCompiler
         foreach ($members as $member) {
             try {
                 $node = self::compile($member, $path);
-                if ($node === null) {
-                    return null;
-                }
-                $union->add($node);
             } catch (DecodeError $error) {
                 $union->reject($member->name, $error);
+                continue;
             }
+            if ($node === null) {
+                return null;
+            }
+            $union->add($node);
         }
         return $union->build($label);
     }

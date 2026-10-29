@@ -75,23 +75,6 @@ final readonly class PhpDocType
         return [$first, $second];
     }
 
-    /** Returns `T` if this is `T|null` or `null|T`. */
-    public function withoutNull(): self|null
-    {
-        $pair = $this->name === '|' ? $this->argumentPair() : null;
-        if ($pair === null) {
-            return null;
-        }
-        [$first, $second] = $pair;
-        $firstIsNull = $first->isPlainName('null');
-        $secondIsNull = $second->isPlainName('null');
-        return match (true) {
-            $firstIsNull => $second,
-            $secondIsNull => $first,
-            default => null,
-        };
-    }
-
     /** Returns `T` if this has the arguments `<string, T>`. */
     public function stringKeyedValue(): self|null
     {

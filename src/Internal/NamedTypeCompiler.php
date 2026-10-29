@@ -57,7 +57,7 @@ final class NamedTypeCompiler
 
     /**
      * Compiles a field whose native type names a class or an enum. Returns null for `ArrayObject`, and for a nullable
-     * type whose class or enum fails, because the union of the type tree reports it.
+     * type whose values JSON cannot represent, because the union of the type tree accepts only null for it.
      *
      * @throws DecodeError
      * @throws ReflectionException
@@ -73,8 +73,9 @@ final class NamedTypeCompiler
         }
         try {
             $node = self::named($name, $field->getName());
-        } catch (DecodeError) {
-            return null;
+        } catch (DecodeError $error) {
+            $unrepresentable = self::unrepresentable($name);
+            return $unrepresentable ? null : throw $error;
         }
         return $node instanceof UncheckedNode
             ? new UncheckedNode($name, $field->getName(), nullable: true)
