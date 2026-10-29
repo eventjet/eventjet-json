@@ -6,6 +6,7 @@ namespace Eventjet\Json;
 
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassGraphValidator;
+use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\RootDescriptor;
 use stdClass;
@@ -18,6 +19,7 @@ use function json_last_error_msg;
 
 use const JSON_ERROR_NONE;
 
+/** @api */
 final class Json
 {
     /**
@@ -54,7 +56,7 @@ final class Json
         $values = json_decode($json);
 
         if ($values === null && json_last_error() !== JSON_ERROR_NONE) {
-            return DecodeError::invalidJson(json_last_error_msg());
+            return InvalidInput::json(json_last_error_msg());
         }
 
         if (!is_string($class)) {
@@ -62,7 +64,7 @@ final class Json
         }
 
         if (!$values instanceof stdClass) {
-            return DecodeError::unexpectedRootValue($values);
+            return InvalidInput::rootValue($values);
         }
 
         return ClassDecoders::decodeRoot($class, $values);

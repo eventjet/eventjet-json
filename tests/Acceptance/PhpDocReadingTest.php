@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\NamedTypeCompiler;
 use Eventjet\Json\Internal\NodeCompiler;
@@ -72,6 +73,8 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\ClassGraphValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\Error\ConstructorFailure::class)]
 #[UsesClass(\Eventjet\Json\DecodeError::class)]
+#[UsesClass(\Eventjet\Json\Internal\Error\DecodeErrors::class)]
+#[UsesClass(\Eventjet\Json\Internal\Error\InvalidInput::class)]
 #[UsesClass(\Eventjet\Json\DecodeErrorKind::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\EnumNode::class)]
 #[UsesClass(\Eventjet\Json\Field::class)]
@@ -137,7 +140,7 @@ final class PhpDocReadingTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, class-string, string, int}>
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -173,11 +176,11 @@ final class PhpDocReadingTest extends TestCase
         string $json,
         string $class,
         string $message,
-        int $code,
+        DecodeErrorKind $kind,
     ): void {
         $decoded = Json::decode($json, $class);
         static::assertTrue($decoded instanceof DecodeError);
         static::assertSame($message, $decoded->getMessage());
-        static::assertSame($code, $decoded->getCode());
+        static::assertSame($kind, $decoded->kind);
     }
 }

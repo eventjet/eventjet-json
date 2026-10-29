@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Eventjet\Json\DecodeErrorKind;
 use RuntimeException;
 
 use function str_repeat;
@@ -18,7 +19,7 @@ use function strtr;
 final class NumberLiteralPrecedenceCases
 {
     /**
-     * @return iterable<string, array{string, class-string, string, int}>
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
      * @throws RuntimeException
      */
     public static function errors(): iterable

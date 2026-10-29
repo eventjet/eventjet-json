@@ -98,6 +98,6 @@ final class InvalidValue
     /** PHP rejected the constructor call because a required member is missing from the JSON object. */
     public static function missingArgument(Throwable $error): DecodeError
     {
-        return DecodeError::thrown(DecodeErrorKind::InvalidValue, $error);
+        return DecodeErrors::thrown(DecodeErrorKind::InvalidValue, $error);
     }
 }

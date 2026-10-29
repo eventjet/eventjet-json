@@ -32,8 +32,8 @@ PHP types and JSON object/array shapes intact. See the [type reference](docs/typ
   the previous exception. If several fields fail, the error names the first one in declaration order: constructor
   parameters, then public properties.
 - `DecodeError::$kind` tells bad input apart from a class that cannot be decoded. The `DecodeErrorKind` enum has the
-  cases `InvalidJson`, `UnexpectedRootValue`, `InvalidValue`, `UnsupportedDeclaration`, and `ConstructorFailure`, and
-  `getCode()` returns the kind's value. An HTTP API can answer the first three with 400 and the others with 500.
+  cases `InvalidJson`, `UnexpectedRootValue`, `InvalidValue`, `UnsupportedDeclaration`, and `ConstructorFailure`. An
+  HTTP API can answer the first three with 400 and the others with 500.
 
 ### Changed
 

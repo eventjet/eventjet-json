@@ -12,6 +12,7 @@ use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
@@ -67,6 +68,7 @@ use function class_exists;
 
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
+#[UsesClass(DecodeErrors::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(TargetClass::class)]
 #[CoversClass(FieldNameRules::class)]

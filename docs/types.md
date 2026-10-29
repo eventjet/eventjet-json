@@ -563,13 +563,13 @@ decoder cannot resolve `Foo`.
 
 ## Errors
 
-Every `DecodeError` has a `kind`, and `getCode()` returns the kind's value. Use
-the kind to tell errors apart. Messages are meant for people.
+Every `DecodeError` has a `kind`. Use the kind to tell errors apart. Messages
+are meant for people.
 
-- `InvalidJson` (1): `json_decode()` could not parse the input.
-- `UnexpectedRootValue` (2): the JSON root is not the object or array that the
+- `InvalidJson`: `json_decode()` could not parse the input.
+- `UnexpectedRootValue`: the JSON root is not the object or array that the
   target needs.
-- `InvalidValue` (3): the JSON does not match the declarations. This includes
+- `InvalidValue`: the JSON does not match the declarations. This includes
   values of the wrong type, unknown enum cases, values outside a literal type,
   an empty array for `non-empty-list<T>`, an empty object for
   `non-empty-array<string, T>`, member names that PHP converts to integer keys,
@@ -578,7 +578,7 @@ the kind to tell errors apart. Messages are meant for people.
   If several members are invalid, the error names the first field in
   declaration order: constructor parameters first, then public properties
   outside the constructor.
-- `UnsupportedDeclaration` (4): the class cannot be decoded, whatever the input.
+- `UnsupportedDeclaration`: the class cannot be decoded, whatever the input.
   This includes everything under [Explicitly unsupported](#explicitly-unsupported),
   invalid `#[Field]` annotations, classes that do not exist, and failures while
   reading declarations, such as an attribute that throws. Two cases only show
@@ -587,7 +587,7 @@ the kind to tell errors apart. Messages are meant for people.
   the constructor already set, once the JSON contains it. `json_encode()` writes
   that property, so decoding its output always fails. `Json::validateType()`
   returns only errors of this kind.
-- `ConstructorFailure` (5): the target's constructor, or a `set` hook of one of
+- `ConstructorFailure`: the target's constructor, or a `set` hook of one of
   its public properties, threw. `getPrevious()` returns that exception.
 
 Apart from the first two kinds, messages start with `Could not create X from

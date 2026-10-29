@@ -19,7 +19,7 @@ final class ConstructorFailure
 {
     public static function constructorThrew(Throwable $error): DecodeError
     {
-        return DecodeError::thrown(DecodeErrorKind::ConstructorFailure, $error);
+        return DecodeErrors::thrown(DecodeErrorKind::ConstructorFailure, $error);
     }
 
     /**
@@ -30,7 +30,7 @@ final class ConstructorFailure
     {
         $hooked = $property->hasHook(PropertyHookType::Set);
         return $hooked
-            ? DecodeError::thrown(DecodeErrorKind::ConstructorFailure, $error)
+            ? DecodeErrors::thrown(DecodeErrorKind::ConstructorFailure, $error)
             : UnsupportedTarget::unassignableProperty($error);
     }
 }

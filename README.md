@@ -70,15 +70,15 @@ check, you can use the object's typed properties directly.
 
 `Json::decode()` returns failures as `DecodeError` values. You choose whether
 to throw, log, or otherwise handle them. `$error->kind` tells you what went
-wrong, and `getCode()` returns the same value as a number:
+wrong:
 
-| Kind | Code | What went wrong |
-| --- | ---: | --- |
-| `DecodeErrorKind::InvalidJson` | 1 | The input is not valid JSON. |
-| `DecodeErrorKind::UnexpectedRootValue` | 2 | The JSON root is not the object or array the target needs. |
-| `DecodeErrorKind::InvalidValue` | 3 | A JSON value does not match its declared type, or a required member is missing. |
-| `DecodeErrorKind::UnsupportedDeclaration` | 4 | The target class can't be decoded, whatever the input. |
-| `DecodeErrorKind::ConstructorFailure` | 5 | The target's constructor, or a set hook of one of its public properties, threw. |
+| Kind | What went wrong |
+| --- | --- |
+| `DecodeErrorKind::InvalidJson` | The input is not valid JSON. |
+| `DecodeErrorKind::UnexpectedRootValue` | The JSON root is not the object or array the target needs. |
+| `DecodeErrorKind::InvalidValue` | A JSON value does not match its declared type, or a required member is missing. |
+| `DecodeErrorKind::UnsupportedDeclaration` | The target class can't be decoded, whatever the input. |
+| `DecodeErrorKind::ConstructorFailure` | The target's constructor, or a set hook of one of its public properties, threw. |
 
 The first three kinds mean the input is wrong. An unsupported declaration is a
 bug in your class: fix the class, and catch it early with

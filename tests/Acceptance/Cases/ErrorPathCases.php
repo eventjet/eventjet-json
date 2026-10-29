@@ -14,7 +14,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 final class ErrorPathCases
 {
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -26,7 +26,7 @@ final class ErrorPathCases
     }
 
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -38,13 +38,13 @@ final class ErrorPathCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'non-empty-array<string, int>', 'param')
                 . ' from the JSON object: Field value["a\"b"] must be of type int, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'error path quotes a dotted map key before a list index' => [
             '{"a.b":[{"firstName":1,"lastName":"Lovelace"}]}',
             JsonType::map(JsonType::array(Person::class)),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Field ["a.b"][0].firstName must be of type string, int given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'error path escapes a newline in a map key' => [
             '{"value":{"a\n":"wrong"}}',
@@ -52,12 +52,12 @@ final class ErrorPathCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'non-empty-array<string, int>', 'param')
                 . ' from the JSON object: Field value["a\n"] must be of type int, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -89,7 +89,7 @@ final class ErrorPathCases
                     'param',
                 )
                 . ' from the JSON object: Field value.value[key].value uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus, which has no case with backing value \'unknown\'.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'error path includes the nested enum-or-scalar field' => [
             '{"value":{"value":[]}}',
@@ -110,18 +110,18 @@ final class ErrorPathCases
                     'param',
                 )
                 . ' from the JSON object: Field value.value must be of type Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus|bool|null, array given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'error path includes an invalid property inside a class-or-scalar union' => [
             '{"value":{"firstName":42,"lastName":"Lovelace"}}',
             new ClassScalarUnionField(null)::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Field value.firstName must be of type string, int given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -131,7 +131,7 @@ final class ErrorPathCases
             '{"value":[[{"latitude":true,"longitude":3}]]}',
             CollectionDeclarationFixture::create('array', PhpType::list(PhpType::list(Coordinates::class)), 'param'),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Coordinates from the JSON object: Field value[0][0].latitude must be of type float, bool given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'error path includes both indices of an invalid scalar item' => [
             '{"value":[[true]]}',
@@ -147,7 +147,7 @@ final class ErrorPathCases
                     'param',
                 )
                 . ' from the JSON object: Field value[0][0] must be of type int|null, bool given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 }

@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Closure;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
@@ -125,7 +126,7 @@ final class RootDescriptor
         $shape = $this->shapes[0];
         $matches = $shape === 'array' ? is_array($value) : $value instanceof stdClass;
         if (!$matches) {
-            return DecodeError::unexpectedRootValue($value, $shape);
+            return InvalidInput::rootValue($value, $shape);
         }
         try {
             return $this->node()->decode($value, '');

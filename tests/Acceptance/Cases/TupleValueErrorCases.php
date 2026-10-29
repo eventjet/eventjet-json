@@ -14,7 +14,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\TupleFields;
 final class TupleValueErrorCases
 {
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -25,7 +25,7 @@ final class TupleValueErrorCases
     }
 
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -43,7 +43,7 @@ final class TupleValueErrorCases
                 new Person('Ada', 'Lovelace'),
             ])::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\TupleFields from the JSON object: Field empty must be of type array{} with exactly 0 items, 1 given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'optional nested tuple rejects excess items' => [
             '{"value":[[[],[]]]}',
@@ -51,7 +51,7 @@ final class TupleValueErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'list<array{0?: list<int>}>', 'var')
                 . ' from the JSON object: Field value[0] must be of type array{0?: list<int>} with between 0 and 1 items, 2 given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'tuple rejects fewer than its required items' => [
             '{"value":[1]}',
@@ -63,12 +63,12 @@ final class TupleValueErrorCases
                     'param',
                 )
                 . ' from the JSON object: Field value must be of type array{int, string, 2?: bool, 3?: float} with between 2 and 4 items, 1 given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -88,7 +88,7 @@ final class TupleValueErrorCases
                     'param',
                 )
                 . ' from the JSON object: Field value[0] must be of type array{int}, bool given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'tuple enum alternative rejects an unknown backing value' => [
             '{"value":[42]}',
@@ -104,7 +104,7 @@ final class TupleValueErrorCases
                     'var',
                 )
                 . ' from the JSON object: Field value[0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus, which has no case with backing value 42.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'tuple rejects an object with numeric member names' => [
             '{"value":{"0":1,"1":"text"}}',
@@ -116,7 +116,7 @@ final class TupleValueErrorCases
                     'param',
                 )
                 . ' from the JSON object: Field value must be of type array{int, string, 2?: bool, 3?: float}, stdClass given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'optional integer tuple item rejects null' => [
             '{"value":[null]}',
@@ -124,7 +124,7 @@ final class TupleValueErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'array{0?: int}', 'param')
                 . ' from the JSON object: Field value[0] must be of type int, null given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'optional integer tuple item rejects a numeric string' => [
             '{"value":["1"]}',
@@ -132,7 +132,7 @@ final class TupleValueErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'array{0?: int}', 'param')
                 . ' from the JSON object: Field value[0] must be of type int, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 }

@@ -14,7 +14,9 @@ use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
 use Eventjet\Json\Internal\Error\ConstructorFailure;
+use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
+use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedCollection;
 use Eventjet\Json\Internal\Error\UnsupportedField;
@@ -86,6 +88,8 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(JsonType::class)]
 #[CoversClass(RootDescriptor::class)]
 #[CoversClass(DecodeError::class)]
+#[CoversClass(DecodeErrors::class)]
+#[CoversClass(InvalidInput::class)]
 #[CoversClass(PhpDocTupleEntry::class)]
 #[CoversClass(FieldPath::class)]
 #[CoversClass(FieldTypeNameResolver::class)]
@@ -267,14 +271,14 @@ final class AcceptanceTest extends TestCase
         string $json,
         string|JsonType $class,
         string $message,
-        int $code,
+        DecodeErrorKind $kind,
         Throwable|null $previous = null,
     ): void {
         // Separate calls preserve each target's generic type during static analysis.
         $decoded = is_string($class) ? Json::decode($json, $class) : Json::decode($json, $class);
         static::assertTrue($decoded instanceof DecodeError);
         static::assertSame($message, $decoded->getMessage());
-        static::assertSame($code, $decoded->getCode());
+        static::assertSame($kind, $decoded->kind);
         if ($previous !== null) {
             static::assertSame($previous, $decoded->getPrevious());
         }
@@ -286,6 +290,6 @@ final class AcceptanceTest extends TestCase
     {
         $decoded = Json::decode($json, $class);
         static::assertTrue($decoded instanceof DecodeError);
-        static::assertSame(3, $decoded->getCode());
+        static::assertSame(DecodeErrorKind::InvalidValue, $decoded->kind);
     }
 }

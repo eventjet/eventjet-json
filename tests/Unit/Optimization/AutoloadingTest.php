@@ -13,6 +13,7 @@ use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\FieldNameRules;
@@ -104,6 +105,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(PhpDocClassNameResolver::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
+#[UsesClass(DecodeErrors::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(TargetClass::class)]

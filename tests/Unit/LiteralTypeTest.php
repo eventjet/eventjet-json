@@ -9,6 +9,7 @@ use DateTimeImmutable;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
@@ -74,6 +75,7 @@ use const PHP_INT_MIN;
 #[CoversClass(PhpDocImportStatement::class)]
 #[CoversClass(PhpDocConstantImportStatement::class)]
 #[UsesClass(DecodeError::class)]
+#[UsesClass(DecodeErrors::class)]
 #[UsesClass(UnsupportedField::class)]
 #[UsesClass(InvalidValue::class)]
 #[UsesClass(UnsupportedFieldClass::class)]

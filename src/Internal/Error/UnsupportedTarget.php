@@ -79,7 +79,7 @@ final class UnsupportedTarget
     /** Reading the declarations threw, for example because a class does not exist or an attribute is invalid. */
     public static function unreadable(Throwable $error): DecodeError
     {
-        return DecodeError::thrown(DecodeErrorKind::UnsupportedDeclaration, $error);
+        return DecodeErrors::thrown(DecodeErrorKind::UnsupportedDeclaration, $error);
     }
 
     /**
@@ -88,7 +88,7 @@ final class UnsupportedTarget
      */
     public static function unassignableProperty(Throwable $error): DecodeError
     {
-        return DecodeError::thrown(DecodeErrorKind::UnsupportedDeclaration, $error);
+        return DecodeErrors::thrown(DecodeErrorKind::UnsupportedDeclaration, $error);
     }
 
     private static function error(string $message): DecodeError

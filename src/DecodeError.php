@@ -7,8 +7,6 @@ namespace Eventjet\Json;
 use RuntimeException;
 use Throwable;
 
-use function get_debug_type;
-use function preg_replace;
 use function sprintf;
 
 /** @api */
@@ -22,38 +20,7 @@ final class DecodeError extends RuntimeException
         string $message,
         Throwable|null $previous = null,
     ) {
-        parent::__construct($message, $kind->value, $previous);
-    }
-
-    public static function invalidJson(string $message): self
-    {
-        return new self(DecodeErrorKind::InvalidJson, sprintf('Invalid JSON: %s', $message));
-    }
-
-    /** @param 'array'|'object' $expectedType */
-    public static function unexpectedRootValue(mixed $value, string $expectedType = 'object'): self
-    {
-        return new self(DecodeErrorKind::UnexpectedRootValue, sprintf(
-            'Expected the JSON root to be an %s, got %s.',
-            $expectedType,
-            get_debug_type($value),
-        ));
-    }
-
-    /**
-     * Reports an error thrown by other code, such as a constructor, with its message and as the previous exception.
-     *
-     * @internal
-     */
-    public static function thrown(DecodeErrorKind $kind, Throwable $error): self
-    {
-        $message = preg_replace(
-            pattern: '/ passed in .+ on line \d+ and /',
-            replacement: ' passed and ',
-            subject: $error->getMessage(),
-        ) ?? $error->getMessage();
-
-        return new self($kind, $message, $error);
+        parent::__construct($message, previous: $previous);
     }
 
     /**
