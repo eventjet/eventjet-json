@@ -4,20 +4,15 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use BackedEnum;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Error\AmbiguousUnion;
-use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
-use Eventjet\Json\Internal\Node\ObjectNode;
-use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use ReflectionException;
 
-use function array_any;
 use function array_filter;
-use function array_intersect;
 use function array_keys;
 use function array_map;
 use function array_merge;
@@ -71,7 +66,6 @@ final class UnionBuilder
      * collection or an enum.
      *
      * @throws DecodeError
-     * @throws ReflectionException
      */
     public function build(): Node
     {
@@ -87,17 +81,11 @@ final class UnionBuilder
         if ($nullable !== null) {
             return $nullable;
         }
-        $type = implode('|', array_keys($this->types));
-        $error = $this->literals($members) ?? $this->classes($members);
+        $error = $this->conflict($members);
         if ($error !== null) {
             throw $error;
         }
-        $union = UnionNode::of($this->path, $type, $members);
-        $error = $this->shapes($members);
-        if ($error !== null) {
-            throw $error;
-        }
-        return $union;
+        return UnionNode::of(implode('|', array_keys($this->types)), $members);
     }
 
     /** @param list<Node> $members */
@@ -121,41 +109,28 @@ final class UnionBuilder
         return array_values(array_filter($this->types, static fn(Node|null $member): bool => $member !== null));
     }
 
-    /** @param list<Node> $members */
-    private function classes(array $members): DecodeError|null
-    {
-        $classes = array_values(array_filter(array_map(static fn(Node $member): string|null => match (true) {
-            $member instanceof ObjectNode => $member->target,
-            $member instanceof UncheckedNode => $member->name,
-            default => null,
-        }, $members), static fn(string|null $class): bool => $class !== null));
-        if (count($classes) < 2) {
-            return null;
-        }
-        return AmbiguousUnion::classes($this->path, $classes);
-    }
-
     /**
+     * Returns the error for members that JSON cannot tell apart. Only members that claim the same JSON value type can
+     * conflict. Most unions have none, and don't load the rules for them.
+     *
      * @param list<Node> $members
-     * @throws ReflectionException
+     * @throws DecodeError
      */
-    private function literals(array $members): DecodeError|null
+    private function conflict(array $members): DecodeError|null
     {
-        $literal = array_any($members, static fn(Node $member): bool => $member instanceof LiteralNode);
-        return $literal ? PhpDocLiteralUnionValidator::validate($this->path, $members) : null;
-    }
-
-    /** @param list<Node> $members */
-    private function shapes(array $members): DecodeError|null
-    {
-        $shapes = array_merge(...array_map(
-            /** @return array<int, string> */
-            static fn(Node $member): array => array_intersect($member->valueTypes(), ['array', 'stdClass']),
+        $claimed = array_map(
+            /** @return array{Node, array<string, array{every: bool, values: array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}>}>} */
+            static fn(Node $member): array => [$member, $member->claims()],
             $members,
+        );
+        $types = array_merge(...array_map(
+            /**
+             * @param array{Node, array<string, mixed>} $member
+             * @return list<string>
+             */
+            static fn(array $member): array => array_keys($member[1]),
+            $claimed,
         ));
-        if (count($shapes) === count(array_unique($shapes))) {
-            return null;
-        }
-        return AmbiguousUnion::shapes($this->path);
+        return count($types) === count(array_unique($types)) ? null : UnionConflicts::first($this->path, $claimed);
     }
 }

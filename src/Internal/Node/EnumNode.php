@@ -6,8 +6,6 @@ namespace Eventjet\Json\Internal\Node;
 
 use BackedEnum;
 use Closure;
-use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Error\AmbiguousUnion;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Override;
 use ReflectionEnum;
@@ -16,10 +14,9 @@ use UnitEnum;
 
 use function assert;
 use function implode;
-use function in_array;
 use function is_int;
 use function is_string;
-use function sort;
+use function var_export;
 
 /**
  * Finds the case of a backed enum, or of one of several backed enums that share a backing type in a union.
@@ -66,35 +63,15 @@ final readonly class EnumNode implements Node
     }
 
     /**
-     * Combines the enums of a union that share a backing type into one node that finds cases in a table, rejecting
-     * enums whose values JSON cannot tell apart from each other or from other members.
+     * Combines the enums of a union that share a backing type into one node that finds cases in a table. Union rules
+     * ensure that their backing values do not overlap.
      *
      * @param 'int'|'string' $backingType
      * @param non-empty-list<class-string<BackedEnum>> $enums
-     * @param list<string> $valueTypes The JSON value types of the other union members.
-     * @throws DecodeError
      */
-    public static function union(string $path, string $backingType, array $enums, array $valueTypes): self
+    public static function union(string $backingType, array $enums): self
     {
-        $conflict = self::conflict($path, $backingType, $enums[0], $valueTypes);
-        if ($conflict !== null) {
-            throw $conflict;
-        }
-        $sorted = $enums;
-        sort($sorted);
-        $cases = [];
-        foreach ($sorted as $enum) {
-            /** @var callable(): list<BackedEnum> $enumCases */
-            $enumCases = [$enum, 'cases'];
-            foreach ($enumCases() as $case) {
-                $owner = $cases[$case->value] ?? null;
-                if ($owner !== null) {
-                    throw AmbiguousUnion::overlappingEnums($path, $owner::class, $enum, $case->value);
-                }
-                $cases[$case->value] = $case;
-            }
-        }
-        return new self($enums, $backingType, $cases);
+        return new self($enums, $backingType, self::cases($enums));
     }
 
     #[Override]
@@ -109,10 +86,15 @@ final readonly class EnumNode implements Node
         return $case ?? throw InvalidValue::unknownEnumCase($path, $this->enums, $value);
     }
 
+    /** An enum takes every value of its backing type, and rejects values that are not its cases. */
     #[Override]
-    public function valueTypes(): array
+    public function claims(): array
     {
-        return [];
+        $values = [];
+        foreach (self::cases($this->enums) as $case) {
+            $values[var_export($case->value, return: true)] = [$case->value, $case];
+        }
+        return [$this->backingType => ['every' => true, 'values' => $values]];
     }
 
     #[Override]
@@ -128,27 +110,19 @@ final readonly class EnumNode implements Node
     }
 
     /**
-     * Rejects an enum as a union member if JSON cannot tell its values apart from the values of other members.
-     *
-     * @param list<string> $valueTypes
+     * @param list<class-string<BackedEnum>> $enums
+     * @return array<array-key, BackedEnum> The cases by backing value.
      */
-    private static function conflict(
-        string $path,
-        string $backingType,
-        string $enum,
-        array $valueTypes,
-    ): DecodeError|null {
-        return match (true) {
-            $backingType === 'int' && in_array('float', $valueTypes, strict: true) => AmbiguousUnion::enumAndFloat(
-                $path,
-                $enum,
-            ),
-            in_array($backingType, $valueTypes, strict: true) => AmbiguousUnion::enumAndBackingType(
-                $path,
-                $enum,
-                $backingType,
-            ),
-            default => null,
-        };
+    private static function cases(array $enums): array
+    {
+        $cases = [];
+        foreach ($enums as $enum) {
+            /** @var callable(): list<BackedEnum> $enumCases */
+            $enumCases = [$enum, 'cases'];
+            foreach ($enumCases() as $case) {
+                $cases[$case->value] = $case;
+            }
+        }
+        return $cases;
     }
 }

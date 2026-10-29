@@ -25,9 +25,9 @@ final readonly class NullOnlyNode implements Node
     }
 
     #[Override]
-    public function valueTypes(): array
+    public function claims(): array
     {
-        return ['null'];
+        return ['null' => ['every' => true, 'values' => []]];
     }
 
     #[Override]

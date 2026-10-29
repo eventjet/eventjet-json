@@ -55,9 +55,9 @@ final readonly class TupleNode implements Node
     }
 
     #[Override]
-    public function valueTypes(): array
+    public function claims(): array
     {
-        return ['array'];
+        return ['array' => ['every' => true, 'values' => []]];
     }
 
     #[Override]

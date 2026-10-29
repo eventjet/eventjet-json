@@ -56,6 +56,7 @@ use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
+use Eventjet\Json\Internal\UnionConflicts;
 use Eventjet\Json\Json;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\MappedJsonFields;
@@ -105,8 +106,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocIntegerRange::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocConstantResolver::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocConstantValues::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralUnionValidator::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralEnumOverlap::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralNativeType::class)]
 #[UsesClass(PhpDocTypeParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocLexer::class)]
@@ -174,6 +173,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(UnsupportedFieldClass::class)]
 #[CoversClass(UnsupportedTarget::class)]
 #[CoversClass(UnionBuilder::class)]
+#[CoversClass(UnionConflicts::class)]
 #[CoversClass(LiteralNode::class)]
 #[CoversClass(ClassDecoder::class)]
 #[CoversClass(ClassField::class)]

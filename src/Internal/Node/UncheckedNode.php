@@ -34,9 +34,9 @@ final readonly class UncheckedNode implements Node
     }
 
     #[Override]
-    public function valueTypes(): array
+    public function claims(): array
     {
-        return [];
+        return ['stdClass' => ['every' => true, 'values' => []]];
     }
 
     #[Override]

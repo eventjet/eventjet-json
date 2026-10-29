@@ -49,6 +49,7 @@ use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
+use Eventjet\Json\Internal\UnionConflicts;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionNameSource;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
@@ -135,6 +136,7 @@ use function class_alias;
 #[UsesClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
+#[UsesClass(UnionConflicts::class)]
 #[UsesClass(UnionNode::class)]
 #[CoversClass(ClassDecoder::class)]
 #[CoversClass(ClassField::class)]

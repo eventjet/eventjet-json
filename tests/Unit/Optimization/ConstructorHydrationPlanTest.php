@@ -46,6 +46,7 @@ use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
+use Eventjet\Json\Internal\UnionConflicts;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
@@ -133,7 +134,8 @@ use function class_exists;
 #[UsesClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
 #[UsesClass(UnionBuilder::class)]
-#[UsesClass(UnionNode::class)]
+#[UsesClass(UnionConflicts::class)]
+#[CoversClass(UnionNode::class)]
 #[CoversClass(ClassDecoder::class)]
 #[CoversClass(ClassField::class)]
 #[CoversClass(ClassDecoders::class)]
@@ -155,7 +157,7 @@ final class ConstructorHydrationPlanTest extends TestCase
         $int = EnumNode::of(IntBackedStatus::class);
         static::assertNotNull($string);
         static::assertNotNull($int);
-        $union = UnionNode::of('value', 'StringBackedStatus|IntBackedStatus|bool|null', [
+        $union = UnionNode::of('StringBackedStatus|IntBackedStatus|bool|null', [
             $string,
             $int,
             new ScalarNode('bool', false),
@@ -180,13 +182,13 @@ final class ConstructorHydrationPlanTest extends TestCase
             );
         }
 
-        $numbers = UnionNode::of('value', 'int|float', [
+        $numbers = UnionNode::of('int|float', [
             new ScalarNode('int', false),
             new ScalarNode('float', false),
         ]);
         static::assertSame(1, $numbers->decode(1, 'value'));
         static::assertSame(1.5, $numbers->decode(1.5, 'value'));
-        $floats = UnionNode::of('value', 'float|string', [
+        $floats = UnionNode::of('float|string', [
             new ScalarNode('float', false),
             new ScalarNode('string', false),
         ]);

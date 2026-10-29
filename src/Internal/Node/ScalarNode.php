@@ -11,6 +11,7 @@ use Eventjet\Json\Internal\FieldTypeNameResolver;
 use JsonException;
 use Override;
 
+use function array_fill_keys;
 use function is_bool;
 use function is_float;
 use function is_int;
@@ -32,7 +33,10 @@ final readonly class ScalarNode implements Node
         $this->expected = $nullable ? FieldTypeNameResolver::withNull($name) : $name;
     }
 
-    /** @return array<array-key, mixed>|bool|float|int|object|string|null */
+    /**
+     * @return array<array-key, mixed>|bool|float|int|object|string|null
+     * @throws DecodeError
+     */
     #[Override]
     public function decode(mixed $value, string $path): array|bool|float|int|object|string|null
     {
@@ -98,9 +102,14 @@ final readonly class ScalarNode implements Node
     }
 
     #[Override]
-    public function valueTypes(): array
+    public function claims(): array
     {
-        return $this->name === 'bool' ? ['true', 'false'] : [$this->name];
+        $types = match ($this->name) {
+            'bool' => ['true', 'false'],
+            'float' => ['int', 'float'],
+            default => [$this->name],
+        };
+        return array_fill_keys($types, ['every' => true, 'values' => []]);
     }
 
     #[Override]

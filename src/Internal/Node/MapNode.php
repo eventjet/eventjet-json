@@ -68,9 +68,9 @@ final readonly class MapNode implements Node
     }
 
     #[Override]
-    public function valueTypes(): array
+    public function claims(): array
     {
-        return ['stdClass'];
+        return ['stdClass' => ['every' => true, 'values' => []]];
     }
 
     #[Override]
