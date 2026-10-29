@@ -70,6 +70,7 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\ClassDecoder::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassField::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassDecoders::class)]
+#[UsesClass(\Eventjet\Json\Internal\EnumRoots::class)]
 #[UsesClass(\Eventjet\Json\Internal\ClassGraphValidator::class)]
 #[UsesClass(\Eventjet\Json\Internal\Error\ConstructorFailure::class)]
 #[UsesClass(\Eventjet\Json\DecodeError::class)]

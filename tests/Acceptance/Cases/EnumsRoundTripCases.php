@@ -19,6 +19,9 @@ final class EnumsRoundTripCases
      */
     public static function objects(): iterable
     {
+        foreach ([...IntBackedStatus::cases(), ...StringBackedStatus::cases()] as $case) {
+            yield 'backed enum root ' . $case::class . '::' . $case->name => [$case];
+        }
         yield 'non-backed enum alongside string' => [new NonBackedEnumUnionField('supported scalar')];
         yield 'nullable non-backed enum accepts null' => [CollectionDeclarationFixture::object(
             '?\Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus',

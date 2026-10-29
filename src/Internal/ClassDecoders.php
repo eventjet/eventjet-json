@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
+use Closure;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use ReflectionClass;
 use ReflectionException;
@@ -77,7 +79,7 @@ final class ClassDecoders
     public static function decodeRoot(string $class, stdClass $object): object
     {
         try {
-            $decoder = self::$decoders[$class] ?? self::compiled($class);
+            $decoder = self::$decoders[$class] ?? self::compiledRoot($class, $object);
         } catch (DecodeError $error) {
             return $error;
         }
@@ -92,13 +94,44 @@ final class ClassDecoders
     }
 
     /**
+     * Compiles the decoder of a root class. An enum has no decoder, because JSON holds its cases as backing values, not
+     * as objects.
+     *
+     * @param class-string $class
+     * @throws DecodeError
+     */
+    private static function compiledRoot(string $class, stdClass $object): ClassDecoder
+    {
+        $enum = EnumRoots::node($class);
+        return $enum === null
+            ? self::compiled($class)
+            : throw InvalidInput::enumRootValue($class, $enum->backingType, $object);
+    }
+
+    /**
      * @param class-string $class
      * @throws DecodeError
      */
     private static function compiled(string $class): ClassDecoder
     {
+        return self::readable(
+            $class,
+            /** @throws DecodeError|ReflectionException */ static fn(): ClassDecoder => self::get($class),
+        );
+    }
+
+    /**
+     * Runs a compilation, and reports an exception other than a DecodeError as an unreadable declaration of the class.
+     *
+     * @template TResult
+     * @param Closure(): TResult $compile
+     * @return TResult
+     * @throws DecodeError
+     */
+    public static function readable(string $class, Closure $compile): mixed
+    {
         try {
-            return self::get($class);
+            return $compile();
         } catch (DecodeError $error) {
             throw $error;
         } catch (Throwable $error) {

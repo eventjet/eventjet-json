@@ -22,8 +22,8 @@ use function is_a;
 enum TargetPosition
 {
     /**
-     * The class of a JSON object that is decoded on its own: the root object of a document, or an object whose class
-     * an item or a field already accepted under its own, stricter rules. JSON never holds an enum case here.
+     * The class or enum of the root value of a document, or the class of an object that an item or a field already
+     * accepted under its own, stricter rules.
      */
     case Root;
 
@@ -53,9 +53,8 @@ enum TargetPosition
     }
 
     /**
-     * Rejects an enum that cannot be decoded in this position: a non-backed enum, which has no JSON representation, an
-     * enum with a custom JSON representation, which may not match its backing values, and any enum in the root
-     * position.
+     * Rejects an enum that cannot be decoded: a non-backed enum, which has no JSON representation, and an enum with a
+     * custom JSON representation, which may not match its backing values.
      *
      * @param string $path The field that declares the enum.
      * @throws DecodeError
@@ -67,9 +66,6 @@ enum TargetPosition
         $serialized = is_a($enum, JsonSerializable::class, allow_string: true);
         if (!is_a($enum, BackedEnum::class, allow_string: true)) {
             throw $field ? UnsupportedFieldClass::nonBackedEnum($path, $enum) : UnsupportedTarget::nonBackedEnum($enum);
-        }
-        if ($this === self::Root) {
-            throw UnsupportedTarget::backedEnum();
         }
         if ($serialized) {
             throw $field

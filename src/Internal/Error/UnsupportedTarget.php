@@ -48,13 +48,6 @@ final class UnsupportedTarget
         ));
     }
 
-    public static function backedEnum(): DecodeError
-    {
-        return self::error(
-            'Backed enums are not supported as standalone targets. Use a typed field or a collection descriptor.',
-        );
-    }
-
     public static function nonFinalItem(): DecodeError
     {
         return self::error(

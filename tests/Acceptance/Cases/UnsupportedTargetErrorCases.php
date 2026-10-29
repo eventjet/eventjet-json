@@ -8,7 +8,6 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\InheritedPublicProperty;
-use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
@@ -17,7 +16,6 @@ use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\PrivateConstructorTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface;
-use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 
 /** @internal */
 final class UnsupportedTargetErrorCases
@@ -54,23 +52,22 @@ final class UnsupportedTargetErrorCases
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface from the JSON object: Target type is an interface. JSON does not identify a concrete implementation to instantiate.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
-        yield 'non-backed enum cannot be a root target' => [
-            '{}',
-            NonBackedStatus::class,
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus from the JSON object: Target type non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
-            DecodeErrorKind::UnsupportedDeclaration,
-        ];
-        foreach ([
-            'int' => [IntBackedStatus::class, '{"name":"Ready","value":1}'],
-            'string' => [StringBackedStatus::class, '{"name":"Ready","value":"ready"}'],
-            'custom serialization' => [JsonSerializableStatus::class, '{"name":"Ready","value":"ready"}'],
-        ] as $label => [$enum, $json]) {
-            yield 'backed enum with ' . $label . ' values cannot be a root target' => [
+        foreach (['an object' => '{}', 'a name' => '"Ready"'] as $label => $json) {
+            yield 'non-backed enum cannot be a root target for ' . $label => [
                 $json,
-                $enum,
-                'Could not create '
-                    . $enum
-                    . ' from the JSON object: Backed enums are not supported as standalone targets. Use a typed field or a collection descriptor.',
+                NonBackedStatus::class,
+                'Could not create Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus from the JSON object: Target type non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
+                DecodeErrorKind::UnsupportedDeclaration,
+            ];
+        }
+        foreach ([
+            'a backing value' => '"ready"',
+            'an object' => '{"name":"Ready","value":"ready"}',
+        ] as $label => $json) {
+            yield 'enum with custom serialization cannot be a root target for ' . $label => [
+                $json,
+                JsonSerializableStatus::class,
+                'Could not create Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus from the JSON object: Target type is an enum that implements JsonSerializable. Its custom JSON representation may not match its cases, so it cannot satisfy the round-trip contract.',
                 DecodeErrorKind::UnsupportedDeclaration,
             ];
         }

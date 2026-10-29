@@ -8,6 +8,7 @@ use BackedEnum;
 use Closure;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
+use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\TargetPosition;
 use Override;
@@ -106,6 +107,21 @@ final readonly class EnumNode implements Node
         /** @var int|string $value */
         $case = $this->cases === null ? ($this->find)($value) : $this->cases[$value] ?? null;
         return $case ?? throw InvalidValue::unknownEnumCase($path, $this->enums, $value);
+    }
+
+    /**
+     * Decodes the root value of a document into a case, or returns the error, which names no field. The return type is
+     * object, like that of a class decoder, so that the caller can name the enum it asked for. The root names a single
+     * enum, so the node finds each case when its value arrives.
+     */
+    public function decodeRoot(mixed $value): object
+    {
+        $matches = $this->backingType === 'int' ? is_int($value) : is_string($value);
+        if (!$matches) {
+            return InvalidInput::enumRootValue($this->enums[0], $this->backingType, $value);
+        }
+        /** @var int|string $value */
+        return ($this->find)($value) ?? InvalidValue::unknownRootEnumCase($this->enums[0], $value);
     }
 
     #[Override]

@@ -24,7 +24,8 @@ must not be relied on, even if a particular value happens to decode.
 | Public properties outside the constructor, inherited properties, and other unsupported class shapes | Limited | Declared scalar, array, backed enum, nested final class, and supported union public properties are hydrated after construction, including inherited properties, nullable and recursively nested `self` declarations, and classes without constructors. Public properties accept the same declarations as constructor fields and report the same errors. Supplied property values are validated and converted before the target constructor runs, then assigned after construction. Constructor-bound properties, including promoted readonly properties, are not assigned again. Omitted public properties keep their state after construction: initialized properties retain their values, while uninitialized properties remain uninitialized, including readonly properties. Targets with private or protected constructors are rejected with a dedicated error. |
 | `mixed`, untyped fields, `object`, `stdClass`, `iterable`, and `callable` | Rejected | These declarations cannot preserve every value's original PHP type and JSON object/array shape, so they return a dedicated `DecodeError` whether or not the member is present. Use `ArrayObject<string, T>` rather than `stdClass` for a typed JSON object map, and a PHPDoc collection declaration on `array` rather than `iterable`. |
 | Root arrays and maps | Limited | `JsonType::array()` returns lists and `JsonType::map()` returns `ArrayObject<string, T>` maps, preserving empty JSON arrays and objects. Values may be final classes, backed enums, or recursively nested array and map descriptors. Map keys must remain PHP strings. |
-| Root scalars, enums, and `null` | Unsupported | There are no descriptors for standalone values of these types. Use a transport class with a typed field. |
+| Backed enums at the root | Supported | `Json::decode('"ready"', Status::class)` returns `Status::Ready`. The JSON root must be a backing value of the enum's backing type. Another JSON type returns an `UnexpectedRootValue` error, and a value without a case returns an `InvalidValue` error. Non-backed enums and enums that implement `JsonSerializable` are rejected, as in fields. |
+| Root scalars and `null` | Unsupported | There are no descriptors for standalone values of these types. Use a transport class with a typed field. |
 | Classes implementing `JsonSerializable` | Opt-in through `#[Field]` | At least one annotated public instance property is required. Use `MappedJsonFields` or supply a serializer that emits the declared field names and values. Unannotated serializers remain rejected. |
 
 The round-trip contract also has these representation limits:
@@ -567,8 +568,9 @@ Every `DecodeError` has a `kind`. Use the kind to tell errors apart. Messages
 are meant for people.
 
 - `InvalidJson`: `json_decode()` could not parse the input.
-- `UnexpectedRootValue`: the JSON root is not the object or array that the
-  target needs.
+- `UnexpectedRootValue`: the JSON root does not have the type that the target
+  needs: an object for a class, an array or object for a `JsonType`, or a
+  backing value for a backed enum.
 - `InvalidValue`: the JSON does not match the declarations. This includes
   values of the wrong type, unknown enum cases, values outside a literal type,
   an empty array for `non-empty-list<T>`, an empty object for
