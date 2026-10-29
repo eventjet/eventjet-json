@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use ArrayObject;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
-use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
 use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\ScalarNode;
@@ -20,9 +18,6 @@ use JsonSerializable;
 use ReflectionClass;
 use ReflectionEnum;
 use ReflectionException;
-use ReflectionNamedType;
-use ReflectionParameter;
-use ReflectionProperty;
 use stdClass;
 
 use function array_key_exists;
@@ -54,33 +49,6 @@ final class NamedTypeCompiler
     ];
 
     private const array RESOURCES = ['resource' => true, 'open-resource' => true, 'closed-resource' => true];
-
-    /**
-     * Compiles a field whose native type names a class or an enum. Returns null for `ArrayObject`, and for a nullable
-     * type whose values JSON cannot represent, because the union of the type tree accepts only null for it.
-     *
-     * @throws DecodeError
-     * @throws ReflectionException
-     */
-    public static function field(ReflectionParameter|ReflectionProperty $field, ReflectionNamedType $type): Node|null
-    {
-        $name = FieldTypeNameResolver::resolve($field, $type);
-        if ($name === ArrayObject::class) {
-            return null;
-        }
-        if (!$type->allowsNull()) {
-            return self::named($name, $field->getName());
-        }
-        try {
-            $node = self::named($name, $field->getName());
-        } catch (DecodeError $error) {
-            $unrepresentable = self::unrepresentable($name);
-            return $unrepresentable ? null : throw $error;
-        }
-        return $node instanceof UncheckedNode
-            ? new UncheckedNode($name, $field->getName(), nullable: true)
-            : NullableNode::field($node);
-    }
 
     /**
      * @throws DecodeError

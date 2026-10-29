@@ -174,6 +174,14 @@ final class ConstructionErrorCases
                 . ' from the JSON object: Field value uses unknown class UnloadedRequiredClass, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
             DecodeErrorKind::UnsupportedDeclaration->value,
         ];
+        yield 'nullable unloaded class parameter rejects an object' => [
+            '{"value":{}}',
+            CollectionDeclarationFixture::create('?UnloadedNullableClass', '', 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('?UnloadedNullableClass', '', 'param')
+                . ' from the JSON object: Field value uses unknown class UnloadedNullableClass, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            DecodeErrorKind::UnsupportedDeclaration->value,
+        ];
         yield 'private constructor cannot be called' => [
             '{}',
             PrivateConstructorTarget::create()::class,

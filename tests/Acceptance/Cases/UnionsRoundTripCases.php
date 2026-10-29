@@ -235,6 +235,12 @@ final class UnionsRoundTripCases
      */
     private static function objectAndMapMembers(): iterable
     {
+        yield 'nullable object list preserves null and object items' => [CollectionDeclarationFixture::object(
+            'array',
+            PhpType::list(PhpType::union(PhpType::Null, Coordinates::class)),
+            'param',
+            [null, new Coordinates(1.0, 2.0), null],
+        )];
         yield 'list-or-object field matches class names without regard to case' =>
             [CollectionDeclarationFixture::object(
                 'array',
