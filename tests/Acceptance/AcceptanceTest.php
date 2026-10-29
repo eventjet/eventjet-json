@@ -79,10 +79,15 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Throwable;
+use TypeError;
 
 use function is_string;
 use function json_encode;
+use function spl_autoload_register;
+use function spl_autoload_unregister;
+use function uniqid;
 
 use const JSON_THROW_ON_ERROR;
 
@@ -285,6 +290,44 @@ final class AcceptanceTest extends TestCase
         static::assertSame($kind, $decoded->kind);
         if ($previous !== null) {
             static::assertSame($previous, $decoded->getPrevious());
+        }
+    }
+
+    /** @throws TypeError */
+    public function testAutoloaderFailureForTheTargetIsReturnedAsAnError(): void
+    {
+        /** @var class-string $class */
+        $class = uniqid('FailingAutoloadTarget_');
+        $failure = new RuntimeException('Autoloader failed.');
+        $autoload =
+            /** @throws RuntimeException */
+            static function (string $requested) use ($class, $failure): void {
+                if ($requested === $class) {
+                    throw $failure;
+                }
+            };
+        spl_autoload_register($autoload, prepend: true);
+
+        try {
+            $errors = [
+                Json::decode('{}', $class),
+                Json::decode('"ready"', $class),
+                Json::decode('[]', JsonType::array($class)),
+                Json::validateType($class),
+                Json::validateType(JsonType::array($class)),
+            ];
+        } finally {
+            spl_autoload_unregister($autoload);
+        }
+
+        foreach ($errors as $error) {
+            static::assertTrue($error instanceof DecodeError);
+            static::assertSame(
+                'Could not create ' . $class . ' from the JSON object: Autoloader failed.',
+                $error->getMessage(),
+            );
+            static::assertSame(DecodeErrorKind::UnsupportedDeclaration, $error->kind);
+            static::assertSame($failure, $error->getPrevious());
         }
     }
 

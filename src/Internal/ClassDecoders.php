@@ -93,8 +93,12 @@ final class ClassDecoders
         // A class with a cached decoder is no enum, so warm decodes skip enum_exists(). Classes skip EnumRoots, so that
         // a request that decodes no enum root does not load it.
         $enum = $class;
-        if ($decoder === null && enum_exists($enum)) {
-            return EnumRoots::decode($class, $value);
+        try {
+            if ($decoder === null && enum_exists($enum)) {
+                return EnumRoots::decode($class, $value);
+            }
+        } catch (Throwable $error) {
+            return UnsupportedTarget::unreadable($error)->whileCreating($class);
         }
         if (!$value instanceof stdClass) {
             return InvalidInput::rootValue($value);
