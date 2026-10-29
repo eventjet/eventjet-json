@@ -77,9 +77,9 @@ final class RootDescriptor
     public function validate(): DecodeError|null
     {
         try {
-            // The node depends on the item class only if it decodes objects of it, not cases of an enum.
-            $dependencies = $this->node()->dependencies();
-            if ($dependencies !== []) {
+            $this->node();
+            $enum = $this->itemClass;
+            if (!enum_exists($enum)) {
                 new ClassGraphValidator()->validate($this->itemClass);
             }
             return null;

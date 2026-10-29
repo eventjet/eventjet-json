@@ -6,6 +6,7 @@ unchanged while making decoding slower. Direct checks make those regressions
 visible to mutation testing without relying on timing thresholds.
 
 - `MetadataCacheTest` checks that class decoders are compiled once per class, that
+  root decodes reuse them and the nodes of enum roots, that
   failed and incomplete declarations are compiled again, and that field declarations
   are compiled again after a missing class loads. It also checks that equivalent
   `JsonType` descriptors share one compiled node, and that a descriptor is compiled

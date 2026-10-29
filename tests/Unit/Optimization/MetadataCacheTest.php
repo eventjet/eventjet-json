@@ -279,6 +279,16 @@ final class MetadataCacheTest extends TestCase
             ClassDecoders::hydrate(DistinctEnumScalarUnionField::class, JsonObject::of(['value' => 0])),
         );
         static::assertSame($union, ClassDecoders::get(DistinctEnumScalarUnionField::class));
+
+        $scalars = ClassDecoders::get(ScalarFields::class);
+        static::assertEquals(
+            new ScalarFields('a', 1, 1.5, true),
+            Json::decode('{"string":"a","integer":1,"float":1.5,"boolean":true}', ScalarFields::class),
+        );
+        static::assertSame($scalars, ClassDecoders::get(ScalarFields::class));
+        $enum = EnumRoots::node(StringBackedStatus::class);
+        static::assertSame(StringBackedStatus::Ready, Json::decode('"ready"', StringBackedStatus::class));
+        static::assertSame($enum, EnumRoots::node(StringBackedStatus::class));
     }
 
     /**
