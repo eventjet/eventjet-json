@@ -32,6 +32,7 @@ final class UnionValueErrorCases
                 . '|int, string given.',
             DecodeErrorKind::InvalidValue,
         ];
+        yield from self::unloadedClassMembers();
         yield 'tuple-or-string field rejects a boolean' => [
             '{"value":false}',
             CollectionDeclarationFixture::create('array|string', 'array{0: int, 1?: string}|string', 'param'),
@@ -106,6 +107,36 @@ final class UnionValueErrorCases
             '{"value":{}}',
             UnionPublicProperty::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\UnionPublicProperty from the JSON object: Field value must be of type string|int, stdClass given.',
+            DecodeErrorKind::InvalidValue,
+        ];
+    }
+
+    /**
+     * An unloaded class in a union rejects JSON objects with the union type, and leaves other values to the other
+     * members.
+     *
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
+     * @throws \RuntimeException
+     */
+    private static function unloadedClassMembers(): iterable
+    {
+        $class = CollectionNameSource::load(
+            'UnloadedClassUnionFields',
+            'final class UnloadedClassUnionFields { '
+            . 'public function __construct(public UnloadedUnionClass|int $value, public int $count) {} }',
+        );
+        yield 'union with an unloaded class rejects an object' => [
+            '{"value":{},"count":1}',
+            $class,
+            'Could not create '
+                . $class
+                . ' from the JSON object: Field value must be of type UnloadedUnionClass|int, stdClass given.',
+            DecodeErrorKind::InvalidValue,
+        ];
+        yield 'union with an unloaded class accepts an integer' => [
+            '{"value":1,"count":"one"}',
+            $class,
+            'Could not create ' . $class . ' from the JSON object: Field count must be of type int, string given.',
             DecodeErrorKind::InvalidValue,
         ];
     }
