@@ -11,6 +11,7 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedClass;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
@@ -78,6 +79,7 @@ use const PHP_INT_MIN;
 #[UsesClass(DecodeErrors::class)]
 #[UsesClass(UnsupportedField::class)]
 #[UsesClass(InvalidValue::class)]
+#[UsesClass(UnsupportedClass::class)]
 #[UsesClass(UnsupportedFieldClass::class)]
 #[UsesClass(EnumNode::class)]
 #[UsesClass(ListNode::class)]

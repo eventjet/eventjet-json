@@ -12,12 +12,14 @@ use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\EnumRoots;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
 use Eventjet\Json\Internal\Error\ConstructorFailure;
 use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedClass;
 use Eventjet\Json\Internal\Error\UnsupportedCollection;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
@@ -173,11 +175,13 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(UnsupportedField::class)]
 #[CoversClass(UnsupportedFieldClass::class)]
 #[CoversClass(UnsupportedTarget::class)]
+#[CoversClass(UnsupportedClass::class)]
 #[CoversClass(UnionBuilder::class)]
 #[CoversClass(LiteralNode::class)]
 #[CoversClass(ClassDecoder::class)]
 #[CoversClass(ClassField::class)]
 #[CoversClass(ClassDecoders::class)]
+#[CoversClass(EnumRoots::class)]
 final class AcceptanceTest extends TestCase
 {
     /** @param class-string|JsonType<mixed> $type */

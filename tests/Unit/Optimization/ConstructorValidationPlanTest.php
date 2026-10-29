@@ -12,9 +12,11 @@ use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\EnumRoots;
 use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedClass;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\FieldNameRules;
@@ -139,11 +141,13 @@ use function class_alias;
 #[CoversClass(ClassDecoder::class)]
 #[CoversClass(ClassField::class)]
 #[CoversClass(ClassDecoders::class)]
+#[CoversClass(EnumRoots::class)]
 #[UsesClass(ClassGraphValidator::class)]
 #[UsesClass(DecodeErrorKind::class)]
 #[UsesClass(InvalidFieldMapping::class)]
 #[UsesClass(InvalidValue::class)]
 #[UsesClass(UnsupportedField::class)]
+#[UsesClass(UnsupportedClass::class)]
 #[UsesClass(UnsupportedFieldClass::class)]
 final class ConstructorValidationPlanTest extends TestCase
 {
@@ -367,10 +371,9 @@ final class ConstructorValidationPlanTest extends TestCase
             'use Eventjet\\Json\\Field; final class InvalidMappedSerializer implements JsonSerializable { use Eventjet\\Json\\MappedJsonFields; public static string $shared = ""; #[Field("ref")] public string $value = ""; public string $ref = ""; }',
         );
         $reflection = new ReflectionClass($class);
-        $error = InvalidFieldMapping::collision('value', 'ref', 'ref');
         $named = InvalidFieldMapping::collision('value', 'ref', 'ref')->whileCreating($class);
         for ($attempt = 0; $attempt < 2; ++$attempt) {
-            static::assertEquals($error, ThrownDecodeError::of(
+            static::assertEquals($named, ThrownDecodeError::of(
                 /**
                  * @throws DecodeError
                  */
@@ -420,10 +423,9 @@ final class ConstructorValidationPlanTest extends TestCase
                     . ' implements JsonSerializable { use Eventjet\\Json\\MappedJsonFields; #[Field("wire")] public string $value = "public"; }',
                 );
                 $reflection = new ReflectionClass($class);
-                $error = InvalidFieldMapping::nonPublicProperty('value');
                 $named = InvalidFieldMapping::nonPublicProperty('value')->whileCreating($class);
                 for ($attempt = 0; $attempt < 2; ++$attempt) {
-                    static::assertEquals($error, ThrownDecodeError::of(
+                    static::assertEquals($named, ThrownDecodeError::of(
                         /**
                          * @throws DecodeError
                          */

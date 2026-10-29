@@ -75,7 +75,7 @@ wrong:
 | Kind | What went wrong |
 | --- | --- |
 | `DecodeErrorKind::InvalidJson` | The input is not valid JSON. |
-| `DecodeErrorKind::UnexpectedRootValue` | The JSON root is not the object or array the target needs. |
+| `DecodeErrorKind::UnexpectedRootValue` | The JSON root does not have the type the target needs. |
 | `DecodeErrorKind::InvalidValue` | A JSON value does not match its declared type, or a required member is missing. |
 | `DecodeErrorKind::UnsupportedDeclaration` | The target class can't be decoded, whatever the input. |
 | `DecodeErrorKind::ConstructorFailure` | The target's constructor, or a set hook of one of its public properties, threw. |
@@ -247,8 +247,11 @@ echo $directory['author']->name; // Ada
 
 Root descriptors accept final classes, backed enums, and nested array or map
 descriptors, such as `JsonType::map(JsonType::array(Person::class))`. They do
-not accept scalar, nullable, union, or tuple item declarations. Standalone
-scalar, enum, and `null` roots are unsupported.
+not accept scalar, nullable, union, or tuple item declarations.
+
+A backed enum can also be the root on its own. `Json::decode('"ready"',
+Status::class)` returns `Status::Ready`. Standalone scalar and `null` roots are
+unsupported.
 
 Map keys must remain PHP strings. For example, `"01"` is supported, but `"42"`
 is rejected because PHP converts it to an integer key.

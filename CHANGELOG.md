@@ -25,6 +25,7 @@ PHP types and JSON object/array shapes intact. See the [type reference](docs/typ
   tags and their `@var` counterparts, which take priority over plain tags. `array-key` reads as `int|string`.
 - `JsonType::array()` and `JsonType::map()` describe JSON arrays and objects at the root:
   `Json::decode($json, JsonType::array(Person::class))`.
+- A backed enum can be the root on its own: `Json::decode('"ready"', Status::class)` returns `Status::Ready`.
 - `Json::validateType()` checks a class and every class reachable from it without JSON input, so unit tests can catch
   unsupported declarations before they reach production.
 - `MappedJsonFields`, a trait that implements `jsonSerialize()` for classes that rename fields with `#[Field]`.

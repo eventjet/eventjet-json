@@ -6,9 +6,10 @@ namespace Eventjet\Json\Internal\Error;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
-use ReflectionClass;
+use ReflectionMethod;
 use Throwable;
 
+use function enum_exists;
 use function sprintf;
 
 /**
@@ -32,11 +33,11 @@ final class UnsupportedTarget
         );
     }
 
-    public static function inaccessibleConstructor(string $visibility): DecodeError
+    public static function inaccessibleConstructor(ReflectionMethod $constructor): DecodeError
     {
         return self::error(sprintf(
             'Target class has a %s constructor, which cannot be called to create the object.',
-            $visibility,
+            $constructor->isPrivate() ? 'private' : 'protected',
         ));
     }
 
@@ -48,13 +49,6 @@ final class UnsupportedTarget
         ));
     }
 
-    public static function backedEnum(): DecodeError
-    {
-        return self::error(
-            'Backed enums are not supported as standalone targets. Use a typed field or a collection descriptor.',
-        );
-    }
-
     public static function nonFinalItem(): DecodeError
     {
         return self::error(
@@ -62,13 +56,9 @@ final class UnsupportedTarget
         );
     }
 
-    /**
-     * @template T of object
-     * @param ReflectionClass<T> $class
-     */
-    public static function jsonSerializable(ReflectionClass $class): DecodeError
+    public static function jsonSerializable(string $class): DecodeError
     {
-        $enum = $class->isEnum();
+        $enum = enum_exists($class);
         return self::error(sprintf(
             'Target type %s JsonSerializable. Its custom JSON representation may not match its %s, so it cannot satisfy the round-trip contract.',
             $enum ? 'is an enum that implements' : 'implements',

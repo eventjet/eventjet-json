@@ -144,20 +144,13 @@ final class NamedTypeCompiler
     }
 
     /**
-     * Rejects enums whose values JSON cannot restore: non-backed enums, and backed enums with a custom JSON
-     * representation, which may not match their backing values.
-     *
      * @throws DecodeError
      * @throws ReflectionException
      */
     private static function enum(string $enum, string $path): Node
     {
-        $node = EnumNode::of($enum);
-        return match (true) {
-            $node === null => throw UnsupportedFieldClass::nonBackedEnum($path, $enum),
-            is_a($enum, JsonSerializable::class, allow_string: true) => throw self::serializedEnum($enum, $path),
-            default => $node,
-        };
+        TargetClass::validateEnum($enum, $path);
+        return EnumNode::of($enum);
     }
 
     /**
@@ -180,33 +173,18 @@ final class NamedTypeCompiler
 
     /**
      * Compiles a class that JSON represents as an object, rejecting a class that JSON cannot identify or construct.
-     * PHP checks a class that is not loaded yet when the field is assigned. Errors in the declarations of the class
-     * itself name that class.
+     * PHP checks a class that is not loaded yet when the field is assigned.
      *
      * @throws DecodeError
      * @throws ReflectionException
      */
     private static function object(string $name, string $path): Node
     {
-        if (interface_exists($name)) {
-            throw UnsupportedFieldClass::interface($path, $name);
-        }
-        if (!class_exists($name)) {
+        if (!class_exists($name) && !interface_exists($name)) {
             assert(!array_key_exists($name, self::BUILTINS), description: 'Builtin types compile before classes.');
             return new UncheckedNode($name, $path, nullable: false);
         }
-        $class = new ReflectionClass($name);
-        if ($class->isAbstract()) {
-            throw UnsupportedFieldClass::abstractClass($path, $name);
-        }
-        if (!$class->isFinal()) {
-            throw UnsupportedFieldClass::nonFinal($path, $name);
-        }
-        try {
-            TargetClass::fieldNames($class);
-        } catch (DecodeError $error) {
-            throw $error->whileCreating($class->getName());
-        }
+        TargetClass::validateNested(new ReflectionClass($name), $path);
         return new ObjectNode($name, false);
     }
 }
