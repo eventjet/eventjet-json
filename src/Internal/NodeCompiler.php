@@ -34,14 +34,18 @@ final class NodeCompiler
      */
     public static function field(PhpDocType $type, string $path): Node|null
     {
-        return $type->name === '|' ? self::union($type->arguments, $path) : self::compile($type, $path);
+        $node = $type->name === '|' ? self::union($type->arguments, $path) : self::compile($type, $path);
+        return $node instanceof DecodeError ? throw $node : $node;
     }
 
     /**
+     * Compiles a type, or returns the error for a type whose values JSON cannot represent. A union skips such a member
+     * if another member remains. Every other position throws the error.
+     *
      * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function compile(PhpDocType $type, string $path): Node|null
+    private static function compile(PhpDocType $type, string $path): Node|DecodeError|null
     {
         $arguments = $type->arguments;
         return match ($type->name) {
@@ -59,8 +63,7 @@ final class NodeCompiler
     }
 
     /**
-     * Compiles a union. A member that fails to compile goes to the union builder, which skips it if JSON cannot
-     * represent its values.
+     * Compiles a union. The union builder skips a member whose values JSON cannot represent if another member remains.
      *
      * @param list<PhpDocType> $members
      * @throws DecodeError
@@ -70,10 +73,9 @@ final class NodeCompiler
     {
         $union = new UnionBuilder($path);
         foreach ($members as $member) {
-            try {
-                $node = self::compile($member, $path);
-            } catch (DecodeError $error) {
-                $union->reject($member->name, $error);
+            $node = self::compile($member, $path);
+            if ($node instanceof DecodeError) {
+                $union->reject($member->name, $node);
                 continue;
             }
             if ($node === null) {
@@ -98,8 +100,8 @@ final class NodeCompiler
         $items = [];
         foreach ($entries as $index => $entry) {
             $item = self::compile($entry->type, sprintf('%s[%d]', $path, $index));
-            if ($item === null) {
-                return null;
+            if (!$item instanceof Node) {
+                return $item === null ? null : throw $item;
             }
             $items[] = $item;
         }
@@ -114,7 +116,11 @@ final class NodeCompiler
     {
         $arguments = $type->arguments;
         $item = count($arguments) === 1 ? self::compile($arguments[0], $path) : null;
-        return $item instanceof Node ? new ListNode($item, $type->name === 'non-empty-list') : $item;
+        return match (true) {
+            $item instanceof DecodeError => throw $item,
+            $item === null => null,
+            default => new ListNode($item, $type->name === 'non-empty-list'),
+        };
     }
 
     /**
@@ -125,6 +131,10 @@ final class NodeCompiler
     {
         $value = $type->stringKeyedValue();
         $node = $value === null ? null : self::compile($value, $path);
-        return $node instanceof Node ? new MapNode($node, $type->name === ArrayObject::class) : $node;
+        return match (true) {
+            $node instanceof DecodeError => throw $node,
+            $node === null => null,
+            default => new MapNode($node, $type->name === ArrayObject::class),
+        };
     }
 }

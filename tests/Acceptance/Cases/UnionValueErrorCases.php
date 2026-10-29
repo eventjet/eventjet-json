@@ -90,6 +90,15 @@ final class UnionValueErrorCases
                 . ' from the JSON object: Field value[0] must be of type Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|int, string given.',
             DecodeErrorKind::InvalidValue,
         ];
+        $nullableResource = CollectionDeclarationFixture::create('?\resource', '', 'var');
+        yield 'nullable native class named resource reads as a resource, which accepts only null' => [
+            '{"value":{}}',
+            $nullableResource,
+            'Could not create '
+                . $nullableResource
+                . ' from the JSON object: Field value must be of type resource|null, stdClass given.',
+            DecodeErrorKind::InvalidValue,
+        ];
         $repeated = CollectionDeclarationFixture::create(
             'int|string',
             '/** @param int|string $value Version 2 */',

@@ -78,14 +78,28 @@ final class TargetClass
      */
     public static function validateEnum(string $enum, string|null $field = null): void
     {
+        $error = self::unrepresentableEnum($enum, $field);
+        if ($error !== null) {
+            throw $error;
+        }
+    }
+
+    /**
+     * Returns the error for a non-backed enum without custom serialization, whose values JSON cannot represent, so that
+     * a union can skip it if another member remains. Throws for an enum that JSON represents but cannot decode.
+     *
+     * @param string|null $field The field that declares the enum, or null at the root or for the item of a JsonType.
+     * @throws DecodeError
+     */
+    public static function unrepresentableEnum(string $enum, string|null $field): DecodeError|null
+    {
         // Checked before the BackedEnum check narrows $enum, after which Mago reports this check as unreachable.
         $serialized = is_a($enum, JsonSerializable::class, allow_string: true);
         if (!is_a($enum, BackedEnum::class, allow_string: true)) {
-            throw UnsupportedClass::nonBackedEnum($field, $enum);
+            $error = UnsupportedClass::nonBackedEnum($field, $enum);
+            return $serialized ? throw $error : $error;
         }
-        if ($serialized) {
-            throw UnsupportedClass::jsonSerializableEnum($field, $enum);
-        }
+        return $serialized ? throw UnsupportedClass::jsonSerializableEnum($field, $enum) : null;
     }
 
     /**

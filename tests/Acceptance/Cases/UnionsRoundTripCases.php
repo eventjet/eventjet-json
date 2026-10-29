@@ -80,6 +80,12 @@ final class UnionsRoundTripCases
                 )];
             }
         }
+        yield 'nullable native class named resource accepts null' => [CollectionDeclarationFixture::object(
+            '?\resource',
+            '',
+            'param',
+            null,
+        )];
         yield 'tuple-or-string field preserves a tuple' => [CollectionDeclarationFixture::object(
             'array|string',
             PhpType::union(PhpType::tuple(PhpType::Int, PhpType::String), PhpType::String),

@@ -10,7 +10,6 @@ use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
 use Eventjet\Json\Internal\Node\UnionNode;
-use ReflectionException;
 
 use function array_filter;
 use function array_keys;
@@ -44,19 +43,9 @@ final class UnionBuilder
         $this->types[(string) $member] = $member;
     }
 
-    /**
-     * Records a member that failed to compile. If its values have no JSON representation, its error is reported only if
-     * no other member remains. Otherwise, the error applies to the whole union.
-     *
-     * @throws DecodeError
-     * @throws ReflectionException
-     */
+    /** Records a member whose values JSON cannot represent. Its error is reported only if no other member remains. */
     public function reject(string $type, DecodeError $error): void
     {
-        $unrepresentable = NamedTypeCompiler::unrepresentable($type);
-        if (!$unrepresentable) {
-            throw $error;
-        }
         $this->types[$type] = null;
         $this->rejected ??= $error;
     }
