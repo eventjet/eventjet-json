@@ -490,27 +490,6 @@ final class LiteralTypeTest extends TestCase
     }
 
     /**
-     * @throws \JsonException
-     * @throws \PHPUnit\Framework\Exception
-     * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
-     * @throws DecodeError
-     */
-    public function testNativeBooleanLiteralsRejectTheirOppositeValues(): void
-    {
-        foreach (['yes' => true, 'no' => false] as $field => $expected) {
-            $node = new ScalarNode($expected ? 'true' : 'false', nullable: false);
-            static::assertSame($expected, $node->decode($expected, $field), $field);
-            static::assertSame(
-                DecodeErrorKind::InvalidValue,
-                ThrownDecodeError::of(
-                    /** @throws DecodeError|\JsonException */ static fn(): mixed => $node->decode(!$expected, $field),
-                )->kind,
-                $field,
-            );
-        }
-    }
-
-    /**
      * @throws DecodeError
      * @throws ReflectionException
      */

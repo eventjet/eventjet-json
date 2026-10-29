@@ -28,6 +28,7 @@ final class UnionsRoundTripCases
         yield from self::encodableMembers();
         yield from self::listAndScalarMembers();
         yield from self::objectAndMapMembers();
+        yield from NativeBooleanUnionCases::objects();
     }
 
     /**

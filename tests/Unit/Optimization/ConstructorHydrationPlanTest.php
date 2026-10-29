@@ -159,7 +159,7 @@ final class ConstructorHydrationPlanTest extends TestCase
             $string,
             $int,
             new ScalarNode('bool', false),
-            new ScalarNode('null', true),
+            new NullOnlyNode('null'),
         ]);
         static::assertSame(StringBackedStatus::Ready, $union->decode(StringBackedStatus::Ready->value, 'value'));
         static::assertSame(StringBackedStatus::Pending, $union->decode(StringBackedStatus::Pending->value, 'value'));

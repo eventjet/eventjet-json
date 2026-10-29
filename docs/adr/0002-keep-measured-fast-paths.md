@@ -11,7 +11,7 @@ When a change removes or renames a fast path, it updates its row.
 
 | Fast path | Without it |
 |---|---|
-| Native builtin scalar fields become a `ScalarNode` directly in `TypeCompiler::native()`, without `NodeCompiler`. | GitHub pull request webhook 5.9% and record batch 1 4.8% slower on the first PHP-FPM decode ([#69](https://github.com/eventjet/eventjet-json/pull/69)). |
+| Native `bool`, `int`, `float`, and `string` fields, nullable or not, become a `ScalarNode` directly in `TypeCompiler::native()`, without `NodeCompiler`. | GitHub pull request webhook 5.9% and record batch 1 4.8% slower on the first PHP-FPM decode ([#69](https://github.com/eventjet/eventjet-json/pull/69)). |
 | Native class and enum fields compile through `NamedTypeCompiler::field()`, without a type tree and `UnionBuilder`. | First PHP-FPM decode 6–10% slower for the Stripe, GitHub and Kubernetes documents ([#84](https://github.com/eventjet/eventjet-json/pull/84)). |
 | `PhpDocFieldType::narrowing()` compares a single PHPDoc type with a single native type, so that `PhpDocNarrowing` loads only for unions. | Loading a class costs about 4,200 instructions per request. Record batch 0, whose only field is `list<Record>` on `array`, failed the check at +3.84% (dbe5047). |
 | `ClassDecoders::decodeRoot()` checks `enum_exists()` before it asks `EnumRoots`, and the rules for where a class can be decoded live in `TargetClass`, which every decode loads anyway. So the first decode of a class root loads no extra class for these rules or for enum roots. | Each class adds a class load per request, about 4,200 instructions, see the row above. Not measured on its own. |

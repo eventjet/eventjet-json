@@ -69,7 +69,7 @@ final class EnumsErrorCases
                     '',
                     'var',
                 )
-                . ' from the JSON object: Field value must be of type ?Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, int given.',
+                . ' from the JSON object: Field value must be of type Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|null, int given.',
             DecodeErrorKind::InvalidValue,
         ];
         yield 'string-backed enum rejects null' => [

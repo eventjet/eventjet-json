@@ -29,13 +29,12 @@ final class NodeCompiler
     /**
      * Compiles the whole type of a field.
      *
-     * @param string|null $label The type that errors report for a union, if it differs from the member types.
      * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function field(PhpDocType $type, string $path, string|null $label = null): Node|null
+    public static function field(PhpDocType $type, string $path): Node|null
     {
-        return $type->name === '|' ? self::union($type->arguments, $path, $label) : self::compile($type, $path);
+        return $type->name === '|' ? self::union($type->arguments, $path) : self::compile($type, $path);
     }
 
     /**
@@ -46,7 +45,7 @@ final class NodeCompiler
     {
         $arguments = $type->arguments;
         return match ($type->name) {
-            '|' => self::union($arguments, $path, null),
+            '|' => self::union($arguments, $path),
             '&' => throw UnsupportedField::intersection($path, implode('&', array_map(
                 static fn(PhpDocType $member): string => $member->name,
                 $arguments,
@@ -64,11 +63,10 @@ final class NodeCompiler
      * represent its values.
      *
      * @param list<PhpDocType> $members
-     * @param string|null $label The type that errors report, if it differs from the member types.
      * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function union(array $members, string $path, string|null $label): Node|null
+    private static function union(array $members, string $path): Node|null
     {
         $union = new UnionBuilder($path);
         foreach ($members as $member) {
@@ -83,7 +81,7 @@ final class NodeCompiler
             }
             $union->add($node);
         }
-        return $union->build($label);
+        return $union->build();
     }
 
     /**

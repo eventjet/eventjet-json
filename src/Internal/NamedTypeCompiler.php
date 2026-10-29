@@ -26,6 +26,7 @@ use ReflectionProperty;
 use stdClass;
 
 use function array_key_exists;
+use function assert;
 use function class_exists;
 use function enum_exists;
 use function interface_exists;
@@ -54,6 +55,25 @@ final class NamedTypeCompiler
     ];
 
     private const array RESOURCES = ['resource' => true, 'open-resource' => true, 'closed-resource' => true];
+
+    /** Names of PHP's builtin types, which no class can have. */
+    private const array BUILTINS = [
+        'array' => true,
+        'bool' => true,
+        'callable' => true,
+        'false' => true,
+        'float' => true,
+        'int' => true,
+        'iterable' => true,
+        'mixed' => true,
+        'never' => true,
+        'null' => true,
+        'object' => true,
+        'static' => true,
+        'string' => true,
+        'true' => true,
+        'void' => true,
+    ];
 
     /**
      * Compiles a field whose native type names a class or an enum, without the type tree and union that NodeCompiler
@@ -161,6 +181,7 @@ final class NamedTypeCompiler
     private static function object(string $name, string $path): Node
     {
         if (!class_exists($name) && !interface_exists($name)) {
+            assert(!array_key_exists($name, self::BUILTINS), description: 'Builtin types compile before classes.');
             return new UncheckedNode($name, $path, nullable: false);
         }
         TargetClass::validateNested(new ReflectionClass($name), $path);
