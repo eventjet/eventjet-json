@@ -89,6 +89,16 @@ final readonly class PhpDocType
         return $hasStringKey ? $pair[1] : null;
     }
 
+    /**
+     * Returns the name of a type without arguments or entries, such as `Foo` or `Foo::BAR`.
+     *
+     * @mutation-free
+     */
+    public function plainName(): string|null
+    {
+        return $this->arguments === [] && $this->entries === [] ? $this->name : null;
+    }
+
     /** @mutation-free */
     public function isPlainName(string $name): bool
     {

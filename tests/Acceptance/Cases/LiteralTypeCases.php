@@ -47,9 +47,6 @@ final class LiteralTypeCases
             yield 'ordinary PHPDoc does not narrow a native union ' . $tag => [
                 CollectionDeclarationFixture::object('int|string|null', 'null|int', $tag, 'abc'),
             ];
-            yield 'unknown names leave a literal declaration unchecked ' . $tag => [
-                CollectionDeclarationFixture::object('string', "UnknownLiteralClass|'x'", $tag, 'y'),
-            ];
             yield 'literals that omit a native member leave the native type in charge ' . $tag => [
                 CollectionDeclarationFixture::object('?string', "'a'|'b'", $tag, 'c'),
             ];

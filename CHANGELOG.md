@@ -51,6 +51,10 @@ PHP types and JSON object/array shapes intact. See the [type reference](docs/typ
   decoded again.
 - **BREAKING**: `Json::decode()` enforces PHPDoc literal types. 0.2.0 ignored PHPDoc, so `@param 'open'|'done' $state`
   accepted any string.
+- **BREAKING**: PHPDoc types that name something the decoder cannot resolve are rejected with a `DecodeError`, even
+  when the member is missing from the JSON. This includes unknown classes, type aliases such as `@phpstan-type`, and
+  keywords the decoder does not support, such as `scalar` or `lowercase-string`. Write the type out, for example as a
+  literal union, or remove the PHPDoc type so that the native type applies.
 - **BREAKING**: Declarations that cannot round-trip are rejected with a `DecodeError`, even when the member is missing
   from the JSON:
   - `mixed`, untyped, `object`, `stdClass`, `iterable`, and `callable` fields. In 0.2.0, `mixed` accepted any value.

@@ -553,14 +553,21 @@ integer ranges such as `int<0, max>`, and the refinements listed under
 Keywords are case-sensitive, and synonyms are not keywords: `Int`, `List`, and
 `Self` are read as class names, and `integer`, `boolean`, and `double` do not
 mean `int`, `bool`, and `float`. `static`, `parent`, `number`, and `scalar` are
-not recognized either and count as unknown types.
+not recognized either and count as [unknown types](#unknown-types).
 
-### Unknown types in a union
+### Unknown types
 
-On a scalar or enum field, a PHPDoc type that names a type the decoder does not
-know is ignored, and the native type applies. In a collection, every member of a
-union must be known: `list<int|Foo>` is an unsupported declaration if the
-decoder cannot resolve `Foo`.
+A PHPDoc type that names something the decoder cannot resolve returns a
+`DecodeError` on every field, even when the JSON member is missing. This
+includes unknown class names, type aliases such as `@phpstan-type`, keywords the
+decoder does not support, such as `scalar` or `lowercase-string`, and forms it
+cannot read, such as intersections. `@param 'a'|Missing $s` and
+`@param list<int|Missing> $l` are both rejected.
+
+Static analysis accepts some of these types, such as type aliases, and trusts
+them. If the decoder ignored them, it would accept values that the declared type
+does not allow. Write the type out, for example as a literal union or a backed
+enum, or remove the PHPDoc type so that the native type applies.
 
 ## Errors
 

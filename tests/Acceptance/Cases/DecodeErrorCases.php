@@ -18,6 +18,7 @@ final class DecodeErrorCases
     {
         yield from LiteralTypeCases::errors();
         yield from PhpDocKeywordCases::errors();
+        yield from UnresolvedPhpDocTypeErrorCases::errors();
         yield from FieldMappingErrorCases::errors();
         yield from JsonInputErrorCases::errors();
         yield from RootShapeErrorCases::errors();
