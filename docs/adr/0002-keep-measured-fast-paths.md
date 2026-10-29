@@ -1,11 +1,13 @@
-# Keep fast paths that the first decode in a request pays for
+# Keep fast paths that the blocking performance checks pay for
 
-Compiled decoders live for one request, so every PHP-FPM request compiles the decoders it uses again. The first
-decode in a request is therefore the cost that production pays most, and the Performance workflow blocks a change that
-makes it more than 3% slower (see [Performance](../performance.md)). So the code keeps fast paths that a general
-rule would make unnecessary. Each one was measured; removing one needs a new measurement that stays within the limit.
+Compiled decoders live for one request, so every PHP-FPM request compiles the decoders it uses again. The Performance
+workflow blocks a change that makes the first decode in a fresh PHP-FPM request, or warm decodes, more than 3% slower
+(see [Performance](../performance.md)). So the code keeps fast paths that a general rule would make unnecessary. Each
+one was measured; removing one needs a new measurement that stays within the limit.
 
-## The fast paths
+## The fast paths, as of 2026-10-29
+
+When a change removes or renames a fast path, it updates its row.
 
 | Fast path | Without it |
 |---|---|
