@@ -44,6 +44,12 @@ final class UnionsRoundTripCases
             return $object;
         })()];
         yield 'float union preserves actual item types' => [new FloatUnionList([0.0, 3.0, -1.25, null])];
+        yield 'float-or-integer list preserves integers and floats' => [CollectionDeclarationFixture::object(
+            'array',
+            'list<float|int>',
+            'param',
+            [1, 1.5],
+        )];
         yield 'integer-or-string list preserves a non-empty string' => [CollectionDeclarationFixture::object(
             'array',
             'list<int<0, max>|non-empty-string>',

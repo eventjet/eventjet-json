@@ -11,7 +11,6 @@ use Eventjet\Json\Internal\FieldTypeNameResolver;
 use JsonException;
 use Override;
 
-use function array_fill_keys;
 use function is_bool;
 use function is_float;
 use function is_int;
@@ -101,15 +100,16 @@ final readonly class ScalarNode implements Node
         return $values;
     }
 
+    /** A whole float may arrive as a JSON integer, so `float` takes integers unless `int` accepts them. */
     #[Override]
     public function claims(): array
     {
-        $types = match ($this->name) {
-            'bool' => ['true', 'false'],
-            'float' => ['int', 'float'],
-            default => [$this->name],
+        $accepts = ['others' => 'accepts', 'enums' => [], 'values' => []];
+        return match ($this->name) {
+            'bool' => ['true' => $accepts, 'false' => $accepts],
+            'float' => ['int' => ['others' => 'widens', 'enums' => [], 'values' => []], 'float' => $accepts],
+            default => [$this->name => $accepts],
         };
-        return array_fill_keys($types, ['every' => true, 'values' => []]);
     }
 
     #[Override]

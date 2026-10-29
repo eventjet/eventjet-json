@@ -23,6 +23,7 @@ use Eventjet\Json\Internal\NamedTypeCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\MapNode;
+use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
 use Eventjet\Json\Internal\Node\ObjectNode;
@@ -66,8 +67,13 @@ use ReflectionException;
 use ReflectionProperty;
 use stdClass;
 
+use function array_map;
 use function class_exists;
 
+/**
+ * @psalm-import-type Claims from Node
+ * @phpstan-import-type Claims from Node
+ */
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
 #[UsesClass(DecodeErrors::class)]
@@ -157,12 +163,12 @@ final class ConstructorHydrationPlanTest extends TestCase
     {
         $string = EnumNode::of(StringBackedStatus::class);
         $int = EnumNode::of(IntBackedStatus::class);
-        $union = UnionNode::of('StringBackedStatus|IntBackedStatus|bool|null', [
+        $union = UnionNode::of('StringBackedStatus|IntBackedStatus|bool|null', self::claimed([
             $string,
             $int,
             new ScalarNode('bool', false),
             new NullOnlyNode('null'),
-        ]);
+        ]));
         static::assertSame(StringBackedStatus::Ready, $union->decode(StringBackedStatus::Ready->value, 'value'));
         static::assertSame(StringBackedStatus::Pending, $union->decode(StringBackedStatus::Pending->value, 'value'));
         static::assertSame(IntBackedStatus::Ready, $union->decode(IntBackedStatus::Ready->value, 'value'));
@@ -182,16 +188,16 @@ final class ConstructorHydrationPlanTest extends TestCase
             );
         }
 
-        $numbers = UnionNode::of('int|float', [
+        $numbers = UnionNode::of('int|float', self::claimed([
             new ScalarNode('int', false),
             new ScalarNode('float', false),
-        ]);
+        ]));
         static::assertSame(1, $numbers->decode(1, 'value'));
         static::assertSame(1.5, $numbers->decode(1.5, 'value'));
-        $floats = UnionNode::of('float|string', [
+        $floats = UnionNode::of('float|string', self::claimed([
             new ScalarNode('float', false),
             new ScalarNode('string', false),
-        ]);
+        ]));
         static::assertSame(1.0, $floats->decode(1, 'value'));
     }
 
@@ -362,6 +368,19 @@ final class ConstructorHydrationPlanTest extends TestCase
                 ),
             );
         }
+    }
+
+    /**
+     * @param list<Node> $members
+     * @return list<array{Node, Claims}>
+     */
+    private static function claimed(array $members): array
+    {
+        return array_map(
+            /** @return array{Node, Claims} */
+            static fn(Node $member): array => [$member, $member->claims()],
+            $members,
+        );
     }
 
     /**

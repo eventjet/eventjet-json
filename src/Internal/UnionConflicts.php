@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use BackedEnum;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
-use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\Node;
-use Eventjet\Json\Internal\Node\ScalarNode;
 
 use function array_slice;
 use function in_array;
@@ -17,6 +14,12 @@ use function in_array;
 /**
  * Finds union members that JSON cannot tell apart: members that claim the same JSON value and decode it differently.
  *
+ * @psalm-import-type Claim from Node
+ * @psalm-import-type ClaimValues from Node
+ * @psalm-import-type Claims from Node
+ * @phpstan-import-type Claim from Node
+ * @phpstan-import-type ClaimValues from Node
+ * @phpstan-import-type Claims from Node
  * @internal
  */
 final class UnionConflicts
@@ -25,20 +28,18 @@ final class UnionConflicts
      * Returns the error for conflicting members. If several members conflict, the kind of conflict decides which error
      * the union reports.
      *
-     * @param list<array{Node, array<string, array{every: bool, values: array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}>}>}> $members
-     *     Each member with its claims.
-     * @throws DecodeError
+     * @param list<array{Node, Claims}> $members Each member with its claims.
      */
     public static function first(string $path, array $members): DecodeError|null
     {
         $errors = [];
         foreach ($members as $index => $first) {
             foreach (array_slice($members, $index + 1) as $second) {
-                $conflict = self::conflicts($path, $first, $second);
-                if (!$conflict) {
+                $conflict = self::conflict($first, $second);
+                if ($conflict === null) {
                     continue;
                 }
-                [$kind, $error] = AmbiguousUnion::between($path, $members, $first, $second);
+                [$kind, $error] = AmbiguousUnion::between($path, $members, ...$conflict);
                 $errors[$kind] ??= $error;
             }
         }
@@ -46,44 +47,67 @@ final class UnionConflicts
     }
 
     /**
-     * Whether two members claim a JSON value and decode it differently. Members that both take every value of a type
-     * that they don't list conflict, unless both are scalars, or both are enums, which the union combines.
+     * Returns the first JSON value type for which two members claim a value and return different PHP values for it,
+     * with each member and its claim for that type.
      *
-     * @param array{Node, array<string, array{every: bool, values: array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}>}>} $first
-     * @param array{Node, array<string, array{every: bool, values: array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}>}>} $second
-     * @throws DecodeError
+     * @param array{Node, Claims} $first
+     * @param array{Node, Claims} $second
+     * @return array{string, array{Node, Claim}, array{Node, Claim}}|null
      */
-    private static function conflicts(string $path, array $first, array $second): bool
+    private static function conflict(array $first, array $second): array|null
     {
-        [$firstNode, $firstClaims] = $first;
-        [$secondNode, $secondClaims] = $second;
-        $combined =
-            $firstNode::class === $secondNode::class
-            && in_array($firstNode::class, [ScalarNode::class, EnumNode::class], strict: true);
-        $conflicts = [];
-        foreach ($firstClaims as $valueType => $claim) {
-            $other = $secondClaims[$valueType] ?? ['every' => false, 'values' => []];
-            $conflicts[] = $claim['every'] && $other['every'] && !$combined;
-            $conflicts[] = self::differs($path, $claim['values'], $secondNode, $other);
-            $conflicts[] = self::differs($path, $other['values'], $firstNode, $claim);
+        foreach ($first[1] as $valueType => $claim) {
+            $other = $second[1][$valueType] ?? null;
+            if ($other === null) {
+                continue;
+            }
+            $conflicts = [
+                self::compete($claim, $other),
+                self::differs($claim['values'], $other),
+                self::differs($other['values'], $claim),
+            ];
+            if (in_array(true, $conflicts, strict: true)) {
+                return [$valueType, [$first[0], $claim], [$second[0], $other]];
+            }
         }
-        return in_array(true, $conflicts, strict: true);
+        return null;
     }
 
     /**
-     * Whether a member decodes one of the listed JSON values to a different PHP value. A member returns PHP values for
-     * the values that it lists, and a scalar also for the other values that it claims.
+     * Whether both members take the values of a type that they don't list. A member that widens them leaves them to
+     * one that accepts them, and the union combines enums into one node.
      *
-     * @param array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}> $values
-     * @param array{every: bool, values: array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}>} $claim
-     * @throws DecodeError
+     * @param Claim $first
+     * @param Claim $second
      */
-    private static function differs(string $path, array $values, Node $member, array $claim): bool
+    private static function compete(array $first, array $second): bool
     {
-        $scalar = $member instanceof ScalarNode && $claim['every'] ? $member : null;
+        $others = [$first['others'], $second['others']];
+        $yields = in_array($others, [['widens', 'accepts'], ['accepts', 'widens']], strict: true);
+        return (
+            !in_array(null, $others, strict: true)
+            && !$yields
+            && ($first['enums'] === [] || $second['enums'] === [])
+        );
+    }
+
+    /**
+     * Whether a member returns a different PHP value for one of the listed JSON values. A member returns PHP values
+     * for the values that it lists, and for the other values of the type if it accepts or widens them. Listed values
+     * are scalars, which a member that accepts them returns as they are.
+     *
+     * @param ClaimValues $values
+     * @param Claim $claim
+     */
+    private static function differs(array $values, array $claim): bool
+    {
         foreach ($values as $key => [$json, $value]) {
-            $decoded = $scalar === null ? $claim['values'][$key][1] ?? $value : $scalar->decode($json, $path);
-            if ($decoded !== $value) {
+            $returned = $claim['values'][$key][1] ?? match ($claim['others']) {
+                'accepts' => $json,
+                'widens' => (float) $json,
+                default => $value,
+            };
+            if ($returned !== $value) {
                 return true;
             }
         }

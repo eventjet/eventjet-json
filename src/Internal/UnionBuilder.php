@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use BackedEnum;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
@@ -25,6 +24,8 @@ use function implode;
 /**
  * Collects the compiled members of a union, then checks that JSON values identify one member each.
  *
+ * @psalm-import-type Claims from Node
+ * @phpstan-import-type Claims from Node
  * @internal
  */
 final class UnionBuilder
@@ -70,11 +71,16 @@ final class UnionBuilder
         if ($nullable !== null) {
             return $nullable;
         }
-        $error = $this->conflict($members);
+        $claimed = array_map(
+            /** @return array{Node, Claims} */
+            static fn(Node $member): array => [$member, $member->claims()],
+            $members,
+        );
+        $error = $this->conflict($claimed);
         if ($error !== null) {
             throw $error;
         }
-        return UnionNode::of(implode('|', array_keys($this->types)), $members);
+        return UnionNode::of(implode('|', array_keys($this->types)), $claimed);
     }
 
     /** @param list<Node> $members */
@@ -102,19 +108,13 @@ final class UnionBuilder
      * Returns the error for members that JSON cannot tell apart. Only members that claim the same JSON value type can
      * conflict. Most unions have none, and don't load the rules for them.
      *
-     * @param list<Node> $members
-     * @throws DecodeError
+     * @param list<array{Node, Claims}> $claimed Each member with its claims.
      */
-    private function conflict(array $members): DecodeError|null
+    private function conflict(array $claimed): DecodeError|null
     {
-        $claimed = array_map(
-            /** @return array{Node, array<string, array{every: bool, values: array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}>}>} */
-            static fn(Node $member): array => [$member, $member->claims()],
-            $members,
-        );
         $types = array_merge(...array_map(
             /**
-             * @param array{Node, array<string, mixed>} $member
+             * @param array{Node, Claims} $member
              * @return list<string>
              */
             static fn(array $member): array => array_keys($member[1]),

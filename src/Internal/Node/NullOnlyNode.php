@@ -27,7 +27,7 @@ final readonly class NullOnlyNode implements Node
     #[Override]
     public function claims(): array
     {
-        return ['null' => ['every' => true, 'values' => []]];
+        return ['null' => ['others' => 'accepts', 'enums' => [], 'values' => []]];
     }
 
     #[Override]
