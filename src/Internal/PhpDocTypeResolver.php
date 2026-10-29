@@ -74,21 +74,19 @@ final readonly class PhpDocTypeResolver
     }
 
     /**
-     * Returns the first member that names literals by its syntax but resolves to none, such as `Foo::MISSING`.
+     * Returns the name of the first member that does not resolve, such as `Missing` or `Foo::MISSING`. Returns null if
+     * that member is no plain name, such as `value-of<Foo>`, or if every member resolves on its own, as in `('a'|'b')`.
      *
      * @throws ReflectionException
      */
-    public function unresolvedLiteral(PhpDocType $type): string|null
+    public function unresolved(PhpDocType $type): string|null
     {
         $unresolved = array_filter(
             $type->members(),
             /** @throws ReflectionException */
-            fn(PhpDocType $member): bool => (
-                PhpDocConstantResolver::namesLiteral($member->name)
-                && $this->resolve($member) === null
-            ),
+            fn(PhpDocType $member): bool => $this->resolve($member) === null,
         );
-        return $unresolved === [] ? null : array_values($unresolved)[0]->name;
+        return (array_values($unresolved)[0] ?? null)?->plainName();
     }
 
     /** Returns `ArrayObject` if the name of a generic type refers to it. */

@@ -46,12 +46,15 @@ final class UnsupportedField
         ));
     }
 
-    public static function literal(string $field, string $literal): DecodeError
+    /** @param string|null $name The part of the PHPDoc type that cannot be resolved, if it is a name. */
+    public static function unresolvedType(string $field, string|null $name): DecodeError
     {
         return self::error(sprintf(
-            'Field %s uses unsupported literal declaration %s, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            'Field %s %s. Use a type that the decoder supports, or remove the PHPDoc type to decode the native type.',
             $field,
-            $literal,
+            $name === null
+                ? 'has a PHPDoc type that the decoder cannot read'
+                : sprintf('uses %s in its PHPDoc type, which the decoder cannot resolve', $name),
         ));
     }
 

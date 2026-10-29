@@ -22,7 +22,8 @@ use function assert;
 
 /**
  * Compiles field declarations into decoder nodes. A field's PHPDoc type applies if it narrows the native
- * type; otherwise the native type applies.
+ * type; otherwise the native type applies. A PHPDoc type that the decoder cannot resolve is rejected, because static
+ * analysis may trust it, as it does a type alias.
  *
  * @internal
  */
@@ -41,9 +42,8 @@ final readonly class TypeCompiler
     public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node
     {
         $declared = PhpDocFieldType::resolve($field);
-        $doc = $declared === null
-            ? null
-            : self::narrowing(new PhpDocTypeResolver($field)->resolve($declared), $field, $type);
+        $resolved = $declared === null ? null : new PhpDocTypeResolver($field)->resolve($declared);
+        $doc = $resolved === null ? null : self::narrowing($resolved, $field, $type);
         $node = match (true) {
             $doc !== null => NodeCompiler::field($doc, $field->getName()),
             $type instanceof ReflectionNamedType && !$type->isBuiltin() => NamedTypeCompiler::field(
@@ -52,17 +52,16 @@ final readonly class TypeCompiler
             ) ?? $this->native($field, $type),
             default => $this->native($field, $type),
         };
-        $literal =
-            $node !== null && $declared !== null && $doc === null
-                ? new PhpDocTypeResolver($field)->unresolvedLiteral($declared)
-                : null;
         return match (true) {
             $node === null => throw CollectionDeclarationError::unsupported(
                 $field,
                 $declared,
                 self::tree($field, $type),
             ),
-            $literal !== null => throw UnsupportedField::literal($field->getName(), $literal),
+            $declared !== null && $resolved === null => throw UnsupportedField::unresolvedType(
+                $field->getName(),
+                new PhpDocTypeResolver($field)->unresolved($declared),
+            ),
             default => $node,
         };
     }
@@ -91,12 +90,11 @@ final readonly class TypeCompiler
      * @throws ReflectionException
      */
     private static function narrowing(
-        PhpDocType|null $doc,
+        PhpDocType $doc,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionType $type,
     ): PhpDocType|null {
         return match (true) {
-            $doc === null => null,
             $doc->name === '|',
             !$type instanceof ReflectionNamedType,
             $type->allowsNull(),

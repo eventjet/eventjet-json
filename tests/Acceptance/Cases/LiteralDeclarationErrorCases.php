@@ -31,11 +31,7 @@ final class LiteralDeclarationErrorCases
                 yield 'unsupported literal declaration ' . $declaration . ' in ' . $tag => [
                     '{}',
                     $class,
-                    'Could not create '
-                        . $class
-                        . ' from the JSON object: Field value uses unsupported literal declaration '
-                        . $declaration
-                        . ', which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+                    UnresolvedPhpDocTypeErrorCases::message($class, $declaration),
                     DecodeErrorKind::UnsupportedDeclaration,
                 ];
             }

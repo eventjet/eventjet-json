@@ -37,12 +37,6 @@ final class PhpDocConstantResolver
         );
     }
 
-    /** Whether a name stands for literals by its syntax: `true`, `false`, or a class constant such as `Foo::BAR`. */
-    public static function namesLiteral(string $name): bool
-    {
-        return in_array($name, ['true', 'false'], strict: true) || str_contains($name, '::');
-    }
-
     /**
      * @return non-empty-list<PhpDocLiteral|'null'>|null
      * @throws ReflectionException

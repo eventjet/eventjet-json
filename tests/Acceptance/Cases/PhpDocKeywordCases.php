@@ -11,7 +11,7 @@ use RuntimeException;
 
 /**
  * `array-key` stands for `int|string`. Keywords are case-sensitive, and synonyms such as `integer` are not keywords.
- * `static`, `parent`, `number`, and `scalar` are unknown names, like any other.
+ * `static`, `parent`, `number`, and `scalar` are unknown names, like any other. {@see UnresolvedPhpDocTypeErrorCases}
  *
  * @internal
  */
@@ -34,10 +34,6 @@ final class PhpDocKeywordCases
             ['array|int|string', 'list<int>|array-key', 5],
             ['array|int|string', 'array-key|list<int>', [5]],
             ['int|string', "array-key|'a'", 'b'],
-            ['int', 'int|static', 5],
-            ['int', 'parent|int', 5],
-            ['float', 'float|number', 1.5],
-            ['string', 'scalar|string', 'a'],
         ] as $index => [$native, $declaration, $value]) {
             foreach (['param', 'var'] as $tag) {
                 yield 'PHPDoc keyword ' . $index . ' ' . $declaration . ' in ' . $tag => [
