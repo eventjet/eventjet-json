@@ -6,9 +6,9 @@ namespace Eventjet\Json\Internal\Error;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
-use ReflectionClass;
 use Throwable;
 
+use function enum_exists;
 use function sprintf;
 
 /**
@@ -62,13 +62,9 @@ final class UnsupportedTarget
         );
     }
 
-    /**
-     * @template T of object
-     * @param ReflectionClass<T> $class
-     */
-    public static function jsonSerializable(ReflectionClass $class): DecodeError
+    public static function jsonSerializable(string $class): DecodeError
     {
-        $enum = $class->isEnum();
+        $enum = enum_exists($class);
         return self::error(sprintf(
             'Target type %s JsonSerializable. Its custom JSON representation may not match its %s, so it cannot satisfy the round-trip contract.',
             $enum ? 'is an enum that implements' : 'implements',

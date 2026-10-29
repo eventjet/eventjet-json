@@ -33,7 +33,7 @@ final class Json
             return RootDescriptor::of($type)->validate();
         }
         try {
-            new ClassGraphValidator()->validateRoot($type);
+            new ClassGraphValidator()->validate($type);
             return null;
         } catch (DecodeError $error) {
             return $error;

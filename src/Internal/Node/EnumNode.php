@@ -9,6 +9,7 @@ use Closure;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
 use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\TargetPosition;
 use Override;
 use ReflectionEnum;
 use ReflectionException;
@@ -48,17 +49,15 @@ final readonly class EnumNode implements Node
     }
 
     /**
-     * Returns the node for a backed enum, or null if the enum has no backing type.
+     * Returns the node for a backed enum. {@see TargetPosition::validateEnum()} rejects non-backed enums first.
      *
      * @throws ReflectionException
      */
-    public static function of(string $enum): self|null
+    public static function of(string $enum): self
     {
         /** @var class-string<UnitEnum> $enum */
         $backingType = new ReflectionEnum($enum)->getBackingType();
-        if ($backingType === null) {
-            return null;
-        }
+        assert($backingType !== null, description: 'TargetPosition rejects non-backed enums.');
         $backingType = (string) $backingType;
         assert($backingType === 'int' || $backingType === 'string', description: 'Enums are backed by int or string.');
         /** @var class-string<BackedEnum> $enum */

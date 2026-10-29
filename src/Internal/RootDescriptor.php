@@ -20,7 +20,6 @@ use stdClass;
 use Throwable;
 
 use function array_reverse;
-use function assert;
 use function enum_exists;
 use function implode;
 use function is_array;
@@ -78,8 +77,11 @@ final class RootDescriptor
     public function validate(): DecodeError|null
     {
         try {
-            $this->node();
-            new ClassGraphValidator()->validate($this->itemClass);
+            // The node depends on the item class only if it decodes objects of it, not cases of an enum.
+            $dependencies = $this->node()->dependencies();
+            if ($dependencies !== []) {
+                new ClassGraphValidator()->validate($this->itemClass);
+            }
             return null;
         } catch (DecodeError $error) {
             return $error;
@@ -104,13 +106,12 @@ final class RootDescriptor
         }
         $class = $this->itemClass;
         try {
-            self::validateItem(new ReflectionClass($class));
+            TargetPosition::Item->validate(new ReflectionClass($class));
         } catch (DecodeError $error) {
             throw $error->whileCreating($class);
         }
         $enum = $class;
         $node = enum_exists($enum) ? EnumNode::of($enum) : new ObjectNode($class, nullable: false);
-        assert($node !== null, description: 'Root validation rejects non-backed enums.');
         foreach (array_reverse($this->shapes) as $shape) {
             $node = $shape === 'array' ? new ListNode($node, nonEmpty: false) : new MapNode($node, arrayObject: true);
         }
@@ -134,22 +135,6 @@ final class RootDescriptor
             return $error->whileCreating($this->itemClass);
         } catch (Throwable $error) {
             return UnsupportedTarget::unreadable($error)->whileCreating($this->itemClass);
-        }
-    }
-
-    /**
-     * Unlike a root object, a collection may hold instances of subclasses, so the item class must be final.
-     * TargetClass rejects interfaces and abstract classes first, which can never be final.
-     *
-     * @template TClass of object
-     * @param ReflectionClass<TClass> $class
-     * @throws DecodeError
-     */
-    private static function validateItem(ReflectionClass $class): void
-    {
-        TargetClass::validate($class);
-        if (!$class->isFinal()) {
-            throw UnsupportedTarget::nonFinalItem();
         }
     }
 }

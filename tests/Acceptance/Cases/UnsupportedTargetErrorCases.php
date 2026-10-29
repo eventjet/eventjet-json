@@ -8,6 +8,7 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\InheritedPublicProperty;
+use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
@@ -16,6 +17,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\ParentClassFieldBase;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 use Eventjet\Json\Test\Acceptance\Fixtures\PrivateConstructorTarget;
 use Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 
 /** @internal */
 final class UnsupportedTargetErrorCases
@@ -55,6 +57,26 @@ final class UnsupportedTargetErrorCases
             '{}',
             NonBackedStatus::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus from the JSON object: Target type non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        foreach ([
+            'int' => [IntBackedStatus::class, '{"name":"Ready","value":1}'],
+            'string' => [StringBackedStatus::class, '{"name":"Ready","value":"ready"}'],
+            'custom serialization' => [JsonSerializableStatus::class, '{"name":"Ready","value":"ready"}'],
+        ] as $label => [$enum, $json]) {
+            yield 'backed enum with ' . $label . ' values cannot be a root target' => [
+                $json,
+                $enum,
+                'Could not create '
+                    . $enum
+                    . ' from the JSON object: Backed enums are not supported as standalone targets. Use a typed field or a collection descriptor.',
+                DecodeErrorKind::UnsupportedDeclaration,
+            ];
+        }
+        yield 'root class cannot implement JsonSerializable' => [
+            '{}',
+            JsonSerializableTarget::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\JsonSerializableTarget from the JSON object: Target type implements JsonSerializable. Its custom JSON representation may not match its constructor parameters, so it cannot satisfy the round-trip contract.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
     }
@@ -164,6 +186,45 @@ final class Target_d2d5fe3230fd08878644563a847934cf61283e8a {/** @param list<Ite
                 . ' from the JSON object: Field value uses interface Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
+        $fieldErrors = [
+            'interface' => [
+                RootTargetInterface::class,
+                'Field value uses interface Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            ],
+            'abstract class' => [
+                AbstractRootTarget::class,
+                'Field value uses abstract class Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            ],
+        ];
+        foreach ($fieldErrors as $label => [$type, $reason]) {
+            $class = CollectionDeclarationFixture::create('\\' . $type, '', 'param');
+            yield 'field cannot use ' . $label => [
+                '{}',
+                $class,
+                'Could not create ' . $class . ' from the JSON object: ' . $reason,
+                DecodeErrorKind::UnsupportedDeclaration,
+            ];
+        }
+        $classErrors = [
+            'class that implements JsonSerializable' => [
+                JsonSerializableTarget::class,
+                '{}',
+                'Target type implements JsonSerializable. Its custom JSON representation may not match its constructor parameters, so it cannot satisfy the round-trip contract.',
+            ],
+            'class with a private constructor' => [
+                PrivateConstructorTarget::class,
+                '{"value":{}}',
+                'Target class has a private constructor, which cannot be called to create the object.',
+            ],
+        ];
+        foreach ($classErrors as $label => [$type, $json, $reason]) {
+            yield 'field reports the declarations of its ' . $label => [
+                $json,
+                CollectionDeclarationFixture::create('\\' . $type, '', 'param'),
+                'Could not create ' . $type . ' from the JSON object: ' . $reason,
+                DecodeErrorKind::UnsupportedDeclaration,
+            ];
+        }
         yield 'non-final nested class is rejected' => [
             '{"person":{"firstName":"Ada","lastName":"Lovelace"},"value":{},"label":"value"}',
             new ParentClassField(new Person('Ada', 'Lovelace'), new ParentClassFieldBase(), 'value')::class,

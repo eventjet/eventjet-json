@@ -113,6 +113,7 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\Internal\Node\ScalarItems::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\ScalarNode::class)]
 #[UsesClass(\Eventjet\Json\Internal\TargetClass::class)]
+#[UsesClass(\Eventjet\Json\Internal\TargetPosition::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\TupleNode::class)]
 #[UsesClass(\Eventjet\Json\Internal\TypeCompiler::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\UncheckedNode::class)]

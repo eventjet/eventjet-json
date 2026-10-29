@@ -9,16 +9,14 @@ use Eventjet\Json\Field;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use JsonSerializable;
 use ReflectionClass;
-use ReflectionEnum;
 use ReflectionProperty;
 
 use function array_filter;
 use function array_push;
-use function enum_exists;
 
 /**
- * Checks that a class can be a decode target, and resolves the JSON names that #[Field] gives to its properties, once
- * per class.
+ * Checks the declarations of a class that JSON objects are decoded into, and resolves the JSON names that #[Field]
+ * gives to its properties, once per class.
  *
  * @internal
  */
@@ -28,43 +26,28 @@ final class TargetClass
     private static array $names = [];
 
     /**
-     * Rejects a class that cannot be instantiated from a JSON object, or returns the JSON names of its renamed
-     * properties, keyed by property name.
+     * Rejects a class whose own declarations JSON cannot restore, or returns the JSON names of its renamed properties,
+     * keyed by property name. Errors name the class. {@see TargetPosition::validate()} applies the rules of the
+     * position first.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
      * @return array<string, string>
      * @throws DecodeError
      */
-    public static function validate(ReflectionClass $class): array
+    public static function validate(ReflectionClass $class, TargetPosition $position): array
     {
-        $className = $class->getName();
-
-        if ($class->isInterface()) {
-            throw UnsupportedTarget::interface();
+        try {
+            $names = self::fieldNames($class);
+            // A field leaves the constructor to the decoder of its class, which checks it when the first object of the
+            // class is decoded.
+            if ($position !== TargetPosition::Field) {
+                self::validateConstructor($class);
+            }
+            return $names;
+        } catch (DecodeError $error) {
+            throw $error->whileCreating($class->getName());
         }
-
-        if ($class->isAbstract()) {
-            throw UnsupportedTarget::abstractClass();
-        }
-
-        $names = self::fieldNames($class);
-
-        $constructor = $class->getConstructor();
-
-        if ($constructor !== null && !$constructor->isPublic()) {
-            $visibility = $constructor->isPrivate() ? 'private' : 'protected';
-
-            throw UnsupportedTarget::inaccessibleConstructor($visibility);
-        }
-
-        $classIsNonBackedEnum = self::isNonBackedEnum($className);
-
-        if ($classIsNonBackedEnum) {
-            throw UnsupportedTarget::nonBackedEnum($className);
-        }
-
-        return $names;
     }
 
     /**
@@ -98,7 +81,7 @@ final class TargetClass
         );
         if ($annotated === []) {
             return $class->implementsInterface(JsonSerializable::class)
-                ? throw UnsupportedTarget::jsonSerializable($class)
+                ? throw UnsupportedTarget::jsonSerializable($className)
                 : (self::$names[$className] = []);
         }
         return self::$names[$className] = FieldNameRules::resolve($class, $properties, $annotated);
@@ -122,8 +105,16 @@ final class TargetClass
         return $properties;
     }
 
-    private static function isNonBackedEnum(string $type): bool
+    /**
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @throws DecodeError
+     */
+    private static function validateConstructor(ReflectionClass $class): void
     {
-        return enum_exists($type) && !new ReflectionEnum($type)->isBacked();
+        $constructor = $class->getConstructor();
+        if ($constructor !== null && !$constructor->isPublic()) {
+            throw UnsupportedTarget::inaccessibleConstructor($constructor->isPrivate() ? 'private' : 'protected');
+        }
     }
 }

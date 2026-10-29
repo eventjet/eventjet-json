@@ -47,6 +47,7 @@ use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\TargetClass;
+use Eventjet\Json\Internal\TargetPosition;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
@@ -75,6 +76,7 @@ use function class_alias;
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(TargetClass::class)]
+#[CoversClass(TargetPosition::class)]
 #[CoversClass(FieldNameRules::class)]
 #[UsesClass(NamedTypeCompiler::class)]
 #[UsesClass(NodeCompiler::class)]
@@ -367,14 +369,13 @@ final class ConstructorValidationPlanTest extends TestCase
             'use Eventjet\\Json\\Field; final class InvalidMappedSerializer implements JsonSerializable { use Eventjet\\Json\\MappedJsonFields; public static string $shared = ""; #[Field("ref")] public string $value = ""; public string $ref = ""; }',
         );
         $reflection = new ReflectionClass($class);
-        $error = InvalidFieldMapping::collision('value', 'ref', 'ref');
         $named = InvalidFieldMapping::collision('value', 'ref', 'ref')->whileCreating($class);
         for ($attempt = 0; $attempt < 2; ++$attempt) {
-            static::assertEquals($error, ThrownDecodeError::of(
+            static::assertEquals($named, ThrownDecodeError::of(
                 /**
                  * @throws DecodeError
                  */
-                static fn(): mixed => TargetClass::validate($reflection),
+                static fn(): mixed => TargetClass::validate($reflection, TargetPosition::Root),
             ));
             static::assertEquals($named, self::decode($reflection, [], ''));
             static::assertEquals($named, ThrownDecodeError::of(
@@ -420,14 +421,13 @@ final class ConstructorValidationPlanTest extends TestCase
                     . ' implements JsonSerializable { use Eventjet\\Json\\MappedJsonFields; #[Field("wire")] public string $value = "public"; }',
                 );
                 $reflection = new ReflectionClass($class);
-                $error = InvalidFieldMapping::nonPublicProperty('value');
                 $named = InvalidFieldMapping::nonPublicProperty('value')->whileCreating($class);
                 for ($attempt = 0; $attempt < 2; ++$attempt) {
-                    static::assertEquals($error, ThrownDecodeError::of(
+                    static::assertEquals($named, ThrownDecodeError::of(
                         /**
                          * @throws DecodeError
                          */
-                        static fn(): mixed => TargetClass::validate($reflection),
+                        static fn(): mixed => TargetClass::validate($reflection, TargetPosition::Root),
                     ));
                     static::assertEquals($named, self::decode($reflection, [], ''));
                     static::assertEquals($named, ThrownDecodeError::of(

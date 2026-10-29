@@ -51,6 +51,7 @@ use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\TargetClass;
+use Eventjet\Json\Internal\TargetPosition;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Json;
@@ -127,6 +128,7 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(TargetClass::class)]
+#[UsesClass(TargetPosition::class)]
 #[UsesClass(FieldNameRules::class)]
 #[CoversClass(NamedTypeCompiler::class)]
 #[CoversClass(NodeCompiler::class)]
@@ -314,7 +316,6 @@ final class MetadataCacheTest extends TestCase
      */
     public function testEnumConversionsPreserveBackingTypesAndRejectUnknownValues(): void
     {
-        static::assertNull(EnumNode::of(NonBackedStatus::class));
         for ($lookup = 0; $lookup < 2; ++$lookup) {
             foreach ([
                 [IntBackedStatus::class, 1, IntBackedStatus::Ready],
@@ -328,7 +329,6 @@ final class MetadataCacheTest extends TestCase
                 [StringBackedStatus::class, 'unknown', null],
             ] as [$enum, $value, $expected]) {
                 $node = EnumNode::of($enum);
-                static::assertNotNull($node);
                 if ($expected === null) {
                     static::assertSame(
                         DecodeErrorKind::InvalidValue,

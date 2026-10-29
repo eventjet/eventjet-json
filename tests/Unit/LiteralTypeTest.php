@@ -43,6 +43,7 @@ use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
 use Eventjet\Json\Internal\TargetClass;
+use Eventjet\Json\Internal\TargetPosition;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
@@ -124,6 +125,7 @@ use const PHP_INT_MIN;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(TargetClass::class)]
+#[UsesClass(TargetPosition::class)]
 #[UsesClass(ScalarItems::class)]
 #[CoversClass(ScalarNode::class)]
 #[UsesClass(TypeCompiler::class)]
