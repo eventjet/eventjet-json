@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0] - 2026-10-12
+## [1.0.0] - 2026-10-29
 
 This release rewrites the library as a typed decoder that pairs with PHP's `json_encode()`. Data classes describe their
 shape with native type declarations and PHPDoc, and any supported value survives an encode/decode round trip with its
@@ -90,7 +90,7 @@ Replace `#[Item]` attributes with PHPDoc, and `array<string, T>` maps with `Arra
 #[Item(Person::class)]
 public array $members;
 
-// 0.3.0
+// 1.0.0
 /** @var list<Person> */
 public array $members;
 ```
@@ -165,5 +165,5 @@ now fail the same way, so a codebase may have been relying on the lax behavior i
 If a producer legitimately sends a scalar in a different shape than the consumer declares — numbers as strings, for
 instance — declare the parameter with the type that is actually sent and convert it in your own code.
 
-[0.3.0]: https://github.com/eventjet/eventjet-json/compare/v0.2.0...v0.3.0
+[1.0.0]: https://github.com/eventjet/eventjet-json/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/eventjet/eventjet-json/compare/v0.1.3...v0.2.0
