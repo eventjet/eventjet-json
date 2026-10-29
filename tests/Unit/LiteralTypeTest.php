@@ -1,0 +1,510 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Eventjet\Json\Test\Unit;
+
+use BackedEnum;
+use DateTimeImmutable;
+use Eventjet\Json\DecodeError;
+use Eventjet\Json\DecodeErrorKind;
+use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\Error\DecodeErrors;
+use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedClass;
+use Eventjet\Json\Internal\Error\UnsupportedField;
+use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
+use Eventjet\Json\Internal\FieldTypeNameResolver;
+use Eventjet\Json\Internal\NamedTypeCompiler;
+use Eventjet\Json\Internal\Node\EnumNode;
+use Eventjet\Json\Internal\Node\ListNode;
+use Eventjet\Json\Internal\Node\LiteralNode;
+use Eventjet\Json\Internal\Node\Node;
+use Eventjet\Json\Internal\Node\NullOnlyNode;
+use Eventjet\Json\Internal\Node\ObjectNode;
+use Eventjet\Json\Internal\Node\ScalarItems;
+use Eventjet\Json\Internal\Node\ScalarNode;
+use Eventjet\Json\Internal\Node\UnionNode;
+use Eventjet\Json\Internal\NodeCompiler;
+use Eventjet\Json\Internal\PhpDocClassNameResolver;
+use Eventjet\Json\Internal\PhpDocConstantImportStatement;
+use Eventjet\Json\Internal\PhpDocConstantResolver;
+use Eventjet\Json\Internal\PhpDocConstantValues;
+use Eventjet\Json\Internal\PhpDocFieldType;
+use Eventjet\Json\Internal\PhpDocImports;
+use Eventjet\Json\Internal\PhpDocImportScanner;
+use Eventjet\Json\Internal\PhpDocImportStatement;
+use Eventjet\Json\Internal\PhpDocLiteral;
+use Eventjet\Json\Internal\PhpDocLiteralNativeType;
+use Eventjet\Json\Internal\PhpDocLiteralString;
+use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
+use Eventjet\Json\Internal\PhpDocNarrowing;
+use Eventjet\Json\Internal\PhpDocTokenStream;
+use Eventjet\Json\Internal\PhpDocType;
+use Eventjet\Json\Internal\PhpDocTypeParser;
+use Eventjet\Json\Internal\PhpDocTypeResolver;
+use Eventjet\Json\Internal\TargetClass;
+use Eventjet\Json\Internal\TypeCompiler;
+use Eventjet\Json\Internal\UnionBuilder;
+use Eventjet\Json\Internal\UnionConflicts;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
+use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeError;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\TestCase;
+use ReflectionException;
+use ReflectionParameter;
+use ReflectionProperty;
+use stdClass;
+
+use function array_keys;
+
+use const INF;
+use const NAN;
+use const PHP_INT_MAX;
+use const PHP_INT_MIN;
+
+#[CoversClass(PhpDocLiteral::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocIntegerRange::class)]
+#[CoversClass(PhpDocConstantValues::class)]
+#[CoversClass(NamedTypeCompiler::class)]
+#[CoversClass(NodeCompiler::class)]
+#[CoversClass(PhpDocNarrowing::class)]
+#[CoversClass(PhpDocTypeResolver::class)]
+#[CoversClass(LiteralNode::class)]
+#[CoversClass(PhpDocFieldType::class)]
+#[UsesClass(CollectionDeclarationError::class)]
+#[CoversClass(PhpDocType::class)]
+#[CoversClass(FieldTypeNameResolver::class)]
+#[CoversClass(PhpDocImportStatement::class)]
+#[CoversClass(PhpDocConstantImportStatement::class)]
+#[UsesClass(DecodeError::class)]
+#[UsesClass(DecodeErrors::class)]
+#[UsesClass(UnsupportedField::class)]
+#[UsesClass(InvalidValue::class)]
+#[UsesClass(UnsupportedClass::class)]
+#[UsesClass(UnsupportedFieldClass::class)]
+#[UsesClass(EnumNode::class)]
+#[UsesClass(ListNode::class)]
+#[UsesClass(NullOnlyNode::class)]
+#[UsesClass(ObjectNode::class)]
+#[UsesClass(PhpDocClassNameResolver::class)]
+#[UsesClass(PhpDocConstantResolver::class)]
+#[UsesClass(PhpDocImports::class)]
+#[UsesClass(PhpDocImportScanner::class)]
+#[UsesClass(PhpDocLiteralNativeType::class)]
+#[UsesClass(PhpDocNamespaceDeclaration::class)]
+#[UsesClass(PhpDocTokenStream::class)]
+#[CoversClass(PhpDocTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocLexer::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokens::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSyntaxError::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTokenState::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTree::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNestedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocAtomicTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocNamedTypeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocHtmlDetector::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocGenericParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantNameParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableReturnParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocArrayShapeParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocShapeItemParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagValues::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocFieldTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocOtherTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodParameterTagValue::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTextParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocChildKind::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTags::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTag::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
+#[UsesClass(TargetClass::class)]
+#[UsesClass(ScalarItems::class)]
+#[CoversClass(ScalarNode::class)]
+#[UsesClass(TypeCompiler::class)]
+#[CoversClass(UnionBuilder::class)]
+#[CoversClass(UnionConflicts::class)]
+#[UsesClass(UnionNode::class)]
+final class LiteralTypeTest extends TestCase
+{
+    /**
+     * @throws ReflectionException
+     * @throws \PHPUnit\Framework\Exception
+     * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
+     * @throws DecodeError
+     */
+    public function testLiteralAndCollectionDeclarationsStayDistinct(): void
+    {
+        $object = new class(1) {
+            /** @var list<int> */
+            public array $items = [];
+            /** @var positive-int */
+            public int $refined = 1;
+            /** @var list<int>|positive-int */
+            public array|int $union = 1;
+
+            public function __construct(
+                public int $_plain,
+            ) {}
+        };
+        static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($object, 'items')));
+        static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($object, 'union')));
+        static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($object, 'refined')));
+        static::assertInstanceOf(ListNode::class, self::compile(new ReflectionProperty($object, 'items')));
+        static::assertInstanceOf(
+            ScalarNode::class,
+            self::compile(new ReflectionParameter([$object::class, '__construct'], '_plain')),
+        );
+
+        $invalid = new class(1) {
+            public const float NOT_FINITE = INF;
+
+            /** @param int|float|self::NOT_FINITE $value */
+            public function __construct(
+                public int|float $value,
+            ) {}
+        };
+        static::assertSame(
+            DecodeErrorKind::UnsupportedDeclaration,
+            ThrownDecodeError::of(
+                /** @throws DecodeError|ReflectionException */ static fn(): Node => self::compile(
+                    new ReflectionParameter([$invalid::class, '__construct'], 'value'),
+                ),
+            )->kind,
+        );
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws \PHPUnit\Framework\Exception
+     * @throws DecodeError
+     */
+    public function testOrdinaryPhpDocDoesNotConstrainScalarValues(): void
+    {
+        $object = new class {
+            /** @var int */
+            public int $integer = 42;
+            /** @var string|null */
+            public string|null $text = null;
+            /** @var null|bool */
+            public bool|null $flag = null;
+            /** @var null */
+            public null $nothing = null;
+        };
+        static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($object, 'integer')));
+        static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($object, 'text')));
+        static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($object, 'flag')));
+        static::assertSame('null', (string) self::compile(new ReflectionProperty($object, 'nothing')));
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws \PHPUnit\Framework\Exception
+     * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
+     * @throws \JsonException
+     * @throws DecodeError
+     */
+    public function testLiteralFieldDeclarations(): void
+    {
+        $object = new class(11, 12) {
+            public int $value;
+            public int $second;
+            /** @var 13 */
+            public int $property;
+
+            /**
+             * @param 11 $value
+             * @param 12 $second
+             */
+            public function __construct(int $value, int $second)
+            {
+                $this->value = $value;
+                $this->second = $second;
+                $this->property = 13;
+            }
+
+            /** @param 12 $value */
+            public function other(int $value): void
+            {
+                $this->value = $value;
+            }
+        };
+        static::assertSame(
+            '11',
+            (string) self::compile(new ReflectionParameter([$object::class, '__construct'], 'value')),
+        );
+        static::assertSame(
+            '12',
+            (string) self::compile(new ReflectionParameter([$object::class, '__construct'], 'second')),
+        );
+        static::assertSame('12', (string) self::compile(new ReflectionParameter([$object::class, 'other'], 'value')));
+        static::assertSame('13', (string) self::compile(new ReflectionProperty($object, 'property')));
+
+        $ordinary = new class {
+            /** @var DateTimeImmutable */
+            public DateTimeImmutable $object;
+            public int $undocumented;
+            /** @var positive-int */
+            public int $refined;
+            /** @var list<string> */
+            public array $nonLiteral;
+
+            public function __construct()
+            {
+                $this->object = new DateTimeImmutable();
+                $this->undocumented = 0;
+                $this->refined = 1;
+                $this->nonLiteral = [];
+            }
+        };
+        static::assertSame(
+            DecodeErrorKind::UnsupportedDeclaration,
+            ThrownDecodeError::of(
+                /** @throws DecodeError|ReflectionException */ static fn(): Node => self::compile(new ReflectionProperty(
+                    $ordinary,
+                    'object',
+                )),
+            )->kind,
+        );
+        static::assertNotInstanceOf(
+            LiteralNode::class,
+            self::compile(new ReflectionProperty($ordinary, 'undocumented')),
+        );
+        static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($ordinary, 'refined')));
+        static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($ordinary, 'nonLiteral')));
+
+        $ordinaryWithMetadata = new class {
+            /** @var int @since 1 */
+            public int $value = 1;
+        };
+        static::assertNotInstanceOf(
+            LiteralNode::class,
+            self::compile(new ReflectionProperty($ordinaryWithMetadata, 'value')),
+        );
+
+        $tagged = new class {
+            /**
+             * @since 1
+             * @var 'a@b'
+             */
+            public string $value = 'a@b';
+        };
+        $taggedType = PhpDocFieldType::resolve(new ReflectionProperty($tagged, 'value'));
+        static::assertInstanceOf(PhpDocType::class, $taggedType);
+        static::assertSame('a@b', $taggedType->literal?->value);
+
+        $enum = new class {
+            /** @var StringBackedStatus::Ready */
+            public StringBackedStatus $status;
+
+            public function __construct()
+            {
+                $this->status = StringBackedStatus::Ready;
+            }
+        };
+        $whole = LiteralNode::of(new PhpDocLiteral(3.0, '3.0'));
+        static::assertSame(['float', 'int'], array_keys($whole->claims()));
+        static::assertSame(3.0, $whole->decode(3.0, 'value'));
+        static::assertSame(3.0, $whole->decode(3, 'value'));
+        static::assertSame(['string'], array_keys(LiteralNode::of(PhpDocLiteral::string('3'))->claims()));
+        $table = LiteralNode::table('1|2', 'int', ['1' => [1, 1], '2' => [2, 2]], null);
+        static::assertSame(['1' => [1, 1], '2' => [2, 2]], $table->claims()['int']['values'] ?? null);
+
+        $status = self::compile(new ReflectionProperty($enum, 'status'));
+        static::assertInstanceOf(LiteralNode::class, $status);
+        static::assertSame(StringBackedStatus::Ready, $status->decode('ready', 'status'));
+    }
+
+    /**
+     * @throws \PHPUnit\Framework\Exception|ReflectionException
+     * @throws DecodeError
+     */
+    public function testLiteralMarkers(): void
+    {
+        $properties = new class {
+            /** @var 'ready' */
+            public string $literal = 'ready';
+
+            /** @var positive-int */
+            public int $refined = 1;
+
+            /** @var stdClass */
+            public stdClass $object;
+
+            public int $undocumented = 1;
+
+            /** @var null */
+            public string|null $nothing = null;
+
+            public function __construct()
+            {
+                $this->object = new stdClass();
+            }
+        };
+
+        static::assertInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($properties, 'literal')));
+        static::assertInstanceOf(ScalarNode::class, self::compile(new ReflectionProperty($properties, 'nothing')));
+        static::assertNotInstanceOf(LiteralNode::class, self::compile(new ReflectionProperty($properties, 'refined')));
+        static::assertSame(
+            DecodeErrorKind::UnsupportedDeclaration,
+            ThrownDecodeError::of(
+                /** @throws DecodeError|ReflectionException */ static fn(): Node => self::compile(new ReflectionProperty(
+                    $properties,
+                    'object',
+                )),
+            )->kind,
+        );
+        static::assertNotInstanceOf(
+            LiteralNode::class,
+            self::compile(new ReflectionProperty($properties, 'undocumented')),
+        );
+
+        static::assertSame(
+            ['const:BAR' => 'Foo\\BAR', 'const:Qux' => 'Foo\\BAZ'],
+            PhpDocImportStatement::parse('const Foo\\{BAR, BAZ as Qux}'),
+        );
+        static::assertSame(
+            ['bar' => 'Foo\\Bar', 'const:BAZ' => 'Foo\\BAZ', 'const:Q' => 'Foo\\QUX'],
+            PhpDocImportStatement::parse('Foo\\{Bar, const BAZ, const QUX as Q}'),
+        );
+        static::assertSame([], PhpDocImportStatement::parse('function Foo\\bar'));
+        static::assertSame([], PhpDocImportStatement::parse('function Foo\\{bar, baz}'));
+        static::assertSame(['const:BAR' => 'Foo\\BAR'], PhpDocImportStatement::parse('const \\Foo\\BAR'));
+        static::assertSame(
+            ['const:BAR' => 'Foo\\BAR', 'const:BAZ' => 'Foo\\BAZ'],
+            PhpDocImportStatement::parse('const Foo\\ {BAR, BAZ}'),
+        );
+        static::assertSame(
+            ['const:BAR' => 'Foo\\BAR', 'const:BAZ' => 'Foo\\BAZ'],
+            PhpDocImportStatement::parse('CONST Foo\\{BAR, BAZ}'),
+        );
+        $subject = new class('ready', 42, StringBackedStatus::Ready, true, null) {
+            /**
+             * @param 'ready' $_string
+             * @param 42 $_integer
+             * @param StringBackedStatus::Ready $_constant
+             * @param true $_boolean
+             * @param null $_nullable
+             */
+            public function __construct(
+                public string $_string,
+                public int $_integer,
+                public StringBackedStatus $_constant,
+                public bool $_boolean,
+                public null $_nullable,
+            ) {}
+        };
+        foreach ([
+            '_string' => "'ready'",
+            '_integer' => '42',
+            '_constant' => StringBackedStatus::class . '::Ready',
+            '_boolean' => 'true',
+            '_nullable' => 'null',
+        ] as $name => $expected) {
+            $parameter = new ReflectionParameter([$subject::class, '__construct'], $name);
+            static::assertSame($expected, (string) self::compile($parameter), $name);
+        }
+    }
+
+    public function testIntegerBoundariesAndNotation(): void
+    {
+        foreach ([
+            ['0', 0],
+            ['-0', 0],
+            ['+42', 42],
+            ['-42', -42],
+            ['42', 42],
+            [(string) PHP_INT_MIN, PHP_INT_MIN],
+            [(string) PHP_INT_MAX, PHP_INT_MAX],
+            ['9223372036854775808', null],
+            ['-9223372036854775809', null],
+            ['92233720368547758070', null],
+            ['-92233720368547758080', null],
+            ['0X2A', null],
+            ['0B101010', null],
+            ['0O52', null],
+            ['052', null],
+            ['00', null],
+            ['4_2', null],
+        ] as [$source, $expected]) {
+            static::assertSame($expected, PhpDocLiteral::integer($source)?->value, $source);
+        }
+        foreach ([['1E2', 100.0], ['+1.5e-1', 0.15], ['1e999', null], ['-1e999', null], ['foo', null]] as [
+            $source,
+            $expected,
+        ]) {
+            static::assertSame($expected, PhpDocLiteral::float($source)?->value, $source);
+        }
+    }
+
+    public function testUnicodeScalarBoundaries(): void
+    {
+        $literal = static function (string $source): string|int|float|bool|BackedEnum|null {
+            $type = PhpDocTypeParser::parse($source);
+            return $type?->literal?->value;
+        };
+        foreach ([
+            ['0',                        "\u{0}"],
+            ['d7ff',                     "\u{d7ff}"],
+            ['e000',                     "\u{e000}"],
+            ['ffff',                     "\u{ffff}"],
+            ['10000',                    "\u{10000}"],
+            ['103ff',                    "\u{103ff}"],
+            ['10400',                    "\u{10400}"],
+            ['10ffff',                   "\u{10ffff}"],
+            ['d800',                     "\xED\xA0\x80"],
+            ['dfff',                     "\xED\xBF\xBF"],
+            ['110000',                   "\xF4\x90\x80\x80"],
+            ['ffffffff',                 "\u{fffd}"],
+            ['ffffffffffffffffffffffff', "\0"],
+        ] as [$code, $expected]) {
+            static::assertSame($expected, $literal('"\\u{' . $code . '}"'), $code);
+        }
+        static::assertNull($literal('not quoted'));
+        static::assertNull($literal("'mismatched\""));
+    }
+
+    /** @throws ReflectionException */
+    public function testConstantValuesKeepScalarTypesAndEscapedStrings(): void
+    {
+        static::assertEquals(new PhpDocLiteral("a\\b'c", "'a\\\\b\\'c'"), PhpDocConstantValues::literal("a\\b'c"));
+        static::assertEquals(new PhpDocLiteral("a\0b", "'a\0b'"), PhpDocConstantValues::literal("a\0b"));
+        static::assertSame('null', PhpDocConstantValues::literal(null));
+        static::assertEquals(new PhpDocLiteral(true, 'true'), PhpDocConstantValues::literal(true));
+        static::assertEquals(new PhpDocLiteral(false, 'false'), PhpDocConstantValues::literal(false));
+        static::assertEquals(
+            new PhpDocLiteral(StringBackedStatus::Ready, StringBackedStatus::class . '::Ready'),
+            PhpDocConstantValues::literal(StringBackedStatus::Ready),
+        );
+        static::assertNull(PhpDocConstantValues::literal(INF));
+        static::assertNull(PhpDocConstantValues::literal(NAN));
+        static::assertNull(PhpDocConstantValues::literal([]));
+        $object = new class {
+            public const array VALUES = [42];
+        };
+        static::assertNull(PhpDocConstantValues::resolve($object::class, 'VALUES'));
+    }
+
+    /**
+     * @throws DecodeError
+     * @throws ReflectionException
+     */
+    private static function compile(ReflectionParameter|ReflectionProperty $field): Node
+    {
+        $type = $field->getType();
+        $class = $field->getDeclaringClass();
+        static::assertNotNull($type);
+        static::assertNotNull($class);
+        return new TypeCompiler()->field($field, $type);
+    }
+}

@@ -1,0 +1,57 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Eventjet\Json\Internal\Node;
+
+use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
+use Override;
+
+/**
+ * A field whose declared class could not be loaded. Only null can satisfy such a field if it is nullable, so other
+ * values report the unknown class instead of failing the constructor call or the assignment. The class remains a
+ * dependency, so the decoder is compiled again once the class is loaded.
+ *
+ * @internal
+ */
+final readonly class UncheckedNode implements Node
+{
+    public function __construct(
+        public string $name,
+        public string $field,
+        private bool $nullable,
+    ) {}
+
+    #[Override]
+    public function decode(mixed $value, string $path): null
+    {
+        return match (true) {
+            $value !== null => throw UnsupportedFieldClass::unknown($this->field, $this->name),
+            $this->nullable => null,
+            default => throw InvalidValue::typeMismatch($path, $this->name, $value),
+        };
+    }
+
+    /**
+     * Claims JSON objects so that other members that take them conflict with this one. The union does not decode them
+     * with this node, so they report the union type.
+     */
+    #[Override]
+    public function claims(): array
+    {
+        return ['stdClass' => ['others' => 'rejects', 'enums' => [], 'values' => []]];
+    }
+
+    #[Override]
+    public function dependencies(): array
+    {
+        return [$this->name];
+    }
+
+    #[Override]
+    public function __toString(): string
+    {
+        return $this->name;
+    }
+}
