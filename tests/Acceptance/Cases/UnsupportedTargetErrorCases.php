@@ -32,6 +32,7 @@ final class UnsupportedTargetErrorCases
         yield from self::rootTypes();
         yield from self::nestedTypes();
         yield from self::serializedEnums();
+        yield from FieldClassErrorCases::errors();
     }
 
     /**
@@ -186,45 +187,6 @@ final class Target_d2d5fe3230fd08878644563a847934cf61283e8a {/** @param list<Ite
                 . ' from the JSON object: Field value uses interface Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
-        $fieldErrors = [
-            'interface' => [
-                RootTargetInterface::class,
-                'Field value uses interface Eventjet\Json\Test\Acceptance\Fixtures\RootTargetInterface, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
-            ],
-            'abstract class' => [
-                AbstractRootTarget::class,
-                'Field value uses abstract class Eventjet\Json\Test\Acceptance\Fixtures\AbstractRootTarget, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
-            ],
-        ];
-        foreach ($fieldErrors as $label => [$type, $reason]) {
-            $class = CollectionDeclarationFixture::create('\\' . $type, '', 'param');
-            yield 'field cannot use ' . $label => [
-                '{}',
-                $class,
-                'Could not create ' . $class . ' from the JSON object: ' . $reason,
-                DecodeErrorKind::UnsupportedDeclaration,
-            ];
-        }
-        $classErrors = [
-            'class that implements JsonSerializable' => [
-                JsonSerializableTarget::class,
-                '{}',
-                'Target type implements JsonSerializable. Its custom JSON representation may not match its constructor parameters, so it cannot satisfy the round-trip contract.',
-            ],
-            'class with a private constructor' => [
-                PrivateConstructorTarget::class,
-                '{"value":{}}',
-                'Target class has a private constructor, which cannot be called to create the object.',
-            ],
-        ];
-        foreach ($classErrors as $label => [$type, $json, $reason]) {
-            yield 'field reports the declarations of its ' . $label => [
-                $json,
-                CollectionDeclarationFixture::create('\\' . $type, '', 'param'),
-                'Could not create ' . $type . ' from the JSON object: ' . $reason,
-                DecodeErrorKind::UnsupportedDeclaration,
-            ];
-        }
         yield 'non-final nested class is rejected' => [
             '{"person":{"firstName":"Ada","lastName":"Lovelace"},"value":{},"label":"value"}',
             new ParentClassField(new Person('Ada', 'Lovelace'), new ParentClassFieldBase(), 'value')::class,

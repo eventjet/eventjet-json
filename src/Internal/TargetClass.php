@@ -35,15 +35,11 @@ final class TargetClass
      * @return array<string, string>
      * @throws DecodeError
      */
-    public static function validate(ReflectionClass $class, TargetPosition $position): array
+    public static function validate(ReflectionClass $class): array
     {
         try {
             $names = self::fieldNames($class);
-            // A field leaves the constructor to the decoder of its class, which checks it when the first object of the
-            // class is decoded.
-            if ($position !== TargetPosition::Field) {
-                self::validateConstructor($class);
-            }
+            self::validateConstructor($class);
             return $names;
         } catch (DecodeError $error) {
             throw $error->whileCreating($class->getName());

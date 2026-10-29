@@ -375,7 +375,7 @@ final class ConstructorValidationPlanTest extends TestCase
                 /**
                  * @throws DecodeError
                  */
-                static fn(): mixed => TargetClass::validate($reflection, TargetPosition::Root),
+                static fn(): mixed => TargetClass::validate($reflection),
             ));
             static::assertEquals($named, self::decode($reflection, [], ''));
             static::assertEquals($named, ThrownDecodeError::of(
@@ -427,7 +427,7 @@ final class ConstructorValidationPlanTest extends TestCase
                         /**
                          * @throws DecodeError
                          */
-                        static fn(): mixed => TargetClass::validate($reflection, TargetPosition::Root),
+                        static fn(): mixed => TargetClass::validate($reflection),
                     ));
                     static::assertEquals($named, self::decode($reflection, [], ''));
                     static::assertEquals($named, ThrownDecodeError::of(

@@ -98,6 +98,6 @@ enum TargetPosition
         if ($this !== self::Root && !$class->isFinal()) {
             throw $field ? UnsupportedFieldClass::nonFinal($path, $name) : UnsupportedTarget::nonFinalItem();
         }
-        return TargetClass::validate($class, $this);
+        return TargetClass::validate($class);
     }
 }
