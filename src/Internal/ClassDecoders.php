@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use ReflectionClass;
 use stdClass;
 use Throwable;
 
-use function assert;
 use function enum_exists;
 
 /**
@@ -25,19 +25,24 @@ final class ClassDecoders
     private static array $decoders = [];
 
     /**
-     * Returns the decoder of a class. An exception other than a DecodeError while compiling it is reported as an
-     * unreadable declaration of the class.
-     *
      * @param class-string $class
      * @phpstan-impure
      * @throws DecodeError
      */
     public static function get(string $class): ClassDecoder
     {
-        $decoder = self::$decoders[$class] ?? null;
-        if ($decoder !== null) {
-            return $decoder;
-        }
+        return self::$decoders[$class] ?? self::compile($class);
+    }
+
+    /**
+     * Compiles the decoder of a class, and caches it if it is complete. An exception other than a DecodeError is
+     * reported as an unreadable declaration of the class.
+     *
+     * @param class-string $class
+     * @throws DecodeError
+     */
+    private static function compile(string $class): ClassDecoder
+    {
         $name = $class;
         try {
             $reflection = new ReflectionClass($class);
@@ -63,7 +68,7 @@ final class ClassDecoders
     public static function hydrate(string $class, stdClass $object, string $path = ''): object
     {
         // Skips the call to get() for cached decoders, because a call per object slows down hydration measurably.
-        $decoder = self::$decoders[$class] ?? self::get($class);
+        $decoder = self::$decoders[$class] ?? self::compile($class);
         try {
             /** @var T */
             return $decoder->decode($object, $path);
@@ -75,46 +80,37 @@ final class ClassDecoders
     }
 
     /**
-     * Decodes the root object of a document. Unlike hydrate(), it returns the error, because throwing it once more
-     * slows down every rejected document measurably.
+     * Decodes the root value of a document into a class or an enum. Unlike hydrate(), it returns the error, because
+     * throwing it once more slows down every rejected document measurably.
      *
      * @template T of object
      * @param class-string<T> $class
      * @return T|DecodeError
      */
-    public static function decodeRoot(string $class, stdClass $object): object
+    public static function decodeRoot(string $class, mixed $value): object
     {
+        $decoder = self::$decoders[$class] ?? null;
+        // A class with a cached decoder is no enum, so warm decodes skip enum_exists(). Classes skip EnumRoots, so that
+        // a request that decodes no enum root does not load it.
+        $enum = $class;
+        if ($decoder === null && enum_exists($enum)) {
+            return EnumRoots::decode($class, $value);
+        }
+        if (!$value instanceof stdClass) {
+            return InvalidInput::rootValue($value);
+        }
         try {
-            $decoder = self::$decoders[$class] ?? self::compiledRoot($class, $object);
+            $decoder ??= self::compile($class);
         } catch (DecodeError $error) {
             return $error;
         }
         try {
             /** @var T */
-            return $decoder->decode($object, '');
+            return $decoder->decode($value, '');
         } catch (DecodeError $error) {
             return $error->whileCreating($decoder->class);
         } catch (Throwable $error) {
             return UnsupportedTarget::unreadable($error)->whileCreating($class);
         }
-    }
-
-    /**
-     * Compiles the decoder of a root class. An enum has no decoder, because JSON holds its cases as backing values, not
-     * as objects.
-     *
-     * @param class-string $class
-     * @throws DecodeError
-     */
-    private static function compiledRoot(string $class, stdClass $object): ClassDecoder
-    {
-        // Classes skip EnumRoots, so that a request that decodes no enum root does not load it.
-        $enum = $class;
-        if (!enum_exists($enum)) {
-            return self::get($class);
-        }
-        $error = EnumRoots::decode($enum, $object);
-        assert($error instanceof DecodeError, description: 'An enum rejects every JSON object.');
-        throw $error;
     }
 }

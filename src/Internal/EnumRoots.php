@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\Node\EnumNode;
 use ReflectionException;
 use Throwable;
-
-use function enum_exists;
 
 /**
  * Decodes the root value of a document into a backed enum, and caches the node of each enum.
@@ -24,46 +21,41 @@ final class EnumRoots
     private static array $nodes = [];
 
     /**
-     * Decodes the root value of a document into a case of an enum. For a class, it returns the error for a value that
-     * is not a JSON object.
+     * Decodes the root value of a document into a case of an enum.
      *
      * @template T of object
-     * @param class-string<T> $class
+     * @param class-string<T> $enum
      * @return T|DecodeError
      */
-    public static function decode(string $class, mixed $value): object
+    public static function decode(string $enum, mixed $value): object
     {
         try {
-            $node = self::node($class);
-            if ($node === null) {
-                return InvalidInput::rootValue($value);
-            }
             /** @var T|DecodeError */
-            return $node->decodeRoot($value);
+            return self::node($enum)->decodeRoot($value);
         } catch (DecodeError $error) {
             return $error;
         } catch (Throwable $error) {
-            return UnsupportedTarget::unreadable($error)->whileCreating($class);
+            return UnsupportedTarget::unreadable($error)->whileCreating($enum);
         }
     }
 
     /**
-     * Returns the node of an enum, or null for a class.
+     * Returns the node of an enum.
      *
      * @throws DecodeError If the enum cannot be decoded.
      * @throws ReflectionException
      */
-    public static function node(string $class): EnumNode|null
+    public static function node(string $enum): EnumNode
     {
-        $node = self::$nodes[$class] ?? null;
-        if ($node !== null || !enum_exists($class)) {
+        $node = self::$nodes[$enum] ?? null;
+        if ($node !== null) {
             return $node;
         }
         try {
-            TargetClass::validateEnum($class);
+            TargetClass::validateEnum($enum);
         } catch (DecodeError $error) {
-            throw $error->whileCreating($class);
+            throw $error->whileCreating($enum);
         }
-        return self::$nodes[$class] = EnumNode::of($class);
+        return self::$nodes[$enum] = EnumNode::of($enum);
     }
 }

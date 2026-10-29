@@ -10,9 +10,9 @@ use Eventjet\Json\Internal\EnumRoots;
 use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\RootDescriptor;
-use stdClass;
 use Throwable;
 
+use function enum_exists;
 use function is_string;
 use function json_decode;
 use function json_last_error;
@@ -34,10 +34,12 @@ final class Json
             return RootDescriptor::of($type)->validate();
         }
         try {
-            $enum = EnumRoots::node($type);
-            if ($enum === null) {
-                new ClassGraphValidator()->validate($type);
+            $enum = $type;
+            if (enum_exists($enum)) {
+                EnumRoots::node($enum);
+                return null;
             }
+            new ClassGraphValidator()->validate($type);
             return null;
         } catch (DecodeError $error) {
             return $error;
@@ -65,10 +67,6 @@ final class Json
 
         if (!is_string($class)) {
             return RootDescriptor::of($class)->decode($values);
-        }
-
-        if (!$values instanceof stdClass) {
-            return EnumRoots::decode($class, $values);
         }
 
         return ClassDecoders::decodeRoot($class, $values);
