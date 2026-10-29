@@ -9,6 +9,7 @@
 /compose.yaml export-ignore
 /CONTRIBUTING.md export-ignore
 /Dockerfile export-ignore
+/docs/adr/ export-ignore
 /docs/research/ export-ignore
 /infection.json export-ignore
 /mago.toml export-ignore
