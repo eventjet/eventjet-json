@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Node;
 
-use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use JsonException;
 use Override;
@@ -44,7 +44,7 @@ final readonly class ListNode implements Node
     /**
      * @param list<mixed> $values
      * @return list<mixed>
-     * @throws DecodeError
+     * @throws DecodeFailure
      * @throws JsonException
      */
     private function decodeItems(array $values, string $path): array
@@ -57,7 +57,7 @@ final readonly class ListNode implements Node
     /**
      * @param list<mixed> $values
      * @return list<mixed>
-     * @throws DecodeError
+     * @throws DecodeFailure
      * @throws JsonException
      */
     private function decodeEachItem(array $values, string $path): array

@@ -10,7 +10,7 @@ use Eventjet\Json\DecodeErrorKind;
 final class TupleDeclarationErrorCases
 {
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -22,7 +22,7 @@ final class TupleDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'array{0?: int, string}', 'var')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var, @phpstan-var, @psalm-var, or @phan-var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'tuple integer range rejects reversed bounds' => [
             '{}',
@@ -30,7 +30,7 @@ final class TupleDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'array{int<max, min>}', 'param')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param, @phpstan-param, @psalm-param, or @phan-param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'tuple integer range rejects a third bound' => [
             '{}',
@@ -38,7 +38,7 @@ final class TupleDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'array{int<min, max, 0>}', 'param')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param, @phpstan-param, @psalm-param, or @phan-param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'tuple declaration rejects an unsupported nested map' => [
             '{}',
@@ -46,7 +46,7 @@ final class TupleDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'list<array{list<array<string, int>>}>', 'var')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var, @phpstan-var, @psalm-var, or @phan-var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'tuple indices must start at zero' => [
             '{}',
@@ -54,7 +54,7 @@ final class TupleDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'array{1: int}', 'var')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var, @phpstan-var, @psalm-var, or @phan-var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'tuple union rejects a generic null declaration' => [
             '{}',
@@ -62,7 +62,7 @@ final class TupleDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'list<array{0: int}|null<string>>', 'param')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @param, @phpstan-param, @psalm-param, or @phan-param with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
     }
 }

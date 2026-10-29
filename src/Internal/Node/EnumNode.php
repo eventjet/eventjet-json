@@ -6,8 +6,8 @@ namespace Eventjet\Json\Internal\Node;
 
 use BackedEnum;
 use Closure;
-use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Override;
 use ReflectionEnum;
@@ -72,7 +72,7 @@ final readonly class EnumNode implements Node
      * @param 'int'|'string' $backingType
      * @param non-empty-list<class-string<BackedEnum>> $enums
      * @param list<string> $valueTypes The JSON value types of the other union members.
-     * @throws DecodeError
+     * @throws DecodeFailure
      */
     public static function union(string $path, string $backingType, array $enums, array $valueTypes): self
     {
@@ -137,7 +137,7 @@ final readonly class EnumNode implements Node
         string $backingType,
         string $enum,
         array $valueTypes,
-    ): DecodeError|null {
+    ): DecodeFailure|null {
         return match (true) {
             $backingType === 'int' && in_array('float', $valueTypes, strict: true) => AmbiguousUnion::enumAndFloat(
                 $path,

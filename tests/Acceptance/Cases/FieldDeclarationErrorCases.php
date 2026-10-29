@@ -16,7 +16,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 final class FieldDeclarationErrorCases
 {
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -26,7 +26,7 @@ final class FieldDeclarationErrorCases
             '{}',
             DatePeriod::class,
             'Could not create DatePeriod from the JSON object: Field start uses no type declaration. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'non-nullable non-backed enum field is rejected even when absent' => [
             '{}',
@@ -34,26 +34,26 @@ final class FieldDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('\\' . NonBackedStatus::class, '', 'param')
                 . ' from the JSON object: Field value uses non-backed enum Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus, which cannot be decoded because it has no backing value.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'intersection constructor field is rejected even when absent' => [
             '{}',
             new IntersectionTypeField(new ArrayIterator())::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntersectionTypeField from the JSON object: Field value uses unsupported intersection type Countable&Iterator. JSON does not identify a concrete class to instantiate.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'mixed constructor field is rejected even when absent' => [
             '{}',
             new MixedField(null)::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\MixedField from the JSON object: Field value uses unsupported type mixed. The declaration does not provide enough type information to preserve PHP value types and JSON shapes during a round trip.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield from self::imprecise();
         yield 'intersection public property is unsupported' => [
             '{"value":{}}',
             new IntersectionPublicProperty()::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntersectionPublicProperty from the JSON object: Field value uses unsupported intersection type Countable&Iterator. JSON does not identify a concrete class to instantiate.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'public property of an unknown class rejects an object' => [
             '{"value":{}}',
@@ -61,12 +61,12 @@ final class FieldDeclarationErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('UnknownPublicPropertyType', '', 'var')
                 . ' from the JSON object: Field value uses unknown class UnknownPublicPropertyType, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
     }
 
     /**
-     * @return iterable<string, array{string, class-string, string, int}>
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
      * @throws \RuntimeException
      */
     private static function imprecise(): iterable
@@ -102,13 +102,13 @@ final class FieldDeclarationErrorCases
                 '{}',
                 $class,
                 $message,
-                DecodeErrorKind::UnsupportedDeclaration->value,
+                DecodeErrorKind::UnsupportedDeclaration,
             ];
             yield $label . ' is rejected before PHP sees a value' => [
                 '{"value":"s"}',
                 $class,
                 $message,
-                DecodeErrorKind::UnsupportedDeclaration->value,
+                DecodeErrorKind::UnsupportedDeclaration,
             ];
         }
     }

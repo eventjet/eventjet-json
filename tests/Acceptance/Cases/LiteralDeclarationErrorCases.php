@@ -15,7 +15,7 @@ use RuntimeException;
 final class LiteralDeclarationErrorCases
 {
     /**
-     * @return iterable<string, array{string, class-string, string, int}>
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
      * @throws RuntimeException
      */
     public static function errors(): iterable
@@ -36,7 +36,7 @@ final class LiteralDeclarationErrorCases
                         . ' from the JSON object: Field value uses unsupported literal declaration '
                         . $declaration
                         . ', which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
-                    DecodeErrorKind::UnsupportedDeclaration->value,
+                    DecodeErrorKind::UnsupportedDeclaration,
                 ];
             }
         }
@@ -51,7 +51,7 @@ final class LiteralDeclarationErrorCases
                     . ' from the JSON object: Field value must be of type '
                     . $case
                     . ', string given.',
-                DecodeErrorKind::InvalidValue->value,
+                DecodeErrorKind::InvalidValue,
             ];
         }
         $classes = '\\' . Coordinates::class . '|\\' . Person::class;
@@ -71,7 +71,7 @@ final class LiteralDeclarationErrorCases
                 . ', '
                 . Person::class
                 . '. JSON does not identify which class to instantiate.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         $class = CollectionDeclarationFixture::create(
             $enum . '|string',
@@ -86,7 +86,7 @@ final class LiteralDeclarationErrorCases
                 . ' from the JSON object: Field value uses backed enum '
                 . StringBackedStatus::class
                 . ' together with its backing type string. JSON cannot distinguish an enum case from the scalar value.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         foreach ([
             ['int|float', '1|1.0'],
@@ -105,7 +105,7 @@ final class LiteralDeclarationErrorCases
                 'Could not create '
                     . $class
                     . ' from the JSON object: Field value has overlapping literal union members. JSON cannot identify which PHP type to restore.',
-                DecodeErrorKind::UnsupportedDeclaration->value,
+                DecodeErrorKind::UnsupportedDeclaration,
             ];
         }
     }

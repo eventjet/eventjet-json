@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use BackedEnum;
-use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use ReflectionClass;
@@ -22,7 +22,7 @@ final class ClassGraphValidator
 
     /**
      * @param class-string $class
-     * @throws DecodeError
+     * @throws DecodeFailure
      * @throws ReflectionException
      */
     public function validateRoot(string $class): void
@@ -35,7 +35,7 @@ final class ClassGraphValidator
 
     /**
      * @param class-string $class
-     * @throws DecodeError
+     * @throws DecodeFailure
      * @throws ReflectionException
      */
     public function validate(string $class): void

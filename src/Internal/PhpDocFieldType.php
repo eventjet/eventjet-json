@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use ReflectionException;
 use ReflectionParameter;
@@ -28,7 +28,7 @@ final class PhpDocFieldType
      * parameter. Returns null if no tag counts or the decoder does not support the type of the tag that does. Each doc
      * comment is read once, even if it declares several parameters, and only if it has the tag.
      *
-     * @throws DecodeError If the type has a number that PHP and PHPStan can read differently.
+     * @throws DecodeFailure If the type has a number that PHP and PHPStan can read differently.
      */
     public static function resolve(ReflectionParameter|ReflectionProperty $field): PhpDocType|null
     {

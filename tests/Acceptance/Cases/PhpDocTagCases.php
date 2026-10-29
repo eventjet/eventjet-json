@@ -23,7 +23,7 @@ use function implode;
 final class PhpDocTagCases
 {
     /**
-     * @return iterable<string, array{string, class-string, string, int}>
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
      * @throws RuntimeException
      */
     public static function errors(): iterable
@@ -466,7 +466,7 @@ final class PhpDocTagCases
      * @param list<string> $lines
      * @param string|null $expected The item type of the list that is read, or null if none is.
      * @param 'param'|'var' $tag
-     * @return iterable<string, array{string, class-string, string, int}>
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
      * @throws RuntimeException
      */
     private static function read(string $label, array $lines, string|null $expected, string $tag = 'param'): iterable
@@ -479,7 +479,7 @@ final class PhpDocTagCases
      *
      * @param string|null $expected The item type of the list that is read, or null if none is.
      * @param 'param'|'var' $tag
-     * @return iterable<string, array{string, class-string, string, int}>
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
      * @throws RuntimeException
      */
     public static function document(string $label, string $doc, string|null $expected, string $tag): iterable
@@ -498,7 +498,7 @@ final class PhpDocTagCases
                 . ' from the JSON object: Field value[0] must be of type '
                 . $expected
                 . ', stdClass given.',
-            $expected === null ? DecodeErrorKind::UnsupportedDeclaration->value : DecodeErrorKind::InvalidValue->value,
+            $expected === null ? DecodeErrorKind::UnsupportedDeclaration : DecodeErrorKind::InvalidValue,
         ];
     }
 }

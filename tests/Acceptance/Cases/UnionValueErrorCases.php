@@ -14,7 +14,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\UnionPublicProperty;
 final class UnionValueErrorCases
 {
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -26,13 +26,13 @@ final class UnionValueErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array|string', 'array{0: int, 1?: string}|string', 'param')
                 . ' from the JSON object: Field value must be of type array{0: int, 1?: string}|string, bool given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'disjoint enum union rejects an unknown backing value' => [
             '{"value":"unknown"}',
             DisjointStringBackedEnumUnionField::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\DisjointStringBackedEnumUnionField from the JSON object: Field value uses backed enum union Eventjet\Json\Test\Acceptance\Fixtures\StringBackedOutcome|Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus, which has no case with backing value \'unknown\'.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'non-empty-list-or-string field rejects an empty list' => [
             '{"value":[]}',
@@ -40,7 +40,7 @@ final class UnionValueErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array|string', 'non-empty-list<int>|string', 'var')
                 . ' from the JSON object: Field value must be of type non-empty-list<int>, empty list given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         $repeatedNullable = CollectionDeclarationFixture::create('array|null', 'list<int>|list<int>|null', 'param');
         yield 'repeated nullable list member reports the list type like a single one' => [
@@ -49,7 +49,7 @@ final class UnionValueErrorCases
             'Could not create '
                 . $repeatedNullable
                 . ' from the JSON object: Field value must be of type list<int>, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         $nullFirst = CollectionDeclarationFixture::create(
             'array',
@@ -62,7 +62,7 @@ final class UnionValueErrorCases
             'Could not create '
                 . $nullFirst
                 . ' from the JSON object: Field value[0] must be of type Eventjet\Json\Test\Acceptance\Fixtures\Coordinates|null, int given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         $withoutValues = CollectionDeclarationFixture::create(
             'array',
@@ -75,7 +75,7 @@ final class UnionValueErrorCases
             'Could not create '
                 . $withoutValues
                 . ' from the JSON object: Field value[0] must be of type Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus|int, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         $repeated = CollectionDeclarationFixture::create(
             'int|string',
@@ -88,13 +88,13 @@ final class UnionValueErrorCases
             'Could not create '
                 . $repeated
                 . ' from the JSON object: Field value must be of type string|int, bool given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'scalar union property rejects an object' => [
             '{"value":{}}',
             UnionPublicProperty::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\UnionPublicProperty from the JSON object: Field value must be of type string|int, stdClass given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 }

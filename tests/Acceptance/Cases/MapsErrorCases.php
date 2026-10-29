@@ -23,7 +23,7 @@ use const JSON_THROW_ON_ERROR;
 final class MapsErrorCases
 {
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      * @throws JsonException
@@ -37,7 +37,7 @@ final class MapsErrorCases
     }
 
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -47,19 +47,19 @@ final class MapsErrorCases
             '{}',
             new UnsupportedArrayObjectMapField(new ArrayObject([0 => 'value']))::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedArrayObjectMapField from the JSON object: Field values uses unsupported map declaration ArrayObject. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'non-empty map declaration rejects integer keys even when absent' => [
             '{}',
             new UnsupportedNonEmptyMapKeyField([0 => 'value'])::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedNonEmptyMapKeyField from the JSON object: Field values uses unsupported map declaration non-empty-array. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'plain array map cannot represent an empty JSON object' => [
             '{}',
             new AmbiguousMapField([])::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\AmbiguousMapField from the JSON object: Field values uses array<TKey, TValue>, whose empty value encodes as a JSON array and cannot represent an empty JSON object. Use non-empty-array<string, TValue> for a non-empty map or ArrayObject<string, TValue> for a map that may be empty.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'ArrayObject declaration rejects an unclosed generic' => [
             '{}',
@@ -67,7 +67,7 @@ final class MapsErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('\ArrayObject', 'ArrayObject<string, int', 'var')
                 . ' from the JSON object: Field value uses unsupported map declaration ArrayObject. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'ArrayObject field rejects a non-empty-array declaration' => [
             '{}',
@@ -75,7 +75,7 @@ final class MapsErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('\ArrayObject', 'non-empty-array<string, int>', 'var')
                 . ' from the JSON object: Field value uses unsupported map declaration ArrayObject. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'non-empty map declaration rejects a third type argument' => [
             '{}',
@@ -83,12 +83,12 @@ final class MapsErrorCases
             'Could not create '
                 . CollectionDeclarationFixture::create('array', 'non-empty-map<string, int, bool>', 'var')
                 . ' from the JSON object: Field value has a missing or unrecognized collection declaration. Use @var, @phpstan-var, @psalm-var, or @phan-var with list<T>, non-empty-list<T>, array{T1, T2}, non-empty-array<string, T>, or ArrayObject<string, T>, where T is a supported scalar, backed enum, or final class.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
     }
 
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -98,7 +98,7 @@ final class MapsErrorCases
             '{"map":{"invalid":1}}',
             new BoolCollectionValidationFields()::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\BoolCollectionValidationFields from the JSON object: Field map[invalid] must be of type bool, int given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         $nullableMap = CollectionDeclarationFixture::create(
             '?\\ArrayObject',
@@ -111,24 +111,24 @@ final class MapsErrorCases
             'Could not create '
                 . $nullableMap
                 . ' from the JSON object: Field value must be of type JSON object, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'map inside a list rejects an array' => [
             '[[]]',
             JsonType::array(JsonType::map(EmptyObject::class)),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject from the JSON object: Field [0] must be of type JSON object, array given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'map property rejects a numeric member name' => [
             '{"strings":{"valid":"value"},"integers":{"valid":42},"floats":{"valid":3.25},"booleans":{"valid":true},"publicStrings":{"0":"ready"}}',
             new ScalarMapFields(['valid' => 'value'], ['valid' => 42], ['valid' => 3.25], ['valid' => true])::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarMapFields from the JSON object: Field publicStrings has numeric-looking member name 0, which PHP converts to an integer array key. Supported maps require member names that remain strings.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -138,12 +138,12 @@ final class MapsErrorCases
             '{"entry":[{},{},{},{"list":[1]}]}',
             JsonType::map(JsonType::array(BoolCollectionValidationFields::class)),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\BoolCollectionValidationFields from the JSON object: Field [entry][3].list[0] must be of type bool, int given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 
     /**
-     * @return iterable<string, array{string, class-string, string, int}>
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
      * @throws JsonException
      * @throws \RuntimeException
      */
@@ -160,7 +160,7 @@ final class MapsErrorCases
                         . ' from the JSON object: Field value["bad key"] must be of type '
                         . $type
                         . ', null given.',
-                    DecodeErrorKind::InvalidValue->value,
+                    DecodeErrorKind::InvalidValue,
                 ];
             }
         }
@@ -189,7 +189,7 @@ final class MapsErrorCases
                     . ', '
                     . $actual
                     . ' given.',
-                DecodeErrorKind::InvalidValue->value,
+                DecodeErrorKind::InvalidValue,
             ];
         }
     }

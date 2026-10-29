@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Node;
 
 use Closure;
-use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use JsonException;
@@ -57,7 +57,7 @@ final readonly class ScalarNode implements Node
      * @param array<TKey, mixed> $values
      * @param Closure(TKey): string $path
      * @return array<TKey, mixed>
-     * @throws DecodeError
+     * @throws DecodeFailure
      * @throws JsonException
      */
     public function decodeEach(array $values, Closure $path): array
@@ -79,7 +79,7 @@ final readonly class ScalarNode implements Node
      * @param array<TKey, mixed> $values
      * @param Closure(TKey): string $path
      * @return array<TKey, mixed>
-     * @throws DecodeError
+     * @throws DecodeFailure
      */
     private function floats(array $values, Closure $path): array
     {

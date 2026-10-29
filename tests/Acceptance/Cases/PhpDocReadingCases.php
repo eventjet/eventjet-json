@@ -73,7 +73,7 @@ final class PhpDocReadingCases
     }
 
     /**
-     * @return iterable<string, array{string, class-string, string, int}>
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
      * @throws RuntimeException
      */
     public static function errors(): iterable
@@ -128,7 +128,7 @@ final class PhpDocReadingCases
                 '{}',
                 $class,
                 self::unrecognized($class, $tag),
-                DecodeErrorKind::UnsupportedDeclaration->value,
+                DecodeErrorKind::UnsupportedDeclaration,
             ];
         }
         foreach (['param', 'var'] as $tag) {
@@ -141,7 +141,7 @@ final class PhpDocReadingCases
                     . ' from the JSON object: Field value must be of type "'
                     . "\xF4\x90\x80\x80"
                     . '", string given.',
-                DecodeErrorKind::InvalidValue->value,
+                DecodeErrorKind::InvalidValue,
             ];
         }
     }

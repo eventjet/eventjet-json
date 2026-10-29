@@ -13,6 +13,7 @@ use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\FieldNameRules;
@@ -74,7 +75,7 @@ use Eventjet\Json\Test\Unit\Fixtures\DeferredListItem;
 use Eventjet\Json\Test\Unit\Fixtures\DeferredValueEnum;
 use Eventjet\Json\Test\Unit\Fixtures\JsonObject;
 use Eventjet\Json\Test\Unit\Fixtures\PropertyCountingReflection;
-use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeError;
+use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeFailure;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -104,6 +105,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(PhpDocClassNameResolver::class)]
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
+#[UsesClass(DecodeFailure::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(TargetClass::class)]
@@ -191,7 +193,7 @@ final class AutoloadingTest extends TestCase
      * @throws ReflectionException
      * @throws JsonException
      * @throws TypeError
-     * @throws DecodeError
+     * @throws DecodeFailure
      */
     public function testEmptyObjectListsDoNotAutoloadItemClasses(): void
     {
@@ -230,7 +232,7 @@ final class AutoloadingTest extends TestCase
      * @throws UnknownClassOrInterfaceException
      * @throws JsonException
      * @throws ReflectionException
-     * @throws DecodeError
+     * @throws DecodeFailure
      */
     public function testBuiltinFieldsNeverInvokeAutoloaders(): void
     {
@@ -290,9 +292,9 @@ final class AutoloadingTest extends TestCase
             static::assertNotNull($impreciseType);
             static::assertSame(
                 DecodeErrorKind::UnsupportedDeclaration,
-                ThrownDecodeError::of(
+                ThrownDecodeFailure::of(
                     /**
-                     * @throws DecodeError
+                     * @throws DecodeFailure
                      * @throws ReflectionException
                      */
                     static fn(): object => new TypeCompiler()->field($imprecise, $impreciseType),
@@ -337,7 +339,7 @@ final class AutoloadingTest extends TestCase
      * @throws TypeError
      * @throws JsonException
      * @throws UnknownClassOrInterfaceException
-     * @throws DecodeError
+     * @throws DecodeFailure
      */
     public function testLiteralFieldsNeverInvokeAutoloaders(): void
     {
@@ -412,7 +414,7 @@ final class AutoloadingTest extends TestCase
      * @throws ReflectionException
      * @throws TypeError
      * @throws JsonException
-     * @throws DecodeError
+     * @throws DecodeFailure
      */
     public function testEnumBackingConstantsLoadOnlyForMatchingInputTypes(): void
     {
@@ -432,8 +434,8 @@ final class AutoloadingTest extends TestCase
             static::assertNotNull($enum);
             static::assertSame(
                 DecodeErrorKind::InvalidValue,
-                ThrownDecodeError::of(
-                    /** @throws DecodeError|JsonException */ static fn(): object => $enum->decode(1, 'value'),
+                ThrownDecodeFailure::of(
+                    /** @throws DecodeFailure|JsonException */ static fn(): object => $enum->decode(1, 'value'),
                 )->kind,
             );
             static::assertNotContains(DeferredEnumBacking::class, $requests->names);
@@ -444,7 +446,7 @@ final class AutoloadingTest extends TestCase
         }
     }
 
-    /** @throws DecodeError */
+    /** @throws DecodeFailure */
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
     public function testFieldNameLookupsReuseMetadataIncludingUnannotatedClasses(): void

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use ReflectionClass;
 use ReflectionException;
 
@@ -22,8 +23,8 @@ final class MappedObjectSerializer
         $class = new ReflectionClass($object);
         try {
             $names = TargetClass::fieldNames($class);
-        } catch (DecodeError $error) {
-            throw $error->whileCreating($class->getName());
+        } catch (DecodeFailure $error) {
+            throw $error->whileCreating($class->getName())->toError();
         }
         $result = [];
         /** @var array<string, array<array-key, mixed>|object|bool|int|float|string|resource|null> $properties */

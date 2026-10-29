@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Parity;
 
-use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\PhpDocSimpleTags;
 use Eventjet\Json\Internal\PhpDocTag;
 use Eventjet\Json\Internal\PhpDocTagParser;
@@ -81,12 +81,12 @@ final class ParityCheck
      */
     public static function field(
         string $label,
-        PhpDocType|DecodeError|null $ours,
+        PhpDocType|DecodeFailure|null $ours,
         PhpStanType|null $reference,
         ParityReport $report,
     ): void {
         $rejected = NumberLiterals::rejectsAny($reference->numbers ?? []);
-        $decoder = $ours instanceof DecodeError ? 'rejected' : TypeDescription::type($ours);
+        $decoder = $ours instanceof DecodeFailure ? 'rejected' : TypeDescription::type($ours);
         $phpstan = $rejected ? 'rejected' : TypeDescription::type($reference?->type);
         $report->compare($label, $decoder === $phpstan ? [] : ['decoder: ' . $decoder, 'PHPStan: ' . $phpstan]);
     }

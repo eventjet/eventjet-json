@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use ArrayObject;
-use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\UnsupportedCollection;
 use ReflectionParameter;
 use ReflectionProperty;
@@ -26,7 +26,7 @@ final class CollectionDeclarationError
         ReflectionParameter|ReflectionProperty $field,
         PhpDocType|null $declared,
         PhpDocType $native,
-    ): DecodeError {
+    ): DecodeFailure {
         $arguments = $declared->arguments ?? [];
         $map = count($arguments) >= 2 ? $declared?->name : null;
         $stringKeys = ($arguments[0] ?? null)?->isPlainName('string') === true;
@@ -45,7 +45,7 @@ final class CollectionDeclarationError
     }
 
     /** Returns the error for an `array` or `ArrayObject` field without a supported PHPDoc collection declaration. */
-    private static function unrecognized(ReflectionParameter|ReflectionProperty $field): DecodeError
+    private static function unrecognized(ReflectionParameter|ReflectionProperty $field): DecodeFailure
     {
         return UnsupportedCollection::unrecognized(
             $field->getName(),

@@ -19,7 +19,7 @@ use function sprintf;
 final class FieldMappingErrorCases
 {
     /**
-     * @return iterable<string, array{string, class-string|JsonType<list<mixed>>, string, int}>
+     * @return iterable<string, array{string, class-string|JsonType<list<mixed>>, string, DecodeErrorKind}>
      * @throws RuntimeException
      */
     public static function errors(): iterable
@@ -87,25 +87,25 @@ final class FieldMappingErrorCases
                 . ' public function jsonSerialize(): object { return (object) []; }}',
             );
             $message = sprintf('Could not create %s from the JSON object: %s', $class, $reason);
-            yield $label => ['{}', $class, $message, DecodeErrorKind::UnsupportedDeclaration->value];
+            yield $label => ['{}', $class, $message, DecodeErrorKind::UnsupportedDeclaration];
             yield $label . ' empty root collection' => [
                 '[]',
                 JsonType::array($class),
                 $message,
-                DecodeErrorKind::UnsupportedDeclaration->value,
+                DecodeErrorKind::UnsupportedDeclaration,
             ];
             foreach (['param', 'var'] as $tag) {
                 yield $label . ' omitted nested ' . $tag => [
                     '{}',
                     CollectionDeclarationFixture::create('?' . $class, '', $tag),
                     $message,
-                    DecodeErrorKind::UnsupportedDeclaration->value,
+                    DecodeErrorKind::UnsupportedDeclaration,
                 ];
                 yield $label . ' empty list ' . $tag => [
                     '{"value":[]}',
                     CollectionDeclarationFixture::create('array', 'list<' . $class . '>', $tag),
                     $message,
-                    DecodeErrorKind::UnsupportedDeclaration->value,
+                    DecodeErrorKind::UnsupportedDeclaration,
                 ];
             }
         }
@@ -115,7 +115,7 @@ final class FieldMappingErrorCases
             'Could not create '
                 . MappedReference::class
                 . ' from the JSON object: Field $ref must be of type string, int given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'mapped nested path' => [
             '{"$id":"id","links":[{"$ref":42}]}',
@@ -123,7 +123,7 @@ final class FieldMappingErrorCases
             'Could not create '
                 . MappedReference::class
                 . ' from the JSON object: Field links[0].$ref must be of type string, int given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'mapped public property mismatch' => [
             '{"$anchor":false}',
@@ -131,7 +131,7 @@ final class FieldMappingErrorCases
             'Could not create '
                 . MappedProperties::class
                 . ' from the JSON object: Field $anchor must be of type string, bool given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'mapped public collection mismatch' => [
             '{"links":[{"$ref":42}]}',
@@ -139,7 +139,7 @@ final class FieldMappingErrorCases
             'Could not create '
                 . MappedReference::class
                 . ' from the JSON object: Field links[0].$ref must be of type string, int given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'numeric mapped constructor mismatch' => [
             '{"0":42}',
@@ -147,7 +147,7 @@ final class FieldMappingErrorCases
             'Could not create '
                 . MappedSpecialNames::class
                 . ' from the JSON object: Field 0 must be of type string, int given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 }

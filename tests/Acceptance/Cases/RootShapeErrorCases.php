@@ -14,7 +14,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 final class RootShapeErrorCases
 {
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -24,55 +24,55 @@ final class RootShapeErrorCases
             '{"author":null}',
             JsonType::map(Person::class),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Field [author] must be of type Eventjet\Json\Test\Acceptance\Fixtures\Person, null given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'root enum list rejects null' => [
             '[null]',
             JsonType::array(IntBackedStatus::class),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus from the JSON object: Field [0] uses backed enum Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus, which expects a int backing value; null given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'nested root list rejects null' => [
             '[null]',
             JsonType::array(JsonType::array(Person::class)),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Field [0] must be of type list<Eventjet\Json\Test\Acceptance\Fixtures\Person>, null given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'nested root map rejects null' => [
             '[null]',
             JsonType::array(JsonType::map(Person::class)),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Field [0] must be of type JSON object, null given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'map root rejects an array' => [
             '[]',
             JsonType::map(EmptyObject::class),
             'Expected the JSON root to be an object, got array.',
-            DecodeErrorKind::UnexpectedRootValue->value,
+            DecodeErrorKind::UnexpectedRootValue,
         ];
         yield 'object root rejects an array' => [
             '[]',
             Person::class,
             'Expected the JSON root to be an object, got array.',
-            DecodeErrorKind::UnexpectedRootValue->value,
+            DecodeErrorKind::UnexpectedRootValue,
         ];
         yield 'array root rejects an object with numeric member names' => [
             '{"0":{}}',
             JsonType::array(Person::class),
             'Expected the JSON root to be an array, got stdClass.',
-            DecodeErrorKind::UnexpectedRootValue->value,
+            DecodeErrorKind::UnexpectedRootValue,
         ];
         yield 'array root rejects null' => [
             'null',
             JsonType::array(Person::class),
             'Expected the JSON root to be an array, got null.',
-            DecodeErrorKind::UnexpectedRootValue->value,
+            DecodeErrorKind::UnexpectedRootValue,
         ];
         yield 'object root rejects an integer' => [
             '0',
             Person::class,
             'Expected the JSON root to be an object, got int.',
-            DecodeErrorKind::UnexpectedRootValue->value,
+            DecodeErrorKind::UnexpectedRootValue,
         ];
     }
 }

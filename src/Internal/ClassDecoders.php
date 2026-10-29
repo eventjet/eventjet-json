@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use ReflectionClass;
 use ReflectionException;
@@ -25,7 +26,7 @@ final class ClassDecoders
     /**
      * @param class-string $class
      * @phpstan-impure
-     * @throws DecodeError
+     * @throws DecodeFailure
      * @throws ReflectionException
      */
     public static function get(string $class): ClassDecoder
@@ -37,7 +38,7 @@ final class ClassDecoders
         $reflection = new ReflectionClass($class);
         try {
             $decoder = ClassDecoder::compile($reflection);
-        } catch (DecodeError $error) {
+        } catch (DecodeFailure $error) {
             throw $error->whileCreating($reflection->getName());
         }
         if ($decoder->complete) {
@@ -50,7 +51,7 @@ final class ClassDecoders
      * @template T of object
      * @param class-string<T> $class
      * @return T
-     * @throws DecodeError
+     * @throws DecodeFailure
      */
     public static function hydrate(string $class, stdClass $object, string $path = ''): object
     {
@@ -59,7 +60,7 @@ final class ClassDecoders
         try {
             /** @var T */
             return $decoder->decode($object, $path);
-        } catch (DecodeError $error) {
+        } catch (DecodeFailure $error) {
             throw $error->whileCreating($decoder->class);
         } catch (Throwable $error) {
             throw UnsupportedTarget::unreadable($error)->whileCreating($class);
@@ -78,28 +79,28 @@ final class ClassDecoders
     {
         try {
             $decoder = self::$decoders[$class] ?? self::compiled($class);
-        } catch (DecodeError $error) {
-            return $error;
+        } catch (DecodeFailure $error) {
+            return $error->toError();
         }
         try {
             /** @var T */
             return $decoder->decode($object, '');
-        } catch (DecodeError $error) {
-            return $error->whileCreating($decoder->class);
+        } catch (DecodeFailure $error) {
+            return $error->whileCreating($decoder->class)->toError();
         } catch (Throwable $error) {
-            return UnsupportedTarget::unreadable($error)->whileCreating($class);
+            return UnsupportedTarget::unreadable($error)->whileCreating($class)->toError();
         }
     }
 
     /**
      * @param class-string $class
-     * @throws DecodeError
+     * @throws DecodeFailure
      */
     private static function compiled(string $class): ClassDecoder
     {
         try {
             return self::get($class);
-        } catch (DecodeError $error) {
+        } catch (DecodeFailure $error) {
             throw $error;
         } catch (Throwable $error) {
             throw UnsupportedTarget::unreadable($error)->whileCreating($class);

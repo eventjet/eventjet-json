@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
@@ -37,7 +37,7 @@ final class UnionBuilder
 {
     /** @var array<string, Node|null> Members keyed by the type that errors report, with null for rejected members. */
     private array $types = [];
-    private DecodeError|null $rejected = null;
+    private DecodeFailure|null $rejected = null;
 
     public function __construct(
         private readonly string $path,
@@ -53,10 +53,10 @@ final class UnionBuilder
      * Records a member that failed to compile. If its values have no JSON representation, its error is reported only if
      * no other member remains. Otherwise, the error applies to the whole union.
      *
-     * @throws DecodeError
+     * @throws DecodeFailure
      * @throws ReflectionException
      */
-    public function reject(string $type, DecodeError $error): void
+    public function reject(string $type, DecodeFailure $error): void
     {
         $unrepresentable = NamedTypeCompiler::unrepresentable($type);
         if (!$unrepresentable) {
@@ -71,7 +71,7 @@ final class UnionBuilder
      * collection or an enum.
      *
      * @param string|null $type The type that errors report, if it differs from the member types.
-     * @throws DecodeError
+     * @throws DecodeFailure
      * @throws ReflectionException
      */
     public function build(string|null $type = null): Node
@@ -123,7 +123,7 @@ final class UnionBuilder
     }
 
     /** @param list<Node> $members */
-    private function classes(array $members): DecodeError|null
+    private function classes(array $members): DecodeFailure|null
     {
         $classes = array_values(array_filter(array_map(static fn(Node $member): string|null => match (true) {
             $member instanceof ObjectNode => $member->target,
@@ -140,14 +140,14 @@ final class UnionBuilder
      * @param list<Node> $members
      * @throws ReflectionException
      */
-    private function literals(array $members): DecodeError|null
+    private function literals(array $members): DecodeFailure|null
     {
         $literal = array_any($members, static fn(Node $member): bool => $member instanceof LiteralNode);
         return $literal ? PhpDocLiteralUnionValidator::validate($this->path, $members) : null;
     }
 
     /** @param list<Node> $members */
-    private function shapes(array $members): DecodeError|null
+    private function shapes(array $members): DecodeFailure|null
     {
         $shapes = array_merge(...array_map(
             /** @return array<int, string> */

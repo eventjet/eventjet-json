@@ -12,6 +12,7 @@ use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
@@ -64,7 +65,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\StaticConstructorParameterProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Unit\Fixtures\JsonObject;
-use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeError;
+use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeFailure;
 use JsonException;
 use JsonSerializable;
 use Override;
@@ -86,6 +87,7 @@ use function class_alias;
 
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
+#[UsesClass(DecodeFailure::class)]
 #[CoversClass(PhpDocFieldType::class)]
 #[UsesClass(CollectionDeclarationError::class)]
 #[UsesClass(PhpDocType::class)]
@@ -172,7 +174,7 @@ final class MetadataCacheTest extends TestCase
      * @throws Exception
      * @throws JsonException
      * @throws ReflectionException
-     * @throws DecodeError
+     * @throws DecodeFailure
      */
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
@@ -182,10 +184,10 @@ final class MetadataCacheTest extends TestCase
             $decoder = ClassDecoders::get($name);
             static::assertSame($decoder, ClassDecoders::get($name));
         }
-        $failed = /** @throws DecodeError|ReflectionException */ static fn(): object => ClassDecoders::get(
+        $failed = /** @throws DecodeFailure|ReflectionException */ static fn(): object => ClassDecoders::get(
             StaticConstructorParameterProperty::class,
         );
-        static::assertNotSame(ThrownDecodeError::of($failed), ThrownDecodeError::of($failed));
+        static::assertNotSame(ThrownDecodeFailure::of($failed), ThrownDecodeFailure::of($failed));
 
         $first = new class(1) {
             public function __construct(
@@ -220,8 +222,8 @@ final class MetadataCacheTest extends TestCase
         ])));
         static::assertEquals(
             InvalidValue::typeMismatch('no', 'false', true)->whileCreating($booleans::class),
-            ThrownDecodeError::of(
-                /** @throws DecodeError|JsonException */ static fn(): object => ClassDecoders::hydrate($booleans::class, JsonObject::of([
+            ThrownDecodeFailure::of(
+                /** @throws DecodeFailure|JsonException */ static fn(): object => ClassDecoders::hydrate($booleans::class, JsonObject::of([
                     'no' => true,
                     'yes' => true,
                 ])),
@@ -229,8 +231,8 @@ final class MetadataCacheTest extends TestCase
         );
         static::assertEquals(
             InvalidValue::typeMismatch('yes', 'true', false)->whileCreating($booleans::class),
-            ThrownDecodeError::of(
-                /** @throws DecodeError|JsonException */ static fn(): object => ClassDecoders::hydrate($booleans::class, JsonObject::of([
+            ThrownDecodeFailure::of(
+                /** @throws DecodeFailure|JsonException */ static fn(): object => ClassDecoders::hydrate($booleans::class, JsonObject::of([
                     'no' => false,
                     'yes' => false,
                 ])),
@@ -252,8 +254,8 @@ final class MetadataCacheTest extends TestCase
         static::assertEquals($numeric, ClassDecoders::hydrate($numeric::class, JsonObject::of(['1' => 1])));
         static::assertEquals(
             InvalidValue::typeMismatch('1', 'int', 'wrong')->whileCreating($numeric::class),
-            ThrownDecodeError::of(
-                /** @throws DecodeError|JsonException */ static fn(): object => ClassDecoders::hydrate($numeric::class, JsonObject::of([
+            ThrownDecodeFailure::of(
+                /** @throws DecodeFailure|JsonException */ static fn(): object => ClassDecoders::hydrate($numeric::class, JsonObject::of([
                     '1' => 'wrong',
                 ])),
             ),
@@ -275,7 +277,7 @@ final class MetadataCacheTest extends TestCase
      * @throws Exception
      * @throws ReflectionException
      * @throws UnknownClassOrInterfaceException
-     * @throws DecodeError
+     * @throws DecodeFailure
      */
     public function testRootDescriptorNodesAreReusedAcrossEquivalentDescriptors(): void
     {
@@ -308,7 +310,7 @@ final class MetadataCacheTest extends TestCase
      * @throws Exception
      * @throws JsonException
      * @throws ReflectionException
-     * @throws DecodeError
+     * @throws DecodeFailure
      */
     public function testEnumConversionsPreserveBackingTypesAndRejectUnknownValues(): void
     {
@@ -330,8 +332,8 @@ final class MetadataCacheTest extends TestCase
                 if ($expected === null) {
                     static::assertSame(
                         DecodeErrorKind::InvalidValue,
-                        ThrownDecodeError::of(
-                            /** @throws DecodeError|JsonException */ static fn(): mixed => $node->decode(
+                        ThrownDecodeFailure::of(
+                            /** @throws DecodeFailure|JsonException */ static fn(): mixed => $node->decode(
                                 $value,
                                 'value',
                             ),
@@ -363,7 +365,7 @@ final class MetadataCacheTest extends TestCase
         static::assertInstanceOf(UncheckedNode::class, self::compileValue($nullable)[0]);
         static::assertTrue(class_alias(NonBackedStatus::class, $enumDependency));
         [$node, $unresolved] = self::compileValue($class);
-        static::assertInstanceOf(DecodeError::class, $node);
+        static::assertInstanceOf(DecodeFailure::class, $node);
         static::assertSame([], $unresolved);
 
         $name = CollectionDeclarationFixture::create($dependency . $suffix, '', 'var');
@@ -421,7 +423,7 @@ final class MetadataCacheTest extends TestCase
     {
         foreach (['int', 'int|string', '\\' . NonBackedStatus::class . '|int'] as $declaration) {
             [$node, $unresolved] = self::compileValue(CollectionDeclarationFixture::create($declaration, '', 'var'));
-            static::assertNotInstanceOf(DecodeError::class, $node);
+            static::assertNotInstanceOf(DecodeFailure::class, $node);
             static::assertSame([], $unresolved);
         }
 
@@ -458,19 +460,19 @@ final class MetadataCacheTest extends TestCase
         $class = CollectionDeclarationFixture::create($dependency . '|int', '', 'var');
 
         [$node, $unresolved] = self::compileValue($class);
-        static::assertNotInstanceOf(DecodeError::class, $node);
+        static::assertNotInstanceOf(DecodeFailure::class, $node);
         static::assertSame([$dependency], $unresolved);
         static::assertTrue(class_alias(ParentClassFieldBase::class, $dependency));
-        static::assertInstanceOf(DecodeError::class, self::compileValue($class)[0]);
+        static::assertInstanceOf(DecodeFailure::class, self::compileValue($class)[0]);
 
         $enumDependency = 'EnumConversionDeferredUnion';
         $enumClass = CollectionDeclarationFixture::create($enumDependency . '|int', '', 'var');
         $node = self::compileValue($enumClass)[0];
-        static::assertNotInstanceOf(DecodeError::class, $node);
+        static::assertNotInstanceOf(DecodeFailure::class, $node);
         static::assertSame(
             DecodeErrorKind::InvalidValue,
-            ThrownDecodeError::of(
-                /** @throws DecodeError|JsonException */ static fn(): mixed => $node->decode(
+            ThrownDecodeFailure::of(
+                /** @throws DecodeFailure|JsonException */ static fn(): mixed => $node->decode(
                     StringBackedStatus::Ready->value,
                     'value',
                 ),
@@ -478,7 +480,7 @@ final class MetadataCacheTest extends TestCase
         );
         static::assertTrue(class_alias(StringBackedStatus::class, $enumDependency));
         $node = self::compileValue($enumClass)[0];
-        static::assertNotInstanceOf(DecodeError::class, $node);
+        static::assertNotInstanceOf(DecodeFailure::class, $node);
         static::assertSame(StringBackedStatus::Ready, $node->decode(StringBackedStatus::Ready->value, 'value'));
     }
 
@@ -486,7 +488,7 @@ final class MetadataCacheTest extends TestCase
      * Compiles the `value` property of a class and returns the node with its dependencies, or the error with none.
      *
      * @param class-string $class
-     * @return array{Node|DecodeError, list<string>}
+     * @return array{Node|DecodeFailure, list<string>}
      * @throws ReflectionException
      */
     private static function compileValue(string $class): array
@@ -494,13 +496,13 @@ final class MetadataCacheTest extends TestCase
         $property = new ReflectionProperty($class, 'value');
         $type = $property->getType();
         static::assertNotNull($type);
-        $node = ThrownDecodeError::orResult(
-            /** @throws DecodeError|ReflectionException */ static fn(): Node => new TypeCompiler()->field(
+        $node = ThrownDecodeFailure::orResult(
+            /** @throws DecodeFailure|ReflectionException */ static fn(): Node => new TypeCompiler()->field(
                 $property,
                 $type,
             ),
         );
-        return [$node, $node instanceof DecodeError ? [] : $node->dependencies()];
+        return [$node, $node instanceof DecodeFailure ? [] : $node->dependencies()];
     }
 
     /**

@@ -22,7 +22,7 @@ use const PHP_INT_MAX;
 final class NumberLiteralErrorCases
 {
     /**
-     * @return iterable<string, array{string, class-string, string, int}>
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
      * @throws RuntimeException
      */
     public static function errors(): iterable
@@ -40,7 +40,7 @@ final class NumberLiteralErrorCases
     }
 
     /**
-     * @return array{string, class-string, string, int}
+     * @return array{string, class-string, string, DecodeErrorKind}
      * @throws RuntimeException
      */
     public static function error(string $native, string $declaration, string $tag, string $literal): array
@@ -54,7 +54,7 @@ final class NumberLiteralErrorCases
                 . ' from the JSON object: Field value uses unsupported number literal '
                 . str_replace('_', replace: '', subject: $literal)
                 . ', which PHP and PHPStan can read differently. Use a plain decimal number, such as 42, -7, or 1.5.',
-            DecodeErrorKind::UnsupportedDeclaration->value,
+            DecodeErrorKind::UnsupportedDeclaration,
         ];
     }
 

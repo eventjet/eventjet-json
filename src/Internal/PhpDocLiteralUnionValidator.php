@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use BackedEnum;
-use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
 use ReflectionException;
@@ -23,7 +23,7 @@ final class PhpDocLiteralUnionValidator
      * @param list<Node> $members
      * @throws ReflectionException
      */
-    public static function validate(string $path, array $members): DecodeError|null
+    public static function validate(string $path, array $members): DecodeFailure|null
     {
         foreach ($members as $member) {
             if (!$member instanceof LiteralNode) {

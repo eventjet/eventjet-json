@@ -12,6 +12,7 @@ use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedField;
@@ -54,7 +55,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
 use Eventjet\Json\Test\Unit\Fixtures\JsonObject;
-use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeError;
+use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeFailure;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -69,6 +70,7 @@ use function class_alias;
 
 #[UsesClass(FieldPath::class)]
 #[UsesClass(DecodeError::class)]
+#[UsesClass(DecodeFailure::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
@@ -232,7 +234,7 @@ final class ConstructorValidationPlanTest extends TestCase
                 $enumClass->newInstanceArgs(['first' => StringBackedStatus::Ready, 'second' => 1]),
                 self::decode($enumClass, ['first' => StringBackedStatus::Ready->value, 'second' => 1], ''),
             );
-            static::assertInstanceOf(DecodeError::class, self::decode(
+            static::assertInstanceOf(DecodeFailure::class, self::decode(
                 $enumClass,
                 ['first' => 'unknown', 'second' => 1],
                 '',
@@ -255,8 +257,8 @@ final class ConstructorValidationPlanTest extends TestCase
         static::assertTrue(class_alias(NonBackedStatus::class, $dependency));
         static::assertSame(
             DecodeErrorKind::UnsupportedDeclaration,
-            ThrownDecodeError::of(
-                /** @throws DecodeError|ReflectionException */ static fn(): object => ClassDecoders::get($class),
+            ThrownDecodeFailure::of(
+                /** @throws DecodeFailure|ReflectionException */ static fn(): object => ClassDecoders::get($class),
             )->kind,
         );
     }
@@ -264,7 +266,7 @@ final class ConstructorValidationPlanTest extends TestCase
     /**
      * @throws ReflectionException
      * @throws JsonException
-     * @throws DecodeError
+     * @throws DecodeFailure
      */
     public function testMappedPlansKeepInputNamesAndArgumentsSeparate(): void
     {
@@ -306,10 +308,10 @@ final class ConstructorValidationPlanTest extends TestCase
         $class = new ReflectionClass($target);
         for ($lookup = 0; $lookup < 2; ++$lookup) {
             $error = self::decode($class, ['0' => 'unknown'], 'nested');
-            static::assertInstanceOf(DecodeError::class, $error);
+            static::assertInstanceOf(DecodeFailure::class, $error);
             static::assertStringContainsString('nested.0', $error->getMessage());
             $rootError = self::decode($class, ['0' => 'unknown'], '');
-            static::assertInstanceOf(DecodeError::class, $rootError);
+            static::assertInstanceOf(DecodeFailure::class, $rootError);
             static::assertStringContainsString('Field 0 uses backed enum', $rootError->getMessage());
             static::assertEquals(
                 $class->newInstanceArgs(['value' => StringBackedStatus::Ready]),
@@ -320,7 +322,7 @@ final class ConstructorValidationPlanTest extends TestCase
 
     /**
      * @throws ReflectionException
-     * @throws DecodeError
+     * @throws DecodeFailure
      * @throws JsonException
      * @throws RuntimeException
      */
@@ -368,21 +370,21 @@ final class ConstructorValidationPlanTest extends TestCase
         $error = InvalidFieldMapping::collision('value', 'ref', 'ref');
         $named = InvalidFieldMapping::collision('value', 'ref', 'ref')->whileCreating($class);
         for ($attempt = 0; $attempt < 2; ++$attempt) {
-            static::assertEquals($error, ThrownDecodeError::of(
+            static::assertEquals($error, ThrownDecodeFailure::of(
                 /**
-                 * @throws DecodeError
+                 * @throws DecodeFailure
                  */
                 static fn(): mixed => TargetClass::validate($reflection),
             ));
             static::assertEquals($named, self::decode($reflection, [], ''));
-            static::assertEquals($named, ThrownDecodeError::of(
-                /** @throws DecodeError|ReflectionException */ static fn(): object => ClassDecoders::get($class),
+            static::assertEquals($named, ThrownDecodeFailure::of(
+                /** @throws DecodeFailure|ReflectionException */ static fn(): object => ClassDecoders::get($class),
             ));
             try {
                 MappedObjectSerializer::serialize($reflection->newInstance());
                 static::fail('Invalid mappings must not serialize.');
             } catch (DecodeError $caught) {
-                static::assertSame($named->getMessage(), $caught->getMessage());
+                static::assertSame($named->toError()->getMessage(), $caught->getMessage());
             }
         }
     }
@@ -421,16 +423,16 @@ final class ConstructorValidationPlanTest extends TestCase
                 $error = InvalidFieldMapping::nonPublicProperty('value');
                 $named = InvalidFieldMapping::nonPublicProperty('value')->whileCreating($class);
                 for ($attempt = 0; $attempt < 2; ++$attempt) {
-                    static::assertEquals($error, ThrownDecodeError::of(
+                    static::assertEquals($error, ThrownDecodeFailure::of(
                         /**
-                         * @throws DecodeError
+                         * @throws DecodeFailure
                          */
                         static fn(): mixed => TargetClass::validate($reflection),
                     ));
                     static::assertEquals($named, self::decode($reflection, [], ''));
-                    static::assertEquals($named, ThrownDecodeError::of(
+                    static::assertEquals($named, ThrownDecodeFailure::of(
                         /**
-                         * @throws DecodeError
+                         * @throws DecodeFailure
                          * @throws ReflectionException
                          */
                         static fn(): object => ClassDecoders::get($class),
@@ -439,7 +441,7 @@ final class ConstructorValidationPlanTest extends TestCase
                         MappedObjectSerializer::serialize($reflection->newInstance());
                         static::fail('Private ancestor mappings must not serialize.');
                     } catch (DecodeError $caught) {
-                        static::assertSame($named->getMessage(), $caught->getMessage());
+                        static::assertSame($named->toError()->getMessage(), $caught->getMessage());
                     }
                 }
             }
@@ -449,7 +451,7 @@ final class ConstructorValidationPlanTest extends TestCase
     /**
      * @throws RuntimeException
      * @throws ReflectionException
-     * @throws DecodeError
+     * @throws DecodeFailure
      */
     public function testAncestorDiscoveryPreservesEffectivePublicMappings(): void
     {
@@ -478,8 +480,12 @@ final class ConstructorValidationPlanTest extends TestCase
     private static function decode(ReflectionClass $class, array $values, string $path): object
     {
         $object = JsonObject::of($values);
-        return ThrownDecodeError::orResult(
-            /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class->getName(), $object, $path),
+        return ThrownDecodeFailure::orResult(
+            /** @throws DecodeFailure */ static fn(): object => ClassDecoders::hydrate(
+                $class->getName(),
+                $object,
+                $path,
+            ),
         );
     }
 }

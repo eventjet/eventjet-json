@@ -14,7 +14,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 final class ScalarValidationErrorCases
 {
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -28,7 +28,7 @@ final class ScalarValidationErrorCases
     }
 
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -38,67 +38,67 @@ final class ScalarValidationErrorCases
             '{"string":42,"integer":42,"float":3.25,"boolean":true}',
             ScalarFields::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields from the JSON object: Field string must be of type string, int given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'integer field rejects a numeric string' => [
             '{"string":"value","integer":"42","float":3.25,"boolean":true}',
             ScalarFields::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields from the JSON object: Field integer must be of type int, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'float field rejects a numeric string' => [
             '{"string":"value","integer":42,"float":"3.25","boolean":true}',
             ScalarFields::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields from the JSON object: Field float must be of type float, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'boolean field rejects an integer' => [
             '{"string":"value","integer":42,"float":3.25,"boolean":1}',
             ScalarFields::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields from the JSON object: Field boolean must be of type bool, int given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'constructor boolean rejects a false string' => [
             '{"string":"value","integer":42,"float":3.25,"boolean":"false"}',
             ScalarFields::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields from the JSON object: Field boolean must be of type bool, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'constructor boolean rejects an arbitrary string' => [
             '{"string":"value","integer":42,"float":3.25,"boolean":"not a boolean"}',
             ScalarFields::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields from the JSON object: Field boolean must be of type bool, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'constructor integer rejects a fractional number' => [
             '{"string":"value","integer":50.9,"float":3.25,"boolean":true}',
             ScalarFields::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields from the JSON object: Field integer must be of type int, float given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'public property boolean rejects a false string' => [
             '{"string":"value","integer":42,"float":3.25,"boolean":"false"}',
             ConstructorlessPublicProperties::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties from the JSON object: Field boolean must be of type bool, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'public property boolean rejects an arbitrary string' => [
             '{"string":"value","integer":42,"float":3.25,"boolean":"not a boolean"}',
             ConstructorlessPublicProperties::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties from the JSON object: Field boolean must be of type bool, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'public property integer rejects a fractional number' => [
             '{"string":"value","integer":50.9,"float":3.25,"boolean":true}',
             ConstructorlessPublicProperties::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties from the JSON object: Field integer must be of type int, float given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'public property float rejects a numeric string' => [
             '{"string":"value","integer":42,"float":"3.25","boolean":true}',
             ConstructorlessPublicProperties::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties from the JSON object: Field float must be of type float, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         foreach (['true' => 'false', 'false' => 'true', 'null' => '1'] as $type => $json) {
             $class = CollectionDeclarationFixture::create($type, '', 'var');
@@ -112,19 +112,19 @@ final class ScalarValidationErrorCases
                     . ', '
                     . ($type === 'null' ? 'int' : 'bool')
                     . ' given.',
-                DecodeErrorKind::InvalidValue->value,
+                DecodeErrorKind::InvalidValue,
             ];
         }
         yield 'nullable string property rejects an integer' => [
             '{"string":"value","integer":42,"float":3.25,"boolean":true,"nullable":42}',
             ConstructorlessPublicProperties::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties from the JSON object: Field nullable must be of type string|null, int given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -134,18 +134,18 @@ final class ScalarValidationErrorCases
             '{"string":"value","integer":9223372036854775808,"float":3.25,"boolean":true}',
             ScalarFields::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields from the JSON object: Field integer must be of type int, float given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'integer below platform minimum' => [
             '{"string":"value","integer":-9223372036854775809,"float":3.25,"boolean":true}',
             ScalarFields::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields from the JSON object: Field integer must be of type int, float given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -155,18 +155,18 @@ final class ScalarValidationErrorCases
             '{"true":true,"false":""}',
             LiteralBooleanFields::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields from the JSON object: Field false must be of type false, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
         yield 'true literal rejects a string' => [
             '{"true":"1","false":false}',
             LiteralBooleanFields::class,
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\LiteralBooleanFields from the JSON object: Field true must be of type true, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 
     /**
-     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: int, 4?: \Throwable}>
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -176,12 +176,12 @@ final class ScalarValidationErrorCases
             '[{}, {"integer":"wrong"}]',
             JsonType::array(ConstructorlessPublicProperties::class),
             'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ConstructorlessPublicProperties from the JSON object: Field [1].integer must be of type int, string given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 
     /**
-     * @return iterable<string, array{string, class-string|\Eventjet\Json\JsonType<list<mixed>|object>, string, int}>
+     * @return iterable<string, array{string, class-string|\Eventjet\Json\JsonType<list<mixed>|object>, string, DecodeErrorKind}>
      * @throws \ReflectionException
      * @throws \RuntimeException
      */
@@ -202,7 +202,7 @@ final class ScalarValidationErrorCases
                     . ' from the JSON object: Field value must be of type '
                     . $declaration
                     . ', string given.',
-                DecodeErrorKind::InvalidValue->value,
+                DecodeErrorKind::InvalidValue,
             ];
         }
         foreach ([
@@ -229,7 +229,7 @@ final class ScalarValidationErrorCases
                     . ', '
                     . $actual
                     . ' given.',
-                DecodeErrorKind::InvalidValue->value,
+                DecodeErrorKind::InvalidValue,
             ];
         }
         $class = CollectionDeclarationFixture::create('null', '', 'param');
@@ -237,7 +237,7 @@ final class ScalarValidationErrorCases
             '[{"value":null},{"value":1}]',
             JsonType::array($class),
             'Could not create ' . $class . ' from the JSON object: Field [1].value must be of type null, int given.',
-            DecodeErrorKind::InvalidValue->value,
+            DecodeErrorKind::InvalidValue,
         ];
     }
 }

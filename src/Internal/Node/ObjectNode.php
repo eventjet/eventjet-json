@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Node;
 
-use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\ClassDecoders;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use JsonException;
@@ -41,7 +41,7 @@ final readonly class ObjectNode implements Node
      *
      * @param list<mixed> $values
      * @return list<object|null>
-     * @throws DecodeError
+     * @throws DecodeFailure
      * @throws JsonException
      */
     public function decodeEach(array $values, string $path): array

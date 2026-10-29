@@ -10,7 +10,7 @@ use Eventjet\Json\Test\Parity\Corpus\ParityCorpus;
 use Eventjet\Json\Test\Parity\Corpus\TestSuiteDocs;
 use Eventjet\Json\Test\Parity\Reference\PhpStanReader;
 use Eventjet\Json\Test\Parity\Reference\PhpStanTagSelector;
-use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeError;
+use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeFailure;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -76,8 +76,8 @@ final class PhpDocParserParityTest extends TestCase
                 $field->getName(),
                 $field->getDeclaringClass()?->getName() ?? 'a function',
             );
-            $ours = ThrownDecodeError::orResult(
-                /** @throws \Eventjet\Json\DecodeError */ static fn(): PhpDocType|null => PhpDocFieldType::resolve(
+            $ours = ThrownDecodeFailure::orResult(
+                /** @throws \Eventjet\Json\Internal\Error\DecodeFailure */ static fn(): PhpDocType|null => PhpDocFieldType::resolve(
                     $field,
                 ),
             );

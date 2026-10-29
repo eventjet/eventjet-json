@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
@@ -41,7 +41,7 @@ final readonly class TypeCompiler
     private const array NULLS = ['mixed' => true, 'null' => true];
 
     /**
-     * @throws DecodeError
+     * @throws DecodeFailure
      * @throws ReflectionException
      */
     public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node
@@ -76,7 +76,7 @@ final readonly class TypeCompiler
     /**
      * Compiles the native type of a field other than a class or an enum. PHP checks builtin scalar types itself.
      *
-     * @throws DecodeError
+     * @throws DecodeFailure
      * @throws ReflectionException
      */
     private function native(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|null

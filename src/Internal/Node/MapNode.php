@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Node;
 
 use ArrayObject;
-use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldPath;
 use JsonException;
@@ -54,7 +54,7 @@ final readonly class MapNode implements Node
     /**
      * @param array<string, mixed> $values
      * @return array<string, mixed>
-     * @throws DecodeError
+     * @throws DecodeFailure
      * @throws JsonException
      */
     private function decodeValues(array $values, string $path): array

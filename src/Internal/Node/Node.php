@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Node;
 
-use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\DecodeFailure;
 use JsonException;
 use Stringable;
 
@@ -20,7 +20,7 @@ interface Node extends Stringable
      * Returns the PHP value for a decoded JSON value.
      *
      * @return array<array-key, mixed>|bool|float|int|object|string|null
-     * @throws DecodeError If the value does not match.
+     * @throws DecodeFailure If the value does not match.
      * @throws JsonException
      */
     public function decode(mixed $value, string $path): mixed;

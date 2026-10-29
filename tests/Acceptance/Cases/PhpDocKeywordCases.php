@@ -48,7 +48,7 @@ final class PhpDocKeywordCases
     }
 
     /**
-     * @return iterable<string, array{string, class-string, string, int}>
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
      * @throws RuntimeException
      */
     public static function errors(): iterable
@@ -89,7 +89,7 @@ final class PhpDocKeywordCases
                     '{"value":[]}',
                     $class,
                     PhpDocReadingCases::unrecognized($class, $tag),
-                    DecodeErrorKind::UnsupportedDeclaration->value,
+                    DecodeErrorKind::UnsupportedDeclaration,
                 ];
             }
         }
@@ -104,7 +104,7 @@ final class PhpDocKeywordCases
                     . ' from the JSON object: Field value uses unsupported map declaration '
                     . ($native === 'array' ? 'non-empty-array' : ArrayObject::class)
                     . '. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
-                DecodeErrorKind::UnsupportedDeclaration->value,
+                DecodeErrorKind::UnsupportedDeclaration,
             ];
         }
     }
