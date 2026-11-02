@@ -6,20 +6,28 @@ namespace Eventjet\Json\Test\Acceptance;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
+use Eventjet\Json\Discriminator;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
+use Eventjet\Json\Internal\ClassUnion;
 use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\DiscriminatorCandidates;
+use Eventjet\Json\Internal\DiscriminatorFields;
+use Eventjet\Json\Internal\DiscriminatorInference;
+use Eventjet\Json\Internal\DiscriminatorValues;
 use Eventjet\Json\Internal\EnumRoots;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
 use Eventjet\Json\Internal\Error\ConstructorFailure;
 use Eventjet\Json\Internal\Error\DecodeErrors;
+use Eventjet\Json\Internal\Error\InvalidDiscriminator;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedClass;
+use Eventjet\Json\Internal\Error\UnsupportedClassUnion;
 use Eventjet\Json\Internal\Error\UnsupportedCollection;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
@@ -28,7 +36,9 @@ use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\MappedObjectSerializer;
+use Eventjet\Json\Internal\NamedDiscriminator;
 use Eventjet\Json\Internal\NamedTypeCompiler;
+use Eventjet\Json\Internal\Node\DiscriminatedNode;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\LiteralNode;
@@ -182,6 +192,16 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(UnsupportedClass::class)]
 #[CoversClass(UnionBuilder::class)]
 #[CoversClass(UnionConflicts::class)]
+#[CoversClass(ClassUnion::class)]
+#[CoversClass(DiscriminatorInference::class)]
+#[CoversClass(DiscriminatorCandidates::class)]
+#[CoversClass(DiscriminatorFields::class)]
+#[CoversClass(DiscriminatorValues::class)]
+#[CoversClass(NamedDiscriminator::class)]
+#[CoversClass(Discriminator::class)]
+#[CoversClass(DiscriminatedNode::class)]
+#[CoversClass(InvalidDiscriminator::class)]
+#[CoversClass(UnsupportedClassUnion::class)]
 #[CoversClass(LiteralNode::class)]
 #[CoversClass(ClassDecoder::class)]
 #[CoversClass(ClassField::class)]

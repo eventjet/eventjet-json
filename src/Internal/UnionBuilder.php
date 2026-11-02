@@ -8,7 +8,9 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
+use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\UnionNode;
+use ReflectionException;
 
 use function array_filter;
 use function array_keys;
@@ -34,14 +36,21 @@ final class UnionBuilder
     private array $types = [];
     private DecodeError|null $rejected = null;
 
+    /** How many members are classes. A union of several classes needs a discriminator. */
+    private int $classes = 0;
+
     public function __construct(
         private readonly string $path,
+        private readonly NamedDiscriminator|null $discriminator = null,
     ) {}
 
     /** Adds a member. A member of the same type as an earlier one replaces it, because it decodes alike. */
     public function add(Node $member): void
     {
         $this->types[(string) $member] = $member;
+        if ($member instanceof ObjectNode) {
+            ++$this->classes;
+        }
     }
 
     /** Records a member whose values JSON cannot represent. Its error is reported only if no other member remains. */
@@ -56,18 +65,22 @@ final class UnionBuilder
      * collection or an enum.
      *
      * @throws DecodeError
+     * @throws ReflectionException
      */
     public function build(): Node
     {
         $members = $this->members();
+        [$members, $unidentified] = $this->classes > 1
+            ? ClassUnion::group($members, $this->path, $this->discriminator)
+            : [$members, null];
         if ($members === []) {
             assert($this->rejected !== null, description: 'A union with no members rejected at least one.');
             throw $this->rejected;
         }
-        if (count($members) === 1 && $this->rejected === null) {
+        if (count($members) === 1 && $this->rejected === null && $unidentified === null) {
             return $members[0];
         }
-        $nullable = $this->nullable($members);
+        $nullable = $unidentified === null ? $this->nullable($members) : null;
         if ($nullable !== null) {
             return $nullable;
         }
@@ -76,7 +89,7 @@ final class UnionBuilder
             static fn(Node $member): array => [$member, $member->claims()],
             $members,
         );
-        $error = $this->conflict($claimed);
+        $error = $this->conflict($claimed, $unidentified);
         if ($error !== null) {
             throw $error;
         }
@@ -109,8 +122,9 @@ final class UnionBuilder
      * conflict. Most unions have none, and don't load the rules for them.
      *
      * @param list<array{Node, Claims}> $claimed Each member with its claims.
+     * @param DecodeError|null $unidentified The error for classes that no discriminator identifies.
      */
-    private function conflict(array $claimed): DecodeError|null
+    private function conflict(array $claimed, DecodeError|null $unidentified): DecodeError|null
     {
         $types = array_merge(...array_map(
             /**
@@ -120,6 +134,8 @@ final class UnionBuilder
             static fn(array $member): array => array_keys($member[1]),
             $claimed,
         ));
-        return count($types) === count(array_unique($types)) ? null : UnionConflicts::first($this->path, $claimed);
+        return count($types) === count(array_unique($types)) && $unidentified === null
+            ? null
+            : UnionConflicts::first($this->path, $claimed, $unidentified);
     }
 }

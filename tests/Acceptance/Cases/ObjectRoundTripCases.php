@@ -28,5 +28,6 @@ final class ObjectRoundTripCases
         yield from CollectionsRoundTripCases::objects();
         yield from UnionsRoundTripCases::objects();
         yield from EnumsRoundTripCases::objects();
+        yield from DiscriminatedUnionCases::objects();
     }
 }

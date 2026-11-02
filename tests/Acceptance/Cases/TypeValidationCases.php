@@ -72,6 +72,7 @@ final class TypeValidationCases
                 yield $label => [$class, $message];
             }
         }
+        yield from DiscriminatedDeclarationErrorCases::errors();
         $unknown = CollectionNameSource::load(
             'ValidationUnknownChild',
             'final class ValidationUnknownChild { public function __construct(public ?ValidationMissingChild $child = null) {} }',

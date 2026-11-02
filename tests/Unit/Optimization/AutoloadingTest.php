@@ -12,6 +12,7 @@ use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
+use Eventjet\Json\Internal\ClassUnion;
 use Eventjet\Json\Internal\CollectionDeclarationError;
 use Eventjet\Json\Internal\EnumRoots;
 use Eventjet\Json\Internal\Error\DecodeErrors;
@@ -21,6 +22,7 @@ use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\MappedObjectSerializer;
+use Eventjet\Json\Internal\NamedDiscriminator;
 use Eventjet\Json\Internal\NamedTypeCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
@@ -64,6 +66,7 @@ use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\Address;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\ClassScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\ExtendedLiteralFields;
@@ -169,7 +172,7 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(TupleNode::class)]
 #[CoversClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
-#[UsesClass(UnionBuilder::class)]
+#[CoversClass(UnionBuilder::class)]
 #[UsesClass(UnionConflicts::class)]
 #[UsesClass(LiteralNode::class)]
 #[UsesClass(PhpDocConstantImportStatement::class)]
@@ -315,6 +318,8 @@ final class AutoloadingTest extends TestCase
     /**
      * Native class and enum fields, nullable or not, compile without the type tree and union that NodeCompiler would
      * build for them. Both paths compile the same nodes; this shortcut only makes the first decode in a request faster.
+     * A union with one class compiles without discriminator support, which only a union of several classes or a field
+     * with #[Discriminator] needs.
      *
      * @throws JsonException
      * @throws \PHPUnit\Framework\Exception
@@ -335,6 +340,14 @@ final class AutoloadingTest extends TestCase
         static::assertFalse(class_exists(UnionBuilder::class, autoload: false));
         static::assertFalse(class_exists(NullOnlyNode::class, autoload: false));
         static::assertFalse(class_exists(EnumRoots::class, autoload: false));
+
+        self::assertRoundTrips([
+            new ClassScalarUnionField($person),
+            new ClassScalarUnionField(42),
+        ]);
+        static::assertTrue(class_exists(UnionBuilder::class, autoload: false));
+        static::assertFalse(class_exists(ClassUnion::class, autoload: false));
+        static::assertFalse(class_exists(NamedDiscriminator::class, autoload: false));
     }
 
     /**

@@ -29,10 +29,12 @@ final class UnionConflicts
      * the union reports.
      *
      * @param list<array{Node, Claims}> $members Each member with its claims.
+     * @param DecodeError|null $unidentified The error for classes that no discriminator identifies, which the union
+     *     reports where it reports conflicts between classes.
      */
-    public static function first(string $path, array $members): DecodeError|null
+    public static function first(string $path, array $members, DecodeError|null $unidentified = null): DecodeError|null
     {
-        $errors = [];
+        $errors = $unidentified === null ? [] : ['classes' => $unidentified];
         foreach ($members as $index => $first) {
             foreach (array_slice($members, $index + 1) as $second) {
                 $conflict = self::conflict($first, $second);

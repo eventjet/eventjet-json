@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Discriminator;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
@@ -44,13 +45,15 @@ final readonly class TypeCompiler
         $declared = PhpDocFieldType::resolve($field);
         $resolved = $declared === null ? null : new PhpDocTypeResolver($field)->resolve($declared);
         $doc = $resolved === null ? null : self::narrowing($resolved, $field, $type);
+        $attributes = $field->getAttributes(Discriminator::class);
+        $discriminator = $attributes === [] ? null : NamedDiscriminator::of($attributes[0]);
         $node = match (true) {
-            $doc !== null => NodeCompiler::field($doc, $field->getName()),
+            $doc !== null => NodeCompiler::field($doc, $field->getName(), $discriminator),
             $type instanceof ReflectionNamedType && !$type->isBuiltin() => NamedTypeCompiler::field(
                 $field,
                 $type,
-            ) ?? $this->native($field, $type),
-            default => $this->native($field, $type),
+            ) ?? $this->native($field, $type, $discriminator),
+            default => $this->native($field, $type, $discriminator),
         };
         return match (true) {
             $node === null => throw CollectionDeclarationError::unsupported(
@@ -62,7 +65,7 @@ final readonly class TypeCompiler
                 $field->getName(),
                 new PhpDocTypeResolver($field)->unresolved($declared),
             ),
-            default => $node,
+            default => $discriminator?->check($node, $field->getName()) ?? $node,
         };
     }
 
@@ -74,12 +77,15 @@ final readonly class TypeCompiler
      * @throws DecodeError
      * @throws ReflectionException
      */
-    private function native(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node|null
-    {
+    private function native(
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionType $type,
+        NamedDiscriminator|null $discriminator,
+    ): Node|null {
         if ($type instanceof ReflectionNamedType && array_key_exists($type->getName(), self::SCALARS)) {
             return new ScalarNode($type->getName(), $type->allowsNull());
         }
-        return NodeCompiler::field(self::tree($field, $type), $field->getName());
+        return NodeCompiler::field(self::tree($field, $type), $field->getName(), $discriminator);
     }
 
     /**
@@ -89,7 +95,7 @@ final readonly class TypeCompiler
      *
      * @throws ReflectionException
      */
-    private static function narrowing(
+    public static function narrowing(
         PhpDocType $doc,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionType $type,
