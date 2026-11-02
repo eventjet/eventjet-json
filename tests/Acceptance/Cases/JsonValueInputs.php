@@ -30,7 +30,6 @@ use const PHP_INT_MIN;
  */
 final class JsonValueInputs
 {
-    /** Containers nest at most this deep. */
     private const int MAX_DEPTH = 4;
 
     private const array SCALARS = [

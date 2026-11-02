@@ -28,6 +28,7 @@ use function max;
 use function preg_match;
 use function sprintf;
 use function str_starts_with;
+use function var_export;
 
 /**
  * Turns a PHP value into the form that a JsonValue stores: what json_decode() reads from its json_encode() output, with
@@ -106,9 +107,10 @@ final class CanonicalJson
             return $value;
         }
         if (is_float($value) && !is_finite($value)) {
+            $float = var_export($value, return: true);
             throw new InvalidArgumentException(sprintf(
                 'JsonValue cannot hold the float %s, which has no JSON representation.',
-                $value,
+                $float,
             ));
         }
         /** @var bool|float|int|string|null */
@@ -221,11 +223,7 @@ final class CanonicalJson
         return [$stored, $reached - 1];
     }
 
-    /**
-     * Returns the number of levels after adding more.
-     *
-     * @throws InvalidArgumentException If that exceeds the nesting limit.
-     */
+    /** @throws InvalidArgumentException If the levels exceed the nesting limit. */
     private static function deeper(int $depth, int $levels): int
     {
         $depth += $levels;
