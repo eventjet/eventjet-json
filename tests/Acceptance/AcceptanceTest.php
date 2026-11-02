@@ -157,6 +157,8 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(EnumNode::class)]
 #[CoversClass(ListNode::class)]
 #[CoversClass(MapNode::class)]
+#[CoversClass(\Eventjet\Json\Internal\MapKeys::class)]
+#[CoversClass(\Eventjet\Json\Internal\Node\MapKind::class)]
 #[CoversClass(NullableNode::class)]
 #[CoversClass(NullOnlyNode::class)]
 #[CoversClass(ObjectNode::class)]

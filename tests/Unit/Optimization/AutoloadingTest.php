@@ -119,6 +119,8 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(EnumNode::class)]
 #[UsesClass(ListNode::class)]
 #[UsesClass(MapNode::class)]
+#[UsesClass(\Eventjet\Json\Internal\MapKeys::class)]
+#[UsesClass(\Eventjet\Json\Internal\Node\MapKind::class)]
 #[UsesClass(NullOnlyNode::class)]
 #[UsesClass(NullableNode::class)]
 #[UsesClass(ObjectNode::class)]

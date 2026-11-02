@@ -29,11 +29,9 @@ final class CollectionDeclarationError
     ): DecodeError {
         $arguments = $declared->arguments ?? [];
         $map = count($arguments) >= 2 ? $declared?->name : null;
-        $keys = $arguments[0] ?? null;
-        $stringKeys = $keys?->isPlainName('string') === true;
-        $anyKeys = $keys?->isPlainName('array-key') === true || $declared?->keyedValue(['int', 'string']) !== null;
-        $arrayObject =
-            ($stringKeys || $anyKeys) && $map !== null && new PhpDocTypeResolver($field)->container($map) !== null;
+        $key = $arguments[0] ?? null;
+        $keys = $key === null ? null : MapKeys::of($key);
+        $arrayObject = $keys !== null && $map !== null && new PhpDocTypeResolver($field)->container($map) !== null;
         $name = $field->getName();
         return match (true) {
             $native->name === ArrayObject::class => $arrayObject
@@ -41,7 +39,7 @@ final class CollectionDeclarationError
                 : UnsupportedCollection::map($name, ArrayObject::class),
             $native->name !== 'array' => self::unrecognized($field),
             $map === 'array' => UnsupportedCollection::genericArrayMap($name),
-            in_array($map, ['non-empty-array', 'non-empty-map'], strict: true) && !$stringKeys
+            in_array($map, ['non-empty-array', 'non-empty-map'], strict: true) && $keys !== MapKeys::String
                 => UnsupportedCollection::map($name, $map),
             default => self::unrecognized($field),
         };

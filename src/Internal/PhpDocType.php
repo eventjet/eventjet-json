@@ -6,10 +6,8 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 
-use function array_map;
 use function array_pop;
 use function count;
-use function sort;
 
 /** @internal */
 final readonly class PhpDocType
@@ -84,20 +82,19 @@ final readonly class PhpDocType
     }
 
     /**
-     * Returns `T` if this has the arguments `<TKey, T>` and the members of `TKey` have the given names, such as
-     * `['int', 'string']` for `<array-key, T>`, `<int|string, T>`, and `<string|int, T>`.
+     * Returns which member names the key type accepts and `T` if this has the arguments `<TKey, T>` with a supported
+     * map key type.
      *
-     * @param non-empty-list<string> $keys The names in sorted order.
+     * @return array{MapKeys, self}|null
      */
-    public function keyedValue(array $keys): self|null
+    public function mapEntry(): array|null
     {
         $pair = $this->argumentPair();
         if ($pair === null) {
             return null;
         }
-        $names = array_map(static fn(self $member): string|null => $member->plainName(), $pair[0]->members());
-        sort($names);
-        return $names === $keys ? $pair[1] : null;
+        $keys = MapKeys::of($pair[0]);
+        return $keys === null ? null : [$keys, $pair[1]];
     }
 
     /**

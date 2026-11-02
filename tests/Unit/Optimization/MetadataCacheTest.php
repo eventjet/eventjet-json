@@ -140,6 +140,8 @@ use function class_alias;
 #[UsesClass(ListNode::class)]
 #[UsesClass(LiteralNode::class)]
 #[UsesClass(MapNode::class)]
+#[UsesClass(\Eventjet\Json\Internal\MapKeys::class)]
+#[UsesClass(\Eventjet\Json\Internal\Node\MapKind::class)]
 #[UsesClass(NullOnlyNode::class)]
 #[UsesClass(NullableNode::class)]
 #[UsesClass(ObjectNode::class)]
