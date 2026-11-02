@@ -93,17 +93,15 @@ final readonly class ScalarNode implements Node
     {
         /** @var mixed $value */
         foreach ($values as $key => $value) {
-            if (is_float($value)) {
-                // INF - INF is NAN. This is cheaper than is_finite() per item.
-                if (($value - $value) !== 0.0) {
-                    throw InvalidValue::nonFiniteNumber($path($key), $value);
-                }
+            // A float is finite exactly when subtracting it from itself gives 0.0, which is cheaper than is_finite().
+            if (is_float($value) && ($value - $value) === 0.0) {
                 continue;
             }
-            if (!is_int($value)) {
-                throw InvalidValue::typeMismatch($path($key), 'float', $value);
+            if (is_int($value)) {
+                $values[$key] = (float) $value;
+                continue;
             }
-            $values[$key] = (float) $value;
+            $values[$key] = $this->decode($value, $path($key));
         }
         return $values;
     }

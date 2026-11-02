@@ -35,6 +35,8 @@ The round-trip contract also has these representation limits:
   supported input domain.
 - `-0.0` is outside the round-trip domain, see
   [Numeric round trips](#numeric-round-trips).
+- Map keys starting with a null byte are outside the round-trip domain, see
+  [Collection declarations](#collection-declarations).
 - JSON does not retain PHP class identity. It cannot choose between multiple
   possible classes without an additional discriminator or selection rule.
 - A backed enum case and its backing scalar encode to the same JSON value, so a

@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\SignedFloat;
 use Random\Engine\Mt19937;
 use Random\Randomizer;
 
+use function json_encode;
 use function var_export;
 
+use const JSON_PRESERVE_ZERO_FRACTION;
+use const JSON_THROW_ON_ERROR;
 use const PHP_FLOAT_EPSILON;
 use const PHP_FLOAT_MAX;
 use const PHP_FLOAT_MIN;
@@ -43,6 +47,22 @@ final class NumericBoundaryRoundTripCases
             yield $name => [new ScalarFields('value', 0, $value, false)];
         }
         yield from self::randomFloats();
+    }
+
+    /**
+     * The default `json_encode()` drops the sign of `-0.0`, so these documents keep it with
+     * `JSON_PRESERVE_ZERO_FRACTION`.
+     *
+     * @return iterable<string, array{string, object}>
+     * @throws \JsonException
+     */
+    public static function decoded(): iterable
+    {
+        foreach ([-0.0, 0.0] as $zero) {
+            $object = new SignedFloat($zero);
+            $json = json_encode($object, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+            yield 'zero fraction preserved: ' . $json => [$json, $object];
+        }
     }
 
     /**

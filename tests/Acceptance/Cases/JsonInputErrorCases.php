@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Test\Acceptance\Fixtures\Person;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields;
 
 /** @internal */
 final class JsonInputErrorCases
@@ -34,6 +35,12 @@ final class JsonInputErrorCases
             "{\"firstName\":\"\x80\",\"lastName\":\"Lovelace\"}",
             Person::class,
             'Invalid JSON: Malformed UTF-8 characters, possibly incorrectly encoded',
+            DecodeErrorKind::InvalidJson,
+        ];
+        yield 'map key starting with a null byte' => [
+            '{"map":{"\u0000hidden":"ready"}}',
+            StringCollectionValidationFields::class,
+            'Invalid JSON: The decoded property name is invalid',
             DecodeErrorKind::InvalidJson,
         ];
         yield 'trailing content: {} garbage' => [

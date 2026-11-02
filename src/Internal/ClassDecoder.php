@@ -80,7 +80,8 @@ final readonly class ClassDecoder
             }
             $value = $values[$name];
             // Values that already have the declared scalar type skip the node. The node checks and converts all others.
-            // A float is finite exactly when subtracting it from itself gives 0.0, which is cheaper than is_finite().
+            // Non-finite floats go to the node, which rejects them. A float is finite exactly when subtracting it from
+            // itself gives 0.0, which is cheaper than is_finite().
             $unchanged = $value === null
                 ? $field->nullable
                 : match ($field->scalar) {
