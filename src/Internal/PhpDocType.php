@@ -69,8 +69,12 @@ final readonly class PhpDocType
         return null;
     }
 
-    /** @return array{self, self}|null */
-    private function argumentPair(): array|null
+    /**
+     * Returns the arguments if this has exactly two.
+     *
+     * @return array{self, self}|null
+     */
+    public function argumentPair(): array|null
     {
         $arguments = $this->arguments;
         if (count($arguments) !== 2) {
@@ -79,22 +83,6 @@ final readonly class PhpDocType
         $first = $arguments[0];
         $second = array_pop($arguments);
         return [$first, $second];
-    }
-
-    /**
-     * Returns which member names the key type accepts and `T` if this has the arguments `<TKey, T>` with a supported
-     * map key type.
-     *
-     * @return array{MapKeys, self}|null
-     */
-    public function mapEntry(): array|null
-    {
-        $pair = $this->argumentPair();
-        if ($pair === null) {
-            return null;
-        }
-        $keys = MapKeys::of($pair[0]);
-        return $keys === null ? null : [$keys, $pair[1]];
     }
 
     /**

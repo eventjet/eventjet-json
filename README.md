@@ -254,9 +254,10 @@ A backed enum can also be the root on its own. `Json::decode('"ready"',
 Status::class)` returns `Status::Ready`. Standalone scalar and `null` roots are
 unsupported.
 
-Root map keys must remain PHP strings. For example, `"01"` is supported, but
-`"42"` is rejected because PHP converts it to an integer key. To accept such
-names in a field, declare it as `ArrayObject<array-key, T>`.
+Maps with `string` keys, at the root or in a field, require keys that remain
+PHP strings. For example, `"01"` is supported, but `"42"` is rejected because
+PHP converts it to an integer key. Only fields declared as
+`ArrayObject<array-key, T>` accept such names.
 
 ## Decoding rules
 
