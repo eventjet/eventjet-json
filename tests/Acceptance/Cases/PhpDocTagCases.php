@@ -54,8 +54,9 @@ final class PhpDocTagCases
         foreach (self::annotations() as $annotation => $valid) {
             yield from self::read(
                 'an annotation ' . $annotation,
-                [$annotation, '@param list<int> $value'],
+                ['@var list<int>', $annotation . ' @\\Bar(', '@phpstan-var (int)', ')'],
                 $valid ? 'int' : null,
+                'var',
             );
         }
     }
@@ -240,8 +241,10 @@ final class PhpDocTagCases
     }
 
     /**
-     * Annotations before a `@param list<int>` tag, and whether phpdoc-parser can read the doc comment. It cannot if an
-     * annotation that starts with a backslash or underscore has invalid arguments.
+     * Annotations, and whether an `@\Bar(` after them on the same line starts an annotation of its own. Its arguments
+     * then hide a `@phpstan-var (int)` on the next line, which otherwise overrides `@var list<int>`. It does after an
+     * annotation whose arguments phpdoc-parser reads, but not after invalid arguments, which make the rest of the line
+     * text.
      *
      * @return iterable<string, bool>
      */
@@ -260,6 +263,7 @@ final class PhpDocTagCases
         yield '@\\Foo(a=1)' => true;
         yield '@\\Foo(a = 1, b = "x")' => true;
         yield '@\\Foo(a=)' => false;
+        yield '@\\Foo(1=2)' => false;
         yield '@\\Foo(=1)' => false;
         yield '@\\Foo(a b)' => false;
         yield '@\\Foo(1.5, -1, 0x1F)' => true;
@@ -311,28 +315,30 @@ final class PhpDocTagCases
         yield '@\\Foo([a => 1])' => false;
         yield '@\\Foo([a => ])' => false;
         yield "@\\Foo(\n *     a=1,\n *     b=2\n * )" => true;
-        yield "@\\Foo(\n *     a=1,\n * " => false;
+        yield "@\\Foo(\n *     a=1,\n * " => true;
         yield "@\\Foo(a=\"x\n * y\")" => true;
         yield "@\\Foo({\n *     \"a\": 1,\n * })" => true;
         yield '@\\Foo(1) text after' => true;
         yield '@\\Foo(1)text' => true;
         yield '@\\Foo(1) @\\Bar(' => false;
-        yield '@\\Foo(1) @Bar(' => true;
-        yield '@\\Foo(1)@\\Bar(' => true;
+        yield '@\\Foo(1) @Bar(' => false;
+        yield '@\\Foo(1)@\\Bar(' => false;
         yield '@\\Foo @bar @\\Baz(' => false;
-        yield '@\\Foo @param @\\Baz(' => true;
-        yield '@\\Foo @param int $x @\\Baz(' => true;
-        yield '@foo(' => true;
+        yield '@\\Foo @param @\\Baz(' => false;
+        yield '@\\Foo @param int $x @\\Baz(' => false;
+        yield '@foo(' => false;
         yield '@foo @\\Bar(' => false;
         yield '@foo @bar(x) @\\Baz(' => false;
-        yield '@foo @return(int) @\\Baz(' => true;
-        yield '@foo @return @\\Baz(' => true;
-        yield '@foo @param( @\\Baz(' => true;
-        yield '@Foo\\Bar(' => true;
+        yield '@foo @return(int) @\\Baz(' => false;
+        yield '@foo @return @\\Baz(' => false;
+        yield '@foo @param( @\\Baz(' => false;
+        yield '@Foo\\Bar(' => false;
         yield '@_foo(' => false;
         yield '@_foo(1)' => true;
+        yield '@Foo_Bar(1)' => true;
+        yield '@Foo_Bar(1 2)' => false;
         yield '@a:b(' => true;
-        yield '@ab:cd(' => true;
+        yield '@ab:cd(' => false;
         yield '@ab:cd @\\X(' => false;
     }
 

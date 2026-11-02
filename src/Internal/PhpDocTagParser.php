@@ -70,18 +70,12 @@ final class PhpDocTagParser
         return $complete ? $tags : [];
     }
 
-    /** @throws PhpDocSyntaxError */
     private static function child(PhpDocTokens $tokens): PhpDocTag|PhpDocChildKind
     {
         $name = $tokens->value();
-        if ($tokens->is(PhpDocLexer::PHPDOC_TAG)) {
+        if ($tokens->is(PhpDocLexer::PHPDOC_TAG) || $tokens->is(PhpDocLexer::DOCTRINE_TAG)) {
             $tokens->next();
             return self::tagValue($tokens, $name);
-        }
-        if ($tokens->is(PhpDocLexer::DOCTRINE_TAG)) {
-            $tokens->next();
-            PhpDocDoctrineParser::annotation($tokens);
-            return PhpDocChildKind::Generic;
         }
         PhpDocTextParser::text($tokens);
         return PhpDocChildKind::Text;
