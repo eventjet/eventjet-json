@@ -88,8 +88,6 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(\Eventjet\Json\JsonType::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\ListNode::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\LiteralNode::class)]
-#[UsesClass(\Eventjet\Json\Internal\MapKeys::class)]
-#[UsesClass(\Eventjet\Json\Internal\Node\MapKind::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\MapNode::class)]
 #[UsesClass(\Eventjet\Json\Internal\MappedObjectSerializer::class)]
 #[UsesClass(\Eventjet\Json\Internal\Node\NullOnlyNode::class)]

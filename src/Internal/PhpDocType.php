@@ -6,8 +6,11 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 
+use function array_map;
 use function array_pop;
 use function count;
+use function implode;
+use function sort;
 
 /** @internal */
 final readonly class PhpDocType
@@ -23,6 +26,9 @@ final readonly class PhpDocType
 
     /** Native types whose PHPDoc type may declare their items. */
     public const array CONTAINERS = ['array' => true, ArrayObject::class => true];
+
+    /** Map key types, with sorted union members, and the member names they accept. */
+    private const array MAP_KEYS = ['string' => 'string', 'array-key' => 'array-key', 'int|string' => 'array-key'];
 
     /**
      * The first number, shape key, or integer range bound in this type that PHP and PHPStan can read differently, which
@@ -83,6 +89,24 @@ final readonly class PhpDocType
         $first = $arguments[0];
         $second = array_pop($arguments);
         return [$first, $second];
+    }
+
+    /**
+     * Returns which member names a `non-empty-array`, `non-empty-map`, or `ArrayObject` container accepts with this key
+     * type, as written or with resolved names: `string` for names that PHP keeps as string keys, `array-key` for every
+     * name, or null if the container does not accept this key type. `non-empty-array` maps keep string keys, because
+     * `json_encode()` writes an array with integer keys as a list.
+     *
+     * @return 'string'|'array-key'|null
+     *
+     * @mutation-free
+     */
+    public function mapKeys(string $container): string|null
+    {
+        $names = array_map(static fn(self $member): string|null => $member->plainName(), $this->members());
+        sort($names);
+        $keys = self::MAP_KEYS[implode('|', $names)] ?? null;
+        return $keys === 'string' || $container === ArrayObject::class ? $keys : null;
     }
 
     /**

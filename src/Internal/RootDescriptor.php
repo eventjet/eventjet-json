@@ -10,7 +10,6 @@ use Eventjet\Json\Internal\Error\InvalidInput;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
-use Eventjet\Json\Internal\Node\MapKind;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ObjectNode;
@@ -114,9 +113,7 @@ final class RootDescriptor
         $enum = $class;
         $node = enum_exists($enum) ? EnumNode::of($enum) : new ObjectNode($class, nullable: false);
         foreach (array_reverse($this->shapes) as $shape) {
-            $node = $shape === 'array'
-                ? new ListNode($node, nonEmpty: false)
-                : new MapNode($node, MapKind::StringKeyArrayObject);
+            $node = $shape === 'array' ? new ListNode($node, nonEmpty: false) : MapNode::stringKeyArrayObject($node);
         }
         return self::$nodes[$key] = $node;
     }

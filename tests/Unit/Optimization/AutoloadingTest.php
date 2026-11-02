@@ -20,13 +20,11 @@ use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
-use Eventjet\Json\Internal\MapKeys;
 use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\NamedTypeCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\LiteralNode;
-use Eventjet\Json\Internal\Node\MapKind;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
@@ -120,8 +118,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(PhpDocTypeResolver::class)]
 #[UsesClass(EnumNode::class)]
 #[UsesClass(ListNode::class)]
-#[UsesClass(MapKeys::class)]
-#[UsesClass(MapKind::class)]
 #[UsesClass(MapNode::class)]
 #[UsesClass(NullOnlyNode::class)]
 #[UsesClass(NullableNode::class)]

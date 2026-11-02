@@ -7,7 +7,6 @@ namespace Eventjet\Json\Internal;
 use ArrayObject;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedCollection;
-use Eventjet\Json\Internal\Node\MapKind;
 use ReflectionParameter;
 use ReflectionProperty;
 
@@ -31,8 +30,10 @@ final class CollectionDeclarationError
         $arguments = $declared->arguments ?? [];
         $map = count($arguments) >= 2 ? $declared?->name : null;
         $key = $arguments[0] ?? null;
-        $keys = $key === null ? null : MapKeys::of($key);
-        $arrayObject = $keys !== null && $map !== null && new PhpDocTypeResolver($field)->container($map) !== null;
+        $arrayObject =
+            self::acceptsKey(ArrayObject::class, $key)
+            && $map !== null
+            && new PhpDocTypeResolver($field)->container($map) !== null;
         $name = $field->getName();
         return match (true) {
             $native->name === ArrayObject::class => $arrayObject
@@ -40,11 +41,16 @@ final class CollectionDeclarationError
                 : UnsupportedCollection::map($name, ArrayObject::class),
             $native->name !== 'array' => self::unrecognized($field),
             $map === 'array' => UnsupportedCollection::genericArrayMap($name),
-            in_array($map, ['non-empty-array', 'non-empty-map'], strict: true)
-                && ($keys === null || MapKind::of($map, $keys) === null)
+            in_array($map, ['non-empty-array', 'non-empty-map'], strict: true) && !self::acceptsKey($map, $key)
                 => UnsupportedCollection::map($name, $map),
             default => self::unrecognized($field),
         };
+    }
+
+    /** @mutation-free */
+    private static function acceptsKey(string $container, PhpDocType|null $key): bool
+    {
+        return $key?->mapKeys($container) !== null;
     }
 
     /** Returns the error for an `array` or `ArrayObject` field without a supported PHPDoc collection declaration. */

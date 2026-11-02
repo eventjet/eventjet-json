@@ -8,7 +8,6 @@ use ArrayObject;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\ListNode;
-use Eventjet\Json\Internal\Node\MapKind;
 use Eventjet\Json\Internal\Node\MapNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\TupleNode;
@@ -130,12 +129,15 @@ final class NodeCompiler
      */
     private static function map(PhpDocType $type, string $path): Node|null
     {
-        $entry = MapKind::entry($type);
-        [$kind, $node] = $entry === null ? [null, null] : [$entry[0], self::compile($entry[1], $path)];
+        $pair = $type->argumentPair();
+        $keys = $pair === null ? null : $pair[0]->mapKeys($type->name);
+        $node = $pair === null || $keys === null ? null : self::compile($pair[1], $path);
         return match (true) {
             $node instanceof DecodeError => throw $node,
-            $node === null || $kind === null => null,
-            default => new MapNode($node, $kind),
+            $node === null => null,
+            $type->name !== ArrayObject::class => MapNode::nonEmptyArray($node),
+            $keys === 'string' => MapNode::stringKeyArrayObject($node),
+            default => MapNode::anyKeyArrayObject($node),
         };
     }
 }
