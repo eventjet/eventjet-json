@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Discriminator;
+use Eventjet\Json\Internal\Error\UnsupportedClassUnion;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
@@ -42,31 +43,51 @@ final readonly class TypeCompiler
      */
     public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node
     {
-        $declared = PhpDocFieldType::resolve($field);
-        $resolved = $declared === null ? null : new PhpDocTypeResolver($field)->resolve($declared);
-        $doc = $resolved === null ? null : self::narrowing($resolved, $field, $type);
+        $doc = self::phpDoc($field, $type);
         $attributes = $field->getAttributes(Discriminator::class);
-        $discriminator = $attributes === [] ? null : NamedDiscriminator::of($attributes[0]);
+        $compiler = $attributes === [] ? null : new NodeCompiler($attributes[0]->newInstance()->name);
         $node = match (true) {
-            $doc !== null => NodeCompiler::field($doc, $field->getName(), $discriminator),
+            $doc instanceof PhpDocType => ($compiler ?? new NodeCompiler())->field($doc, $field->getName()),
             $type instanceof ReflectionNamedType && !$type->isBuiltin() => NamedTypeCompiler::field(
                 $field,
                 $type,
-            ) ?? $this->native($field, $type, $discriminator),
-            default => $this->native($field, $type, $discriminator),
+            ) ?? $this->native($field, $type, $compiler),
+            default => $this->native($field, $type, $compiler),
         };
         return match (true) {
             $node === null => throw CollectionDeclarationError::unsupported(
                 $field,
-                $declared,
+                PhpDocFieldType::resolve($field),
                 self::tree($field, $type),
             ),
-            $declared !== null && $resolved === null => throw UnsupportedField::unresolvedType(
+            $doc instanceof DecodeError => throw $doc,
+            $compiler !== null && !$compiler->discriminated => throw UnsupportedClassUnion::misplacedDiscriminator(
                 $field->getName(),
-                new PhpDocTypeResolver($field)->unresolved($declared),
             ),
-            default => $discriminator?->check($node, $field->getName()) ?? $node,
+            default => $node,
         };
+    }
+
+    /**
+     * Returns the PHPDoc type of a field with resolved names if it narrows the native type, or the error for a PHPDoc
+     * type that the decoder cannot resolve.
+     *
+     * @throws DecodeError
+     * @throws ReflectionException
+     */
+    public static function phpDoc(
+        ReflectionParameter|ReflectionProperty $field,
+        ReflectionType $type,
+    ): PhpDocType|DecodeError|null {
+        $declared = PhpDocFieldType::resolve($field);
+        if ($declared === null) {
+            return null;
+        }
+        $resolver = new PhpDocTypeResolver($field);
+        $resolved = $resolver->resolve($declared);
+        return $resolved === null
+            ? UnsupportedField::unresolvedType($field->getName(), $resolver->unresolved($declared))
+            : self::narrowing($resolved, $field, $type);
     }
 
     /**
@@ -80,12 +101,12 @@ final readonly class TypeCompiler
     private function native(
         ReflectionParameter|ReflectionProperty $field,
         ReflectionType $type,
-        NamedDiscriminator|null $discriminator,
+        NodeCompiler|null $compiler,
     ): Node|null {
         if ($type instanceof ReflectionNamedType && array_key_exists($type->getName(), self::SCALARS)) {
             return new ScalarNode($type->getName(), $type->allowsNull());
         }
-        return NodeCompiler::field(self::tree($field, $type), $field->getName(), $discriminator);
+        return ($compiler ?? new NodeCompiler())->field(self::tree($field, $type), $field->getName());
     }
 
     /**
@@ -95,7 +116,7 @@ final readonly class TypeCompiler
      *
      * @throws ReflectionException
      */
-    public static function narrowing(
+    private static function narrowing(
         PhpDocType $doc,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionType $type,

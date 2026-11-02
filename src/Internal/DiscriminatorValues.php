@@ -33,13 +33,14 @@ final class DiscriminatorValues
      */
     public static function of(ReflectionClass $class, ReflectionParameter|ReflectionProperty $field): array|null
     {
+        $type = $field->getType();
         try {
-            $doc = self::phpDoc($field);
+            $doc = $type === null ? null : TypeCompiler::phpDoc($field, $type);
         } catch (DecodeError $error) {
             throw $error->whileCreating($class->getName());
         }
         $values = [];
-        foreach ($doc?->members() ?? [] as $member) {
+        foreach ($doc instanceof PhpDocType ? $doc->members() : [] as $member) {
             $value = $member->literal?->value;
             $json = $value instanceof BackedEnum ? $value->value : $value;
             if (!is_int($json) && !is_string($json)) {
@@ -48,19 +49,5 @@ final class DiscriminatorValues
             $values[] = $json;
         }
         return $values === [] ? null : $values;
-    }
-
-    /**
-     * Returns the PHPDoc type of a field with resolved names, if it narrows the native type.
-     *
-     * @throws DecodeError
-     * @throws ReflectionException
-     */
-    private static function phpDoc(ReflectionParameter|ReflectionProperty $field): PhpDocType|null
-    {
-        $type = $field->getType();
-        $declared = PhpDocFieldType::resolve($field);
-        $resolved = $declared === null ? null : new PhpDocTypeResolver($field)->resolve($declared);
-        return $resolved === null || $type === null ? null : TypeCompiler::narrowing($resolved, $field, $type);
     }
 }

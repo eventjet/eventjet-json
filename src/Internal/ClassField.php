@@ -13,7 +13,10 @@ use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
 
+use function array_combine;
 use function array_key_exists;
+use function array_keys;
+use function array_map;
 
 /**
  * A member of the JSON object that a class decoder reads: a constructor parameter, or a public property outside the
@@ -63,16 +66,7 @@ final readonly class ClassField
      */
     public static function compile(ReflectionClass $class, array $names): array
     {
-        $properties = [];
-        foreach ($class->getProperties() as $property) {
-            $publicInstance =
-                ($property->getModifiers() & (ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_STATIC))
-                === ReflectionProperty::IS_PUBLIC;
-            if (!$publicInstance) {
-                continue;
-            }
-            $properties[$property->getName()] = $property;
-        }
+        $properties = self::properties($class);
         $fields = [];
         foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
             $field = self::parameter($parameter, $names, $properties);
@@ -83,6 +77,56 @@ final readonly class ClassField
             $fields[] = new self($names[$name] ?? $name, $name, self::node($property), $property, false);
         }
         return $fields;
+    }
+
+    /**
+     * Returns the fields of a class with their JSON names, without compiling or checking them, in the order that
+     * compile() compiles them.
+     *
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @param array<string, string> $names JSON names of renamed properties, keyed by property name.
+     * @return list<array{string, ReflectionParameter|ReflectionProperty}>
+     */
+    public static function uncompiled(ReflectionClass $class, array $names): array
+    {
+        $parameters = $class->getConstructor()?->getParameters() ?? [];
+        $fields =
+            array_combine(array_map(
+                static fn(ReflectionParameter $parameter): string => $parameter->getName(),
+                $parameters,
+            ), $parameters) + self::properties($class);
+        return array_map(
+            /** @return array{string, ReflectionParameter|ReflectionProperty} */
+            static fn(string $name, ReflectionParameter|ReflectionProperty $field): array => [
+                $names[$name] ?? $name,
+                $field,
+            ],
+            array_keys($fields),
+            $fields,
+        );
+    }
+
+    /**
+     * Returns the public instance properties of a class, keyed by name.
+     *
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @return array<string, ReflectionProperty>
+     */
+    private static function properties(ReflectionClass $class): array
+    {
+        $properties = [];
+        foreach ($class->getProperties() as $property) {
+            $publicInstance =
+                ($property->getModifiers() & (ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_STATIC))
+                === ReflectionProperty::IS_PUBLIC;
+            if (!$publicInstance) {
+                continue;
+            }
+            $properties[$property->getName()] = $property;
+        }
+        return $properties;
     }
 
     /**

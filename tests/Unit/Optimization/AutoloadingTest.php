@@ -12,8 +12,8 @@ use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
-use Eventjet\Json\Internal\ClassUnion;
 use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\DiscriminatorInference;
 use Eventjet\Json\Internal\EnumRoots;
 use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidValue;
@@ -22,7 +22,6 @@ use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use Eventjet\Json\Internal\MappedObjectSerializer;
-use Eventjet\Json\Internal\NamedDiscriminator;
 use Eventjet\Json\Internal\NamedTypeCompiler;
 use Eventjet\Json\Internal\Node\EnumNode;
 use Eventjet\Json\Internal\Node\ListNode;
@@ -346,8 +345,7 @@ final class AutoloadingTest extends TestCase
             new ClassScalarUnionField(42),
         ]);
         static::assertTrue(class_exists(UnionBuilder::class, autoload: false));
-        static::assertFalse(class_exists(ClassUnion::class, autoload: false));
-        static::assertFalse(class_exists(NamedDiscriminator::class, autoload: false));
+        static::assertFalse(class_exists(DiscriminatorInference::class, autoload: false));
     }
 
     /**

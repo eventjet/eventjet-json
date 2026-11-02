@@ -22,31 +22,50 @@ use function var_export;
 final readonly class DiscriminatorCandidates
 {
     /**
-     * @param non-empty-list<ReflectionClass<object>> $classes
-     * @param list<array<array-key, ReflectionParameter|ReflectionProperty>> $fields The fields of each class that may
-     *     be its discriminator, keyed by JSON name.
+     * @param list<string> $members The JSON names of the fields of the first class.
+     * @param non-empty-list<array{ReflectionClass<object>, array<array-key, ReflectionParameter|ReflectionProperty>}> $classes
+     *     Each class with its fields, keyed by JSON name.
      */
-    public function __construct(
+    private function __construct(
+        private array $members,
         private array $classes,
-        private array $fields,
     ) {}
 
     /**
-     * Returns the values of each member that can be the discriminator, with their classes.
+     * @param non-empty-list<ReflectionClass<object>> $classes
+     * @throws DecodeError
+     */
+    public static function of(array $classes): self
+    {
+        $members = null;
+        $fields = [];
+        foreach ($classes as $class) {
+            $names = [];
+            $byName = [];
+            foreach (ClassField::uncompiled($class, TargetClass::fieldNames($class)) as [$json, $field]) {
+                $names[] = $json;
+                $byName[$json] = $field;
+            }
+            $members ??= $names;
+            $fields[] = [$class, $byName];
+        }
+        return new self($members, $fields);
+    }
+
+    /**
+     * Returns each member that can be the discriminator with its values and their classes.
      *
-     * @param list<string> $members
-     * @return array<array-key, non-empty-list<array{int|string, class-string}>> Keyed by member, which PHP turns into
-     *     an integer if it looks like one.
+     * @return list<array{string, non-empty-list<array{int|string, class-string}>}>
      * @throws DecodeError
      * @throws ReflectionException
      */
-    public function all(array $members): array
+    public function all(): array
     {
         $candidates = [];
-        foreach ($members as $member) {
+        foreach ($this->members as $member) {
             $tags = $this->tags($member);
             if ($tags !== null) {
-                $candidates[$member] = $tags;
+                $candidates[] = [$member, $tags];
             }
         }
         return $candidates;
@@ -63,8 +82,8 @@ final readonly class DiscriminatorCandidates
     {
         $owners = [];
         $tags = [];
-        foreach ($this->classes as $index => $class) {
-            $field = $this->fields[$index][$member] ?? null;
+        foreach ($this->classes as [$class, $fields]) {
+            $field = $fields[$member] ?? null;
             $values = $field === null ? null : DiscriminatorValues::of($class, $field);
             if ($values === null) {
                 return null;

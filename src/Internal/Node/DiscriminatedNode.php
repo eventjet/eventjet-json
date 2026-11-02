@@ -29,28 +29,20 @@ final readonly class DiscriminatedNode implements Node
 {
     private string $type;
 
-    /** The allowed discriminator values, as errors list them. */
-    private string $allowed;
-
     /**
      * @param non-empty-list<class-string> $classes
      * @param array<string, class-string> $strings The class of each string value of the discriminator.
      * @param array<int, class-string> $ints The class of each integer value of the discriminator.
-     * @param list<int|string> $values All values of the discriminator, in declaration order.
+     * @param string $allowed The values of the discriminator, as errors list them.
      */
     private function __construct(
         private array $classes,
         private string $member,
         private array $strings,
         private array $ints,
-        array $values,
+        private string $allowed,
     ) {
         $this->type = implode('|', $classes);
-        $listed = [];
-        foreach ($values as $value) {
-            $listed[] = var_export($value, return: true);
-        }
-        $this->allowed = implode(', ', $listed);
     }
 
     /**
@@ -61,17 +53,16 @@ final readonly class DiscriminatedNode implements Node
     {
         $strings = [];
         $ints = [];
-        $values = [];
+        $listed = [];
         foreach ($tags as [$value, $class]) {
+            $listed[] = var_export($value, return: true);
             if (is_int($value)) {
                 $ints[$value] = $class;
-                $values[] = $value;
                 continue;
             }
             $strings[$value] = $class;
-            $values[] = $value;
         }
-        return new self($classes, $member, $strings, $ints, $values);
+        return new self($classes, $member, $strings, $ints, implode(', ', $listed));
     }
 
     #[Override]

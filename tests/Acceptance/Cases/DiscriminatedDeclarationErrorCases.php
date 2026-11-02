@@ -68,6 +68,18 @@ final class DiscriminatedDeclarationErrorCases
             . self::EVENTS
             . ', which members @type, schema can each identify. Name one with #[Discriminator].',
         );
+        CollectionNameSource::load(
+            'DiscriminatedOrdered',
+            'final class DiscriminatedOrdered { /** @var \'a\' */ public string $first = \'a\';'
+            . ' /** @var \'x\' */ public string $second = \'x\'; }'
+            . ' final class DiscriminatedOrderedOther { /** @var \'y\' */ public string $second = \'y\';'
+            . ' /** @var \'b\' */ public string $first = \'b\'; }',
+        );
+        yield 'several candidate members are listed in the order of the first class' => self::error(
+            'DiscriminatedOrderedHolder',
+            'public DiscriminatedOrdered|DiscriminatedOrderedOther $value;',
+            'uses multiple class types: DiscriminatedOrdered, DiscriminatedOrderedOther, which members first, second can each identify. Name one with #[Discriminator].',
+        );
         yield 'nullable class union without a discriminator is rejected' => self::error(
             'DiscriminatedNullableShared',
             'public DiscriminatedSharedTag|DiscriminatedSharedTagOther|null $value = null;',
@@ -198,6 +210,11 @@ final class DiscriminatedDeclarationErrorCases
                 'uses #[Discriminator], but its type has no union of multiple classes.',
             );
         }
+        yield 'discriminator attribute is misplaced on a class under two names' => self::error(
+            'DiscriminatedMisplacedSpelling',
+            $attribute . 'public self|discriminatedmisplacedspelling $value;',
+            'uses #[Discriminator], but its type has no union of multiple classes.',
+        );
     }
 
     /**

@@ -26,20 +26,23 @@ use function sprintf;
  */
 final class NodeCompiler
 {
+    /** Whether the type has a union of several classes, which the member that #[Discriminator] names applies to. */
+    public private(set) bool $discriminated = false;
+
+    /** @param string|null $discriminator The member that #[Discriminator] names for the field. */
+    public function __construct(
+        private readonly string|null $discriminator = null,
+    ) {}
+
     /**
      * Compiles the whole type of a field.
      *
      * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function field(
-        PhpDocType $type,
-        string $path,
-        NamedDiscriminator|null $discriminator = null,
-    ): Node|null {
-        $node = $type->name === '|'
-            ? self::union($type->arguments, $path, $discriminator)
-            : self::compile($type, $path, $discriminator);
+    public function field(PhpDocType $type, string $path): Node|null
+    {
+        $node = $type->name === '|' ? $this->union($type->arguments, $path) : $this->compile($type, $path);
         return $node instanceof DecodeError ? throw $node : $node;
     }
 
@@ -50,21 +53,18 @@ final class NodeCompiler
      * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function compile(
-        PhpDocType $type,
-        string $path,
-        NamedDiscriminator|null $discriminator,
-    ): Node|DecodeError|null {
+    private function compile(PhpDocType $type, string $path): Node|DecodeError|null
+    {
         $arguments = $type->arguments;
         return match ($type->name) {
-            '|' => self::union($arguments, $path, $discriminator),
+            '|' => $this->union($arguments, $path),
             '&' => throw UnsupportedField::intersection($path, implode('&', array_map(
                 static fn(PhpDocType $member): string => $member->name,
                 $arguments,
             ))),
-            'array{}' => self::tuple($type->entries, $path, $discriminator),
-            'list', 'non-empty-list' => self::list($type, $path, $discriminator),
-            'non-empty-array', 'non-empty-map', ArrayObject::class => self::map($type, $path, $discriminator),
+            'array{}' => $this->tuple($type->entries, $path),
+            'list', 'non-empty-list' => $this->list($type, $path),
+            'non-empty-array', 'non-empty-map', ArrayObject::class => $this->map($type, $path),
             'array' => null,
             default => $arguments === [] ? NamedTypeCompiler::compile($type, $path) : null,
         };
@@ -77,11 +77,11 @@ final class NodeCompiler
      * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function union(array $members, string $path, NamedDiscriminator|null $discriminator): Node|null
+    private function union(array $members, string $path): Node|null
     {
-        $union = new UnionBuilder($path, $discriminator);
+        $union = new UnionBuilder($path, $this->discriminator);
         foreach ($members as $member) {
-            $node = self::compile($member, $path, $discriminator);
+            $node = $this->compile($member, $path);
             if ($node instanceof DecodeError) {
                 $union->reject($member->name, $node);
                 continue;
@@ -91,7 +91,9 @@ final class NodeCompiler
             }
             $union->add($node);
         }
-        return $union->build();
+        $node = $union->build();
+        $this->discriminated = $this->discriminated || $union->discriminated;
+        return $node;
     }
 
     /**
@@ -99,7 +101,7 @@ final class NodeCompiler
      * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function tuple(array $entries, string $path, NamedDiscriminator|null $discriminator): Node|null
+    private function tuple(array $entries, string $path): Node|null
     {
         $required = PhpDocTupleEntry::required($entries);
         if ($required === null) {
@@ -107,7 +109,7 @@ final class NodeCompiler
         }
         $items = [];
         foreach ($entries as $index => $entry) {
-            $item = self::compile($entry->type, sprintf('%s[%d]', $path, $index), $discriminator);
+            $item = $this->compile($entry->type, sprintf('%s[%d]', $path, $index));
             if (!$item instanceof Node) {
                 return $item === null ? null : throw $item;
             }
@@ -120,10 +122,10 @@ final class NodeCompiler
      * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function list(PhpDocType $type, string $path, NamedDiscriminator|null $discriminator): Node|null
+    private function list(PhpDocType $type, string $path): Node|null
     {
         $arguments = $type->arguments;
-        $item = count($arguments) === 1 ? self::compile($arguments[0], $path, $discriminator) : null;
+        $item = count($arguments) === 1 ? $this->compile($arguments[0], $path) : null;
         return match (true) {
             $item instanceof DecodeError => throw $item,
             $item === null => null,
@@ -135,10 +137,10 @@ final class NodeCompiler
      * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function map(PhpDocType $type, string $path, NamedDiscriminator|null $discriminator): Node|null
+    private function map(PhpDocType $type, string $path): Node|null
     {
         $value = $type->stringKeyedValue();
-        $node = $value === null ? null : self::compile($value, $path, $discriminator);
+        $node = $value === null ? null : $this->compile($value, $path);
         return match (true) {
             $node instanceof DecodeError => throw $node,
             $node === null => null,

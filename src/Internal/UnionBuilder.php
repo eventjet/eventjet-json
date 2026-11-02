@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Node\DiscriminatedNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
@@ -12,6 +13,7 @@ use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use ReflectionException;
 
+use function array_any;
 use function array_filter;
 use function array_keys;
 use function array_map;
@@ -36,21 +38,19 @@ final class UnionBuilder
     private array $types = [];
     private DecodeError|null $rejected = null;
 
-    /** How many members are classes. A union of several classes needs a discriminator. */
-    private int $classes = 0;
+    /** Whether the union selects one of several classes by a discriminator. */
+    public private(set) bool $discriminated = false;
 
+    /** @param string|null $discriminator The member that #[Discriminator] names for the field. */
     public function __construct(
         private readonly string $path,
-        private readonly NamedDiscriminator|null $discriminator = null,
+        private readonly string|null $discriminator = null,
     ) {}
 
     /** Adds a member. A member of the same type as an earlier one replaces it, because it decodes alike. */
     public function add(Node $member): void
     {
         $this->types[(string) $member] = $member;
-        if ($member instanceof ObjectNode) {
-            ++$this->classes;
-        }
     }
 
     /** Records a member whose values JSON cannot represent. Its error is reported only if no other member remains. */
@@ -70,17 +70,27 @@ final class UnionBuilder
     public function build(): Node
     {
         $members = $this->members();
-        [$members, $unidentified] = $this->classes > 1
-            ? ClassUnion::group($members, $this->path, $this->discriminator)
-            : [$members, null];
+        $classes = array_filter($members, static fn(Node $member): bool => $member instanceof ObjectNode);
+        $unidentified = [];
+        if (count($classes) > 1) {
+            try {
+                $members = DiscriminatorInference::group($members, $this->path, $this->discriminator);
+                $this->discriminated = array_any(
+                    $members,
+                    static fn(Node $member): bool => $member instanceof DiscriminatedNode,
+                );
+            } catch (DecodeError $error) {
+                $unidentified = ['classes' => $error];
+            }
+        }
         if ($members === []) {
             assert($this->rejected !== null, description: 'A union with no members rejected at least one.');
             throw $this->rejected;
         }
-        if (count($members) === 1 && $this->rejected === null && $unidentified === null) {
+        if (count($members) === 1 && $this->rejected === null) {
             return $members[0];
         }
-        $nullable = $unidentified === null ? $this->nullable($members) : null;
+        $nullable = $this->nullable($members);
         if ($nullable !== null) {
             return $nullable;
         }
@@ -122,9 +132,9 @@ final class UnionBuilder
      * conflict. Most unions have none, and don't load the rules for them.
      *
      * @param list<array{Node, Claims}> $claimed Each member with its claims.
-     * @param DecodeError|null $unidentified The error for classes that no discriminator identifies.
+     * @param array<string, DecodeError> $errors Errors found before, keyed by their kind of conflict.
      */
-    private function conflict(array $claimed, DecodeError|null $unidentified): DecodeError|null
+    private function conflict(array $claimed, array $errors): DecodeError|null
     {
         $types = array_merge(...array_map(
             /**
@@ -134,8 +144,8 @@ final class UnionBuilder
             static fn(array $member): array => array_keys($member[1]),
             $claimed,
         ));
-        return count($types) === count(array_unique($types)) && $unidentified === null
+        return count($types) === count(array_unique($types))
             ? null
-            : UnionConflicts::first($this->path, $claimed, $unidentified);
+            : UnionConflicts::first($this->path, $claimed, $errors);
     }
 }
