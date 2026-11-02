@@ -39,13 +39,9 @@ final class UnionBuilder
     private array $types = [];
     private DecodeError|null $rejected = null;
 
-    /** Whether the union selects one of several classes by a discriminator. */
-    public private(set) bool $discriminated = false;
-
-    /** @param string|null $discriminator The member that #[Discriminator] names for the field. */
     public function __construct(
         private readonly string $path,
-        private readonly string|null $discriminator = null,
+        private readonly FieldDiscriminator|null $discriminator = null,
     ) {}
 
     /** Adds a member. A member of the same type as an earlier one replaces it, because it decodes alike. */
@@ -75,11 +71,14 @@ final class UnionBuilder
         $unidentified = [];
         if (count($classes) > 1) {
             try {
-                $members = DiscriminatorInference::group($members, $this->path, $this->discriminator);
-                $this->discriminated = array_any(
+                $members = DiscriminatorInference::group($members, $this->path, $this->discriminator?->name);
+                $discriminated = array_any(
                     $members,
                     static fn(Node $member): bool => $member instanceof DiscriminatedNode,
                 );
+                if ($discriminated) {
+                    $this->discriminator?->use();
+                }
             } catch (DecodeError $error) {
                 $unidentified = [AmbiguousUnion::CLASSES => $error];
             }

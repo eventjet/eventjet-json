@@ -14,6 +14,8 @@ use RuntimeException;
 
 use function sha1;
 
+use const PHP_VERSION_ID;
+
 /**
  * Unions of several classes that no discriminator identifies, and misplaced #[Discriminator] attributes.
  *
@@ -210,11 +212,14 @@ final class DiscriminatedDeclarationErrorCases
                 'uses #[Discriminator], but its type has no union of multiple classes.',
             );
         }
-        yield 'discriminator attribute is misplaced on a class under two names' => self::error(
-            'DiscriminatedMisplacedSpelling',
-            '/** @var list<self|discriminatedmisplacedspelling> */ ' . $attribute . 'public array $value;',
-            'uses #[Discriminator], but its type has no union of multiple classes.',
-        );
+        // PHP 8.5 rejects a native union that names one class twice.
+        if (PHP_VERSION_ID < 80_500) {
+            yield 'discriminator attribute is misplaced on a class under two names' => self::error(
+                'DiscriminatedMisplacedSpelling',
+                $attribute . 'public self|discriminatedmisplacedspelling $value;',
+                'uses #[Discriminator], but its type has no union of multiple classes.',
+            );
+        }
     }
 
     /**

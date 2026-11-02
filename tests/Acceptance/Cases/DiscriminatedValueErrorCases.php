@@ -15,6 +15,8 @@ use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 
 use function strtolower;
 
+use const PHP_VERSION_ID;
+
 /**
  * JSON values that a discriminated union rejects, with the exact errors.
  *
@@ -47,16 +49,19 @@ final class DiscriminatedValueErrorCases
             '{"type":"Circle","radius":1}',
             'main.type must be one of \'circle\', \'rectangle\'; \'Circle\' given.',
         );
-        $spelled = CollectionNameSource::load(
-            'DiscriminatedSpelling',
-            'final class DiscriminatedSpelling { public function __construct(public self|discriminatedspelling $next) {} }',
-        );
-        yield 'a class under two names decodes as that class' => [
-            '{"next":null}',
-            $spelled,
-            'Could not create DiscriminatedSpelling from the JSON object: Field next must be of type DiscriminatedSpelling, null given.',
-            DecodeErrorKind::InvalidValue,
-        ];
+        // PHP 8.5 rejects a native union that names one class twice. PHPDoc types resolve both names to one class.
+        if (PHP_VERSION_ID < 80_500) {
+            $spelled = CollectionNameSource::load(
+                'DiscriminatedSpelling',
+                'final class DiscriminatedSpelling { public function __construct(public self|discriminatedspelling $next) {} }',
+            );
+            yield 'a class under two names decodes as that class' => [
+                '{"next":null}',
+                $spelled,
+                'Could not create DiscriminatedSpelling from the JSON object: Field next must be of type DiscriminatedSpelling, null given.',
+                DecodeErrorKind::InvalidValue,
+            ];
+        }
         yield 'class union rejects a value that is not an object' => self::drawing(
             '"circle"',
             'main must be of type ' . Circle::class . '|' . Rectangle::class . ', string given.',

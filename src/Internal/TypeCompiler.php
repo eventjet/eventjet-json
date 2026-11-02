@@ -43,51 +43,34 @@ final readonly class TypeCompiler
      */
     public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node
     {
-        $doc = self::phpDoc($field, $type);
+        $declared = PhpDocFieldType::resolve($field);
+        $resolved = $declared === null ? null : new PhpDocTypeResolver($field)->resolve($declared);
+        $doc = $resolved === null ? null : self::narrowing($resolved, $field, $type);
         $attributes = $field->getAttributes(Discriminator::class);
-        $compiler = $attributes === [] ? null : new NodeCompiler($attributes[0]->newInstance()->name);
+        $discriminator = $attributes === [] ? null : new FieldDiscriminator($attributes[0]->newInstance()->name);
         $node = match (true) {
-            $doc instanceof PhpDocType => ($compiler ?? new NodeCompiler())->field($doc, $field->getName()),
+            $doc !== null => NodeCompiler::field($doc, $field->getName(), $discriminator),
             $type instanceof ReflectionNamedType && !$type->isBuiltin() => NamedTypeCompiler::field(
                 $field,
                 $type,
-            ) ?? $this->native($field, $type, $compiler),
-            default => $this->native($field, $type, $compiler),
+            ) ?? $this->native($field, $type, $discriminator),
+            default => $this->native($field, $type, $discriminator),
         };
         return match (true) {
             $node === null => throw CollectionDeclarationError::unsupported(
                 $field,
-                PhpDocFieldType::resolve($field),
+                $declared,
                 self::tree($field, $type),
             ),
-            $doc instanceof DecodeError => throw $doc,
-            $compiler !== null && !$compiler->discriminated => throw UnsupportedClassUnion::misplacedDiscriminator(
+            $declared !== null && $resolved === null => throw UnsupportedField::unresolvedType(
+                $field->getName(),
+                new PhpDocTypeResolver($field)->unresolved($declared),
+            ),
+            $discriminator !== null && !$discriminator->used => throw UnsupportedClassUnion::misplacedDiscriminator(
                 $field->getName(),
             ),
             default => $node,
         };
-    }
-
-    /**
-     * Returns the PHPDoc type of a field with resolved names if it narrows the native type, or the error for a PHPDoc
-     * type that the decoder cannot resolve.
-     *
-     * @throws DecodeError
-     * @throws ReflectionException
-     */
-    public static function phpDoc(
-        ReflectionParameter|ReflectionProperty $field,
-        ReflectionType $type,
-    ): PhpDocType|DecodeError|null {
-        $declared = PhpDocFieldType::resolve($field);
-        if ($declared === null) {
-            return null;
-        }
-        $resolver = new PhpDocTypeResolver($field);
-        $resolved = $resolver->resolve($declared);
-        return $resolved === null
-            ? UnsupportedField::unresolvedType($field->getName(), $resolver->unresolved($declared))
-            : self::narrowing($resolved, $field, $type);
     }
 
     /**
@@ -101,12 +84,12 @@ final readonly class TypeCompiler
     private function native(
         ReflectionParameter|ReflectionProperty $field,
         ReflectionType $type,
-        NodeCompiler|null $compiler,
+        FieldDiscriminator|null $discriminator,
     ): Node|null {
         if ($type instanceof ReflectionNamedType && array_key_exists($type->getName(), self::SCALARS)) {
             return new ScalarNode($type->getName(), $type->allowsNull());
         }
-        return ($compiler ?? new NodeCompiler())->field(self::tree($field, $type), $field->getName());
+        return NodeCompiler::field(self::tree($field, $type), $field->getName(), $discriminator);
     }
 
     /**
@@ -116,7 +99,7 @@ final readonly class TypeCompiler
      *
      * @throws ReflectionException
      */
-    private static function narrowing(
+    public static function narrowing(
         PhpDocType $doc,
         ReflectionParameter|ReflectionProperty $field,
         ReflectionType $type,

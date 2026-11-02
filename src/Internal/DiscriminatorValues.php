@@ -10,6 +10,7 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
+use ReflectionType;
 
 use function is_int;
 use function is_string;
@@ -35,12 +36,12 @@ final class DiscriminatorValues
     {
         $type = $field->getType();
         try {
-            $doc = $type === null ? null : TypeCompiler::phpDoc($field, $type);
+            $doc = $type === null ? null : self::phpDoc($field, $type);
         } catch (DecodeError $error) {
             throw $error->whileCreating($class->getName());
         }
         $values = [];
-        foreach ($doc instanceof PhpDocType ? $doc->members() : [] as $member) {
+        foreach ($doc?->members() ?? [] as $member) {
             $value = $member->literal?->value;
             $json = $value instanceof BackedEnum ? $value->value : $value;
             if (!is_int($json) && !is_string($json)) {
@@ -49,5 +50,22 @@ final class DiscriminatorValues
             $values[] = $json;
         }
         return $values === [] ? null : $values;
+    }
+
+    /**
+     * Returns the PHPDoc type of a field with resolved names if it narrows the native type. A PHPDoc type that the
+     * decoder cannot resolve declares no values; compiling the class reports it.
+     *
+     * @throws DecodeError
+     * @throws ReflectionException
+     */
+    private static function phpDoc(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): PhpDocType|null
+    {
+        $declared = PhpDocFieldType::resolve($field);
+        if ($declared === null) {
+            return null;
+        }
+        $resolved = new PhpDocTypeResolver($field)->resolve($declared);
+        return $resolved === null ? null : TypeCompiler::narrowing($resolved, $field, $type);
     }
 }

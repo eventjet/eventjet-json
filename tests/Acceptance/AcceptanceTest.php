@@ -30,6 +30,7 @@ use Eventjet\Json\Internal\Error\UnsupportedCollection;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
+use Eventjet\Json\Internal\FieldDiscriminator;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
@@ -192,6 +193,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(DiscriminatorInference::class)]
 #[CoversClass(DiscriminatorCandidates::class)]
 #[CoversClass(DiscriminatorValues::class)]
+#[CoversClass(FieldDiscriminator::class)]
 #[CoversClass(Discriminator::class)]
 #[CoversClass(DiscriminatedNode::class)]
 #[CoversClass(InvalidDiscriminator::class)]
