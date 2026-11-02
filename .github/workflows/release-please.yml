@@ -30,7 +30,8 @@ jobs:
       # GitHub starts no pull_request workflows for pushes made with GITHUB_TOKEN,
       # so the release PR would never get the checks that master requires.
       # workflow_dispatch is exempt from that rule, and its check runs land on
-      # the same head commit.
+      # the same head commit. Dispatch every workflow that reports a check master
+      # requires, or the release PR waits for that check forever.
       - name: Run required checks on the release PR
         if: steps.release.outputs.prs_created == 'true'
         env:
