@@ -141,7 +141,7 @@ final class JsonValueErrorCases
                 $json,
                 $type,
                 sprintf(
-                    'Could not create %s from the JSON object: Target type implements JsonSerializable. Its custom JSON representation may not match its constructor parameters, so it cannot satisfy the round-trip contract.',
+                    'Could not create %1$s from the JSON object: Target type is %1$s, which is supported only in fields, list items, map values and tuple positions, not as the root type or as a JsonType item.',
                     JsonValue::class,
                 ),
                 DecodeErrorKind::UnsupportedDeclaration,

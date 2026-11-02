@@ -59,6 +59,12 @@ final class UnsupportedTarget
 
     public static function jsonSerializable(string $class): DecodeError
     {
+        if ($class === JsonValue::class) {
+            return self::error(sprintf(
+                'Target type is %s, which is supported only in fields, list items, map values and tuple positions, not as the root type or as a JsonType item.',
+                JsonValue::class,
+            ));
+        }
         $enum = enum_exists($class);
         return self::error(sprintf(
             'Target type %s JsonSerializable. Its custom JSON representation may not match its %s, so it cannot satisfy the round-trip contract.',

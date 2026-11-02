@@ -337,6 +337,7 @@ final class AutoloadingTest extends TestCase
         static::assertFalse(class_exists(UnionBuilder::class, autoload: false));
         static::assertFalse(class_exists(NullOnlyNode::class, autoload: false));
         static::assertFalse(class_exists(EnumRoots::class, autoload: false));
+        static::assertFalse(class_exists(NullableJsonValues::class, autoload: false));
     }
 
     /**

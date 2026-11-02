@@ -6,16 +6,14 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
-use Eventjet\Json\JsonValue;
-use JsonSerializable;
 use ReflectionClass;
-use ReflectionNamedType;
 use ReflectionProperty;
 
 /**
  * Finds the public instance properties declared as `JsonValue|null`. json_encode() would write null for such a
  * property, which decodes as a JsonValue that holds null, so a serializer must leave it out instead. Like #[Field], such
- * a property therefore requires JsonSerializable and opts the class into it.
+ * a property therefore requires JsonSerializable and opts the class into it. ClassField rejects such a property in a
+ * class without JsonSerializable, so that a decode of other classes loads no extra class.
  *
  * @internal
  */
@@ -25,8 +23,7 @@ final class NullableJsonValues
     private static array $names = [];
 
     /**
-     * Returns the names of the properties. Only the native type counts, because a PHPDoc type cannot narrow a property
-     * to JsonValue.
+     * Returns the names of the properties.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
@@ -39,23 +36,18 @@ final class NullableJsonValues
     }
 
     /**
-     * Rejects a class without #[Field] that implements JsonSerializable but has no such property, or has one but
-     * doesn't implement JsonSerializable.
+     * Rejects a class without #[Field] that implements JsonSerializable but has no such property.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param list<ReflectionProperty> $properties The properties of the class.
      * @throws DecodeError
      */
-    public static function validateUnannotated(ReflectionClass $class, array $properties): void
+    public static function requireOne(ReflectionClass $class, array $properties): void
     {
         $names = self::of($class, $properties);
-        $serialized = $class->implementsInterface(JsonSerializable::class);
-        if ($serialized && $names === []) {
+        if ($names === []) {
             throw UnsupportedTarget::jsonSerializable($class->getName());
-        }
-        if (!$serialized && $names !== []) {
-            throw UnsupportedTarget::nullableJsonValueWithoutSerializer($names[0]);
         }
     }
 
@@ -67,16 +59,10 @@ final class NullableJsonValues
     {
         $names = [];
         foreach ($properties as $property) {
-            $type = $property->getType();
-            if (
-                $property->isPublic()
-                && !$property->isStatic()
-                && $type instanceof ReflectionNamedType
-                && $type->allowsNull()
-                && $type->getName() === JsonValue::class
-            ) {
-                $names[] = $property->getName();
+            if (!$property->isPublic() || $property->isStatic() || !ClassField::holdsNullableJsonValue($property)) {
+                continue;
             }
+            $names[] = $property->getName();
         }
         return $names;
     }

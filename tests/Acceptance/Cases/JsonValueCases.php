@@ -120,6 +120,16 @@ final class JsonValueCases
         $object = $inherited->newInstance();
         $inherited->getProperty('value')->setValue($object, new JsonValue(null));
         yield 'inherited JsonValue|null property of a JsonSerializable class' => ['{"value":null}', $object];
+        $class = CollectionNameSource::load(
+            'JsonValueAfterOtherProperty',
+            'final class JsonValueAfterOtherProperty implements \\JsonSerializable { public string $label = ""; public ?\\'
+            . JsonValue::class
+            . ' $value = null; public function jsonSerialize(): mixed { return (object) []; } }',
+        );
+        $later = new ReflectionClass($class);
+        $object = $later->newInstance();
+        $later->getProperty('value')->setValue($object, new JsonValue(null));
+        yield 'JsonValue|null property after another property' => ['{"value":null}', $object];
         foreach (JsonValueLimits::nested(512) as $label => $input) {
             $class = JsonValueErrorCases::constructing('JsonValueMaxDepth_' . sha1($input), $input);
             yield $label . ' nested 512 levels deep' => ['{}', new ReflectionClass($class)->newInstance()];
