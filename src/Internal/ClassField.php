@@ -6,11 +6,9 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
-use Eventjet\Json\Internal\Error\UnsupportedTarget;
+use Eventjet\Json\Internal\Node\JsonValueNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
-use Eventjet\Json\JsonValue;
-use JsonSerializable;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionParameter;
@@ -74,9 +72,6 @@ final readonly class ClassField
             if (!$publicInstance) {
                 continue;
             }
-            if (self::holdsNullableJsonValue($property) && !$class->implementsInterface(JsonSerializable::class)) {
-                throw UnsupportedTarget::nullableJsonValueWithoutSerializer($property->getName());
-            }
             $properties[$property->getName()] = $property;
         }
         $fields = [];
@@ -88,18 +83,13 @@ final readonly class ClassField
         foreach ($properties as $name => $property) {
             $fields[] = new self($names[$name] ?? $name, $name, self::node($property), $property, false);
         }
+        foreach ($fields as $field) {
+            if (!$field->node instanceof JsonValueNode) {
+                continue;
+            }
+            NullableJsonValues::requireSerializer($class, $field->name);
+        }
         return $fields;
-    }
-
-    /**
-     * Whether the native type of a property is `JsonValue|null`. Only the native type counts, because a PHPDoc type
-     * cannot narrow a property to JsonValue.
-     *
-     * @mutation-free
-     */
-    public static function holdsNullableJsonValue(ReflectionProperty $property): bool
-    {
-        return (string) $property->getType() === '?' . JsonValue::class;
     }
 
     /**

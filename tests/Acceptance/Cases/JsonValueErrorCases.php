@@ -99,6 +99,7 @@ final class JsonValueErrorCases
         foreach ([
             'constructor parameter' => 'public function __construct(public ?' . $jsonValue . ' $value = null) {}',
             'public property' => 'public ?' . $jsonValue . ' $value = null;',
+            'public property after another field' => 'public int $count = 0; public ?' . $jsonValue . ' $value = null;',
         ] as $label => $body) {
             $class = self::declaring('JsonValueWithoutSerializer_' . sha1($body), $body, '');
             yield 'JsonValue|null ' . $label . ' without JsonSerializable' => [

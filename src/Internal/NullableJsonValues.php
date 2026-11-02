@@ -6,14 +6,17 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
+use Eventjet\Json\JsonValue;
+use JsonSerializable;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 
 /**
  * Finds the public instance properties declared as `JsonValue|null`. json_encode() would write null for such a
  * property, which decodes as a JsonValue that holds null, so a serializer must leave it out instead. Like #[Field], such
- * a property therefore requires JsonSerializable and opts the class into it. ClassField rejects such a property in a
- * class without JsonSerializable, so that a decode of other classes loads no extra class.
+ * a property therefore requires JsonSerializable and opts the class into it. ClassField asks for the check only for
+ * fields that hold a JsonValue, so that a decode of other classes loads no extra class.
  *
  * @internal
  */
@@ -52,6 +55,34 @@ final class NullableJsonValues
     }
 
     /**
+     * Rejects a property declared as `JsonValue|null` in a class that doesn't implement JsonSerializable.
+     *
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @throws DecodeError
+     * @throws ReflectionException If the class has no such property.
+     */
+    public static function requireSerializer(ReflectionClass $class, string $name): void
+    {
+        $property = $class->getProperty($name);
+        $nullable = self::holds($property);
+        if ($nullable && !$class->implementsInterface(JsonSerializable::class)) {
+            throw UnsupportedTarget::nullableJsonValueWithoutSerializer($property->getName());
+        }
+    }
+
+    /**
+     * Whether the native type of a property is `JsonValue|null`. Only the native type counts, because a PHPDoc type
+     * cannot narrow a property to JsonValue.
+     *
+     * @mutation-free
+     */
+    private static function holds(ReflectionProperty $property): bool
+    {
+        return (string) $property->getType() === '?' . JsonValue::class;
+    }
+
+    /**
      * @param list<ReflectionProperty> $properties
      * @return list<string>
      */
@@ -59,7 +90,7 @@ final class NullableJsonValues
     {
         $names = [];
         foreach ($properties as $property) {
-            if (!$property->isPublic() || $property->isStatic() || !ClassField::holdsNullableJsonValue($property)) {
+            if (!$property->isPublic() || $property->isStatic() || !self::holds($property)) {
                 continue;
             }
             $names[] = $property->getName();
