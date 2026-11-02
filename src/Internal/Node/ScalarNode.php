@@ -93,8 +93,12 @@ final readonly class ScalarNode implements Node
     {
         /** @var mixed $value */
         foreach ($values as $key => $value) {
-            // A float is finite exactly when subtracting it from itself gives 0.0, which is cheaper than is_finite().
-            if (is_float($value) && ($value - $value) === 0.0) {
+            if (is_float($value)) {
+                // A float is finite exactly when subtracting it from itself gives 0.0, which is cheaper than
+                // is_finite(). Rejecting here instead of in decode() keeps the check observable to tests.
+                if (($value - $value) !== 0.0) {
+                    throw InvalidValue::nonFiniteNumber($path($key), $value);
+                }
                 continue;
             }
             if (is_int($value)) {
