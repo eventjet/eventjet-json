@@ -84,6 +84,8 @@ final class PhpDocTagCases
         yield 'list<b> $value text</b>more' => false;
         yield 'list<b> $value #</b>' => false;
         yield 'list<b> $value #</b>#' => true;
+        yield 'list<b> $value <#b> /b>' => true;
+        yield 'list<b> $value </bx /b>' => true;
         yield 'list<b> $value // </b>' => false;
         yield 'list<b>x</b> $value' => false;
         yield 'list<int> $value</int>' => true;
@@ -228,6 +230,7 @@ final class PhpDocTagCases
             'list<string> | x' => null,
             'list<string>,x' => 'int',
             'list<string> ,x' => 'string',
+            'list<string> #</string>' => 'int',
             'list<string>' => 'string',
             'list<string>  ' => 'string',
             'list<string> $value' => 'int',
