@@ -7,6 +7,8 @@ namespace Eventjet\Json\Internal;
 use function array_intersect;
 use function array_key_last;
 use function preg_match;
+use function preg_match_all;
+use function str_contains;
 
 /**
  * Walks the tokens of a doc comment like phpstan/phpdoc-parser's token iterator. Horizontal whitespace is skipped.
@@ -24,6 +26,9 @@ final class PhpDocTokens
 
     /** The index of the last `(`, after which no callable can start, or null if there is none. */
     public readonly int|null $lastParenthesis;
+
+    /** @var array<string, int>|null The index of the last token with a possible end tag, by element name. */
+    private array|null $endTags = null;
 
     /**
      * @param non-empty-list<string> $values
@@ -74,6 +79,30 @@ final class PhpDocTokens
     public function precededByWhitespace(): bool
     {
         return ($this->types[$this->index - 1] ?? null) === PhpDocLexer::HORIZONTAL_WS;
+    }
+
+    /**
+     * The index of the last token that contains `/name>`, as every end tag of the element does, or null if none does.
+     * The tokens are searched once, so that checking every `<` does not walk to the end each time.
+     */
+    public function lastEndTag(string $name): int|null
+    {
+        if ($this->endTags === null) {
+            $this->endTags = [];
+            foreach ($this->values as $index => $value) {
+                if (!str_contains($value, '/')) {
+                    continue;
+                }
+                $matches = [];
+                preg_match_all('~/([^/>]++)>~', $value, $matches);
+                /** @var array{0: list<string>, 1: list<string>} $matches */
+                $candidates = $matches[1];
+                foreach ($candidates as $candidate) {
+                    $this->endTags[$candidate] = $index;
+                }
+            }
+        }
+        return $this->endTags[$name] ?? null;
     }
 
     public function next(): void

@@ -36,7 +36,8 @@ final class PhpDocHtmlDetector
         if (!$tokens->is(PhpDocLexer::CLOSE_ANGLE_BRACKET)) {
             return false;
         }
-        while (!$tokens->is(PhpDocLexer::END)) {
+        $last = $tokens->lastEndTag($tag);
+        while ($last !== null && $tokens->index <= $last) {
             $closes = self::closes($tokens, $tag);
             if ($closes) {
                 return true;
