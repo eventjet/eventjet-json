@@ -61,3 +61,25 @@ See [Performance](docs/performance.md) for benchmarks and comparison procedures.
 
 For background on the decoder design, see the
 [direct JSON parsing investigation](docs/research/direct-json-parsing.md).
+
+## Releases
+
+[release-please](https://github.com/googleapis/release-please) handles versions,
+tags, GitHub releases and `CHANGELOG.md`. Pull requests are squash-merged, so
+each pull request title becomes one commit on `master`. Write it as a
+[Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/):
+
+| Title prefix | Version bump |
+|---|---|
+| `feat!:`, or a `BREAKING CHANGE:` footer | major |
+| `feat:` | minor |
+| `fix:`, `perf:`, `revert:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `chore:` | patch |
+| `style:` | none, and no changelog entry |
+
+A title without a valid prefix gets no changelog entry and no version bump.
+
+After each merge, release-please opens or updates a release pull request. It
+holds the next version and the new changelog entry. Merging it tags the release
+and publishes it on GitHub, and Packagist picks up the new tag. Edit
+`CHANGELOG.md` only on the release pull request, for example to add context to
+the generated entry.
