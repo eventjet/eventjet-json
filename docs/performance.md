@@ -343,6 +343,18 @@ about 8.5 minutes with OPcache on. The full sample with OPcache off took 14 minu
 [a trial run](https://github.com/eventjet/eventjet-json/actions/runs/38385674663),
 which led to its smaller advisory sample.
 
+**Runner image.** The batches above ran on `ubuntu-24.04`. Two batches on
+`ubuntu-26.04` checked the limits again:
+
+- [First batch](https://github.com/eventjet/eventjet-json/actions/runs/41436329527): warm CLI with OPcache on −1.27% to +1.80%, off −4.97% to +1.06%; PHP-FPM −1.58% to +2.09%.
+- [Second batch](https://github.com/eventjet/eventjet-json/actions/runs/41438625460): warm CLI with OPcache on −1.73% to +1.79%, off −1.51% to +1.08%; PHP-FPM −2.89% to +2.56%. One OPcache-off repetition has no result, because one runner installed an older Composer and its shard's dependency fingerprint differed.
+
+No unchanged workload exceeded a limit as a slowdown. One of 234 OPcache-off warm
+comparisons, the Kubernetes deployment document, showed a false improvement of
+4.97%; the same workload stayed within 0.5% in the other repetitions. The limits
+stay at 3%. A second false result in the same direction would justify revisiting
+the OPcache-off sampling.
+
 Performance tooling validation runs once in a separate job alongside the measurements.
 The existing comparison checks require both the measurements and tooling validation
 to succeed, so moving validation does not weaken the merge gate.
