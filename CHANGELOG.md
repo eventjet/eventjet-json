@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Doc comments are read like phpstan/phpdoc-parser 2.4.0. A Doctrine annotation with invalid arguments, such as
   `@\Foo(`, no longer hides the other tags of its doc comment, so their `@param` and `@var` declarations now apply.
   Tag names can contain underscores, and Doctrine annotation arguments can have quoted names, such as `"name"=1`.
+- The first decode is faster for classes whose doc comments contain a slash, such as a URL, and generic types like
+  `list<int>`. Like phpdoc-parser 2.4.0, the decoder searches each such doc comment once for HTML end tags instead of
+  once for every generic type.
 
 ## [1.0.0] - 2026-11-02
 
