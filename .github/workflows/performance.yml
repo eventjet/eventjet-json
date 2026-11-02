@@ -124,7 +124,7 @@ jobs:
           tools: none
       - name: Select latest shard executions
         id: shards
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           OPCACHE_MODE: ${{ matrix.opcache }}
           SAMPLE: ${{ matrix.sample }}
@@ -183,7 +183,7 @@ jobs:
           sparse-checkout: .github/ci
       - name: Select latest summaries
         id: summaries
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const select = require('./.github/ci/comment-artifacts.cjs');
@@ -205,7 +205,7 @@ jobs:
           merge-multiple: true
           path: report/off
       - name: Create or update comment
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           COMPARISON_RESULT: ${{ needs.compare.result }}
         with:
