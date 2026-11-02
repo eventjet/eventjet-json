@@ -67,9 +67,15 @@ final class UnionBuilder
     public function build(): Node
     {
         $members = $this->members();
-        $classes = array_filter($members, static fn(Node $member): bool => $member instanceof ObjectNode);
+        $classes = 0;
+        foreach ($members as $member) {
+            if (!$member instanceof ObjectNode) {
+                continue;
+            }
+            ++$classes;
+        }
         $unidentified = [];
-        if (count($classes) > 1) {
+        if ($classes > 1) {
             try {
                 $members = DiscriminatorInference::group($members, $this->path, $this->discriminator?->name);
                 $discriminated = array_any(
