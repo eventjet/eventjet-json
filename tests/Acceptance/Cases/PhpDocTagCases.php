@@ -272,6 +272,8 @@ final class PhpDocTagCases
         yield '@\\Foo("x")' => true;
         yield '@\\Foo("x" "y")' => true;
         yield '@\\Foo("a""b")' => true;
+        yield '@\\Foo("a"=1)' => true;
+        yield '@\\Foo("a" "b"=1)' => true;
         yield "@\\Foo('x')" => false;
         yield "@\\Foo(a='x')" => false;
         yield '@\\Foo(Foo::BAR)' => true;
