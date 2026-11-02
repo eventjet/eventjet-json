@@ -24,7 +24,6 @@ use Eventjet\Json\Internal\Error\UnsupportedClass;
 use Eventjet\Json\Internal\Error\UnsupportedCollection;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
-use Eventjet\Json\Internal\Error\UnsupportedJsonValue;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
@@ -196,7 +195,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(CanonicalJson::class)]
 #[CoversClass(JsonValueNode::class)]
 #[CoversClass(NullableJsonValues::class)]
-#[CoversClass(UnsupportedJsonValue::class)]
 final class AcceptanceTest extends TestCase
 {
     /** @param class-string|JsonType<mixed> $type */

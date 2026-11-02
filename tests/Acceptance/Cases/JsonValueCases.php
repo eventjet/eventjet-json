@@ -20,6 +20,7 @@ use stdClass;
 use function array_map;
 use function is_array;
 use function json_encode;
+use function sha1;
 use function sprintf;
 
 use const JSON_THROW_ON_ERROR;
@@ -52,6 +53,7 @@ final class JsonValueCases
         $optional = new OptionalJsonValue(new JsonValue(null));
         $optional->extra = new JsonValue([null]);
         yield 'present optional JsonValue that holds null' => [$optional];
+        yield 'omitted optional JsonValue before a present one' => [new OptionalJsonValue(new JsonValue(1))];
     }
 
     /**
@@ -107,11 +109,6 @@ final class JsonValueCases
         $property = new OptionalJsonValue();
         $property->extra = new JsonValue(null);
         yield 'JSON null in a JsonValue|null property is a JsonValue' => ['{"extra":null}', $property];
-        $class = JsonValueErrorCases::constructing(
-            'JsonValueMaxDepth',
-            'array_reduce(range(1, 512), static fn(mixed $value): array => [$value], null)',
-        );
-        yield 'input nested 512 levels deep' => ['{}', new ReflectionClass($class)->newInstance()];
         $class = CollectionNameSource::load(
             'JsonValueInheritedProperty',
             'abstract class JsonValueInheritedPropertyBase { public ?\\'
@@ -123,18 +120,10 @@ final class JsonValueCases
         $object = $inherited->newInstance();
         $inherited->getProperty('value')->setValue($object, new JsonValue(null));
         yield 'inherited JsonValue|null property of a JsonSerializable class' => ['{"value":null}', $object];
-        $class = CollectionNameSource::load(
-            'JsonValueNestedJsonValues',
-            'final class JsonValueNestedJsonValues { public function __construct() { $value = new \\'
-            . JsonValue::class
-            . '(null); for ($i = 0; $i < 400; $i++) { $value = new \\'
-            . JsonValue::class
-            . '([$value]); } } }',
-        );
-        yield 'JsonValue objects in the input keep their levels' => [
-            '{}',
-            new ReflectionClass($class)->newInstance(),
-        ];
+        foreach (JsonValueLimits::nested(512) as $label => $input) {
+            $class = JsonValueErrorCases::constructing('JsonValueMaxDepth_' . sha1($input), $input);
+            yield $label . ' nested 512 levels deep' => ['{}', new ReflectionClass($class)->newInstance()];
+        }
     }
 
     /**

@@ -6,7 +6,6 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
-use Eventjet\Json\Internal\Node\JsonValueNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionClass;
@@ -82,12 +81,6 @@ final readonly class ClassField
         }
         foreach ($properties as $name => $property) {
             $fields[] = new self($names[$name] ?? $name, $name, self::node($property), $property, false);
-        }
-        foreach ($fields as $field) {
-            $node = $field->node;
-            if ($node instanceof JsonValueNode && $node->nullable) {
-                NullableJsonValues::requireSerializer($class, $field->name);
-            }
         }
         return $fields;
     }

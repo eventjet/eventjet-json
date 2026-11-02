@@ -27,7 +27,7 @@ must not be relied on, even if a particular value happens to decode.
 | Root arrays and maps | Limited | `JsonType::array()` returns lists and `JsonType::map()` returns `ArrayObject<string, T>` maps, preserving empty JSON arrays and objects. Values may be final classes, backed enums, or recursively nested array and map descriptors. Map keys must remain PHP strings. |
 | Backed enums at the root | Supported | `Json::decode('"ready"', Status::class)` returns `Status::Ready`. The JSON root must be a backing value of the enum's backing type. Another JSON type returns an `UnexpectedRootValue` error, and a value without a case returns an `InvalidValue` error. Non-backed enums and enums that implement `JsonSerializable` are rejected, as in fields. |
 | Root scalars and `null` | Unsupported | There are no descriptors for standalone values of these types. Use a transport class with a typed field. |
-| Classes implementing `JsonSerializable` | Opt-in through `#[Field]` or a `JsonValue\|null` property | At least one annotated public instance property, or one public instance property declared as `JsonValue\|null`, is required. Use `MappedJsonFields` or supply a serializer that emits the declared field names and values. Other serializers remain rejected. |
+| Classes implementing `JsonSerializable` | Opt-in through `#[Field]` or a `JsonValue\|null` property | At least one annotated public instance property, or one public instance property declared as `JsonValue\|null`, is required. Use `MappedJsonFields` or supply a serializer that emits the declared field names and values and leaves out `JsonValue\|null` properties that are `null`. Other serializers remain rejected. |
 
 The round-trip contract also has these representation limits:
 
@@ -132,7 +132,8 @@ nested type whose field is omitted or whose collection is empty.
 `MappedJsonFields` implements `jsonSerialize()` using the shared field metadata.
 It returns an object containing initialized public instance properties, retaining
 nulls and the same default-valued properties that native object encoding exposes.
-Uninitialized properties are omitted. Private, protected, and static state is not
+Uninitialized properties are omitted, and so are `JsonValue|null` properties that
+are `null`. Private, protected, and static state is not
 exposed. An empty result stays `{}` and numeric member names remain object keys.
 Nested mapped objects are handled by PHP's normal `JsonSerializable` support.
 
@@ -141,8 +142,9 @@ resolved names and unchanged property values. It must not drop required values,
 rename them differently, or replace the object with a scalar or list. That is the
 class author's round-trip responsibility; the decoder does not execute a
 serializer to infer or verify its behavior. An interface or marker cannot prove
-an arbitrary method's behavior. `JsonSerializable` classes without `#[Field]`
-and custom-serialized enums remain outside this opt-in contract.
+an arbitrary method's behavior. `JsonSerializable` classes without `#[Field]` or
+a `JsonValue|null` property, and custom-serialized enums, remain outside this
+opt-in contract.
 
 This feature does not restore `Json::encode()`, add docblock mapping syntax, or
 make full JSON Schema models supported. Boolean schema roots, unknown keyword
@@ -207,8 +209,8 @@ The constructor throws an `InvalidArgumentException` for input that isn't
 JSON-shaped: objects of other classes, such as closures, resources, non-backed
 enums, `INF` and `NAN`, strings or member names that aren't valid UTF-8, member
 names that start with a null byte, and input nested more than 512 levels deep.
-Each `jsonSerialize()` call counts as a level. Levels inside `JsonValue` objects
-in the input don't count again. If a `jsonSerialize()` method throws, the
+Each `jsonSerialize()` call counts as a level, and so do the levels inside
+`JsonValue` objects in the input. If a `jsonSerialize()` method throws, the
 constructor throws an `InvalidArgumentException` with that exception as its
 previous one.
 
@@ -221,11 +223,13 @@ union like `JsonValue|string` returns an `UnsupportedDeclaration` error.
 The exception is a field declared as `JsonValue|null`, which keeps an absent
 member apart from JSON `null`. PHP `null` means the member was absent, and
 `new JsonValue(null)` is a present JSON `null`. `json_encode()` would write an
-absent value as `null`, so a class with a `JsonValue|null` property must
+absent value as `null`, so a class with a public `JsonValue|null` property must
 implement `JsonSerializable` and leave out the member when the property is
-`null`. Without `JsonSerializable`, `Json::decode()` and `Json::validateType()`
-return an `UnsupportedDeclaration` error. Such a property also opts the class
-into `JsonSerializable`, as `#[Field]` does.
+`null`. `MappedJsonFields` does that. Without `JsonSerializable`,
+`Json::decode()` and `Json::validateType()` return an `UnsupportedDeclaration`
+error. Such a property also opts the class into `JsonSerializable`, as
+`#[Field]` does. Only the declared type of the property counts, not that of a
+constructor parameter.
 
 `JsonValue` is unsupported as the root type and as a `JsonType` item. It has no
 `equals()` method, because `==` treats values such as `"1"` and `1` as equal.

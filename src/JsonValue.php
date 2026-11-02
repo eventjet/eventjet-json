@@ -22,6 +22,9 @@ final readonly class JsonValue implements JsonSerializable
     /** @var bool|float|int|string|list<JsonValue>|ArrayObject<array-key, JsonValue>|null */
     private bool|float|int|string|array|ArrayObject|null $value;
 
+    /** How many levels of arrays and objects the value has. */
+    private int $height;
+
     /**
      * Accepts null, scalars, lists, associative arrays, stdClass, ArrayObject, JsonSerializable objects and backed
      * enums, nested in any combination.
@@ -32,7 +35,12 @@ final readonly class JsonValue implements JsonSerializable
      */
     public function __construct(mixed $value)
     {
-        $this->value = CanonicalJson::of($value);
+        if ($value instanceof self) {
+            $this->value = $value->value;
+            $this->height = $value->height;
+            return;
+        }
+        [$this->value, $this->height] = CanonicalJson::of($value);
     }
 
     /**

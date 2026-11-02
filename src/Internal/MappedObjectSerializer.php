@@ -9,6 +9,7 @@ use ReflectionClass;
 use ReflectionException;
 
 use function get_object_vars;
+use function in_array;
 
 /** @internal */
 final class MappedObjectSerializer
@@ -25,10 +26,14 @@ final class MappedObjectSerializer
         } catch (DecodeError $error) {
             throw $error->whileCreating($class->getName());
         }
+        $nullableJsonValues = NullableJsonValues::of($class);
         $result = [];
         /** @var array<string, array<array-key, mixed>|object|bool|int|float|string|resource|null> $properties */
         $properties = get_object_vars($object);
         foreach ($properties as $name => $value) {
+            if ($value === null && in_array($name, $nullableJsonValues, strict: true)) {
+                continue;
+            }
             $result[$names[$name] ?? $name] = $value;
         }
         return (object) $result;

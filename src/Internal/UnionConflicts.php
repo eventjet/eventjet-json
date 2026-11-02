@@ -93,8 +93,8 @@ final class UnionConflicts
 
     /**
      * Whether a member returns a different PHP value for one of the listed JSON values. A member returns PHP values
-     * for the values that it lists, and for the other values of the type if it accepts or widens them. Listed values
-     * are scalars, which a member that accepts them returns as they are.
+     * for the values that it lists, and for the other values of the type if it accepts, widens or wraps them. Listed
+     * values are scalars, which a member that accepts them returns as they are, and one that wraps them never does.
      *
      * @param ClaimValues $values
      * @param Claim $claim
@@ -105,6 +105,7 @@ final class UnionConflicts
             $returned = $claim['values'][$key][1] ?? match ($claim['others']) {
                 'accepts' => $json,
                 'widens' => (float) $json,
+                'wraps' => null,
                 default => $value,
             };
             if ($returned !== $value) {

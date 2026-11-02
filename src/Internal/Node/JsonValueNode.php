@@ -17,11 +17,6 @@ use Override;
  */
 final readonly class JsonValueNode implements Node
 {
-    /** @param bool $nullable Whether the field is declared as `JsonValue|null`. */
-    public function __construct(
-        public bool $nullable,
-    ) {}
-
     /** JSON numbers too large for a float decode as INF, which a JsonValue rejects. */
     #[Override]
     public function decode(mixed $value, string $path): JsonValue
@@ -33,11 +28,21 @@ final readonly class JsonValueNode implements Node
         }
     }
 
-    /** UnionBuilder rejects every union with a JsonValue member, so it never asks for these claims. */
+    /** Claims every JSON value, so that no other member can join it in a union. */
     #[Override]
     public function claims(): array
     {
-        return [];
+        $wraps = ['others' => 'wraps', 'enums' => [], 'values' => []];
+        return [
+            'null' => $wraps,
+            'true' => $wraps,
+            'false' => $wraps,
+            'int' => $wraps,
+            'float' => $wraps,
+            'string' => $wraps,
+            'array' => $wraps,
+            'stdClass' => $wraps,
+        ];
     }
 
     #[Override]

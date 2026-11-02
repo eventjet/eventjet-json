@@ -132,9 +132,7 @@ final class TargetClass
             static fn(ReflectionProperty $property): bool => $property->getAttributes(Field::class) !== [],
         );
         if ($annotated === []) {
-            if ($class->implementsInterface(JsonSerializable::class)) {
-                NullableJsonValues::requireDeclared($className, $properties);
-            }
+            NullableJsonValues::validateUnannotated($class, $properties);
             return self::$names[$className] = [];
         }
         return self::$names[$className] = FieldNameRules::resolve($class, $properties, $annotated);

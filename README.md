@@ -289,8 +289,9 @@ works in fields, lists, maps, and tuples, but not in unions.
 
 A `JsonValue|null` field tells an absent member apart from JSON `null`: PHP
 `null` means the member was absent, and JSON `null` decodes as a `JsonValue`
-that holds `null`. Its class must implement `JsonSerializable` and leave out the
-member when the property is `null`.
+that holds `null`. Its class must implement `JsonSerializable`, for example by
+using `MappedJsonFields`, which leaves out the member when the property is
+`null`.
 
 See the [type reference](docs/types.md#free-form-json-values) for the details.
 

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Internal\Error\UnsupportedJsonValue;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\JsonValue;
 use JsonSerializable;
@@ -13,53 +12,72 @@ use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionProperty;
 
-use function array_any;
-
 /**
- * A `JsonValue|null` field needs a custom serializer: json_encode() writes null for the absent member, which decodes as
- * a JsonValue that holds null. So, like #[Field], such a field requires JsonSerializable and opts the class into it.
- * Kept apart from TargetClass and ClassField, so that only classes that implement JsonSerializable without #[Field],
- * or declare a `JsonValue|null` field, load it.
+ * Finds the public instance properties declared as `JsonValue|null`. json_encode() would write null for such a
+ * property, which decodes as a JsonValue that holds null, so a serializer must leave it out instead. Like #[Field], such
+ * a property therefore requires JsonSerializable and opts the class into it.
  *
  * @internal
  */
 final class NullableJsonValues
 {
+    /** @var array<class-string, list<string>> */
+    private static array $names = [];
+
     /**
-     * Rejects a class with a `JsonValue|null` field unless it implements JsonSerializable.
+     * Returns the names of the properties. Only the native type counts, because a PHPDoc type cannot narrow a property
+     * to JsonValue.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
+     * @param list<ReflectionProperty>|null $properties The properties of the class, if already read.
+     * @return list<string>
+     */
+    public static function of(ReflectionClass $class, array|null $properties = null): array
+    {
+        return self::$names[$class->getName()] ??= self::declared($properties ?? $class->getProperties());
+    }
+
+    /**
+     * Rejects a class without #[Field] that implements JsonSerializable but has no such property, or has one but
+     * doesn't implement JsonSerializable.
+     *
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @param list<ReflectionProperty> $properties The properties of the class.
      * @throws DecodeError
      */
-    public static function requireSerializer(ReflectionClass $class, string $field): void
+    public static function validateUnannotated(ReflectionClass $class, array $properties): void
     {
-        if (!$class->implementsInterface(JsonSerializable::class)) {
-            throw UnsupportedJsonValue::withoutSerializer($field);
+        $names = self::of($class, $properties);
+        $serialized = $class->implementsInterface(JsonSerializable::class);
+        if ($serialized && $names === []) {
+            throw UnsupportedTarget::jsonSerializable($class->getName());
+        }
+        if (!$serialized && $names !== []) {
+            throw UnsupportedTarget::nullableJsonValueWithoutSerializer($names[0]);
         }
     }
 
     /**
-     * Rejects a JsonSerializable class without #[Field] unless a public instance property is declared as
-     * `JsonValue|null`. Only the native type counts, because a PHPDoc type cannot narrow a field to JsonValue.
-     *
      * @param list<ReflectionProperty> $properties
-     * @throws DecodeError
+     * @return list<string>
      */
-    public static function requireDeclared(string $class, array $properties): void
+    private static function declared(array $properties): array
     {
-        $declared = array_any($properties, static function (ReflectionProperty $property): bool {
+        $names = [];
+        foreach ($properties as $property) {
             $type = $property->getType();
-            return (
+            if (
                 $property->isPublic()
                 && !$property->isStatic()
                 && $type instanceof ReflectionNamedType
                 && $type->allowsNull()
                 && $type->getName() === JsonValue::class
-            );
-        });
-        if (!$declared) {
-            throw UnsupportedTarget::jsonSerializable($class);
+            ) {
+                $names[] = $property->getName();
+            }
         }
+        return $names;
     }
 }

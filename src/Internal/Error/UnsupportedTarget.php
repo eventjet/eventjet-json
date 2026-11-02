@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal\Error;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
+use Eventjet\Json\JsonValue;
 use ReflectionMethod;
 use Throwable;
 
@@ -63,6 +64,15 @@ final class UnsupportedTarget
             'Target type %s JsonSerializable. Its custom JSON representation may not match its %s, so it cannot satisfy the round-trip contract.',
             $enum ? 'is an enum that implements' : 'implements',
             $enum ? 'cases' : 'constructor parameters',
+        ));
+    }
+
+    public static function nullableJsonValueWithoutSerializer(string $field): DecodeError
+    {
+        return self::error(sprintf(
+            'Field %1$s uses %2$s|null, which requires the class to implement JsonSerializable. json_encode() writes a null property as JSON null, which decodes as a %2$s that holds null, so the serializer must leave out the member instead.',
+            $field,
+            JsonValue::class,
         ));
     }
 

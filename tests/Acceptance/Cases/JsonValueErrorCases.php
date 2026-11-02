@@ -7,7 +7,6 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\JsonValue;
-use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\FailingSerializer;
 use Eventjet\Json\Test\Acceptance\Fixtures\JsonValueFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
@@ -83,27 +82,7 @@ final class JsonValueErrorCases
     public static function declarations(): iterable
     {
         $jsonValue = '\\' . JsonValue::class;
-        foreach ([
-            'with a scalar' => ['public function __construct(public ' . $jsonValue . '|string $value) {}', 'value'],
-            'with a scalar and null' => ['public ' . $jsonValue . '|int|null $value = null;', 'value'],
-            'with a class' => ['public ' . $jsonValue . '|\\' . Coordinates::class . ' $value;', 'value'],
-            'with a non-backed enum' => [
-                'public ' . $jsonValue . '|\\' . NonBackedStatus::class . ' $value;',
-                'value',
-            ],
-            'with null as a list item' => [
-                '/** @var list<' . $jsonValue . '|null> */ public array $value = [];',
-                'value',
-            ],
-            'with a scalar as a map value' => [
-                '/** @var \\ArrayObject<string, ' . $jsonValue . '|string> */ public \\ArrayObject $value;',
-                'value',
-            ],
-            'with null in a tuple position' => [
-                '/** @var array{' . $jsonValue . '|null} */ public array $value;',
-                'value[0]',
-            ],
-        ] as $label => [$body, $path]) {
+        foreach (JsonValueLimits::unions() as $label => [$body, $path]) {
             $class = self::declaring('JsonValueUnion_' . sha1($body), $body, '');
             yield 'JsonValue in a union ' . $label => [
                 '{}',
@@ -208,10 +187,6 @@ final class JsonValueErrorCases
                 '["\\0a" => 1]',
                 'Member names in a JsonValue must not start with a null byte, because json_decode() cannot read them.',
             ],
-            'input nested 513 levels deep' => [
-                'array_reduce(range(1, 513), static fn(mixed $value): array => [$value], null)',
-                $depth,
-            ],
             'object that contains itself' => [
                 '(static function (): \\stdClass { $object = new \\stdClass(); $object->self = $object; return $object; })()',
                 $depth,
@@ -234,6 +209,15 @@ final class JsonValueErrorCases
                 '{}',
                 $class,
                 sprintf('Could not create %s from the JSON object: %s', $class, $message),
+                DecodeErrorKind::ConstructorFailure,
+            ];
+        }
+        foreach (JsonValueLimits::nested(513) as $label => $input) {
+            $class = self::constructing('JsonValueRejected_' . sha1($input), $input);
+            yield 'JsonValue rejects ' . $label . ' nested 513 levels deep' => [
+                '{}',
+                $class,
+                sprintf('Could not create %s from the JSON object: %s', $class, $depth),
                 DecodeErrorKind::ConstructorFailure,
             ];
         }
