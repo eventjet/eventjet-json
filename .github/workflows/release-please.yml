@@ -1,0 +1,43 @@
+name: Release Please
+
+on:
+  push:
+    branches: [master]
+
+permissions: {}
+
+# A batch of merges fires one run per push; serialize them so two runs cannot
+# race the same release pull request into existence.
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: Release PR / tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write # commit the changelog, push the tag, create the release
+      issues: write # apply the autorelease:* labels
+      pull-requests: write # open and update the release PR
+      actions: write # dispatch the required checks
+    steps:
+      # Without a `release-type` input the action reads release-please-config.json
+      # and .release-please-manifest.json. It works over the API, so no checkout.
+      - id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+      # GitHub starts no pull_request workflows for pushes made with GITHUB_TOKEN,
+      # so the release PR would never get the checks that master requires.
+      # workflow_dispatch is exempt from that rule, and its check runs land on
+      # the same head commit. Dispatch every workflow that reports a check master
+      # requires, or the release PR waits for that check forever.
+      - name: Run required checks on the release PR
+        if: steps.release.outputs.prs_created == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+        run: |
+          gh workflow run ci.yml --ref "$BRANCH"
+          gh workflow run performance.yml --ref "$BRANCH"
