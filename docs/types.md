@@ -33,6 +33,8 @@ The round-trip contract also has these representation limits:
 - The source object must be encodable by PHP's `json_encode()`. Resources,
   non-finite floats, invalid UTF-8, and circular references are outside the
   supported input domain.
+- `-0.0` is outside the round-trip domain, see
+  [Numeric round trips](#numeric-round-trips).
 - JSON does not retain PHP class identity. It cannot choose between multiple
   possible classes without an additional discriminator or selection rule.
 - A backed enum case and its backing scalar encode to the same JSON value, so a
@@ -160,6 +162,16 @@ subnormal values and precision-sensitive decimals. JSON does not distinguish a
 whole-valued float such as `3.0` from the integer `3`; the declared field type
 restores the value to a PHP float during construction.
 
+PHP decodes a JSON number beyond the float range, such as `1e400`, as `INF` or
+`-INF`. `json_encode()` cannot write these values, so every `float` position,
+including lists, maps, tuples, and unions, rejects such a number with an
+`InvalidValue` error.
+
+The default `json_encode()` writes `-0.0` as `-0`, and JSON decoding reads that
+as the integer `0`. The decoder cannot recover the sign, so a `float` field
+receives `0.0`. With `JSON_PRESERVE_ZERO_FRACTION`, `json_encode()` writes
+`-0.0`, and the field keeps the sign.
+
 ## JSON objects and arrays
 
 Decoding keeps JSON objects and arrays distinct, including empty values. An
@@ -237,6 +249,11 @@ is a standard PHP container whose empty value encodes as `{}`. The decoder
 treats it as a map container rather than as an ordinary non-final class and
 always constructs an exact `ArrayObject`; subclasses are outside the supported
 round-trip domain.
+
+Map keys starting with a null byte are outside the round-trip domain.
+`json_encode()` omits them from an `ArrayObject`, as it does for object
+properties, and writes them as `\u0000` member names for a PHP array, which
+`json_decode()` rejects.
 
 Declare constructor collections with `@param` on the constructor. This complete
 example uses all four collection forms and restores map values as `Product`
