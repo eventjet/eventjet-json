@@ -12,7 +12,6 @@ use JsonException;
 use Override;
 
 use function is_bool;
-use function is_finite;
 use function is_float;
 use function is_int;
 use function is_string;
@@ -51,11 +50,17 @@ final readonly class ScalarNode implements Node
         if (!$matches) {
             throw InvalidValue::typeMismatch($path, $this->expected, $value);
         }
-        if (is_float($value) && !is_finite($value)) {
-            throw InvalidValue::nonFiniteNumber($path, $value);
+        if ($this->name === 'float') {
+            if (is_int($value)) {
+                return (float) $value;
+            }
+            // A float is finite exactly when subtracting it from itself gives 0.0, which is cheaper than is_finite().
+            if (is_float($value) && ($value - $value) !== 0.0) {
+                throw InvalidValue::nonFiniteNumber($path, $value);
+            }
         }
         /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
-        return $this->name === 'float' && is_int($value) ? (float) $value : $value;
+        return $value;
     }
 
     /**
