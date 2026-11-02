@@ -38,6 +38,33 @@ final class PerformanceShards
         return $indices;
     }
 
+    /**
+     * Composer releases add fields to installed.json, so the fingerprint covers only what was installed: each
+     * package's name, version, and references.
+     */
+    public static function dependencyFingerprint(string $installedJson): string
+    {
+        $packages = self::json($installedJson)['packages'] ?? null;
+        if (!is_array($packages)) {
+            throw new RuntimeException('Installed dependencies must list their packages');
+        }
+        $installed = [];
+        foreach ($packages as $package) {
+            if (!is_array($package) || !is_string($package['name'] ?? null) || !is_string($package['version'] ?? null)) {
+                throw new RuntimeException('Installed packages must have a name and version');
+            }
+            $source = $package['source'] ?? null;
+            $dist = $package['dist'] ?? null;
+            $installed[$package['name']] = [
+                $package['version'],
+                is_array($source) ? $source['reference'] ?? null : null,
+                is_array($dist) ? $dist['reference'] ?? null : null,
+            ];
+        }
+        ksort($installed);
+        return hash('sha256', json_encode($installed, JSON_THROW_ON_ERROR));
+    }
+
     /** @return array<string, mixed> */
     private static function json(string $path): array
     {

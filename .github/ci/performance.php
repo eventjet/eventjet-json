@@ -178,10 +178,7 @@ if (file_exists($output)) {
 }
 $results = $output . '/results';
 mkdir($results, 0777, true);
-$dependenciesHash = hash_file('sha256', 'vendor/composer/installed.json');
-if ($dependenciesHash === false) {
-    throw new RuntimeException('Cannot fingerprint installed dependencies');
-}
+$dependenciesHash = PerformanceShards::dependencyFingerprint('vendor/composer/installed.json');
 $metadata = [
     'shard' => $shard,
     'baseline' => $base,

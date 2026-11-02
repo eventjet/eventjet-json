@@ -58,6 +58,34 @@ jobs:
           bash .github/ci/tests/shards.sh
           node --test .github/ci/tests/*.cjs
 
+  dependencies:
+    name: Resolve benchmark dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      composer: ${{ steps.composer.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-benchmark-runtime
+        with:
+          fpm: 'false'
+      - name: Record Composer version
+        id: composer
+        shell: bash
+        run: |
+          version=$(composer --version --no-ansi 2>/dev/null | sed -n 's/^Composer version \([^ ]*\) .*/\1/p')
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Save resolved dependencies
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: performance-dependencies
+          path: composer.lock
+          overwrite: true
+          retention-days: 30
+
   measure:
     name: Measure decoder performance (OPcache ${{ matrix.opcache }}, sample ${{ matrix.sample }}, shard ${{ matrix.shard }})
     strategy:
@@ -66,6 +94,7 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
         sample: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.calibrate && '[1,2,3,4,5]' || '[1]') }}
         opcache: ${{ fromJSON((inputs.opcache == 'on' && '["on"]') || (inputs.opcache == 'off' && '["off"]') || '["on", "off"]') }}
+    needs: dependencies
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -73,9 +102,13 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: performance-dependencies
       - uses: ./.github/actions/setup-benchmark-runtime
         with:
           fpm: ${{ matrix.shard == 1 && 'true' || 'false' }}
+          composer: ${{ needs.dependencies.outputs.composer }}
       - name: Compare revisions
         shell: bash
         env:
