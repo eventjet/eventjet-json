@@ -25,13 +25,13 @@ final class InvalidDiscriminator
 
     public static function type(string $path, string $allowed, mixed $value): DecodeError
     {
-        return self::error(sprintf('Field %s must be one of %s, %s given.', $path, $allowed, get_debug_type($value)));
+        return self::error(sprintf('Field %s must be one of %s; %s given.', $path, $allowed, get_debug_type($value)));
     }
 
     public static function unknown(string $path, string $allowed, int|string $value): DecodeError
     {
         return self::error(sprintf(
-            'Field %s must be one of %s, %s given.',
+            'Field %s must be one of %s; %s given.',
             $path,
             $allowed,
             var_export($value, return: true),

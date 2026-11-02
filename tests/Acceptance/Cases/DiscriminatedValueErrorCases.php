@@ -40,12 +40,12 @@ final class DiscriminatedValueErrorCases
         ] as $json => $type) {
             yield 'discriminator of type ' . $type . ' is rejected' => self::drawing(
                 '{"type":' . $json . ',"radius":1}',
-                'main.type must be one of \'circle\', \'rectangle\', ' . $type . ' given.',
+                'main.type must be one of \'circle\', \'rectangle\'; ' . $type . ' given.',
             );
         }
         yield 'discriminator that differs in case is rejected' => self::drawing(
             '{"type":"Circle","radius":1}',
-            'main.type must be one of \'circle\', \'rectangle\', \'Circle\' given.',
+            'main.type must be one of \'circle\', \'rectangle\'; \'Circle\' given.',
         );
         $spelled = CollectionNameSource::load(
             'DiscriminatedSpelling',
@@ -119,7 +119,7 @@ final class DiscriminatedValueErrorCases
         $prefix =
             'Could not create '
             . EnumTagged::class
-            . ' from the JSON object: Field frames[0].op must be one of 1, 2, 8, ';
+            . ' from the JSON object: Field frames[0].op must be one of 1, 2, 8; ';
         foreach (['"1"' => "'1' given.", '1.0' => 'float given.', '15' => '15 given.'] as $op => $error) {
             yield 'integer discriminator rejects ' . $op => [
                 '{"marks":[],"frames":[{"op":' . $op . ',"sequence":1}]}',

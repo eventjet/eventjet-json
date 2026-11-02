@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\AmbiguousUnion;
 use Eventjet\Json\Internal\Node\DiscriminatedNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
@@ -80,7 +81,7 @@ final class UnionBuilder
                     static fn(Node $member): bool => $member instanceof DiscriminatedNode,
                 );
             } catch (DecodeError $error) {
-                $unidentified = ['classes' => $error];
+                $unidentified = [AmbiguousUnion::CLASSES => $error];
             }
         }
         if ($members === []) {

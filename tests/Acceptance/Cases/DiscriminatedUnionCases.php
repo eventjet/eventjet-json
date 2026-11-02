@@ -100,7 +100,7 @@ final class DiscriminatedUnionCases
             json_encode($document->root, JSON_THROW_ON_ERROR),
             $document->root::class,
             sprintf(
-                'Could not create %s from the JSON object: Field %s must be one of %s, %s given.',
+                'Could not create %s from the JSON object: Field %s must be one of %s; %s given.',
                 $tagged->container,
                 FieldPath::field($tagged->path, $tagged->tag->member),
                 $tagged->tag->allowed,

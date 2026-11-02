@@ -212,7 +212,7 @@ final class DiscriminatedDeclarationErrorCases
         }
         yield 'discriminator attribute is misplaced on a class under two names' => self::error(
             'DiscriminatedMisplacedSpelling',
-            $attribute . 'public self|discriminatedmisplacedspelling $value;',
+            '/** @var list<self|discriminatedmisplacedspelling> */ ' . $attribute . 'public array $value;',
             'uses #[Discriminator], but its type has no union of multiple classes.',
         );
     }

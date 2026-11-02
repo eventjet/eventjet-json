@@ -18,18 +18,30 @@ final class EventDocuments
     {
         $dice = $document->dice;
         $type = new Tag('@type', "'created', 'deleted'", 'updated', 'type');
-        $events = [];
-        for ($index = $dice->int(0, 2); $index > 0; --$index) {
-            $path = sprintf('events[%d]', count($events));
-            $events[] = $document->tagged(EventLog::class, $path, self::event($document), $type);
-        }
+        $events = self::events($document, 'events', $type);
         $log = new EventLog($document->tagged(EventLog::class, 'latest', self::event($document), $type), $events);
         $schema = Tag::of('schema', "'v1', 'v2'", 'v3');
+        $log->archived = self::events($document, 'archived', $schema);
         for ($index = $dice->int(0, 2); $index > 0; --$index) {
-            $path = sprintf('archived[%d]', count($log->archived));
-            $log->archived[] = $document->tagged(EventLog::class, $path, self::event($document), $schema);
+            $log->batches[] = self::events($document, sprintf('batches[%d]', count($log->batches)), $schema);
+        }
+        $paired = $dice->chance(50);
+        if ($paired) {
+            $first = $document->tagged(EventLog::class, 'pair[0]', self::event($document), $schema);
+            $log->pair = [$first, self::events($document, 'pair[1]', $schema)];
         }
         return $log;
+    }
+
+    /** @return list<Created|Deleted> */
+    private static function events(Document $document, string $path, Tag $tag): array
+    {
+        $events = [];
+        for ($index = $document->dice->int(0, 2); $index > 0; --$index) {
+            $item = sprintf('%s[%d]', $path, count($events));
+            $events[] = $document->tagged(EventLog::class, $item, self::event($document), $tag);
+        }
+        return $events;
     }
 
     private static function event(Document $document): Created|Deleted

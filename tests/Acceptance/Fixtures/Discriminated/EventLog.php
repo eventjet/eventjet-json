@@ -12,6 +12,14 @@ final class EventLog
     #[Discriminator('schema')]
     public array $archived = [];
 
+    /** @var list<list<Created|Deleted>> */
+    #[Discriminator('schema')]
+    public array $batches = [];
+
+    /** @var array{Created|Deleted, list<Created|Deleted>}|null */
+    #[Discriminator('schema')]
+    public array|null $pair = null;
+
     /** @var list<Created|Deleted> */
     public array $events;
 

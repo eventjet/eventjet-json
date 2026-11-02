@@ -229,7 +229,7 @@ Each decode reads the discriminator member, chooses the class, and decodes the
 object with that class, including the discriminator field. The member is
 required even when the field has a default. These are `InvalidValue` errors
 that list the allowed values, such as `Field shapes[1].type must be one of
-'circle', 'rectangle', 'triangle' given.`:
+'circle', 'rectangle'; 'triangle' given.`:
 
 - The object has no discriminator member.
 - The discriminator has a different JSON type, such as `null` or a float.
