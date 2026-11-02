@@ -95,17 +95,11 @@ final class AmbiguousUnion
      */
     private static function classNames(array $members): array
     {
-        $classes = array_map(self::className(...), $members);
-        return array_filter($classes, static fn(string|null $class): bool => $class !== null);
-    }
-
-    private static function className(Node $member): string|null
-    {
-        return match (true) {
+        return array_filter(array_map(static fn(Node $member): string|null => match (true) {
             $member instanceof ObjectNode => $member->target,
             $member instanceof UncheckedNode => $member->name,
             default => null,
-        };
+        }, $members), static fn(string|null $class): bool => $class !== null);
     }
 
     /** @param list<array{Node, Claims}> $members */
