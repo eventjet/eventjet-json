@@ -32,6 +32,15 @@ final class InvalidValue
         ));
     }
 
+    public static function jsonValue(string $path, Throwable $error): DecodeError
+    {
+        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
+            'Field %s is not a valid JSON value. %s',
+            $path,
+            $error->getMessage(),
+        ));
+    }
+
     public static function emptyList(string $path, string $type): DecodeError
     {
         return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(

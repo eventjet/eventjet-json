@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedJsonValue;
+use Eventjet\Json\Internal\Node\JsonValueNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 
+use function array_any;
 use function array_filter;
 use function array_keys;
 use function array_map;
@@ -53,7 +56,8 @@ final class UnionBuilder
 
     /**
      * Returns the union of the members, or the only member if there is one. `T|null` is a nullable `T` if `T` is a
-     * collection or an enum.
+     * collection or an enum. JsonValue takes every JSON value, so no other member can join it. A field declared as
+     * `JsonValue|null` doesn't get here, because its native type names one class.
      *
      * @throws DecodeError
      */
@@ -66,6 +70,10 @@ final class UnionBuilder
         }
         if (count($members) === 1 && $this->rejected === null) {
             return $members[0];
+        }
+        $jsonValue = array_any($members, static fn(Node $member): bool => $member instanceof JsonValueNode);
+        if ($jsonValue) {
+            throw UnsupportedJsonValue::union($this->path);
         }
         $nullable = $this->nullable($members);
         if ($nullable !== null) {

@@ -132,9 +132,10 @@ final class TargetClass
             static fn(ReflectionProperty $property): bool => $property->getAttributes(Field::class) !== [],
         );
         if ($annotated === []) {
-            return $class->implementsInterface(JsonSerializable::class)
-                ? throw UnsupportedTarget::jsonSerializable($className)
-                : (self::$names[$className] = []);
+            if ($class->implementsInterface(JsonSerializable::class)) {
+                NullableJsonValues::requireDeclared($className, $properties);
+            }
+            return self::$names[$className] = [];
         }
         return self::$names[$className] = FieldNameRules::resolve($class, $properties, $annotated);
     }

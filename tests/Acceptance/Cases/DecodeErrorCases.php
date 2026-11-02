@@ -13,6 +13,7 @@ final class DecodeErrorCases
      * @throws \ReflectionException
      * @throws \JsonException
      * @throws \RuntimeException
+     * @throws \InvalidArgumentException
      */
     public static function errors(): iterable
     {
@@ -37,5 +38,6 @@ final class DecodeErrorCases
         yield from UnionValueErrorCases::errors();
         yield from NestedValuesErrorCases::errors();
         yield from ErrorPathCases::errors();
+        yield from JsonValueErrorCases::errors();
     }
 }
