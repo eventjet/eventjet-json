@@ -29,8 +29,11 @@ final class CollectionDeclarationError
     ): DecodeError {
         $arguments = $declared->arguments ?? [];
         $map = count($arguments) >= 2 ? $declared?->name : null;
-        $stringKeys = ($arguments[0] ?? null)?->isPlainName('string') === true;
-        $arrayObject = $stringKeys && $map !== null && new PhpDocTypeResolver($field)->container($map) !== null;
+        $keys = $arguments[0] ?? null;
+        $stringKeys = $keys?->isPlainName('string') === true;
+        $anyKeys = $keys?->isPlainName('array-key') === true || $declared?->keyedValue(['int', 'string']) !== null;
+        $arrayObject =
+            ($stringKeys || $anyKeys) && $map !== null && new PhpDocTypeResolver($field)->container($map) !== null;
         $name = $field->getName();
         return match (true) {
             $native->name === ArrayObject::class => $arrayObject

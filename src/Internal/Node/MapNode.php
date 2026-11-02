@@ -22,9 +22,10 @@ final readonly class MapNode implements Node
     public function __construct(
         private Node $value,
         public bool $arrayObject,
+        private bool $anyKey = false,
     ) {}
 
-    /** @return array<string, mixed>|ArrayObject<string, mixed> */
+    /** @return array<array-key, mixed>|ArrayObject<array-key, mixed> */
     #[Override]
     public function decode(mixed $value, string $path): array|ArrayObject
     {
@@ -35,25 +36,26 @@ final readonly class MapNode implements Node
         if (!$this->arrayObject && $values === []) {
             throw InvalidValue::emptyMap($path);
         }
-        foreach (array_keys($values) as $key) {
-            if (is_int($key)) {
-                throw InvalidValue::integerKey($path, $key);
+        if (!$this->anyKey) {
+            foreach (array_keys($values) as $key) {
+                if (is_int($key)) {
+                    throw InvalidValue::integerKey($path, $key);
+                }
             }
         }
-        /** @var array<string, mixed> $values */
         $decoded = $this->value instanceof ScalarNode
             ? $this->value->decodeEach(
                 $values,
                 /** @throws JsonException */
-                static fn(string $key): string => FieldPath::key($path, $key),
+                static fn(int|string $key): string => FieldPath::key($path, (string) $key),
             )
             : $this->decodeValues($values, $path);
         return $this->arrayObject ? new ArrayObject($decoded) : $decoded;
     }
 
     /**
-     * @param array<string, mixed> $values
-     * @return array<string, mixed>
+     * @param array<array-key, mixed> $values
+     * @return array<array-key, mixed>
      * @throws DecodeError
      * @throws JsonException
      */
@@ -62,7 +64,7 @@ final readonly class MapNode implements Node
         $decoded = [];
         /** @var mixed $value */
         foreach ($values as $key => $value) {
-            $decoded[$key] = $this->value->decode($value, FieldPath::key($path, $key));
+            $decoded[$key] = $this->value->decode($value, FieldPath::key($path, (string) $key));
         }
         return $decoded;
     }
@@ -82,6 +84,11 @@ final readonly class MapNode implements Node
     #[Override]
     public function __toString(): string
     {
-        return sprintf('%s<string, %s>', $this->arrayObject ? 'ArrayObject' : 'non-empty-array', $this->value);
+        return sprintf(
+            '%s<%s, %s>',
+            $this->arrayObject ? 'ArrayObject' : 'non-empty-array',
+            $this->anyKey ? 'array-key' : 'string',
+            $this->value,
+        );
     }
 }

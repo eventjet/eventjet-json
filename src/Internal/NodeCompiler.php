@@ -129,12 +129,14 @@ final class NodeCompiler
      */
     private static function map(PhpDocType $type, string $path): Node|null
     {
-        $value = $type->stringKeyedValue();
+        $arrayObject = $type->name === ArrayObject::class;
+        $anyKey = $arrayObject && $type->keyedValue(['int', 'string']) !== null;
+        $value = $type->keyedValue($anyKey ? ['int', 'string'] : ['string']);
         $node = $value === null ? null : self::compile($value, $path);
         return match (true) {
             $node instanceof DecodeError => throw $node,
             $node === null => null,
-            default => new MapNode($node, $type->name === ArrayObject::class),
+            default => new MapNode($node, $arrayObject, anyKey: $anyKey),
         };
     }
 }

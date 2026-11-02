@@ -6,8 +6,10 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 
+use function array_map;
 use function array_pop;
 use function count;
+use function sort;
 
 /** @internal */
 final readonly class PhpDocType
@@ -81,12 +83,21 @@ final readonly class PhpDocType
         return [$first, $second];
     }
 
-    /** Returns `T` if this has the arguments `<string, T>`. */
-    public function stringKeyedValue(): self|null
+    /**
+     * Returns `T` if this has the arguments `<TKey, T>` and the members of `TKey` have the given names, such as
+     * `['int', 'string']` for `<array-key, T>`, `<int|string, T>`, and `<string|int, T>`.
+     *
+     * @param non-empty-list<string> $keys The names in sorted order.
+     */
+    public function keyedValue(array $keys): self|null
     {
         $pair = $this->argumentPair();
-        $hasStringKey = $pair !== null && $pair[0]->isPlainName('string');
-        return $hasStringKey ? $pair[1] : null;
+        if ($pair === null) {
+            return null;
+        }
+        $names = array_map(static fn(self $member): string|null => $member->plainName(), $pair[0]->members());
+        sort($names);
+        return $names === $keys ? $pair[1] : null;
     }
 
     /**
