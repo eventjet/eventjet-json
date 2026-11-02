@@ -3,7 +3,9 @@ updates:
   # Dependabot pull requests are squash-merged like any other, so their titles
   # have to parse as Conventional Commits for release-please to pick them up.
   - package-ecosystem: github-actions
-    directory: /
+    directories:
+      - /
+      - /.github/actions/*
     schedule:
       interval: weekly
     commit-message:
