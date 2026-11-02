@@ -1,0 +1,8 @@
+parameters:
+    tmpDir: .cache/phpstan
+    level: max
+    paths:
+        - src
+        - tests
+        - benchmarks
+        - .github/ci

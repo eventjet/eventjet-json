@@ -1,0 +1,35 @@
+name: Set up PHP and dependencies
+description: Resolve development dependencies and reuse downloads across runs.
+inputs:
+  php-version:
+    description: PHP version to test
+    default: '8.4'
+  extensions:
+    description: PHP extensions to enable or disable
+    default: bcmath, intl, mbstring, pcntl
+  coverage:
+    description: Coverage driver
+    default: none
+  ini-values:
+    description: Additional PHP INI settings
+    default: ''
+runs:
+  using: composite
+  steps:
+    - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+      with:
+        php-version: ${{ inputs.php-version }}
+        extensions: ${{ inputs.extensions }}
+        coverage: ${{ inputs.coverage }}
+        ini-values: memory_limit=1G, pcov.directory=src, ${{ inputs.ini-values }}
+        tools: composer:v2
+    - id: composer-cache
+      shell: bash
+      run: echo "path=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.composer-cache.outputs.path }}
+        key: composer-downloads-${{ runner.os }}-php${{ inputs.php-version }}-${{ hashFiles('composer.json') }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: composer-downloads-${{ runner.os }}-
+    - shell: bash
+      run: composer update --prefer-dist --no-interaction --no-progress --optimize-autoloader

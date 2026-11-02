@@ -1,0 +1,294 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Eventjet\Json\Test\Acceptance\Cases;
+
+use Eventjet\Json\DecodeErrorKind;
+use Eventjet\Json\JsonType;
+use Eventjet\Json\Test\Acceptance\Fixtures\OmittedInitializedReadonlyPublicProperty;
+use Eventjet\Json\Test\Acceptance\Fixtures\Person;
+use Eventjet\Json\Test\Acceptance\Fixtures\PrivateConstructorTarget;
+use Eventjet\Json\Test\Acceptance\Fixtures\StaticConstructorParameterProperty;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
+use Eventjet\Json\Test\Acceptance\Fixtures\ThrowingConstructor;
+use Eventjet\Json\Test\Acceptance\Fixtures\VariadicConstructorTarget;
+
+/** @internal */
+final class ConstructionErrorCases
+{
+    /**
+     * @return iterable<string, array{0: string, 1: class-string|\Eventjet\Json\JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind, 4?: \Throwable}>
+     * @throws \ReflectionException
+     * @throws \RuntimeException
+     */
+    public static function errors(): iterable
+    {
+        foreach (['"invalid"', 'false', 'null', '[]', '{}'] as $value) {
+            $type = match ($value) {
+                '"invalid"' => 'string',
+                'false' => 'bool',
+                'null' => 'null',
+                '[]' => 'array',
+                default => 'stdClass',
+            };
+            yield 'public-property ' . $type . ' input is rejected before construction' => [
+                '{"value":"rejected","other":' . $value . '}',
+                ThrowingConstructor::class,
+                'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ThrowingConstructor from the JSON object: Field other must be of type int, '
+                    . $type
+                    . ' given.',
+                DecodeErrorKind::InvalidValue,
+            ];
+        }
+        yield 'unloaded class parameter rejects null' => [
+            '{"value":null}',
+            CollectionDeclarationFixture::create('UnloadedRequiredClass', '', 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('UnloadedRequiredClass', '', 'param')
+                . ' from the JSON object: Field value must be of type UnloadedRequiredClass, null given.',
+            DecodeErrorKind::InvalidValue,
+        ];
+        yield 'unloaded class property rejects null' => [
+            '{"value":null}',
+            CollectionDeclarationFixture::create('UnloadedRequiredClass', '', 'var'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('UnloadedRequiredClass', '', 'var')
+                . ' from the JSON object: Field value must be of type UnloadedRequiredClass, null given.',
+            DecodeErrorKind::InvalidValue,
+        ];
+        yield 'constructor throws an exception' => [
+            '{"value":"rejected"}',
+            new ThrowingConstructor('accepted')::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ThrowingConstructor from the JSON object: The constructor rejected the decoded value.',
+            DecodeErrorKind::ConstructorFailure,
+            ThrowingConstructor::exception(),
+        ];
+        yield 'missing constructor arguments' => [
+            '{}',
+            Person::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Too few arguments to function Eventjet\Json\Test\Acceptance\Fixtures\Person::__construct(), 0 passed and at least 2 expected',
+            DecodeErrorKind::InvalidValue,
+        ];
+        yield 'missing constructor argument before a present one' => [
+            '{"lastName":"Lovelace"}',
+            Person::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\Person from the JSON object: Eventjet\Json\Test\Acceptance\Fixtures\Person::__construct(): Argument #1 ($firstName) not passed',
+            DecodeErrorKind::InvalidValue,
+        ];
+        yield from self::fieldOrder();
+        yield from self::targetFailures();
+        yield from self::unresolvableEnumCases();
+        yield from self::declarations();
+    }
+
+    /**
+     * Fields are decoded in declaration order, constructor parameters first, and the first error wins.
+     *
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
+     * @throws \RuntimeException
+     */
+    private static function fieldOrder(): iterable
+    {
+        $fields = CollectionNameSource::load(
+            'FieldOrder',
+            'final class FieldOrder { public bool $third = false; public bool $fourth = false; /** @param list<int> $second */ public function __construct(public \\'
+            . StringBackedStatus::class
+            . ' $first = \\'
+            . StringBackedStatus::class
+            . '::Ready, public array $second = [], public int $fifth = 0) {} }',
+        );
+        foreach ([
+            'an enum parameter error precedes a later scalar parameter error' => [
+                '{"fifth":false,"first":"unknown"}',
+                'Field first uses backed enum '
+                    . StringBackedStatus::class
+                    . ", which has no case with backing value 'unknown'.",
+            ],
+            'a list parameter error precedes a later scalar parameter error' => [
+                '{"second":["wrong"],"fifth":false}',
+                'Field second[0] must be of type int, string given.',
+            ],
+            'a parameter error precedes an earlier declared property error' => [
+                '{"third":1,"fifth":false}',
+                'Field fifth must be of type int, bool given.',
+            ],
+            'property errors follow the property declaration order' => [
+                '{"fourth":1,"third":1}',
+                'Field third must be of type bool, int given.',
+            ],
+        ] as $label => [$json, $message]) {
+            yield $label => [
+                $json,
+                $fields,
+                'Could not create FieldOrder from the JSON object: ' . $message,
+                DecodeErrorKind::InvalidValue,
+            ];
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
+     * @throws \RuntimeException
+     */
+    private static function targetFailures(): iterable
+    {
+        yield 'constructor throws while an optional member is omitted' => [
+            '{"value":"accepted"}',
+            CollectionNameSource::load(
+                'OptionalMemberThrowingConstructor',
+                'final class OptionalMemberThrowingConstructor { public function __construct(public string $value, public int $count = 0) { throw new ArgumentCountError("The constructor threw."); } }',
+            ),
+            'Could not create OptionalMemberThrowingConstructor from the JSON object: The constructor threw.',
+            DecodeErrorKind::ConstructorFailure,
+        ];
+        yield 'property hook rejects a value' => [
+            '{"value":"rejected"}',
+            CollectionNameSource::load(
+                'RejectingPropertyHook',
+                'final class RejectingPropertyHook { public string $value = "" { set(string $value) { if ($value === "rejected") { throw new InvalidArgumentException("The hook rejected the value."); } $this->value = $value; } } }',
+            ),
+            'Could not create RejectingPropertyHook from the JSON object: The hook rejected the value.',
+            DecodeErrorKind::ConstructorFailure,
+        ];
+        yield 'readonly property set by the constructor cannot be assigned again' => [
+            '{"value":"other"}',
+            OmittedInitializedReadonlyPublicProperty::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\OmittedInitializedReadonlyPublicProperty from the JSON object: Cannot modify readonly property Eventjet\Json\Test\Acceptance\Fixtures\OmittedInitializedReadonlyPublicProperty::$value',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{0: string, 1: class-string|JsonType<list<mixed>|object>, 2: string, 3: DecodeErrorKind}>
+     * @throws \ReflectionException
+     * @throws \RuntimeException
+     */
+    public static function declarations(): iterable
+    {
+        yield 'unloaded class parameter rejects an object' => [
+            '{"value":{}}',
+            CollectionDeclarationFixture::create('UnloadedRequiredClass', '', 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('UnloadedRequiredClass', '', 'param')
+                . ' from the JSON object: Field value uses unknown class UnloadedRequiredClass, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        yield 'nullable unloaded class parameter rejects an object' => [
+            '{"value":{}}',
+            CollectionDeclarationFixture::create('?UnloadedNullableClass', '', 'param'),
+            'Could not create '
+                . CollectionDeclarationFixture::create('?UnloadedNullableClass', '', 'param')
+                . ' from the JSON object: Field value uses unknown class UnloadedNullableClass, which cannot be instantiated directly. JSON does not identify a concrete class to instantiate.',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        yield 'private constructor cannot be called' => [
+            '{}',
+            PrivateConstructorTarget::create()::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\PrivateConstructorTarget from the JSON object: Target class has a private constructor, which cannot be called to create the object.',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        yield 'variadic constructor cannot bind JSON members' => [
+            '{}',
+            new VariadicConstructorTarget('value')::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\VariadicConstructorTarget from the JSON object: Constructor parameter values is variadic. JSON members bind to individual named arguments, not variadic argument lists.',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        yield 'constructor parameter cannot bind a static property' => [
+            '{}',
+            new StaticConstructorParameterProperty('value')::class,
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\StaticConstructorParameterProperty from the JSON object: Constructor parameter value has no same-named declared public instance property. The target class does not expose a stable JSON member from which the argument can be recovered.',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        yield from self::unknownClasses(Person::class);
+        yield from self::unresolvableConstants();
+    }
+
+    /**
+     * An error from a class constant that refers to a missing constant names the class that declares it, also when
+     * that class is nested.
+     *
+     * @return iterable<string, array{string, class-string|JsonType<list<mixed>>, string, DecodeErrorKind}>
+     * @throws \RuntimeException
+     */
+    private static function unresolvableConstants(): iterable
+    {
+        $parent = CollectionNameSource::load(
+            'UnresolvableConstantParent',
+            'final class UnresolvableConstantChild { const VALUE = MISSING_CONSTANT_VALUE; /** @param self::VALUE $value */ public function __construct(public string $value) {} } final class UnresolvableConstantParent { public function __construct(public UnresolvableConstantChild $child) {} }',
+        );
+        $message = 'Could not create UnresolvableConstantChild from the JSON object: Undefined constant "MISSING_CONSTANT_VALUE"';
+        yield 'nested class constant that refers to a missing constant' => [
+            '{"child":{"value":"a"}}',
+            $parent,
+            $message,
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        yield 'root list item with a nested class constant that refers to a missing constant' => [
+            '[{"child":{"value":"a"}}]',
+            JsonType::array($parent),
+            $message,
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+    }
+
+    /**
+     * PHP evaluates the case values of an enum when the first value arrives, so an error from a case value that refers
+     * to a missing class names the innermost class that could not be created.
+     *
+     * @return iterable<string, array{string, class-string, string, DecodeErrorKind}>
+     * @throws \RuntimeException
+     */
+    private static function unresolvableEnumCases(): iterable
+    {
+        $source = 'enum UnresolvableEnumCase: string { case Ready = \MissingEnumCaseValues::READY; } final class UnresolvableEnumCaseTarget { public function __construct(public UnresolvableEnumCase $status) {} }';
+        $enum = CollectionNameSource::load('UnresolvableEnumCase', $source);
+        $target = CollectionNameSource::load('UnresolvableEnumCaseTarget', $source);
+        $parent = CollectionNameSource::load(
+            'UnresolvableEnumCaseParent',
+            'final class UnresolvableEnumCaseParent { public function __construct(public UnresolvableEnumCaseTarget $child) {} }',
+        );
+        $message = 'Could not create ' . $target . ' from the JSON object: Class "MissingEnumCaseValues" not found';
+        yield 'enum case value that refers to a missing class' => [
+            '{"status":"ready"}',
+            $target,
+            $message,
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        yield 'nested enum case value that refers to a missing class' => [
+            '{"child":{"status":"ready"}}',
+            $parent,
+            $message,
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        yield 'root enum case value that refers to a missing class' => [
+            '"ready"',
+            $enum,
+            'Could not create ' . $enum . ' from the JSON object: Class "MissingEnumCaseValues" not found',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+    }
+
+    /**
+     * @param class-string $class
+     * @return iterable<string, array{string, class-string|JsonType<list<mixed>>, string, DecodeErrorKind}>
+     */
+    private static function unknownClasses(string $class): iterable
+    {
+        /** @var class-string $missingClass */
+        $missingClass = $class . 'Missing';
+
+        yield 'unknown root class' => [
+            '{}',
+            $missingClass,
+            'Could not create ' . $missingClass . ' from the JSON object: Class "' . $missingClass . '" does not exist',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        yield 'unknown item class' => [
+            '[]',
+            JsonType::array($missingClass),
+            'Could not create ' . $missingClass . ' from the JSON object: Class "' . $missingClass . '" does not exist',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+    }
+}
