@@ -6,8 +6,11 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\SignedFloat;
+use JsonException;
 use Random\Engine\Mt19937;
 use Random\Randomizer;
+use ReflectionException;
+use RuntimeException;
 
 use function json_encode;
 use function var_export;
@@ -25,8 +28,8 @@ final class NumericBoundaryRoundTripCases
 {
     /**
      * @return iterable<string, array{object}>
-     * @throws \ReflectionException
-     * @throws \RuntimeException
+     * @throws ReflectionException
+     * @throws RuntimeException
      */
     public static function objects(): iterable
     {
@@ -50,11 +53,11 @@ final class NumericBoundaryRoundTripCases
     }
 
     /**
-     * The default `json_encode()` drops the sign of `-0.0`, so these documents keep it with
-     * `JSON_PRESERVE_ZERO_FRACTION`.
+     * The default `json_encode()` writes `-0.0` as `-0`, which decodes as `0.0`. `JSON_PRESERVE_ZERO_FRACTION` keeps
+     * the sign.
      *
      * @return iterable<string, array{string, object}>
-     * @throws \JsonException
+     * @throws JsonException
      */
     public static function decoded(): iterable
     {
@@ -63,6 +66,10 @@ final class NumericBoundaryRoundTripCases
             $json = json_encode($object, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
             yield 'zero fraction preserved: ' . $json => [$json, $object];
         }
+        yield 'default encoding drops the sign of -0.0' => [
+            json_encode(new SignedFloat(-0.0), JSON_THROW_ON_ERROR),
+            new SignedFloat(0.0),
+        ];
     }
 
     /**

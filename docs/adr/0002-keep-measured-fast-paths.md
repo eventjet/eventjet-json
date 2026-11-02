@@ -17,7 +17,7 @@ When a change removes or renames a fast path, it updates its row.
 | `ClassDecoders::decodeRoot()` calls `enum_exists()` only when no decoder of the class is cached, and asks `EnumRoots` only for an enum. The rules for where a class can be decoded live in `TargetClass`, which every decode loads anyway. So a warm decode of a class root skips `enum_exists()`, and the first decode of a class root loads no extra class for these rules or for enum roots. | Each class adds a class load per request, about 4,200 instructions, see the row above. Not measured on its own. |
 | `PhpDocSimpleTags` reads simple doc comments without the full parser. | First PHP-FPM decode 10–34% slower, see [ADR 0001](0001-built-in-phpdoc-parser.md). |
 | `ClassDecoder::decode()` checks values that already have a field's scalar type itself, without calling the node. | Record batches 35% slower in warm decodes ([#80](https://github.com/eventjet/eventjet-json/pull/80)). A shared helper cost 13–15%. |
-| `ClassDecoder::decode()` and `ScalarNode::decodeEach()` reject INF and -INF with `$value - $value === 0.0` instead of `is_finite()`. | Local warm decodes, median of 5 alternating rounds against the target: with `is_finite()`, the scalar object +4.4% and long scalar lists +4.5%; with the subtraction, +2.0% and +0.0%, and no workload above +2.4% (2026-11-02). |
+| `ClassDecoder::decode()` and `ScalarNode::floats()`, which `ScalarNode::decodeEach()` calls, reject INF and -INF with `$value - $value === 0.0` instead of `is_finite()`. | Local warm decodes, median of 5 alternating rounds against the target: with `is_finite()`, the scalar object +4.4% and long scalar lists +4.5%; with the subtraction, +2.0% and +0.0%, and no workload above +2.4% (2026-11-02). |
 
 ## Consequences
 

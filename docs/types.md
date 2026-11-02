@@ -160,9 +160,10 @@ rejected instead of being rounded or coerced back to integers.
 
 Float fields use PHP's native floating-point precision. The default
 `json_encode()` and `json_decode()` behavior preserves finite values, including
-subnormal values and precision-sensitive decimals. JSON does not distinguish a
-whole-valued float such as `3.0` from the integer `3`; the declared field type
-restores the value to a PHP float during construction.
+subnormal values and precision-sensitive decimals, but not the sign of `-0.0`.
+JSON does not distinguish a whole-valued float such as `3.0` from the integer
+`3`; the declared field type restores the value to a PHP float during
+construction.
 
 PHP decodes a JSON number beyond the float range, such as `1e400`, as `INF` or
 `-INF`. `json_encode()` cannot write these values, so every `float` position,
