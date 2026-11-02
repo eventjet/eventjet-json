@@ -10,6 +10,7 @@ use function array_map;
 use function array_pop;
 use function count;
 use function implode;
+use function in_array;
 use function sort;
 
 /** @internal */
@@ -26,9 +27,6 @@ final readonly class PhpDocType
 
     /** Native types whose PHPDoc type may declare their items. */
     public const array CONTAINERS = ['array' => true, ArrayObject::class => true];
-
-    /** Map key types, with sorted union members, and the member names they accept. */
-    private const array MAP_KEYS = ['string' => 'string', 'array-key' => 'array-key', 'int|string' => 'array-key'];
 
     /**
      * The first number, shape key, or integer range bound in this type that PHP and PHPStan can read differently, which
@@ -103,10 +101,13 @@ final readonly class PhpDocType
      */
     public function mapKeys(string $container): string|null
     {
+        if ($this->isPlainName('string')) {
+            return 'string';
+        }
         $names = array_map(static fn(self $member): string|null => $member->plainName(), $this->members());
         sort($names);
-        $keys = self::MAP_KEYS[implode('|', $names)] ?? null;
-        return $keys === 'string' || $container === ArrayObject::class ? $keys : null;
+        $anyKey = in_array(implode('|', $names), ['array-key', 'int|string'], strict: true);
+        return $anyKey && $container === ArrayObject::class ? 'array-key' : null;
     }
 
     /**
