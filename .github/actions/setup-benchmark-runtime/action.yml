@@ -4,16 +4,12 @@ inputs:
   fpm:
     description: Install the FastCGI client for request benchmarks.
     default: 'true'
-  composer:
-    description: Composer version
-    default: v2
 runs:
   using: composite
   steps:
     - uses: ./.github/actions/setup-php
       with:
         php-version: '8.4'
-        composer: ${{ inputs.composer }}
         extensions: none, bcmath, ctype, curl, dom, fileinfo, filter, iconv, intl, mbstring, opcache, pcntl, phar, posix, simplexml, sodium, tokenizer, xml, xmlreader, xmlwriter, zip
     - name: Prepare request benchmark runtime
       if: inputs.fpm == 'true'

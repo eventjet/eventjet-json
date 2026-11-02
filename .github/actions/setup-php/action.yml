@@ -13,9 +13,6 @@ inputs:
   ini-values:
     description: Additional PHP INI settings
     default: ''
-  composer:
-    description: Composer version
-    default: v2
 runs:
   using: composite
   steps:
@@ -25,7 +22,7 @@ runs:
         extensions: ${{ inputs.extensions }}
         coverage: ${{ inputs.coverage }}
         ini-values: memory_limit=1G, pcov.directory=src, ${{ inputs.ini-values }}
-        tools: composer:${{ inputs.composer }}
+        tools: composer:v2
     - id: composer-cache
       shell: bash
       run: echo "path=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"

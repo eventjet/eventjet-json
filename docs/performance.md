@@ -204,13 +204,10 @@ the FPM measurements. Local comparisons remain unsharded unless `--shard N` is
 specified, with N from 1 through 8. Shard one requires `--fpm on`; the other
 shards require `--fpm off`.
 
-Before any shard starts, one job resolves the development dependencies and
-records its Composer version. Every shard installs that `composer.lock` with
-that Composer version, so a package or Composer release during the run cannot
-give shards different dependencies. The dependency fingerprint covers each
-installed package's name, version, and references. It ignores the rest of
-`vendor/composer/installed.json`, because Composer releases change which fields
-that file contains.
+Before any shard starts, one job resolves the development dependencies. Every
+shard installs that job's `composer.lock`, so a package release during the run
+cannot give shards different dependencies. The dependency fingerprint is the
+hash of that lock file.
 
 The final comparison checks validate all eight artifacts before publishing one
 combined result. They reject missing or duplicate shards, inconsistent revisions,
