@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Doc comments are read like phpstan/phpdoc-parser 2.4.0. A Doctrine annotation with invalid arguments, such as
+  `@\Foo(`, no longer hides the other tags of its doc comment, so their `@param` and `@var` declarations now apply.
+  Tag names can contain underscores, and Doctrine annotation arguments can have quoted names, such as `"name"=1`.
+
 ## [1.0.0] - 2026-11-02
 
 This release rewrites the library as a typed decoder that pairs with PHP's `json_encode()`. Data classes describe their
@@ -169,5 +177,6 @@ now fail the same way, so a codebase may have been relying on the lax behavior i
 If a producer legitimately sends a scalar in a different shape than the consumer declares — numbers as strings, for
 instance — declare the parameter with the type that is actually sent and convert it in your own code.
 
+[Unreleased]: https://github.com/eventjet/eventjet-json/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/eventjet/eventjet-json/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/eventjet/eventjet-json/compare/v0.1.3...v0.2.0
