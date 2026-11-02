@@ -53,16 +53,13 @@ final class PhpDocDescriptionParser
 
     /**
      * Whether the description ends at the current tag, which is the case for a Doctrine annotation or a tag that
-     * phpdoc-parser does not know. phpdoc-parser also ends it before an invalid tag followed by `(`, which then reads
-     * the same as a description. At the end of a line, the result does not matter.
+     * phpdoc-parser does not know, if its arguments are valid. phpdoc-parser also ends it before invalid ones, which
+     * then read the same as a description. At the end of a line, the result does not matter.
      */
     private static function endsAtInlineTag(PhpDocTokens $tokens): bool
     {
         if (!$tokens->precededByWhitespace()) {
             return false;
-        }
-        if (!$tokens->is(PhpDocLexer::PHPDOC_TAG)) {
-            return true;
         }
         $state = $tokens->state;
         $state->push();

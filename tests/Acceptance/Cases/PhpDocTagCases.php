@@ -325,6 +325,7 @@ final class PhpDocTagCases
         yield '@\\Foo(1) @\\Bar(' => false;
         yield '@\\Foo(1) @Bar(' => false;
         yield '@\\Foo(1)@\\Bar(' => false;
+        yield '@\\Foo(1)@\\Bar(1)' => false;
         yield '@\\Foo @bar @\\Baz(' => false;
         yield '@\\Foo @param @\\Baz(' => false;
         yield '@\\Foo @param int $x @\\Baz(' => false;
