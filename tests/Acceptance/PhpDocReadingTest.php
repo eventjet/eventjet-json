@@ -57,6 +57,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocMethodParameterTagValue::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocTextParser::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
+#[CoversClass(\Eventjet\Json\Internal\PhpDocDoctrineArgumentParser::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
 #[CoversClass(\Eventjet\Json\Internal\PhpDocChildKind::class)]

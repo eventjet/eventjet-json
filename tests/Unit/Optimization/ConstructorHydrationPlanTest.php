@@ -128,6 +128,7 @@ use function class_exists;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocMethodParameterTagValue::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTextParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArgumentParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocChildKind::class)]

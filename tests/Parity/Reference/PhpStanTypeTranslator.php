@@ -73,7 +73,11 @@ final class PhpStanTypeTranslator
 
     private function generic(GenericTypeNode $generic, int $depth): PhpDocType|null
     {
-        $range = $generic->type->name === 'int' && count($generic->genericTypes) === 2;
+        $name = $generic->type;
+        if (!$name instanceof IdentifierTypeNode) {
+            return null;
+        }
+        $range = $name->name === 'int' && count($generic->genericTypes) === 2;
         $arguments = [];
         foreach ($generic->genericTypes as $index => $argument) {
             $variance = $generic->variances[$index] ?? GenericTypeNode::VARIANCE_INVARIANT;
@@ -88,7 +92,7 @@ final class PhpStanTypeTranslator
             }
             $arguments[] = $type;
         }
-        return new PhpDocType($generic->type->name, $arguments);
+        return new PhpDocType($name->name, $arguments);
     }
 
     private function shape(ArrayShapeNode $shape, int $depth): PhpDocType|null
