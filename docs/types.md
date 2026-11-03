@@ -52,7 +52,8 @@ The round-trip contract also has these representation limits:
   example `list<Foo>` on an `int` field, the decoding result is unspecified.
 - JSON object members without matching constructor parameters or supported
   public properties are ignored and do not appear when the decoded object is
-  re-encoded.
+  re-encoded, unless the class collects them in a property marked with
+  [`#[OtherMembers]`](#other-members).
 - A missing required constructor-bound member produces an `InvalidValue` error.
   A missing optional member uses its constructor default. A present `null` is
   passed to the constructor and therefore overrides a nullable non-null default.
@@ -280,7 +281,8 @@ Maps preserve numeric-looking member names that remain PHP string keys, such
 as `"01"` and `"1e0"`. Maps with `string` keys reject names that PHP converts to
 integer keys, such as `"0"` and `"42"`; `ArrayObject<array-key, T>` maps accept
 them as integer keys. For concrete class targets, numeric-looking names are
-unknown fields and follow the same ignore policy as other unknown members.
+unknown fields and follow the same policy as other unknown members: they are
+ignored, or collected as [other members](#other-members).
 These rules also apply to root collections declared with `JsonType::array()`
 or `JsonType::map()`, whose maps have `string` keys.
 

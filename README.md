@@ -358,9 +358,9 @@ fields. See the [type reference](docs/types.md#other-members) for the details.
 
 Round trips preserve supported values and shapes, not the original JSON text.
 Unknown fields are discarded unless the class keeps them, and re-encoding may
-include default-valued properties omitted from the input. PHPDoc refinements such as `positive-int`
-and `non-empty-string` validate the underlying scalar type, not the narrower
-constraint.
+include default-valued properties omitted from the input. PHPDoc refinements
+such as `positive-int` and `non-empty-string` validate the underlying scalar
+type, not the narrower constraint.
 
 ## When JSON names don't work as PHP property names
 

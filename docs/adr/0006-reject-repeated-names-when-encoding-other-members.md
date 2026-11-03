@@ -24,6 +24,11 @@ iterations, OPcache on, three alternating runs per variant, measured locally on 
 The check looks up each collected member in the JSON names of the declared fields, which the class's cached field
 metadata already holds, so it costs about 15 ns per collected member. Classes without `#[OtherMembers]` don't run it.
 
+This counts as basically free for three reasons. Only classes that opt in with `#[OtherMembers]` pay, and only when they
+encode; decoding, which the performance workflow guards with a 3% limit, doesn't run the check. Without collected
+members, the cost is a fixed 12 ns per encode, +2.2%, which stays within that limit. With collected members, it grows
+with their number, at about 15 ns each, an eighth of the 115 ns that writing each member costs without the check.
+
 ## Considered options
 
 - **Let the declared field win silently.** It costs nothing, but writes a document that doesn't decode back to the
