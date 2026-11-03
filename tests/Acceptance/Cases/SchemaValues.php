@@ -113,16 +113,28 @@ final class SchemaValues
         string $keyword,
         int $depth,
     ): object|bool|string|array {
-        $strings = self::bool($random);
         return match ($keyword) {
             'enum', 'examples' => new JsonValue(JsonValueInputs::value($random, 0)),
             'required' => JsonValueInputs::pick($random, self::STRINGS),
             'vocabulary' => self::bool($random),
             'dependentRequired' => self::items($random, $draft, 'required', $depth),
-            'dependencies' => $strings
-                ? self::items($random, $draft, 'required', $depth)
-                : SchemaInputs::subschema($random, $draft, $depth),
+            'dependencies' => self::dependency($random, $draft, $depth),
             default => SchemaInputs::subschema($random, $draft, $depth),
         };
+    }
+
+    /**
+     * @param class-string $draft
+     * @return object|bool|list<mixed>
+     * @throws InvalidArgumentException
+     * @throws ReflectionException
+     * @throws RuntimeException
+     */
+    private static function dependency(Randomizer $random, string $draft, int $depth): object|bool|array
+    {
+        $asStringList = self::bool($random);
+        return $asStringList
+            ? self::items($random, $draft, 'required', $depth)
+            : SchemaInputs::subschema($random, $draft, $depth);
     }
 }

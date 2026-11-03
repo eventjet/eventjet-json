@@ -149,8 +149,8 @@ final class SchemaInputs
         if ($draft !== Draft4::class) {
             return self::subschema($random, $draft, $depth);
         }
-        $boolean = SchemaValues::bool($random);
-        return $boolean ? SchemaValues::bool($random) : self::subschema($random, $draft, $depth);
+        $useBoolean = SchemaValues::bool($random);
+        return $useBoolean ? SchemaValues::bool($random) : self::subschema($random, $draft, $depth);
     }
 
     /**
@@ -166,8 +166,8 @@ final class SchemaInputs
         string $keyword,
         int $depth,
     ): object|bool|array {
-        $subschema = SchemaValues::bool($random);
-        return $subschema
+        $useSubschema = SchemaValues::bool($random);
+        return $useSubschema
             ? self::subschema($random, $draft, $depth)
             : SchemaValues::items($random, $draft, $keyword, $depth);
     }

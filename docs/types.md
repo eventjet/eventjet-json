@@ -147,9 +147,8 @@ an arbitrary method's behavior. `JsonSerializable` classes without `#[Field]` or
 a `JsonValue|null` property, and custom-serialized enums, remain outside this
 opt-in contract.
 
-This feature does not restore `Json::encode()`, add docblock mapping syntax, or
-make full JSON Schema models supported. Boolean schema roots, unknown keyword
-retention, and exact preservation of omitted keywords remain separate concerns.
+This feature does not restore `Json::encode()` or add docblock mapping syntax.
+For the package's JSON Schema models, see [JSON Schema](#json-schema).
 For arbitrary JSON values, see [Free-form JSON values](#free-form-json-values).
 
 ## Discriminated unions
@@ -379,6 +378,10 @@ The classes don't validate instances against a schema or resolve `$ref`.
 
 Unknown keywords, such as `x-*` extensions or keywords of another draft, are
 ignored like any other unknown member. `json_encode()` doesn't write them back.
+This includes keywords that a draft replaced: `Draft201909` has `definitions`
+but not `dependencies`, and `Draft202012` has neither, nor `$recursiveRef` and
+`$recursiveAnchor`. Use `$defs`, `dependentSchemas`, `dependentRequired`,
+`$dynamicRef`, and `$dynamicAnchor` instead.
 
 A schema that is just `true` or `false` returns an `UnexpectedRootValue`
 error, because the classes describe JSON objects. To accept Boolean schemas at
