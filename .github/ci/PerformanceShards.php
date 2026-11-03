@@ -38,6 +38,21 @@ final class PerformanceShards
         return $indices;
     }
 
+    /**
+     * Workloads that the baseline revision's own suite lacks have nothing to compare against.
+     *
+     * @param list<BenchmarkWorkload> $workloads
+     * @param list<string> $new Identities of those workloads
+     * @return list<BenchmarkWorkload>
+     */
+    public static function comparable(array $workloads, array $new): array
+    {
+        return array_values(array_filter(
+            $workloads,
+            static fn(BenchmarkWorkload $workload): bool => !in_array($workload->identity(), $new, true),
+        ));
+    }
+
     /** @return array<string, mixed> */
     private static function json(string $path): array
     {
@@ -59,7 +74,13 @@ final class PerformanceShards
         return $validated;
     }
 
-    /** @return array{comparisons: non-empty-list<BenchmarkComparison>, fpm: non-empty-list<FpmComparison>} */
+    /**
+     * @return array{
+     *     comparisons: non-empty-list<BenchmarkComparison>,
+     *     fpm: non-empty-list<FpmComparison>,
+     *     new: list<string>,
+     * }
+     */
     public static function collect(string $directory, string $mode): array
     {
         $directories = glob($directory . '/*', GLOB_ONLYDIR);
@@ -90,8 +111,16 @@ final class PerformanceShards
                 }
                 $shared[$key] = $value;
             }
+            $new = $metadata['new_workloads'] ?? null;
+            if (!is_array($new) || !array_is_list($new) || array_filter($new, is_string(...)) !== $new) {
+                throw new RuntimeException('Missing shared shard metadata: new_workloads');
+            }
+            $shared['new_workloads'] = $new;
             $reference ??= $shared;
-            $identities = BenchmarkReport::read($shardDirectory . '/discovery.xml')->identities();
+            $identities = array_map(
+                static fn(BenchmarkWorkload $workload): string => $workload->identity(),
+                self::comparable(BenchmarkReport::read($shardDirectory . '/discovery.xml')->workloads, $new),
+            );
             $expected ??= $identities;
             if ($reference !== $shared || $expected !== $identities) {
                 throw new RuntimeException(
@@ -133,6 +162,6 @@ final class PerformanceShards
         if ($fpm === null) {
             throw new RuntimeException('Missing PHP-FPM measurements');
         }
-        return ['comparisons' => $comparisons, 'fpm' => $fpm];
+        return ['comparisons' => $comparisons, 'fpm' => $fpm, 'new' => $reference['new_workloads']];
     }
 }

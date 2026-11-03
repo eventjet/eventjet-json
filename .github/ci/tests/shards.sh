@@ -33,7 +33,7 @@ for ($shard = 1; $shard <= PerformanceShards::SHARDS; $shard++) {
     mkdir($path);
     jsonFile($path . '/metadata.json', ['shard' => $shard, 'opcache' => 'on', 'fpm' => $shard === 1,
         'baseline' => 'base', 'candidate' => 'candidate', 'workloads' => 'suite',
-        'dependencies_sha256' => 'deps', 'configuration_sha256' => 'config']);
+        'dependencies_sha256' => 'deps', 'configuration_sha256' => 'config', 'new_workloads' => []]);
     file_put_contents($path . '/discovery.xml', measurement(range(0, 8)));
     $indices = array_values(array_filter(range(0, 8), static fn(int $index): bool => $index % (PerformanceShards::SHARDS - 1) === $shard - 2));
     jsonFile($path . '/complete.json', ['indices' => $indices]);
@@ -93,10 +93,12 @@ function rejects(string $directory, string $file, string $replacement): void {
 rejects($directory, '2/complete.json', '{"indices":[]}');
 rejects($directory, '2/complete.json', '{"indices":[1,9]}');
 $metadata = json_decode(file_get_contents($directory . '/2/metadata.json'), true);
-foreach (['shard' => 1, 'opcache' => 'off', 'fpm' => true, 'baseline' => 'wrong', 'dependencies_sha256' => 'wrong', 'configuration_sha256' => 'wrong'] as $key => $value) {
+foreach (['shard' => 1, 'opcache' => 'off', 'fpm' => true, 'baseline' => 'wrong', 'dependencies_sha256' => 'wrong', 'configuration_sha256' => 'wrong', 'new_workloads' => ['Fixture::bench8[case]']] as $key => $value) {
     rejects($directory, '2/metadata.json', json_encode(array_replace($metadata, [$key => $value])));
 }
 rejects($directory, '2/discovery.xml', measurement(range(0, 7)));
+rejects($directory, '2/metadata.json', json_encode(array_replace($metadata, ['new_workloads' => [1]])));
+rejects($directory, '2/metadata.json', json_encode(array_diff_key($metadata, ['new_workloads' => true])));
 rejects($directory, '1/fpm.json', json_encode(['baseline' => $fpmSample]));
 rejects($directory, '1/fpm.json', json_encode(['baseline' => $fpmSample, 'candidate' => ['document' => ['rounds' => [[100.0]], 'peak_bytes' => 1024]]]));
 rejects($directory, '1/fpm.json', json_encode(['baseline' => fpmSample(false), 'candidate' => fpmSample(false)]));

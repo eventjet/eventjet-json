@@ -193,6 +193,7 @@ $metadata = [
     'workloads_changed' =>
         !isset($options['workloads'])
             && git('diff', '--name-only', $base, $candidate, '--', 'benchmarks', 'tests', 'phpbench.json') !== '',
+    'new_workloads' => [],
     'cpu' => 'unknown',
 ];
 $cpuInfo = file('/proc/cpuinfo', FILE_IGNORE_NEW_LINES);
@@ -254,18 +255,30 @@ $measure = static function (string $workspace, string $name, int $iterations, st
     $report->requireMode($opcacheOption);
     return $report;
 };
-$discovery = $measure($workspaces['baseline'], 'discovery', 1, '--revs=1');
+// The baseline cannot run workloads for features it lacks, so discovery runs on the candidate.
+$discovery = $measure($workspaces['candidate'], 'discovery', 1, '--revs=1');
+if (
+    trim(git('ls-tree', '--name-only', $base, '--', 'benchmarks')) !== ''
+    && git('diff', '--name-only', $base, $workloads, '--', 'benchmarks', 'tests', 'phpbench.json') !== ''
+) {
+    $baselineWorkloads = $output . '/workspace-baseline-workloads';
+    prepareWorkspace($baselineWorkloads, $output . '/baseline', $output . '/baseline', $base, $opcache);
+    $known = $measure($baselineWorkloads, 'baseline-workloads', 1, '--revs=1')->identities();
+    $metadata['new_workloads'] = array_values(array_diff($discovery->identities(), $known));
+    writeJson($results . '/metadata.json', $metadata);
+}
+$comparable = PerformanceShards::comparable($discovery->workloads, $metadata['new_workloads']);
 $comparisons = [];
-$indices = PerformanceShards::assignedIndices(count($discovery->workloads), $shard);
+$indices = PerformanceShards::assignedIndices(count($comparable), $shard);
 $files = withWorkspace($workspaces['baseline'], static fn(string $active): array => benchmarkFiles(
     $active,
     array_values(array_unique(array_map(
-        static fn(int $index): string => $discovery->workloads[$index]->class,
+        static fn(int $index): string => $comparable[$index]->class,
         $indices,
     ))),
 ));
 foreach ($indices as $index) {
-    $workload = $discovery->workloads[$index];
+    $workload = $comparable[$index];
     $rounds = ['baseline' => [], 'candidate' => []];
     for ($round = 0; $round < BenchmarkComparison::ROUNDS; ++$round) {
         foreach (BenchmarkComparison::order($round) as $version) {
@@ -307,7 +320,7 @@ if ($fpm) {
 }
 $comment = $comparisons === []
     ? "No workloads assigned to this shard.\n"
-    : performanceSummary($comparisons, $opcacheOption, $fpmComparisons);
+    : performanceSummary($comparisons, $opcacheOption, $fpmComparisons, $metadata['new_workloads']);
 file_put_contents($results . '/comment.md', $comment);
 publish(
     $results,

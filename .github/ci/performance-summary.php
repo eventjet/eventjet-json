@@ -141,11 +141,26 @@ function fpmSection(array $fpm, string $mode): array
     return ['text' => $text . "\n", 'faster' => $faster];
 }
 
+/** @param list<string> $new */
+function newWorkloadsSection(array $new): string
+{
+    if ($new === []) {
+        return '';
+    }
+    $text = "### New workloads · no verdict\n\n"
+        . "The target revision's benchmark suite lacks these workloads, so they ran once on the PR without a comparison.\n\n";
+    foreach ($new as $identity) {
+        $text .= '- ' . summaryName($identity) . "\n";
+    }
+    return $text . "\n";
+}
+
 /**
  * @param non-empty-list<BenchmarkComparison> $comparisons
  * @param non-empty-list<FpmComparison>|null $fpm
+ * @param list<string> $new
  */
-function performanceSummary(array $comparisons, string $mode, array|null $fpm): string
+function performanceSummary(array $comparisons, string $mode, array|null $fpm, array $new = []): string
 {
     $warm = array_values(array_filter($comparisons, static fn(BenchmarkComparison $c): bool => $c->workload->blocks()));
     $cold = array_values(array_filter($comparisons, static fn(BenchmarkComparison $c): bool => !$c->workload->blocks()));
@@ -166,6 +181,7 @@ function performanceSummary(array $comparisons, string $mode, array|null $fpm): 
     if ($cold !== []) {
         $sections[] = cliSection('Fresh CLI processes', $cold, false)['text'];
     }
+    $sections[] = newWorkloadsSection($new);
     $verdict = performanceStatus($comparisons, $mode, $fpm) !== 0
         ? '🔴 Performance regression'
         : ($improved ? '🟢 Performance improvement' : '⚪ No significant performance changes');

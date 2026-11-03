@@ -122,6 +122,14 @@ in that mode, changed candidate workloads also receive a separate verification r
 without a regression verdict. Baseline and candidate revisions only need compatible
 source code; they do not need their own benchmark suites.
 
+A workload that the baseline revision's own suite lacks, such as one added for a new
+feature, often cannot run on the baseline's source. When the frozen suite differs from
+the baseline revision's suite, the runner discovers the baseline suite's workloads
+once on the baseline. Workloads missing from it run only in the candidate's discovery
+run and are listed as new workloads without a regression verdict; an error in them
+still fails the comparison. A changed existing workload that the baseline cannot run
+still fails, as do baseline revisions without a suite of their own, which skip this check.
+
 The comparison runner defaults to `--opcache on` and CLI-only measurements; add
 `--opcache off` for the secondary mode. Reports and metadata record the selected
 mode; compare timings only within a mode.
@@ -214,7 +222,8 @@ cannot fall back to an older passing result, even when it leaves no artifact.
 A completed regression remains a regression; interrupted measurements cannot
 produce a passing comparison. The existing required check names remain unchanged.
 
-The runner discovers workloads with a single-iteration discovery run. It then
+The runner discovers workloads with a single-iteration discovery run on the
+candidate. It then
 measures each workload in 20 rounds per revision, in ABBA order (target, PR, PR,
 target, …). Each round is one PHPBench run of two iterations, preserving cold/warm
 revolution and warmup settings. The runner slows down for seconds at a time;
