@@ -172,17 +172,21 @@ final class SchemaInputs
             : SchemaValues::items($random, $draft, $keyword, $depth);
     }
 
-    /** The parameter's types without null, sorted and joined with `|`. */
+    /**
+     * The parameter's types without null, sorted and joined with `|`. The declaring class reads as `self`, because
+     * PHP 8.5 reports `self` under the resolved class name.
+     */
     private static function types(ReflectionParameter $parameter): string
     {
         $type = $parameter->getType();
+        $self = $parameter->getDeclaringClass()?->getName();
         $names = [];
         $members = $type instanceof ReflectionUnionType ? $type->getTypes() : [$type];
         foreach ($members as $member) {
             if (!$member instanceof ReflectionNamedType || $member->getName() === 'null') {
                 continue;
             }
-            $names[] = $member->getName();
+            $names[] = $member->getName() === $self ? 'self' : $member->getName();
         }
         sort($names);
         return implode('|', $names);
