@@ -60,7 +60,7 @@ final class PerformanceShards
     }
 
     /** @param array<string, mixed> $metadata */
-    private static function text(array $metadata, string $key): string
+    private static function requiredString(array $metadata, string $key): string
     {
         $value = $metadata[$key] ?? null;
         if (!is_string($value) || $value === '') {
@@ -93,13 +93,13 @@ final class PerformanceShards
      * @param list<string> $newWorkloads
      * @return array{list<BenchmarkWorkload>, list<BenchmarkWorkload>} the new workloads, then the comparable ones
      */
-    private static function split(BenchmarkReport $discovery, array $newWorkloads): array
+    private static function partitionKnownNewWorkloads(BenchmarkReport $discovery, array $newWorkloads): array
     {
-        $split = $discovery->partition($newWorkloads);
-        if (count($split[0]) !== count($newWorkloads)) {
+        $partition = $discovery->partition($newWorkloads);
+        if (count($partition[0]) !== count($newWorkloads)) {
             throw new RuntimeException('Shard metadata names new workloads that discovery did not find');
         }
-        return $split;
+        return $partition;
     }
 
     private static function invalidShared(string $key): RuntimeException
@@ -125,7 +125,9 @@ final class PerformanceShards
         $seen = [];
         $comparisons = [];
         $fpm = null;
-        $split = null;
+        $partition = null;
+        $newWorkloads = [];
+        $comparable = [];
         foreach ($directories as $shardDirectory) {
             $metadata = self::json($shardDirectory . '/metadata.json');
             $completion = self::json($shardDirectory . '/complete.json');
@@ -138,11 +140,11 @@ final class PerformanceShards
                 throw new RuntimeException('Shard runtime mode or FPM ownership differs');
             }
             $shared = [
-                'baseline' => self::text($metadata, 'baseline'),
-                'candidate' => self::text($metadata, 'candidate'),
-                'workloads' => self::text($metadata, 'workloads'),
-                'dependencies_sha256' => self::text($metadata, 'dependencies_sha256'),
-                'configuration_sha256' => self::text($metadata, 'configuration_sha256'),
+                'baseline' => self::requiredString($metadata, 'baseline'),
+                'candidate' => self::requiredString($metadata, 'candidate'),
+                'workloads' => self::requiredString($metadata, 'workloads'),
+                'dependencies_sha256' => self::requiredString($metadata, 'dependencies_sha256'),
+                'configuration_sha256' => self::requiredString($metadata, 'configuration_sha256'),
                 'new_workloads' => self::identityList($metadata, 'new_workloads'),
             ];
             $reference ??= $shared;
@@ -153,8 +155,10 @@ final class PerformanceShards
                     'Shards disagree about revisions, dependencies, configuration, or workloads',
                 );
             }
-            $split ??= self::split($discovery, $shared['new_workloads']);
-            $comparable = $split[1];
+            [$newWorkloads, $comparable] = $partition ??= self::partitionKnownNewWorkloads(
+                $discovery,
+                $shared['new_workloads'],
+            );
             $assigned = self::assignedIndices(count($comparable), $shard);
             foreach ($assigned as $index) {
                 $rounds = ['baseline' => [], 'candidate' => []];
@@ -184,12 +188,12 @@ final class PerformanceShards
                 $fpm = FpmMeasurements::compare($samples['baseline'] ?? null, $samples['candidate'] ?? null, $mode === 'on');
             }
         }
-        if ($comparisons === [] || count($comparisons) !== count($split[1])) {
+        if ($comparisons === [] || count($comparisons) !== count($comparable)) {
             throw new RuntimeException('Incomplete workload coverage');
         }
         if ($fpm === null) {
             throw new RuntimeException('Missing PHP-FPM measurements');
         }
-        return ['comparisons' => $comparisons, 'fpm' => $fpm, 'newWorkloads' => $split[0]];
+        return ['comparisons' => $comparisons, 'fpm' => $fpm, 'newWorkloads' => $newWorkloads];
     }
 }

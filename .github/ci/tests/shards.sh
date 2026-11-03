@@ -109,7 +109,10 @@ for ($shard = 1; $shard <= PerformanceShards::SHARDS; $shard++) {
 try {
     PerformanceShards::collect($directory, 'on');
     throw new LogicException('Shards must not name new workloads that discovery did not find');
-} catch (RuntimeException) {
+} catch (RuntimeException $exception) {
+    if ($exception->getMessage() !== 'Shard metadata names new workloads that discovery did not find') {
+        throw $exception;
+    }
 }
 foreach ($originals as $path => $original) {
     file_put_contents($path, $original);
