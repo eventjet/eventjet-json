@@ -24,7 +24,7 @@ cd "$fixture"
 git init --quiet
 git config user.name 'Performance configuration test'
 git config user.email 'performance-test@example.invalid'
-mkdir -p src benchmarks tests vendor/bin vendor/composer bin
+mkdir -p src benchmarks tests vendor/bin bin
 export PATH="$fixture/bin:$PATH"
 cat > bin/composer <<'SH'
 #!/usr/bin/env bash
@@ -51,7 +51,7 @@ PHP
 printf '100\n' > src/time.txt
 touch tests/placeholder
 printf '%s\n' '{"name":"test/performance","autoload":{"psr-4":{"Fixture\\Benchmark\\":"benchmarks/","Fixture\\":"src/"}}}' > composer.json
-printf '%s\n' '{"packages":[]}' > vendor/composer/installed.json
+printf '%s\n' '{"packages":[]}' > composer.lock
 printf '%s\n' '{"runner.path":"benchmarks","runner.php_config":{"serialize_precision":"7","pcov.enabled":"1"}}' > phpbench.json
 cat > benchmarks/ExampleBench.php <<'PHP'
 <?php
