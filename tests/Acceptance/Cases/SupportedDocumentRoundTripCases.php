@@ -37,6 +37,7 @@ final class SupportedDocumentRoundTripCases
             yield $name => $factory();
         }
         yield from JsonValueCases::documents();
+        yield from MetaSchemaCases::documents();
     }
 
     /** @return array<string, Closure(): array{string, class-string, callable(object): bool}> */
