@@ -8,7 +8,7 @@ use function str_repeat;
 
 /**
  * Fixed types and doc comments at the edges of the grammar: number and string literal spellings, constants, shapes,
- * line breaks inside tags, and the depth limit.
+ * HTML elements after a type name, line breaks inside tags, and the depth limit.
  *
  * @internal
  */
@@ -157,6 +157,9 @@ final class Examples
         'non-empty-string',
         'NULL',
         'True',
+        'Foo<b>#</b>',
+        'Foo<b> <#b> /b>',
+        'Foo<b> </bx /b>',
     ];
 
     private const array PARAMETER_DOCS = [
