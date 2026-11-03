@@ -72,13 +72,14 @@ final class SchemaInputs
      */
     public static function subschema(Randomizer $random, string $draft, int $depth): object|bool
     {
-        $boolean = $random->getInt(0, 3) === 0;
-        if ($draft === Draft4::class) {
-            return $depth >= self::MAX_DEPTH ? new Draft4() : self::schema($random, $draft, $depth + 1);
+        if ($depth >= self::MAX_DEPTH) {
+            return $draft === Draft4::class ? new Draft4() : SchemaValues::bool($random);
         }
-        return $boolean || $depth >= self::MAX_DEPTH
-            ? SchemaValues::bool($random)
-            : self::schema($random, $draft, $depth + 1);
+        if ($draft === Draft4::class) {
+            return self::schema($random, $draft, $depth + 1);
+        }
+        $boolean = $random->getInt(0, 3) === 0;
+        return $boolean ? SchemaValues::bool($random) : self::schema($random, $draft, $depth + 1);
     }
 
     /**
@@ -119,7 +120,6 @@ final class SchemaInputs
         int $depth,
     ): object|bool|int|float|string|array {
         $name = $parameter->getName();
-        $alternative = SchemaValues::bool($random);
         $types = self::types($parameter);
         return match ($types) {
             'string' => SchemaValues::string($random),
@@ -128,14 +128,48 @@ final class SchemaInputs
             JsonValue::class => new JsonValue(JsonValueInputs::value($random, 0)),
             Type::class . '|array' => SchemaValues::type($random),
             'self' => self::subschema($random, $draft, $depth),
-            'bool|self' => $alternative ? SchemaValues::bool($random) : self::subschema($random, $draft, $depth),
-            'array|bool|self', 'array|self' => $alternative
-                ? self::subschema($random, $draft, $depth)
-                : SchemaValues::items($random, $draft, $name, $depth),
+            'bool|self' => self::booleanOrSubschema($random, $draft, $depth),
+            'array|bool|self', 'array|self' => self::subschemaOrItems($random, $draft, $name, $depth),
             'array' => SchemaValues::items($random, $draft, $name, $depth),
             ArrayObject::class => new ArrayObject(SchemaValues::members($random, $draft, $name, $depth)),
             default => throw new RuntimeException(sprintf('No values for keyword %s of %s.', $name, $draft)),
         };
+    }
+
+    /**
+     * Draft 4 has no boolean schemas, but its `additionalItems` and `additionalProperties` accept a boolean.
+     *
+     * @param class-string $draft
+     * @throws InvalidArgumentException
+     * @throws ReflectionException
+     * @throws RuntimeException
+     */
+    private static function booleanOrSubschema(Randomizer $random, string $draft, int $depth): object|bool
+    {
+        if ($draft !== Draft4::class) {
+            return self::subschema($random, $draft, $depth);
+        }
+        $boolean = SchemaValues::bool($random);
+        return $boolean ? SchemaValues::bool($random) : self::subschema($random, $draft, $depth);
+    }
+
+    /**
+     * @param class-string $draft
+     * @return object|bool|list<mixed>
+     * @throws InvalidArgumentException
+     * @throws ReflectionException
+     * @throws RuntimeException
+     */
+    private static function subschemaOrItems(
+        Randomizer $random,
+        string $draft,
+        string $keyword,
+        int $depth,
+    ): object|bool|array {
+        $subschema = SchemaValues::bool($random);
+        return $subschema
+            ? self::subschema($random, $draft, $depth)
+            : SchemaValues::items($random, $draft, $keyword, $depth);
     }
 
     /** The parameter's types without null, sorted and joined with `|`. */
