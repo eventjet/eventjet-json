@@ -29,46 +29,42 @@ final class OtherMembersErrorCases
 {
     /**
      * @return iterable<string, array{string, class-string, callable(object): bool}>
+     * @throws InvalidArgumentException
      */
     public static function documents(): iterable
     {
-        yield 'encoding rejects other members that repeat a declared JSON name' => [
-            '{"$id":"a","count":null}',
-            CollectedMembers::class,
-            /** @throws InvalidArgumentException */
-            static function (object $decoded): bool {
-                $value = new JsonValue(1);
-                $property = new CollectedMembersProperty();
-                $property->others = ['name' => $value];
-                $rejected = [
-                    'written field' => [new CollectedMembers('a', others: ['$id' => $value]), '$id'],
-                    'field written as null' => [new CollectedMembers('a', others: ['count' => $value]), 'count'],
-                    'absent JsonValue|null field' => [new CollectedMembers('a', others: ['extra' => $value]), 'extra'],
-                    'uninitialized field' => [$property, 'name'],
-                    'renamed field' => [new CollectorNamedLikeField('l', ['others' => $value]), 'others'],
-                ];
-                $property = new CollectedMembersProperty();
-                $property->name = 'n';
-                $encoded = [
-                    [$decoded, '{"$id":"a","count":null}'],
-                    [
-                        new CollectedMembers('a', others: ['id' => $value, 'x' => $value]),
-                        '{"$id":"a","count":null,"id":1,"x":1}',
-                    ],
-                    [$property, '{"name":"n"}'],
-                ];
-                foreach ($rejected as [$object, $name]) {
-                    $encoded[] = [$object, self::repeated($object, $name)];
-                }
-                foreach ($encoded as [$object, $expected]) {
-                    $actual = self::encoded($object);
-                    if ($actual !== $expected) {
-                        return false;
-                    }
-                }
-                return true;
-            },
+        $value = new JsonValue(1);
+        $uninitialized = new CollectedMembersProperty();
+        $uninitialized->others = ['name' => $value];
+        $rejected = [
+            'written field' => [new CollectedMembers('a', others: ['$id' => $value]), '$id'],
+            'field written as null' => [new CollectedMembers('a', others: ['count' => $value]), 'count'],
+            'absent JsonValue|null field' => [new CollectedMembers('a', others: ['extra' => $value]), 'extra'],
+            'uninitialized field' => [$uninitialized, 'name'],
+            'renamed field' => [new CollectorNamedLikeField('l', ['others' => $value]), 'others'],
         ];
+        $named = new CollectedMembersProperty();
+        $named->name = 'n';
+        $encoded = [
+            'encoding writes other members named unlike declared fields' => [
+                new CollectedMembers('a', others: ['id' => $value, 'x' => $value]),
+                '{"$id":"a","count":null,"id":1,"x":1}',
+            ],
+            'encoding skips an uninitialized collecting property' => [$named, '{"name":"n"}'],
+        ];
+        foreach ($rejected as $label => [$object, $name]) {
+            $encoded['encoding rejects an other member named like a ' . $label] = [
+                $object,
+                self::repeated($object, $name),
+            ];
+        }
+        foreach ($encoded as $label => [$object, $expected]) {
+            yield $label => [
+                '{"$id":"a","count":null}',
+                CollectedMembers::class,
+                static fn(object $_): bool => self::encoded($object) === $expected,
+            ];
+        }
     }
 
     /**

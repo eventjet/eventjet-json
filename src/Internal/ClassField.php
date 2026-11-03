@@ -65,14 +65,17 @@ final readonly class ClassField
      * @param ReflectionClass<T> $class
      * @param array<string, string> $names JSON names of renamed properties, keyed by property name.
      * @param array<string, true> $attributed The properties that declare any attribute, keyed by name.
-     * @param array{string, array<array-key, string>}|null $others The property that collects the other members, if any,
-     *     with the names of the other public instance properties keyed by JSON name.
+     * @param OtherMembersMapping|null $others The property that collects the other members, if any.
      * @return array{list<self>, OtherMembersField|null}
      * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function compile(ReflectionClass $class, array $names, array $attributed, array|null $others): array
-    {
+    public static function compile(
+        ReflectionClass $class,
+        array $names,
+        array $attributed,
+        OtherMembersMapping|null $others,
+    ): array {
         $parameters = self::parameters($class);
         $properties = self::properties($class);
         $collector = null;

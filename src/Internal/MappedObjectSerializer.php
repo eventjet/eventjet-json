@@ -39,12 +39,12 @@ final class MappedObjectSerializer
         $properties = get_object_vars($object);
         $members = [];
         if ($others !== null) {
-            [$collecting, $declared] = $others;
+            $collecting = $others->property;
             /** @var array<array-key, mixed> $members */
             $members = $properties[$collecting] ?? [];
             unset($properties[$collecting]);
             foreach ($members as $member => $_) {
-                if (array_key_exists($member, $declared)) {
+                if (array_key_exists($member, $others->declared)) {
                     throw new UnexpectedValueException(sprintf(
                         'Cannot encode %s, because its property %s holds a member named "%s", which is the JSON name of a declared field.',
                         $class->getName(),

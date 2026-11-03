@@ -44,15 +44,15 @@ final readonly class OtherMembersField
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @param array{string, array<array-key, string>} $others The property that collects the other members, with the
-     *     names of the other public instance properties keyed by JSON name.
+     * @param OtherMembersMapping $others The property that collects the other members.
      * @param array<ReflectionParameter> $parameters The constructor parameters.
      * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function of(ReflectionClass $class, array $others, array $parameters): self
+    public static function of(ReflectionClass $class, OtherMembersMapping $others, array $parameters): self
     {
-        [$name, $declared] = $others;
+        $name = $others->property;
+        $declared = $others->declared;
         foreach ($parameters as $parameter) {
             if ($parameter->getName() === $name) {
                 return self::field($parameter, null, $declared);

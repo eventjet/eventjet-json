@@ -57,6 +57,7 @@ use Eventjet\Json\Internal\NodeCompiler;
 use Eventjet\Json\Internal\NullableJsonValues;
 use Eventjet\Json\Internal\OtherMemberRules;
 use Eventjet\Json\Internal\OtherMembersField;
+use Eventjet\Json\Internal\OtherMembersMapping;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
@@ -223,6 +224,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(OtherMembers::class)]
 #[CoversClass(OtherMemberRules::class)]
 #[CoversClass(OtherMembersField::class)]
+#[CoversClass(OtherMembersMapping::class)]
 #[CoversClass(InvalidOtherMembers::class)]
 final class AcceptanceTest extends TestCase
 {

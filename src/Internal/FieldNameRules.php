@@ -33,9 +33,8 @@ final class FieldNameRules
      *     properties.
      * @param list<ReflectionProperty> $collecting The properties that declare #[OtherMembers], including private
      *     ancestor properties.
-     * @return array{array<string, string>, array{string, array<array-key, string>}|null} JSON names keyed by property
-     *     name, and, if a property collects the other members, its name with the names of the other public instance
-     *     properties keyed by JSON name.
+     * @return array{array<string, string>, OtherMembersMapping|null} JSON names keyed by property name, and the
+     *     property that collects the other members, if any.
      * @throws DecodeError
      */
     public static function resolve(ReflectionClass $class, array $properties, array $named, array $collecting): array
@@ -53,7 +52,7 @@ final class FieldNameRules
             throw InvalidFieldMapping::withoutJsonSerializable();
         }
         $owners = self::rejectCollisions($properties, $names, $others);
-        return [$names, $others === null ? null : [$others, $owners]];
+        return [$names, $others === null ? null : new OtherMembersMapping($others, $owners)];
     }
 
     /**

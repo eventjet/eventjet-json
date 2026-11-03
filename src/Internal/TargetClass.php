@@ -30,7 +30,7 @@ final class TargetClass
      * The mapping of each class, as mapping() returns it. A field whose property declares no attribute skips looking up
      * its own attributes, which would cost a call per field on every first decode.
      *
-     * @var array<class-string, array{array<string, string>, array<string, true>, array{string, array<array-key, string>}|null}>
+     * @var array<class-string, array{array<string, string>, array<string, true>, OtherMembersMapping|null}>
      */
     private static array $fields = [];
 
@@ -40,7 +40,7 @@ final class TargetClass
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array{array<string, string>, array<string, true>, array{string, array<array-key, string>}|null}
+     * @return array{array<string, string>, array<string, true>, OtherMembersMapping|null}
      * @throws DecodeError
      */
     public static function validate(ReflectionClass $class): array
@@ -125,7 +125,7 @@ final class TargetClass
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array{array<string, string>, array<string, true>, array{string, array<array-key, string>}|null}
+     * @return array{array<string, string>, array<string, true>, OtherMembersMapping|null}
      * @throws DecodeError
      * @phpstan-impure
      */
@@ -137,7 +137,7 @@ final class TargetClass
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array{array<string, string>, array<string, true>, array{string, array<array-key, string>}|null}
+     * @return array{array<string, string>, array<string, true>, OtherMembersMapping|null}
      * @throws DecodeError
      */
     private static function resolve(ReflectionClass $class): array
@@ -175,7 +175,7 @@ final class TargetClass
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array{array<string, string>, array<string, true>, array{string, array<array-key, string>}|null}
+     * @return array{array<string, string>, array<string, true>, OtherMembersMapping|null}
      * @throws DecodeError
      */
     private static function validateDeclarations(ReflectionClass $class): array
