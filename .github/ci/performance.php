@@ -178,9 +178,9 @@ if (file_exists($output)) {
 }
 $results = $output . '/results';
 mkdir($results, 0777, true);
-$dependenciesHash = hash_file('sha256', 'vendor/composer/installed.json');
+$dependenciesHash = hash_file('sha256', 'composer.lock');
 if ($dependenciesHash === false) {
-    throw new RuntimeException('Cannot fingerprint installed dependencies');
+    throw new RuntimeException('Cannot fingerprint locked dependencies');
 }
 $metadata = [
     'shard' => $shard,

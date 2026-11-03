@@ -113,7 +113,7 @@ final class RootDescriptor
         $enum = $class;
         $node = enum_exists($enum) ? EnumNode::of($enum) : new ObjectNode($class, nullable: false);
         foreach (array_reverse($this->shapes) as $shape) {
-            $node = $shape === 'array' ? new ListNode($node, nonEmpty: false) : new MapNode($node, arrayObject: true);
+            $node = $shape === 'array' ? new ListNode($node, nonEmpty: false) : MapNode::stringKeyArrayObject($node);
         }
         return self::$nodes[$key] = $node;
     }

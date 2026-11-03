@@ -52,7 +52,7 @@ final class InvalidValue
     public static function integerKey(string $path, int $key): DecodeError
     {
         return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
-            'Field %s has numeric-looking member name %d, which PHP converts to an integer array key. Supported maps require member names that remain strings.',
+            'Field %s has numeric-looking member name %d, which PHP converts to an integer array key. Only ArrayObject<array-key, TValue> fields accept such member names.',
             $path,
             $key,
         ));
