@@ -87,7 +87,7 @@ final readonly class ClassField
             if (!$field->node instanceof JsonValueNode) {
                 continue;
             }
-            NullableJsonValues::requireSerializer($class, $field->name);
+            $field->node->requireSerializer($class, $field->name);
         }
         return $fields;
     }

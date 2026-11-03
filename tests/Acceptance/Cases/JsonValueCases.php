@@ -7,6 +7,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 use ArrayObject;
 use Eventjet\Json\JsonValue;
 use Eventjet\Json\Test\Acceptance\Fixtures\JsonValueFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\NonBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\OptionalJsonValue;
 use InvalidArgumentException;
 use JsonException;
@@ -130,6 +131,30 @@ final class JsonValueCases
         $object = $later->newInstance();
         $later->getProperty('value')->setValue($object, new JsonValue(null));
         yield 'JsonValue|null property after another property' => ['{"value":null}', $object];
+        $class = CollectionNameSource::load(
+            'JsonValueOrNonBackedEnum',
+            'final class JsonValueOrNonBackedEnum { public function __construct(public \\'
+            . JsonValue::class
+            . '|\\'
+            . NonBackedStatus::class
+            . ' $value) {} }',
+        );
+        $values = [
+            'null' => null,
+            'true' => true,
+            'false' => false,
+            '1' => 1,
+            '1.5' => 1.5,
+            '"text"' => 'text',
+            '[1,{"a":null}]' => [1, (object) ['a' => null]],
+            '{"a":[]}' => (object) ['a' => []],
+        ];
+        foreach ($values as $json => $value) {
+            yield 'JsonValue in a union with an enum that JSON cannot represent, holding ' . $json => [
+                '{"value":' . $json . '}',
+                new ReflectionClass($class)->newInstance(new JsonValue($value)),
+            ];
+        }
         foreach (JsonValueLimits::nested(512) as $label => $input) {
             $class = JsonValueErrorCases::constructing('JsonValueMaxDepth_' . sha1($input), $input);
             yield $label . ' nested 512 levels deep' => ['{}', new ReflectionClass($class)->newInstance()];

@@ -5,95 +5,69 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\UnsupportedJsonValue;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\JsonValue;
-use JsonSerializable;
 use ReflectionClass;
-use ReflectionException;
-use ReflectionProperty;
 
 /**
  * Finds the public instance properties declared as `JsonValue|null`. json_encode() would write null for such a
  * property, which decodes as a JsonValue that holds null, so a serializer must leave it out instead. Like #[Field], such
- * a property therefore requires JsonSerializable and opts the class into it. ClassField asks for the check only for
- * fields that hold a JsonValue, so that a decode of other classes loads no extra class.
+ * a property therefore opts a JsonSerializable class into decoding. Only the native type counts, because a PHPDoc type
+ * cannot narrow a property to JsonValue.
  *
  * @internal
  */
 final class NullableJsonValues
 {
-    /** @var array<class-string, list<string>> */
+    /** @var array<class-string, array<string, true>> */
     private static array $names = [];
 
     /**
-     * Returns the names of the properties.
+     * Returns the names of the properties as keys.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @param list<ReflectionProperty>|null $properties The properties of the class, if already read.
-     * @return list<string>
+     * @return array<string, true>
      */
-    public static function of(ReflectionClass $class, array|null $properties = null): array
+    public static function of(ReflectionClass $class): array
     {
-        return self::$names[$class->getName()] ??= self::declared($properties ?? $class->getProperties());
+        return self::$names[$class->getName()] ??= self::declared($class);
     }
 
     /**
-     * Rejects a class without #[Field] that implements JsonSerializable but has no such property.
+     * Rejects a class without #[Field] that implements JsonSerializable but has no such property, and JsonValue, which
+     * gets here only at the root or as a JsonType item, because fields compile it to a node of their own.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @param list<ReflectionProperty> $properties The properties of the class.
      * @throws DecodeError
      */
-    public static function requireOne(ReflectionClass $class, array $properties): void
+    public static function requireOne(ReflectionClass $class): void
     {
-        $names = self::of($class, $properties);
+        if ($class->getName() === JsonValue::class) {
+            throw UnsupportedJsonValue::outsideFields();
+        }
+        $names = self::of($class);
         if ($names === []) {
             throw UnsupportedTarget::jsonSerializable($class->getName());
         }
     }
 
     /**
-     * Rejects a property declared as `JsonValue|null` in a class that doesn't implement JsonSerializable.
-     *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @throws DecodeError
-     * @throws ReflectionException If the class has no such property.
+     * @return array<string, true>
      */
-    public static function requireSerializer(ReflectionClass $class, string $name): void
-    {
-        $property = $class->getProperty($name);
-        $nullable = self::holds($property);
-        if ($nullable && !$class->implementsInterface(JsonSerializable::class)) {
-            throw UnsupportedTarget::nullableJsonValueWithoutSerializer($property->getName());
-        }
-    }
-
-    /**
-     * Whether the native type of a property is `JsonValue|null`. Only the native type counts, because a PHPDoc type
-     * cannot narrow a property to JsonValue.
-     *
-     * @mutation-free
-     */
-    private static function holds(ReflectionProperty $property): bool
-    {
-        return (string) $property->getType() === '?' . JsonValue::class;
-    }
-
-    /**
-     * @param list<ReflectionProperty> $properties
-     * @return list<string>
-     */
-    private static function declared(array $properties): array
+    private static function declared(ReflectionClass $class): array
     {
         $names = [];
-        foreach ($properties as $property) {
-            if (!$property->isPublic() || $property->isStatic() || !self::holds($property)) {
+        foreach ($class->getProperties() as $property) {
+            $holds = (string) $property->getType() === '?' . JsonValue::class;
+            if (!$property->isPublic() || $property->isStatic() || !$holds) {
                 continue;
             }
-            $names[] = $property->getName();
+            $names[$property->getName()] = true;
         }
         return $names;
     }

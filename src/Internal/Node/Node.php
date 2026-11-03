@@ -16,15 +16,14 @@ use Stringable;
  * As a union member, a node claims JSON values by JSON value type. For each type, `values` lists JSON values with the
  * PHP values the node returns for them, keyed by var_export() of the JSON value. `others` tells what the node does with
  * the other values of the type: it accepts them, widens them (returns integers as floats, unless another member accepts
- * them), wraps them (returns an object for each, as JsonValue does), rejects them (takes them so that no other member
- * can, but returns no value for them), or leaves them to other members (null). `enums` are the backed enums whose cases
- * the node returns.
+ * them), rejects them (takes them so that no other member can, but returns no value for them), or leaves them to other
+ * members (null). `enums` are the backed enums whose cases the node returns.
  *
  * @psalm-type ClaimValues = array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}>
- * @psalm-type Claim = array{others: 'accepts'|'widens'|'wraps'|'rejects'|null, enums: list<class-string<BackedEnum>>, values: ClaimValues}
+ * @psalm-type Claim = array{others: 'accepts'|'widens'|'rejects'|null, enums: list<class-string<BackedEnum>>, values: ClaimValues}
  * @psalm-type Claims = array<string, Claim>
  * @phpstan-type ClaimValues array<array-key, array{bool|float|int|string, bool|float|int|string|BackedEnum}>
- * @phpstan-type Claim array{others: 'accepts'|'widens'|'wraps'|'rejects'|null, enums: list<class-string<BackedEnum>>, values: ClaimValues}
+ * @phpstan-type Claim array{others: 'accepts'|'widens'|'rejects'|null, enums: list<class-string<BackedEnum>>, values: ClaimValues}
  * @phpstan-type Claims array<string, Claim>
  * @internal
  */

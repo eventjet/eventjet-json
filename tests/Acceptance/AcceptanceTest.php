@@ -7,7 +7,7 @@ namespace Eventjet\Json\Test\Acceptance;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Field;
-use Eventjet\Json\Internal\CanonicalJson;
+use Eventjet\Json\Internal\CanonicalScalar;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
@@ -24,6 +24,7 @@ use Eventjet\Json\Internal\Error\UnsupportedClass;
 use Eventjet\Json\Internal\Error\UnsupportedCollection;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
+use Eventjet\Json\Internal\Error\UnsupportedJsonValue;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\FieldNameRules;
 use Eventjet\Json\Internal\FieldPath;
@@ -192,9 +193,10 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ClassDecoders::class)]
 #[CoversClass(EnumRoots::class)]
 #[CoversClass(JsonValue::class)]
-#[CoversClass(CanonicalJson::class)]
+#[CoversClass(CanonicalScalar::class)]
 #[CoversClass(JsonValueNode::class)]
 #[CoversClass(NullableJsonValues::class)]
+#[CoversClass(UnsupportedJsonValue::class)]
 final class AcceptanceTest extends TestCase
 {
     /** @param class-string|JsonType<mixed> $type */

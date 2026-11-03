@@ -94,7 +94,7 @@ final class NamedTypeCompiler
         $node = self::named($name, $field->getName());
         return match (true) {
             $node instanceof DecodeError => $nullable ? null : throw $node,
-            $nullable && $node instanceof JsonValueNode => $node,
+            $nullable && $node instanceof JsonValueNode => new JsonValueNode(nullable: true),
             $nullable => NullableNode::of($node),
             default => $node,
         };
@@ -129,7 +129,7 @@ final class NamedTypeCompiler
     {
         return match (true) {
             array_key_exists($name, self::IMPRECISE) => throw UnsupportedField::imprecise($path, $name),
-            $name === JsonValue::class => new JsonValueNode(),
+            $name === JsonValue::class => new JsonValueNode(nullable: false),
             enum_exists($name) => TargetClass::unrepresentableEnum($name, $path) ?? EnumNode::of($name),
             default => self::object($name, $path),
         };
