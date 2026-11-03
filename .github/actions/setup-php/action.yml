@@ -1,5 +1,5 @@
 name: Set up PHP and dependencies
-description: Resolve development dependencies and reuse downloads across runs.
+description: Install development dependencies, from composer.lock when present, and reuse downloads across runs.
 inputs:
   php-version:
     description: PHP version to test
@@ -32,4 +32,4 @@ runs:
         key: composer-downloads-${{ runner.os }}-php${{ inputs.php-version }}-${{ hashFiles('composer.json') }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: composer-downloads-${{ runner.os }}-
     - shell: bash
-      run: composer update --prefer-dist --no-interaction --no-progress --optimize-autoloader
+      run: composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
