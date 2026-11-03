@@ -34,7 +34,8 @@ The suite separates workloads by purpose:
   many-class workloads.
 - **Focused diagnostics:** constructor scalars, public properties, enums, enum
   unions, short/long scalar lists, a 1,000-entry string map, PHPDoc literal
-  types, array shapes, and imported constants. The last three load code
+  types, array shapes, imported constants, a list of a discriminated union, and a
+  recursive expression tree of discriminated unions. The last five load code
   that ordinary declarations skip. Collection DTOs
   contain only the fields being measured, with no acceptance-test bookkeeping in their constructors.
 - **Stress diagnostics:** enum-heavy object and root collections, enum-union
