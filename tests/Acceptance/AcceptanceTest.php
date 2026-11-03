@@ -76,6 +76,11 @@ use Eventjet\Json\Json;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\JsonValue;
 use Eventjet\Json\MappedJsonFields;
+use Eventjet\Json\Schema\Draft201909;
+use Eventjet\Json\Schema\Draft202012;
+use Eventjet\Json\Schema\Draft4;
+use Eventjet\Json\Schema\Draft6;
+use Eventjet\Json\Schema\Draft7;
 use Eventjet\Json\Test\Acceptance\Cases\ConstructorDefaultCases;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\EmptyShapeRoundTripCases;
@@ -83,6 +88,7 @@ use Eventjet\Json\Test\Acceptance\Cases\JsonFormattingRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\NumericObjectKeyCases;
 use Eventjet\Json\Test\Acceptance\Cases\ObjectRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootCollectionRoundTripCases;
+use Eventjet\Json\Test\Acceptance\Cases\SchemaCases;
 use Eventjet\Json\Test\Acceptance\Cases\SupportedDocumentRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\TypeValidationCases;
 use Eventjet\Json\Test\Acceptance\Cases\UnknownFieldCases;
@@ -216,6 +222,11 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(JsonValueNode::class)]
 #[CoversClass(NullableJsonValues::class)]
 #[CoversClass(UnsupportedJsonValue::class)]
+#[CoversClass(Draft4::class)]
+#[CoversClass(Draft6::class)]
+#[CoversClass(Draft7::class)]
+#[CoversClass(Draft201909::class)]
+#[CoversClass(Draft202012::class)]
 final class AcceptanceTest extends TestCase
 {
     /** @param class-string|JsonType<mixed> $type */
@@ -260,11 +271,13 @@ final class AcceptanceTest extends TestCase
      * @return iterable<string, array{object, string}>
      * @throws \ReflectionException
      * @throws \RuntimeException
+     * @throws \InvalidArgumentException
      */
     public static function jsonDocuments(): iterable
     {
         yield from JsonFormattingRoundTripCases::objects();
         yield from EmptyShapeRoundTripCases::objects();
+        yield from SchemaCases::documents();
     }
 
     /** @throws JsonException */
