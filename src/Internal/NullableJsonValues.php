@@ -43,7 +43,7 @@ final class NullableJsonValues
      * @param ReflectionClass<T> $class
      * @throws DecodeError
      */
-    public static function requireOne(ReflectionClass $class): void
+    public static function requireDecodable(ReflectionClass $class): void
     {
         if ($class->getName() === JsonValue::class) {
             throw UnsupportedJsonValue::outsideFields();

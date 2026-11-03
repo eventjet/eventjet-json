@@ -133,7 +133,7 @@ final class TargetClass
         );
         if ($annotated === []) {
             if ($class->implementsInterface(JsonSerializable::class)) {
-                NullableJsonValues::requireOne($class);
+                NullableJsonValues::requireDecodable($class);
             }
             return self::$names[$className] = [];
         }
