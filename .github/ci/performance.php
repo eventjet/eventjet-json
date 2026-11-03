@@ -291,7 +291,7 @@ $metadata['new_workloads'] = newWorkloads($discovery, $base, $workloads, static 
     return $measure($workspace, 'baseline-workloads', 1, '--revs=1');
 });
 writeJson($results . '/metadata.json', $metadata);
-$comparable = $discovery->workloadsExcept($metadata['new_workloads']);
+[$newWorkloads, $comparable] = $discovery->partition($metadata['new_workloads']);
 if ($comparable === []) {
     throw new RuntimeException(
         'No comparable workloads: the baseline revision\'s benchmark suite has none of the frozen suite\'s workloads',
@@ -348,8 +348,8 @@ if ($fpm) {
     $fpmReport = FpmMeasurements::report($fpmComparisons, $opcache);
 }
 $comment = $comparisons === []
-    ? "No workloads assigned to this shard.\n\n" . newWorkloadsSection($metadata['new_workloads'])
-    : performanceSummary($comparisons, $opcacheOption, $fpmComparisons, $metadata['new_workloads']);
+    ? "No workloads assigned to this shard.\n" . ($newWorkloads === [] ? '' : "\n" . newWorkloadsSection($newWorkloads))
+    : performanceSummary($comparisons, $opcacheOption, $fpmComparisons, $newWorkloads);
 file_put_contents($results . '/comment.md', $comment);
 publish(
     $results,

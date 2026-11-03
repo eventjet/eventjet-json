@@ -359,10 +359,10 @@ if ($metadata['new_workloads'] !== ['\Fixture\Benchmark\NewBench::benchNew[]']
 }
 PHP
 grep -Fq '### New workloads · no verdict' .perf/results/comment.md
-grep -Fq 'NewBench::benchNew[]' .perf/results/comment.md
+grep -Fq 'NewBench::benchNew []' .perf/results/comment.md
 mv .perf new-workload-results
 aggregate new-workload new-workload-results/results on 1000 0 '⚪ No significant performance changes (OPcache on)' \
-    '### New workloads · no verdict' 'NewBench::benchNew[]'
+    '### New workloads · no verdict' 'NewBench::benchNew []'
 echo 'Workloads absent from the baseline suite run on the candidate and are reported without a verdict.'
 git rm --quiet benchmarks/ExampleBench.php
 git commit --quiet -m 'Only workloads for new features'

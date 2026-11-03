@@ -83,14 +83,20 @@ final readonly class BenchmarkReport
 
     /**
      * @param list<string> $identities
-     * @return list<BenchmarkWorkload>
+     * @return array{list<BenchmarkWorkload>, list<BenchmarkWorkload>} the listed workloads, then all others
      */
-    public function workloadsExcept(array $identities): array
+    public function partition(array $identities): array
     {
-        return array_values(array_filter(
-            $this->workloads,
-            static fn(BenchmarkWorkload $workload): bool => !in_array($workload->identity(), $identities, true),
-        ));
+        $listed = [];
+        $others = [];
+        foreach ($this->workloads as $workload) {
+            if (in_array($workload->identity(), $identities, true)) {
+                $listed[] = $workload;
+            } else {
+                $others[] = $workload;
+            }
+        }
+        return [$listed, $others];
     }
 
     public function requireMode(string $mode): void

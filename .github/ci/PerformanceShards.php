@@ -73,7 +73,7 @@ final class PerformanceShards
      * @param array<string, mixed> $metadata
      * @return list<string>
      */
-    private static function identities(array $metadata, string $key): array
+    private static function identityList(array $metadata, string $key): array
     {
         $value = $metadata[$key] ?? null;
         if (!is_array($value) || !array_is_list($value)) {
@@ -98,7 +98,7 @@ final class PerformanceShards
      * @return array{
      *     comparisons: non-empty-list<BenchmarkComparison>,
      *     fpm: non-empty-list<FpmComparison>,
-     *     new: list<string>,
+     *     newWorkloads: list<BenchmarkWorkload>,
      * }
      */
     public static function collect(string $directory, string $mode): array
@@ -112,6 +112,7 @@ final class PerformanceShards
         $seen = [];
         $comparisons = [];
         $fpm = null;
+        $newWorkloads = [];
         foreach ($directories as $shardDirectory) {
             $metadata = self::json($shardDirectory . '/metadata.json');
             $completion = self::json($shardDirectory . '/complete.json');
@@ -129,13 +130,12 @@ final class PerformanceShards
                 'workloads' => self::text($metadata, 'workloads'),
                 'dependencies_sha256' => self::text($metadata, 'dependencies_sha256'),
                 'configuration_sha256' => self::text($metadata, 'configuration_sha256'),
-                'new_workloads' => self::identities($metadata, 'new_workloads'),
+                'new_workloads' => self::identityList($metadata, 'new_workloads'),
             ];
             $reference ??= $shared;
-            $identities = array_values(array_diff(
-                BenchmarkReport::read($shardDirectory . '/discovery.xml')->identities(),
-                $shared['new_workloads'],
-            ));
+            [$newWorkloads, $comparable] = BenchmarkReport::read($shardDirectory . '/discovery.xml')
+                ->partition($shared['new_workloads']);
+            $identities = array_map(static fn(BenchmarkWorkload $workload): string => $workload->identity(), $comparable);
             $expected ??= $identities;
             if ($reference !== $shared || $expected !== $identities) {
                 throw new RuntimeException(
@@ -177,6 +177,6 @@ final class PerformanceShards
         if ($fpm === null) {
             throw new RuntimeException('Missing PHP-FPM measurements');
         }
-        return ['comparisons' => $comparisons, 'fpm' => $fpm, 'new' => $reference['new_workloads']];
+        return ['comparisons' => $comparisons, 'fpm' => $fpm, 'newWorkloads' => $newWorkloads];
     }
 }
