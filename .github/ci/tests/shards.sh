@@ -33,7 +33,7 @@ for ($shard = 1; $shard <= PerformanceShards::SHARDS; $shard++) {
     mkdir($path);
     jsonFile($path . '/metadata.json', ['shard' => $shard, 'opcache' => 'on', 'fpm' => $shard === 1,
         'baseline' => 'base', 'candidate' => 'candidate', 'workloads' => 'suite',
-        'dependencies_sha256' => 'deps', 'configuration_sha256' => 'config']);
+        'dependencies_sha256' => 'deps', 'configuration_sha256' => 'config', 'new_workloads' => []]);
     file_put_contents($path . '/discovery.xml', measurement(range(0, 8)));
     $indices = array_values(array_filter(range(0, 8), static fn(int $index): bool => $index % (PerformanceShards::SHARDS - 1) === $shard - 2));
     jsonFile($path . '/complete.json', ['indices' => $indices]);
@@ -49,12 +49,12 @@ $fpmSample = fpmSample(true);
 jsonFile($directory . '/1/fpm.json', ['baseline' => $fpmSample, 'candidate' => $fpmSample]);
 $result = PerformanceShards::collect($directory, 'on');
 if (performanceStatus($result['comparisons'], 'on', $result['fpm']) !== 0 || count($result['comparisons']) !== 9 || count($result['fpm']) !== 1
-    || !str_contains(performanceSummary($result['comparisons'], 'on', $result['fpm']), "⚪ No significant changes · **Overall decode time: +0.00%** · **9 workloads**")) {
+    || !str_contains(performanceSummary($result['comparisons'], 'on', $result['fpm'], []), "⚪ No significant changes · **Overall decode time: +0.00%** · **9 workloads**")) {
     throw new RuntimeException('Complete shards must produce one full comparison');
 }
 $measurementPath = $directory . '/2/candidate-0-0.xml';
 rename($measurementPath, $measurementPath . '.saved');
-if (!str_contains(performanceSummary($result['comparisons'], 'on', $result['fpm']), '**9 workloads**')) {
+if (!str_contains(performanceSummary($result['comparisons'], 'on', $result['fpm'], []), '**9 workloads**')) {
     throw new RuntimeException('Summary must use validated comparisons without reopening measurement files');
 }
 rename($measurementPath . '.saved', $measurementPath);
@@ -93,10 +93,30 @@ function rejects(string $directory, string $file, string $replacement): void {
 rejects($directory, '2/complete.json', '{"indices":[]}');
 rejects($directory, '2/complete.json', '{"indices":[1,9]}');
 $metadata = json_decode(file_get_contents($directory . '/2/metadata.json'), true);
-foreach (['shard' => 1, 'opcache' => 'off', 'fpm' => true, 'baseline' => 'wrong', 'dependencies_sha256' => 'wrong', 'configuration_sha256' => 'wrong'] as $key => $value) {
+foreach (['shard' => 1, 'opcache' => 'off', 'fpm' => true, 'baseline' => 'wrong', 'dependencies_sha256' => 'wrong', 'configuration_sha256' => 'wrong', 'new_workloads' => ['Fixture::bench8[case]']] as $key => $value) {
     rejects($directory, '2/metadata.json', json_encode(array_replace($metadata, [$key => $value])));
 }
 rejects($directory, '2/discovery.xml', measurement(range(0, 7)));
+rejects($directory, '2/metadata.json', json_encode(array_replace($metadata, ['new_workloads' => [1]])));
+rejects($directory, '2/metadata.json', json_encode(array_diff_key($metadata, ['new_workloads' => true])));
+$originals = [];
+for ($shard = 1; $shard <= PerformanceShards::SHARDS; $shard++) {
+    $path = $directory . '/' . $shard . '/metadata.json';
+    $originals[$path] = file_get_contents($path);
+    $shardMetadata = json_decode($originals[$path], true);
+    file_put_contents($path, json_encode(array_replace($shardMetadata, ['new_workloads' => ['Fixture::bench9[case]']])));
+}
+try {
+    PerformanceShards::collect($directory, 'on');
+    throw new LogicException('Shards must not name new workloads that discovery did not find');
+} catch (RuntimeException $exception) {
+    if ($exception->getMessage() !== 'Shard metadata names new workloads that discovery did not find') {
+        throw $exception;
+    }
+}
+foreach ($originals as $path => $original) {
+    file_put_contents($path, $original);
+}
 rejects($directory, '1/fpm.json', json_encode(['baseline' => $fpmSample]));
 rejects($directory, '1/fpm.json', json_encode(['baseline' => $fpmSample, 'candidate' => ['document' => ['rounds' => [[100.0]], 'peak_bytes' => 1024]]]));
 rejects($directory, '1/fpm.json', json_encode(['baseline' => fpmSample(false), 'candidate' => fpmSample(false)]));
@@ -177,7 +197,7 @@ foreach ([
         $comparison('control', false, $control),
         $comparison('cold', true, $cold),
     ];
-    $summary = performanceSummary($comparisons, 'on', null);
+    $summary = performanceSummary($comparisons, 'on', null, []);
     if (performanceStatus($comparisons, 'on', null) !== $status) {
         throw new RuntimeException('Incorrect status at ' . $time . ' µs');
     }
@@ -187,7 +207,7 @@ foreach ([
         }
     }
 }
-if (!str_contains(performanceSummary([$comparison('cold', true, 50)], 'on', null), '🟢 Improvement · **Overall decode time: -50.00%** · **1 workloads**')) {
+if (!str_contains(performanceSummary([$comparison('cold', true, 50)], 'on', null, []), '🟢 Improvement · **Overall decode time: -50.00%** · **1 workloads**')) {
     throw new RuntimeException('Advisory improvements must be shown');
 }
 if (BenchmarkComparison::order(0) !== ['baseline', 'candidate'] || BenchmarkComparison::order(1) !== ['candidate', 'baseline']) {
