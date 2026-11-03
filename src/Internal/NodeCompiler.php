@@ -32,11 +32,8 @@ final class NodeCompiler
      * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function field(
-        PhpDocType $type,
-        string $path,
-        FieldDiscriminator|null $discriminator = null,
-    ): Node|null {
+    public static function field(PhpDocType $type, string $path, FieldDiscriminator|null $discriminator): Node|null
+    {
         $node = $type->name === '|'
             ? self::union($type->arguments, $path, $discriminator)
             : self::compile($type, $path, $discriminator);

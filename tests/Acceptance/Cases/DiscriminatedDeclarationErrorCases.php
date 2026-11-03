@@ -7,7 +7,9 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 use Eventjet\Json\Test\Acceptance\Fixtures\Discriminated\Circle;
 use Eventjet\Json\Test\Acceptance\Fixtures\Discriminated\Created;
 use Eventjet\Json\Test\Acceptance\Fixtures\Discriminated\Deleted;
+use Eventjet\Json\Test\Acceptance\Fixtures\Discriminated\Opcode;
 use Eventjet\Json\Test\Acceptance\Fixtures\Discriminated\Rectangle;
+use Eventjet\Json\Test\Acceptance\Fixtures\Discriminated\ShapeKind;
 use Eventjet\Json\Test\Acceptance\Fixtures\Discriminated\Square;
 use Eventjet\Json\Test\Acceptance\Fixtures\Discriminated\Triangle;
 use RuntimeException;
@@ -51,10 +53,16 @@ final class DiscriminatedDeclarationErrorCases
             'final class DiscriminatedSharedTag { /** @var \'same\' */ public string $type = \'same\';'
             . ' /** @var \'b\'|1 */ public string|int $kind = 1; public int $only = 0;'
             . ' /** @var \'p\'|true */ public string|bool $flag = true;'
-            . ' /** @var \'s\' */ public static string $static = \'s\'; }'
+            . ' /** @var \'s\' */ public static string $static = \'s\'; public \\'
+            . ShapeKind::class
+            . ' $whole;'
+            . ' /** @var 1.5 */ public float $ratio = 1.5; /** @var \'n\'|null */ public ?string $none = null; }'
             . ' final class DiscriminatedSharedTagOther { /** @var \'same\' */ public string $type = \'same\';'
             . ' /** @var \'a\'|1 */ public string|int $kind = 1; /** @var \'q\' */ public string $flag = \'q\';'
-            . ' /** @var \'t\' */ public static string $static = \'t\'; }',
+            . ' /** @var \'t\' */ public static string $static = \'t\'; public \\'
+            . Opcode::class
+            . ' $whole;'
+            . ' /** @var 2.5 */ public float $ratio = 2.5; /** @var \'m\' */ public string $none = \'m\'; }',
         );
         yield 'classes without a distinct literal member have no discriminator' => self::error(
             'DiscriminatedSharedTagHolder',

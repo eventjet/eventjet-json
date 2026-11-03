@@ -42,7 +42,7 @@ final class UnionBuilder
 
     public function __construct(
         private readonly string $path,
-        private readonly FieldDiscriminator|null $discriminator = null,
+        private readonly FieldDiscriminator|null $discriminator,
     ) {}
 
     /** Adds a member. A member of the same type as an earlier one replaces it, because it decodes alike. */
