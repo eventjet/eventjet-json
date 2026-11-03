@@ -46,13 +46,13 @@ final class MapsErrorCases
         yield 'ArrayObject declaration rejects integer keys even when absent' => [
             '{}',
             new UnsupportedArrayObjectMapField(new ArrayObject([0 => 'value']))::class,
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedArrayObjectMapField from the JSON object: Field values uses unsupported map declaration ArrayObject. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedArrayObjectMapField from the JSON object: Field values uses unsupported map declaration ArrayObject. Maps must use non-empty-array<string, TValue>, ArrayObject<string, TValue>, or ArrayObject<array-key, TValue>.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'non-empty map declaration rejects integer keys even when absent' => [
             '{}',
             new UnsupportedNonEmptyMapKeyField([0 => 'value'])::class,
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedNonEmptyMapKeyField from the JSON object: Field values uses unsupported map declaration non-empty-array. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\UnsupportedNonEmptyMapKeyField from the JSON object: Field values uses unsupported map declaration non-empty-array. Maps must use non-empty-array<string, TValue>, ArrayObject<string, TValue>, or ArrayObject<array-key, TValue>.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'plain array map cannot represent an empty JSON object' => [
@@ -66,7 +66,7 @@ final class MapsErrorCases
             CollectionDeclarationFixture::create('\ArrayObject', 'ArrayObject<string, int', 'var'),
             'Could not create '
                 . CollectionDeclarationFixture::create('\ArrayObject', 'ArrayObject<string, int', 'var')
-                . ' from the JSON object: Field value uses unsupported map declaration ArrayObject. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
+                . ' from the JSON object: Field value uses unsupported map declaration ArrayObject. Maps must use non-empty-array<string, TValue>, ArrayObject<string, TValue>, or ArrayObject<array-key, TValue>.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'ArrayObject field rejects a non-empty-array declaration' => [
@@ -74,7 +74,7 @@ final class MapsErrorCases
             CollectionDeclarationFixture::create('\ArrayObject', 'non-empty-array<string, int>', 'var'),
             'Could not create '
                 . CollectionDeclarationFixture::create('\ArrayObject', 'non-empty-array<string, int>', 'var')
-                . ' from the JSON object: Field value uses unsupported map declaration ArrayObject. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
+                . ' from the JSON object: Field value uses unsupported map declaration ArrayObject. Maps must use non-empty-array<string, TValue>, ArrayObject<string, TValue>, or ArrayObject<array-key, TValue>.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'non-empty map declaration rejects a third type argument' => [
@@ -122,7 +122,7 @@ final class MapsErrorCases
         yield 'map property rejects a numeric member name' => [
             '{"strings":{"valid":"value"},"integers":{"valid":42},"floats":{"valid":3.25},"booleans":{"valid":true},"publicStrings":{"0":"ready"}}',
             new ScalarMapFields(['valid' => 'value'], ['valid' => 42], ['valid' => 3.25], ['valid' => true])::class,
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarMapFields from the JSON object: Field publicStrings has numeric-looking member name 0, which PHP converts to an integer array key. Supported maps require member names that remain strings.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\ScalarMapFields from the JSON object: Field publicStrings has numeric-looking member name 0, which PHP converts to an integer array key. Only ArrayObject<array-key, TValue> fields accept such member names.',
             DecodeErrorKind::InvalidValue,
         ];
     }

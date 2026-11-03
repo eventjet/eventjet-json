@@ -6,8 +6,12 @@ namespace Eventjet\Json\Internal;
 
 use ArrayObject;
 
+use function array_map;
 use function array_pop;
 use function count;
+use function implode;
+use function in_array;
+use function sort;
 
 /** @internal */
 final readonly class PhpDocType
@@ -69,8 +73,12 @@ final readonly class PhpDocType
         return null;
     }
 
-    /** @return array{self, self}|null */
-    private function argumentPair(): array|null
+    /**
+     * Returns the arguments if this has exactly two.
+     *
+     * @return array{self, self}|null
+     */
+    public function argumentPair(): array|null
     {
         $arguments = $this->arguments;
         if (count($arguments) !== 2) {
@@ -81,12 +89,25 @@ final readonly class PhpDocType
         return [$first, $second];
     }
 
-    /** Returns `T` if this has the arguments `<string, T>`. */
-    public function stringKeyedValue(): self|null
+    /**
+     * Returns which member names a `non-empty-array`, `non-empty-map`, or `ArrayObject` container accepts with this key
+     * type, as written or with resolved names: `string` for names that PHP keeps as string keys, `array-key` for every
+     * name, or null if the container does not accept this key type. `non-empty-array` maps keep string keys, because
+     * `json_encode()` writes an array with integer keys as a list.
+     *
+     * @return 'string'|'array-key'|null
+     *
+     * @mutation-free
+     */
+    public function mapKeys(string $container): string|null
     {
-        $pair = $this->argumentPair();
-        $hasStringKey = $pair !== null && $pair[0]->isPlainName('string');
-        return $hasStringKey ? $pair[1] : null;
+        if ($this->isPlainName('string')) {
+            return 'string';
+        }
+        $names = array_map(static fn(self $member): string|null => $member->plainName(), $this->members());
+        sort($names);
+        $anyKey = in_array(implode('|', $names), ['array-key', 'int|string'], strict: true);
+        return $anyKey && $container === ArrayObject::class ? 'array-key' : null;
     }
 
     /**
