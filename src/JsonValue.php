@@ -39,7 +39,7 @@ final class JsonValue implements JsonSerializable
     private const string TOO_DEEP =
         'JsonValue cannot hold values nested more than '
             . self::MAX_DEPTH
-            . ' levels deep, which json_encode() cannot write. Each jsonSerialize() call counts as a level.';
+            . ' levels deep. Arrays, objects and jsonSerialize() calls each count as a level.';
 
     /** @var Stored */
     private bool|float|int|string|array|ArrayObject|null $value;

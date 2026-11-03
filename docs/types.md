@@ -228,9 +228,11 @@ absent value as `null`, so a class with a public `JsonValue|null` property must
 implement `JsonSerializable` and leave out the member when the property is
 `null`. `MappedJsonFields` does that. Without `JsonSerializable`,
 `Json::decode()` and `Json::validateType()` return an `UnsupportedDeclaration`
-error. Such a property also opts the class into `JsonSerializable`, as
-`#[Field]` does. Only the declared type of the property counts, not that of a
-constructor parameter.
+error. This requirement follows the type that the decoder reads for the field,
+which is the constructor parameter's type when a constructor parameter sets the
+property. Such a property also opts the class into `JsonSerializable`, as
+`#[Field]` does. For that, only the declared type of the property counts, not
+that of a constructor parameter.
 
 `JsonValue` is unsupported as the root type and as a `JsonType` item. It has no
 `equals()` method, because `==` treats values such as `"1"` and `1` as equal.

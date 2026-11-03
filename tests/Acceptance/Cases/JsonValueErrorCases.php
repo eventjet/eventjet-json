@@ -159,7 +159,7 @@ final class JsonValueErrorCases
     private static function rejectedInputs(): iterable
     {
         $accepts = 'It accepts null, scalars, arrays, stdClass, ArrayObject, JsonSerializable objects and backed enums.';
-        $depth = 'JsonValue cannot hold values nested more than 512 levels deep, which json_encode() cannot write. Each jsonSerialize() call counts as a level.';
+        $depth = 'JsonValue cannot hold values nested more than 512 levels deep. Arrays, objects and jsonSerialize() calls each count as a level.';
         foreach ([
             'closure' => ['static fn(): int => 1', 'JsonValue cannot hold Closure. ' . $accepts],
             'object of another class' => [
