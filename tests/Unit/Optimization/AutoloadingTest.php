@@ -13,6 +13,7 @@ use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
 use Eventjet\Json\Internal\ClassGraphValidator;
 use Eventjet\Json\Internal\CollectionDeclarationError;
+use Eventjet\Json\Internal\DiscriminatorInference;
 use Eventjet\Json\Internal\EnumRoots;
 use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidValue;
@@ -57,6 +58,7 @@ use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
+use Eventjet\Json\Internal\PropertyAttributes;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
@@ -65,6 +67,7 @@ use Eventjet\Json\Json;
 use Eventjet\Json\Test\Acceptance\Cases\CollectionDeclarationFixture;
 use Eventjet\Json\Test\Acceptance\Fixtures\Address;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\ClassScalarUnionField;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObject;
 use Eventjet\Json\Test\Acceptance\Fixtures\ExtendedLiteralFields;
@@ -112,6 +115,7 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(TargetClass::class)]
+#[CoversClass(PropertyAttributes::class)]
 #[CoversClass(NullableJsonValues::class)]
 #[CoversClass(FieldNameRules::class)]
 #[UsesClass(NamedTypeCompiler::class)]
@@ -172,7 +176,7 @@ use const JSON_THROW_ON_ERROR;
 #[UsesClass(TupleNode::class)]
 #[CoversClass(TypeCompiler::class)]
 #[UsesClass(UncheckedNode::class)]
-#[UsesClass(UnionBuilder::class)]
+#[CoversClass(UnionBuilder::class)]
 #[UsesClass(UnionConflicts::class)]
 #[UsesClass(LiteralNode::class)]
 #[UsesClass(PhpDocConstantImportStatement::class)]
@@ -291,7 +295,7 @@ final class AutoloadingTest extends TestCase
                 $compiler = new TypeCompiler();
                 $property = $class->getProperty($name);
                 foreach ([$parameter, $property] as $field) {
-                    static::assertSame($value, $compiler->field($field, $type)->decode($value, $name));
+                    static::assertSame($value, $compiler->field($field, $type, [$name => true])->decode($value, $name));
                 }
             }
             $impreciseType = $imprecise->getType();
@@ -303,7 +307,9 @@ final class AutoloadingTest extends TestCase
                      * @throws DecodeError
                      * @throws ReflectionException
                      */
-                    static fn(): object => new TypeCompiler()->field($imprecise, $impreciseType),
+                    static fn(): object => new TypeCompiler()->field($imprecise, $impreciseType, [
+                        $imprecise->getName() => true,
+                    ]),
                 )->kind,
             );
         } finally {
@@ -318,6 +324,8 @@ final class AutoloadingTest extends TestCase
     /**
      * Native class and enum fields, nullable or not, compile without the type tree and union that NodeCompiler would
      * build for them. Both paths compile the same nodes; this shortcut only makes the first decode in a request faster.
+     * A union with one class compiles without discriminator support, which only a union of several classes or a field
+     * with #[Discriminator] needs.
      *
      * @throws JsonException
      * @throws \PHPUnit\Framework\Exception
@@ -339,6 +347,13 @@ final class AutoloadingTest extends TestCase
         static::assertFalse(class_exists(NullOnlyNode::class, autoload: false));
         static::assertFalse(class_exists(EnumRoots::class, autoload: false));
         static::assertFalse(class_exists(NullableJsonValues::class, autoload: false));
+
+        self::assertRoundTrips([
+            new ClassScalarUnionField($person),
+            new ClassScalarUnionField(42),
+        ]);
+        static::assertTrue(class_exists(UnionBuilder::class, autoload: false));
+        static::assertFalse(class_exists(DiscriminatorInference::class, autoload: false));
     }
 
     /**
@@ -407,7 +422,7 @@ final class AutoloadingTest extends TestCase
                 $type = $field->getType();
                 static::assertNotNull($type);
                 static::assertSame($value, new TypeCompiler()
-                    ->field($field, $type)
+                    ->field($field, $type, [$name => true])
                     ->decode($value, $name));
             }
         } finally {

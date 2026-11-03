@@ -37,6 +37,7 @@ final class DecodeErrorCases
         yield from AmbiguousUnionErrorCases::errors();
         yield from UnsupportedUnionErrorCases::errors();
         yield from UnionValueErrorCases::errors();
+        yield from DiscriminatedUnionCases::errors();
         yield from NestedValuesErrorCases::errors();
         yield from ErrorPathCases::errors();
         yield from JsonValueErrorCases::errors();

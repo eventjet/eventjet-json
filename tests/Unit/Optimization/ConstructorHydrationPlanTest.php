@@ -46,6 +46,7 @@ use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
+use Eventjet\Json\Internal\PropertyAttributes;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
@@ -80,6 +81,7 @@ use function class_exists;
 #[UsesClass(DecodeErrors::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(TargetClass::class)]
+#[CoversClass(PropertyAttributes::class)]
 #[CoversClass(NullableJsonValues::class)]
 #[CoversClass(FieldNameRules::class)]
 #[CoversClass(MappedObjectSerializer::class)]

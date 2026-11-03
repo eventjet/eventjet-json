@@ -30,6 +30,7 @@ final class ObjectRoundTripCases
         yield from AnyKeyMapCases::objects();
         yield from UnionsRoundTripCases::objects();
         yield from EnumsRoundTripCases::objects();
+        yield from DiscriminatedUnionCases::objects();
         yield from JsonValueCases::objects();
     }
 }

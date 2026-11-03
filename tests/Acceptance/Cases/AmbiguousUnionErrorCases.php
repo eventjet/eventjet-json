@@ -115,7 +115,7 @@ final class AmbiguousUnionErrorCases
         yield 'self and another class cannot be distinguished' => [
             '{"value":{}}',
             new SelfClassUnionField(new Person('Ada', 'Lovelace'))::class,
-            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField from the JSON object: Field value uses multiple class types: Eventjet\Json\Test\Acceptance\Fixtures\Person, Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField. JSON does not identify which class to instantiate.',
+            'Could not create Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField from the JSON object: Field value uses multiple class types: Eventjet\Json\Test\Acceptance\Fixtures\Person, Eventjet\Json\Test\Acceptance\Fixtures\SelfClassUnionField. No member identifies the class: every class needs a member that declares distinct string, int, or backed enum case literal types, such as @var \'circle\'.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
         yield 'an unloaded class and another class cannot be distinguished' => [
@@ -149,7 +149,7 @@ final class AmbiguousUnionErrorCases
                     )),
                     'param',
                 )
-                . ' from the JSON object: Field value uses multiple class types: Eventjet\Json\Test\Acceptance\Fixtures\Coordinates, Eventjet\Json\Test\Acceptance\Fixtures\Person. JSON does not identify which class to instantiate.',
+                . ' from the JSON object: Field value uses multiple class types: Eventjet\Json\Test\Acceptance\Fixtures\Coordinates, Eventjet\Json\Test\Acceptance\Fixtures\Person. No member identifies the class: every class needs a member that declares distinct string, int, or backed enum case literal types, such as @var \'circle\'.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
     }
@@ -276,7 +276,7 @@ final class AmbiguousUnionErrorCases
                     . Coordinates::class
                     . ', '
                     . Person::class
-                    . '. JSON does not identify which class to instantiate.',
+                    . '. No member identifies the class: every class needs a member that declares distinct string, int, or backed enum case literal types, such as @var \'circle\'.',
             ],
             [
                 'list<' . $int . '|int|float>',
