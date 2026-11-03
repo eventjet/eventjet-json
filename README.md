@@ -168,6 +168,7 @@ for public properties outside the constructor.
 | Array with at least one item | `non-empty-list<T>` | `array` |
 | Positional array | `array{int, string}` | `array` with typed positions |
 | Object, possibly empty | `ArrayObject<string, T>` | `ArrayObject` |
+| Object with any member names, possibly empty | `ArrayObject<array-key, T>` | `ArrayObject` |
 | Object with at least one member | `non-empty-array<string, T>` | `array` with string keys |
 
 Items and values can be scalars, backed enums, final classes, supported unions,
@@ -253,8 +254,10 @@ A backed enum can also be the root on its own. `Json::decode('"ready"',
 Status::class)` returns `Status::Ready`. Standalone scalar and `null` roots are
 unsupported.
 
-Map keys must remain PHP strings. For example, `"01"` is supported, but `"42"`
-is rejected because PHP converts it to an integer key.
+Maps with `string` keys, at the root or in a field, require keys that remain
+PHP strings. For example, `"01"` is supported, but `"42"` is rejected because
+PHP converts it to an integer key. Only fields declared as
+`ArrayObject<array-key, T>` accept such names.
 
 ## Free-form JSON
 

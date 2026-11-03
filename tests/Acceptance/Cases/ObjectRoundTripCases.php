@@ -27,6 +27,7 @@ final class ObjectRoundTripCases
         yield from CollectionDeclarationRoundTripCases::objects();
         yield from NameResolutionRoundTripCases::objects();
         yield from CollectionsRoundTripCases::objects();
+        yield from AnyKeyMapCases::objects();
         yield from UnionsRoundTripCases::objects();
         yield from EnumsRoundTripCases::objects();
         yield from JsonValueCases::objects();

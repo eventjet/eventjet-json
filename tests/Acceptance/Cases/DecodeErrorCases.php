@@ -33,6 +33,7 @@ final class DecodeErrorCases
         yield from TupleValueErrorCases::errors();
         yield from CollectionsErrorCases::errors();
         yield from MapsErrorCases::errors();
+        yield from AnyKeyMapCases::errors();
         yield from AmbiguousUnionErrorCases::errors();
         yield from UnsupportedUnionErrorCases::errors();
         yield from UnionValueErrorCases::errors();
