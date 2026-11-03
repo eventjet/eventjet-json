@@ -204,6 +204,11 @@ the FPM measurements. Local comparisons remain unsharded unless `--shard N` is
 specified, with N from 1 through 8. Shard one requires `--fpm on`; the other
 shards require `--fpm off`.
 
+Before any shard starts, one job resolves the development dependencies. Every
+shard installs that job's `composer.lock`, so a package release during the run
+cannot give shards different dependencies. The dependency fingerprint is the
+hash of that lock file.
+
 The final comparison checks validate all eight artifacts before publishing one
 combined result. They reject missing or duplicate shards, inconsistent revisions,
 dependencies or configuration, missing workloads, and incomplete sampling.
