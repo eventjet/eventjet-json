@@ -38,6 +38,7 @@ use Eventjet\Json\Internal\Node\TupleNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\NodeCompiler;
+use Eventjet\Json\Internal\NullableJsonValues;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocConstantResolver;
 use Eventjet\Json\Internal\PhpDocFieldType;
@@ -131,6 +132,7 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(TargetClass::class)]
+#[UsesClass(NullableJsonValues::class)]
 #[UsesClass(FieldNameRules::class)]
 #[CoversClass(NamedTypeCompiler::class)]
 #[CoversClass(NodeCompiler::class)]
