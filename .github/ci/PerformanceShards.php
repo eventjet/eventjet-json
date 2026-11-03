@@ -38,21 +38,6 @@ final class PerformanceShards
         return $indices;
     }
 
-    /**
-     * Workloads that the baseline revision's own suite lacks have nothing to compare against.
-     *
-     * @param list<BenchmarkWorkload> $workloads
-     * @param list<string> $new Identities of those workloads
-     * @return list<BenchmarkWorkload>
-     */
-    public static function comparable(array $workloads, array $new): array
-    {
-        return array_values(array_filter(
-            $workloads,
-            static fn(BenchmarkWorkload $workload): bool => !in_array($workload->identity(), $new, true),
-        ));
-    }
-
     /** @return array<string, mixed> */
     private static function json(string $path): array
     {
@@ -72,6 +57,41 @@ final class PerformanceShards
             $validated[$key] = $value;
         }
         return $validated;
+    }
+
+    /** @param array<string, mixed> $metadata */
+    private static function text(array $metadata, string $key): string
+    {
+        $value = $metadata[$key] ?? null;
+        if (!is_string($value) || $value === '') {
+            throw self::invalidShared($key);
+        }
+        return $value;
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     * @return list<string>
+     */
+    private static function identities(array $metadata, string $key): array
+    {
+        $value = $metadata[$key] ?? null;
+        if (!is_array($value) || !array_is_list($value)) {
+            throw self::invalidShared($key);
+        }
+        $identities = [];
+        foreach ($value as $identity) {
+            if (!is_string($identity)) {
+                throw self::invalidShared($key);
+            }
+            $identities[] = $identity;
+        }
+        return $identities;
+    }
+
+    private static function invalidShared(string $key): RuntimeException
+    {
+        return new RuntimeException('Missing or invalid shared shard metadata: ' . $key);
     }
 
     /**
@@ -103,24 +123,19 @@ final class PerformanceShards
             if (($metadata['opcache'] ?? null) !== $mode || ($metadata['fpm'] ?? null) !== ($shard === 1)) {
                 throw new RuntimeException('Shard runtime mode or FPM ownership differs');
             }
-            $shared = [];
-            foreach (['baseline', 'candidate', 'workloads', 'dependencies_sha256', 'configuration_sha256'] as $key) {
-                $value = $metadata[$key] ?? null;
-                if (!is_string($value) || $value === '') {
-                    throw new RuntimeException('Missing shared shard metadata: ' . $key);
-                }
-                $shared[$key] = $value;
-            }
-            $new = $metadata['new_workloads'] ?? null;
-            if (!is_array($new) || !array_is_list($new) || array_filter($new, is_string(...)) !== $new) {
-                throw new RuntimeException('Missing shared shard metadata: new_workloads');
-            }
-            $shared['new_workloads'] = $new;
+            $shared = [
+                'baseline' => self::text($metadata, 'baseline'),
+                'candidate' => self::text($metadata, 'candidate'),
+                'workloads' => self::text($metadata, 'workloads'),
+                'dependencies_sha256' => self::text($metadata, 'dependencies_sha256'),
+                'configuration_sha256' => self::text($metadata, 'configuration_sha256'),
+                'new_workloads' => self::identities($metadata, 'new_workloads'),
+            ];
             $reference ??= $shared;
-            $identities = array_map(
-                static fn(BenchmarkWorkload $workload): string => $workload->identity(),
-                self::comparable(BenchmarkReport::read($shardDirectory . '/discovery.xml')->workloads, $new),
-            );
+            $identities = array_values(array_diff(
+                BenchmarkReport::read($shardDirectory . '/discovery.xml')->identities(),
+                $shared['new_workloads'],
+            ));
             $expected ??= $identities;
             if ($reference !== $shared || $expected !== $identities) {
                 throw new RuntimeException(

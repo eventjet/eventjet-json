@@ -36,6 +36,30 @@ function exportRevision(string $ref, string $destination): void
     }
 }
 
+function hasBenchmarkSuite(string $revision): bool
+{
+    return trim(git('ls-tree', '--name-only', $revision, '--', 'benchmarks')) !== '';
+}
+
+function benchmarkSuiteDiffers(string $a, string $b): bool
+{
+    return git('diff', '--name-only', $a, $b, '--', 'benchmarks', 'tests', 'phpbench.json') !== '';
+}
+
+/**
+ * Workloads that the baseline revision's own suite lacks have nothing to compare against.
+ *
+ * @param callable(): BenchmarkReport $discoverBaselineSuite
+ * @return list<string>
+ */
+function newWorkloads(BenchmarkReport $discovery, string $base, string $workloads, callable $discoverBaselineSuite): array
+{
+    if (!hasBenchmarkSuite($base) || !benchmarkSuiteDiffers($base, $workloads)) {
+        return [];
+    }
+    return array_values(array_diff($discovery->identities(), $discoverBaselineSuite()->identities()));
+}
+
 /**
  * PHPBench takes seconds to parse every benchmark file, so each measurement names only its own file.
  *
@@ -191,8 +215,7 @@ $metadata = [
     'candidate' => $candidate,
     'dependencies_sha256' => $dependenciesHash,
     'workloads_changed' =>
-        !isset($options['workloads'])
-            && git('diff', '--name-only', $base, $candidate, '--', 'benchmarks', 'tests', 'phpbench.json') !== '',
+        !isset($options['workloads']) && benchmarkSuiteDiffers($base, $candidate),
     'new_workloads' => [],
     'cpu' => 'unknown',
 ];
@@ -207,7 +230,7 @@ foreach ($cpuInfo as $line) {
     }
 }
 writeJson($results . '/metadata.json', $metadata);
-if (trim(git('ls-tree', '--name-only', $workloads, '--', 'benchmarks')) === '') {
+if (!hasBenchmarkSuite($workloads)) {
     publish(
         $results,
         "## Performance comparison\n\nNo comparable baseline: workload revision `$workloads` has no benchmark suite. Candidate: `$candidate`. No regression verdict is available.\n",
@@ -257,17 +280,23 @@ $measure = static function (string $workspace, string $name, int $iterations, st
 };
 // The baseline cannot run workloads for features it lacks, so discovery runs on the candidate.
 $discovery = $measure($workspaces['candidate'], 'discovery', 1, '--revs=1');
-if (
-    trim(git('ls-tree', '--name-only', $base, '--', 'benchmarks')) !== ''
-    && git('diff', '--name-only', $base, $workloads, '--', 'benchmarks', 'tests', 'phpbench.json') !== ''
-) {
-    $baselineWorkloads = $output . '/workspace-baseline-workloads';
-    prepareWorkspace($baselineWorkloads, $output . '/baseline', $output . '/baseline', $base, $opcache);
-    $known = $measure($baselineWorkloads, 'baseline-workloads', 1, '--revs=1')->identities();
-    $metadata['new_workloads'] = array_values(array_diff($discovery->identities(), $known));
-    writeJson($results . '/metadata.json', $metadata);
+$metadata['new_workloads'] = newWorkloads($discovery, $base, $workloads, static function () use (
+    $output,
+    $base,
+    $opcache,
+    $measure,
+): BenchmarkReport {
+    $workspace = $output . '/workspace-baseline-workloads';
+    prepareWorkspace($workspace, $output . '/baseline', $output . '/baseline', $base, $opcache);
+    return $measure($workspace, 'baseline-workloads', 1, '--revs=1');
+});
+writeJson($results . '/metadata.json', $metadata);
+$comparable = $discovery->workloadsExcept($metadata['new_workloads']);
+if ($comparable === []) {
+    throw new RuntimeException(
+        'No comparable workloads: the baseline revision\'s benchmark suite has none of the frozen suite\'s workloads',
+    );
 }
-$comparable = PerformanceShards::comparable($discovery->workloads, $metadata['new_workloads']);
 $comparisons = [];
 $indices = PerformanceShards::assignedIndices(count($comparable), $shard);
 $files = withWorkspace($workspaces['baseline'], static fn(string $active): array => benchmarkFiles(
@@ -319,7 +348,7 @@ if ($fpm) {
     $fpmReport = FpmMeasurements::report($fpmComparisons, $opcache);
 }
 $comment = $comparisons === []
-    ? "No workloads assigned to this shard.\n"
+    ? "No workloads assigned to this shard.\n\n" . newWorkloadsSection($metadata['new_workloads'])
     : performanceSummary($comparisons, $opcacheOption, $fpmComparisons, $metadata['new_workloads']);
 file_put_contents($results . '/comment.md', $comment);
 publish(

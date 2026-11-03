@@ -129,6 +129,8 @@ once on the baseline. Workloads missing from it run only in the candidate's disc
 run and are listed as new workloads without a regression verdict; an error in them
 still fails the comparison. A changed existing workload that the baseline cannot run
 still fails, as do baseline revisions without a suite of their own, which skip this check.
+A frozen suite made only of new workloads leaves nothing to compare, so the runner
+fails and says so.
 
 The comparison runner defaults to `--opcache on` and CLI-only measurements; add
 `--opcache off` for the secondary mode. Reports and metadata record the selected
@@ -228,21 +230,21 @@ A completed regression remains a regression; interrupted measurements cannot
 produce a passing comparison. The existing required check names remain unchanged.
 
 The runner discovers workloads with a single-iteration discovery run on the
-candidate. It then
-measures each workload in 20 rounds per revision, in ABBA order (target, PR, PR,
-target, …). Each round is one PHPBench run of two iterations, preserving cold/warm
-revolution and warmup settings. The runner slows down for seconds at a time;
-when one revision ran all its iterations before the other, such a slow stretch
-fell on one side only and moved unchanged workloads by up to 17%. Short
-alternating rounds spread those stretches over both sides. Each round names only
-its benchmark file, because PHPBench needs about two seconds to parse the whole
-suite. The runner exits with code 2 when a blocking workload or, with OPcache on,
-a PHP-FPM document exceeds its limit. There is no stored timing baseline,
-minimum increase in microseconds, or automatic retry-until-pass policy.
-Memory remains advisory. Raw XML and PHPBench's aggregate report for every round,
-commit IDs, CPU information, and a dependency fingerprint are archived even when
-a comparison fails. A changed candidate workload suite runs once separately, since
-its workloads are not comparable.
+candidate. It then measures each workload in 20 rounds per revision, in ABBA
+order (target, PR, PR, target, …). Each round is one PHPBench run of two
+iterations, preserving cold/warm revolution and warmup settings. The runner
+slows down for seconds at a time; when one revision ran all its iterations
+before the other, such a slow stretch fell on one side only and moved unchanged
+workloads by up to 17%. Short alternating rounds spread those stretches over
+both sides. Each round names only its benchmark file, because PHPBench needs
+about two seconds to parse the whole suite. The runner exits with code 2 when a
+blocking workload or, with OPcache on, a PHP-FPM document exceeds its limit.
+There is no stored timing baseline, minimum increase in microseconds, or
+automatic retry-until-pass policy. Memory remains advisory. Raw XML and
+PHPBench's aggregate report for every round, commit IDs, CPU information, and a
+dependency fingerprint are archived even when a comparison fails. A changed
+candidate workload suite runs once separately, since its workloads are not
+comparable.
 
 Use the Performance workflow's manual `calibrate` input to compare the same
 commit against itself in five independent repetitions of the complete sharded check.

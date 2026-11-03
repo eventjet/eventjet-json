@@ -49,12 +49,12 @@ $fpmSample = fpmSample(true);
 jsonFile($directory . '/1/fpm.json', ['baseline' => $fpmSample, 'candidate' => $fpmSample]);
 $result = PerformanceShards::collect($directory, 'on');
 if (performanceStatus($result['comparisons'], 'on', $result['fpm']) !== 0 || count($result['comparisons']) !== 9 || count($result['fpm']) !== 1
-    || !str_contains(performanceSummary($result['comparisons'], 'on', $result['fpm']), "⚪ No significant changes · **Overall decode time: +0.00%** · **9 workloads**")) {
+    || !str_contains(performanceSummary($result['comparisons'], 'on', $result['fpm'], []), "⚪ No significant changes · **Overall decode time: +0.00%** · **9 workloads**")) {
     throw new RuntimeException('Complete shards must produce one full comparison');
 }
 $measurementPath = $directory . '/2/candidate-0-0.xml';
 rename($measurementPath, $measurementPath . '.saved');
-if (!str_contains(performanceSummary($result['comparisons'], 'on', $result['fpm']), '**9 workloads**')) {
+if (!str_contains(performanceSummary($result['comparisons'], 'on', $result['fpm'], []), '**9 workloads**')) {
     throw new RuntimeException('Summary must use validated comparisons without reopening measurement files');
 }
 rename($measurementPath . '.saved', $measurementPath);
@@ -179,7 +179,7 @@ foreach ([
         $comparison('control', false, $control),
         $comparison('cold', true, $cold),
     ];
-    $summary = performanceSummary($comparisons, 'on', null);
+    $summary = performanceSummary($comparisons, 'on', null, []);
     if (performanceStatus($comparisons, 'on', null) !== $status) {
         throw new RuntimeException('Incorrect status at ' . $time . ' µs');
     }
@@ -189,7 +189,7 @@ foreach ([
         }
     }
 }
-if (!str_contains(performanceSummary([$comparison('cold', true, 50)], 'on', null), '🟢 Improvement · **Overall decode time: -50.00%** · **1 workloads**')) {
+if (!str_contains(performanceSummary([$comparison('cold', true, 50)], 'on', null, []), '🟢 Improvement · **Overall decode time: -50.00%** · **1 workloads**')) {
     throw new RuntimeException('Advisory improvements must be shown');
 }
 if (BenchmarkComparison::order(0) !== ['baseline', 'candidate'] || BenchmarkComparison::order(1) !== ['candidate', 'baseline']) {

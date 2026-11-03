@@ -85,10 +85,15 @@ cat > vendor/bin/phpbench <<'PHP'
 <?php
 declare(strict_types=1);
 $config = json_decode(file_get_contents('phpbench.json'), true, flags: JSON_THROW_ON_ERROR);
-$candidateSuite = in_array('--dump-file=../results/candidate-workloads.xml', $argv, true)
-    || (getenv('EXPLICIT_WORKLOADS') === '1' && !in_array('--dump-file=../results/baseline-workloads.xml', $argv, true));
+// A revision's own suite is checked by name; every other run uses the frozen suite.
+$suite = getenv('EXPLICIT_WORKLOADS') === '1' ? 'candidate' : 'baseline';
+foreach ($argv as $argument) {
+    if (preg_match('~^--dump-file=\.\./results/(baseline|candidate)-workloads\.xml$~', $argument, $match) === 1) {
+        $suite = $match[1];
+    }
+}
 if ($config['runner.path'] !== 'benchmarks'
-    || $config['runner.php_config']['serialize_precision'] !== ($candidateSuite ? '9' : '7')) {
+    || $config['runner.php_config']['serialize_precision'] !== ($suite === 'candidate' ? '9' : '7')) {
     throw new RuntimeException('Workload configuration was not isolated');
 }
 foreach (['pcov.enabled', 'opcache.jit', 'opcache.jit_buffer_size', 'opcache.file_update_protection'] as $setting) {
@@ -116,8 +121,9 @@ $expectedIdentity = $baselineRun && getenv('SOURCE_ONLY') !== '1' ? 'baseline' :
 if (\Fixture\Revision::IDENTITY !== $expectedIdentity) {
     throw new RuntimeException('Autoloader selected the wrong compared revision');
 }
-if (\Fixture\Revision::IDENTITY === 'baseline' && is_file('benchmarks/NewBench.php')
-    && !in_array('benchmarks/ExampleBench.php', $argv, true)) {
+$files = array_filter($argv, static fn(string $argument): bool => str_starts_with($argument, 'benchmarks/'));
+$runsNewBench = is_file('benchmarks/NewBench.php') && ($files === [] || in_array('benchmarks/NewBench.php', $files, true));
+if (\Fixture\Revision::IDENTITY === 'baseline' && $runsNewBench) {
     throw new RuntimeException('The baseline cannot run workloads for features it lacks');
 }
 $time = \Fixture\Revision::time();
@@ -358,6 +364,17 @@ mv .perf new-workload-results
 aggregate new-workload new-workload-results/results on 1000 0 '⚪ No significant performance changes (OPcache on)' \
     '### New workloads · no verdict' 'NewBench::benchNew[]'
 echo 'Workloads absent from the baseline suite run on the candidate and are reported without a verdict.'
+git rm --quiet benchmarks/ExampleBench.php
+git commit --quiet -m 'Only workloads for new features'
+only_new=$(git rev-parse HEAD)
+if EXPLICIT_WORKLOADS=1 php "$runner" --base "$baseline" --candidate "$only_new" --workloads "$only_new" > only-new.log 2>&1; then
+    echo 'A suite without comparable workloads must fail'
+    exit 1
+fi
+grep -Fq "No comparable workloads: the baseline revision's benchmark suite has none" only-new.log \
+    || { cat only-new.log; exit 1; }
+rm -rf .perf
+echo 'A suite made only of new workloads fails with its own reason.'
 git rm --quiet -rf benchmarks tests phpbench.json
 git commit --quiet -m 'Source without a benchmark suite'
 no_benchmarks=$(git rev-parse HEAD)

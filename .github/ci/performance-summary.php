@@ -160,7 +160,7 @@ function newWorkloadsSection(array $new): string
  * @param non-empty-list<FpmComparison>|null $fpm
  * @param list<string> $new
  */
-function performanceSummary(array $comparisons, string $mode, array|null $fpm, array $new = []): string
+function performanceSummary(array $comparisons, string $mode, array|null $fpm, array $new): string
 {
     $warm = array_values(array_filter($comparisons, static fn(BenchmarkComparison $c): bool => $c->workload->blocks()));
     $cold = array_values(array_filter($comparisons, static fn(BenchmarkComparison $c): bool => !$c->workload->blocks()));

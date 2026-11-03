@@ -81,6 +81,18 @@ final readonly class BenchmarkReport
         return array_map(static fn(BenchmarkWorkload $workload): string => $workload->identity(), $this->workloads);
     }
 
+    /**
+     * @param list<string> $identities
+     * @return list<BenchmarkWorkload>
+     */
+    public function workloadsExcept(array $identities): array
+    {
+        return array_values(array_filter(
+            $this->workloads,
+            static fn(BenchmarkWorkload $workload): bool => !in_array($workload->identity(), $identities, true),
+        ));
+    }
+
     public function requireMode(string $mode): void
     {
         $opcache = $this->xml->xpath('//env/opcache/value[@name="enabled"]');
