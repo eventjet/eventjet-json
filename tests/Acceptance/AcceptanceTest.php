@@ -66,6 +66,7 @@ use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
+use Eventjet\Json\Internal\PropertyAttributes;
 use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
@@ -182,6 +183,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversMethod(MappedJsonFields::class, 'jsonSerialize')]
 #[CoversClass(MappedObjectSerializer::class)]
 #[CoversClass(TargetClass::class)]
+#[CoversClass(PropertyAttributes::class)]
 #[CoversClass(FieldNameRules::class)]
 #[CoversClass(DecodeErrorKind::class)]
 #[CoversClass(AmbiguousUnion::class)]

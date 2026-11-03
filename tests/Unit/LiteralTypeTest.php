@@ -44,6 +44,7 @@ use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
+use Eventjet\Json\Internal\PropertyAttributes;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
@@ -130,6 +131,7 @@ use const PHP_INT_MIN;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(TargetClass::class)]
+#[UsesClass(PropertyAttributes::class)]
 #[UsesClass(NullableJsonValues::class)]
 #[UsesClass(ScalarItems::class)]
 #[CoversClass(ScalarNode::class)]
@@ -507,6 +509,6 @@ final class LiteralTypeTest extends TestCase
         $class = $field->getDeclaringClass();
         static::assertNotNull($type);
         static::assertNotNull($class);
-        return new TypeCompiler()->field($field, $type);
+        return new TypeCompiler()->field($field, $type, [$field->getName() => true]);
     }
 }

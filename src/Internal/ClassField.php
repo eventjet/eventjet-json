@@ -61,11 +61,12 @@ final readonly class ClassField
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<string, string> $names JSON names of renamed properties, keyed by property name.
+     * @param array<string, true> $attributed The properties that declare any attribute, keyed by name.
      * @return list<self>
      * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function compile(ReflectionClass $class, array $names): array
+    public static function compile(ReflectionClass $class, array $names, array $attributed): array
     {
         $properties = self::properties($class);
         $fields = [];
@@ -75,7 +76,7 @@ final readonly class ClassField
             unset($properties[$field->name]);
         }
         foreach ($properties as $name => $property) {
-            $fields[] = new self($names[$name] ?? $name, $name, self::node($property), $property, false);
+            $fields[] = new self($names[$name] ?? $name, $name, self::node($property, $attributed), $property, false);
         }
         foreach ($fields as $field) {
             if (!$field->node instanceof JsonValueNode) {
@@ -161,21 +162,24 @@ final readonly class ClassField
         if ($parameter->isVariadic()) {
             throw UnsupportedField::variadic($name);
         }
-        $node = self::node($parameter);
+        $node = self::node($parameter, [$name => true]);
         return array_key_exists($name, $properties)
             ? new self($names[$name] ?? $name, $name, $node, null, !$parameter->isOptional())
             : throw UnsupportedField::withoutProperty($name);
     }
 
     /**
+     * @param array<string, true> $attributed The fields that may declare attributes, keyed by name. A constructor
+     *     parameter always may: an ordinary one has attributes of its own, and telling it from a promoted one costs as
+     *     much as looking them up.
      * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function node(ReflectionParameter|ReflectionProperty $field): Node
+    private static function node(ReflectionParameter|ReflectionProperty $field, array $attributed): Node
     {
         $type = $field->getType();
         return $type === null
             ? throw UnsupportedField::untyped($field->getName())
-            : new TypeCompiler()->field($field, $type);
+            : new TypeCompiler()->field($field, $type, $attributed);
     }
 }

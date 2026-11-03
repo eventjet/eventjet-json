@@ -38,15 +38,19 @@ final readonly class TypeCompiler
     private const array NULLS = ['mixed' => true, 'null' => true];
 
     /**
+     * @param array<string, true> $attributed The fields that may declare attributes, keyed by name. Other fields skip
+     *     looking up #[Discriminator].
      * @throws DecodeError
      * @throws ReflectionException
      */
-    public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type): Node
+    public function field(ReflectionParameter|ReflectionProperty $field, ReflectionType $type, array $attributed): Node
     {
         $declared = PhpDocFieldType::resolve($field);
         $resolved = $declared === null ? null : new PhpDocTypeResolver($field)->resolve($declared);
         $doc = $resolved === null ? null : self::narrowing($resolved, $field, $type);
-        $attributes = $field->getAttributes(Discriminator::class);
+        $attributes = array_key_exists($field->getName(), $attributed)
+            ? $field->getAttributes(Discriminator::class)
+            : [];
         $discriminator = $attributes === [] ? null : new FieldDiscriminator($attributes[0]->newInstance()->name);
         $node = match (true) {
             $doc !== null => NodeCompiler::field($doc, $field->getName(), $discriminator),
