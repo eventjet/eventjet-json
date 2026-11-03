@@ -7,6 +7,7 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\ConstructorFailure;
 use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\JsonValue;
 use JsonException;
 use ReflectionClass;
 use ReflectionException;
@@ -38,14 +39,11 @@ final readonly class ClassDecoder
      * @param class-string $class
      * @param list<ClassField> $fields The constructor parameters, then the public properties outside the constructor.
      * @param OtherMembersField|null $others The field that collects the members that no other field claims, if any.
-     * @param array<array-key, true> $declared The JSON names of the other fields as keys, if a field collects the
-     *     other members.
      */
     public function __construct(
         public string $class,
         public array $fields,
         private OtherMembersField|null $others,
-        private array $declared,
     ) {
         $this->complete = array_all($fields, static fn(ClassField $field): bool => array_all(
             $field->node->dependencies(),
@@ -63,9 +61,9 @@ final readonly class ClassDecoder
      */
     public static function compile(ReflectionClass $class): self
     {
-        [$names, $attributed, $others, $declared] = TargetClass::validate($class);
+        [$names, $attributed, $others] = TargetClass::validate($class);
         [$fields, $collector] = ClassField::compile($class, $names, $attributed, $others);
-        return new self($class->getName(), $fields, $collector, $declared);
+        return new self($class->getName(), $fields, $collector);
     }
 
     /**
@@ -107,7 +105,12 @@ final readonly class ClassDecoder
             $assignments[] = [$field->property, $value];
         }
         if ($this->others !== null) {
-            $this->collect($this->others, $values, $path, $arguments, $assignments);
+            [$arguments, $assignments] = self::withOthers(
+                $this->others,
+                $this->others->collect($values, $path),
+                $arguments,
+                $assignments,
+            );
         }
         try {
             /**
@@ -131,29 +134,25 @@ final readonly class ClassDecoder
     }
 
     /**
-     * Adds the members that no declared field claims to the arguments or the assignments.
+     * Adds the collected other members to the arguments or the assignments, like a declared field.
      *
-     * @param array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values The members of the
-     *     JSON object.
+     * @param array<array-key, JsonValue> $collected
      * @param array<string, mixed> $arguments
      * @param list<array{ReflectionProperty, array<array-key, mixed>|bool|float|int|object|string|null}> $assignments
-     * @param-out array<string, mixed> $arguments
-     * @param-out list<array{ReflectionProperty, array<array-key, mixed>|bool|float|int|object|string|null}> $assignments
-     * @throws DecodeError
+     * @return array{array<string, mixed>, list<array{ReflectionProperty, array<array-key, mixed>|bool|float|int|object|string|null}>}
      */
-    private function collect(
+    private static function withOthers(
         OtherMembersField $others,
-        array $values,
-        string $path,
-        array &$arguments,
-        array &$assignments,
-    ): void {
-        $collected = $others->collect($values, $this->declared, $path);
+        array $collected,
+        array $arguments,
+        array $assignments,
+    ): array {
         if ($others->property === null) {
             $arguments[$others->name] = $collected;
-            return;
+            return [$arguments, $assignments];
         }
         $assignments[] = [$others->property, $collected];
+        return [$arguments, $assignments];
     }
 
     /**

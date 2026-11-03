@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal;
 
-use ArrayObject;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\InvalidOtherMembers;
 use Eventjet\Json\Internal\Error\InvalidValue;
@@ -31,37 +30,36 @@ final readonly class OtherMembersField
      * @param string $name The name of the constructor parameter or the property.
      * @param ReflectionProperty|null $property The property that decoding assigns after construction, or null for a
      *     constructor argument.
+     * @param array<array-key, string> $declared The names of the other public instance properties, keyed by JSON name.
      */
     private function __construct(
         public string $name,
         public ReflectionProperty|null $property,
+        private array $declared,
     ) {}
 
     /**
-     * Takes the field that collects the other members out of the constructor parameters and the public instance
-     * properties, and compiles it: the constructor parameter of that name if there is one, or else the property.
+     * Compiles the field that collects the other members: the constructor parameter of that name if there is one, or
+     * else the property.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @param string $others The property that collects the other members.
+     * @param array{string, array<array-key, string>} $others The property that collects the other members, with the
+     *     names of the other public instance properties keyed by JSON name.
      * @param array<ReflectionParameter> $parameters The constructor parameters.
-     * @param array<string, ReflectionProperty> $properties The public instance properties, keyed by name.
-     * @return array{self, array<ReflectionParameter>, array<string, ReflectionProperty>}
      * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function extract(ReflectionClass $class, string $others, array $parameters, array $properties): array
+    public static function of(ReflectionClass $class, array $others, array $parameters): self
     {
-        unset($properties[$others]);
-        foreach ($parameters as $index => $parameter) {
-            if ($parameter->getName() !== $others) {
-                continue;
+        [$name, $declared] = $others;
+        foreach ($parameters as $parameter) {
+            if ($parameter->getName() === $name) {
+                return self::field($parameter, null, $declared);
             }
-            unset($parameters[$index]);
-            return [self::field($parameter, null), $parameters, $properties];
         }
-        $property = $class->getProperty($others);
-        return [self::field($property, $property), $parameters, $properties];
+        $property = $class->getProperty($name);
+        return self::field($property, $property, $declared);
     }
 
     /**
@@ -71,17 +69,19 @@ final readonly class OtherMembersField
      *     type.
      * @param ReflectionProperty|null $property The property that decoding assigns after construction, or null for a
      *     constructor argument.
+     * @param array<array-key, string> $declared The names of the other public instance properties, keyed by JSON name.
      * @throws DecodeError
      * @throws ReflectionException
      */
     private static function field(
         ReflectionParameter|ReflectionProperty $field,
         ReflectionProperty|null $property,
+        array $declared,
     ): self {
         $name = $field->getName();
         $type = $field->getType();
-        $declared = PhpDocFieldType::resolve($field);
-        $resolved = $declared === null ? null : new PhpDocTypeResolver($field)->resolve($declared);
+        $declaredType = PhpDocFieldType::resolve($field);
+        $resolved = $declaredType === null ? null : new PhpDocTypeResolver($field)->resolve($declaredType);
         $arguments = $resolved?->name === 'array' ? $resolved->arguments : [];
         $value = array_pop($arguments);
         $key = array_pop($arguments);
@@ -92,23 +92,22 @@ final readonly class OtherMembersField
             && !$type->allowsNull()
             && $arguments === []
             && $value?->isPlainName(JsonValue::class) === true
-            && ($key === null || $key->mapKeys(ArrayObject::class) === 'array-key');
-        return $collects ? new self($name, $property) : throw InvalidOtherMembers::type($name);
+            && ($key === null || $key->isAnyKey());
+        return $collects ? new self($name, $property, $declared) : throw InvalidOtherMembers::type($name);
     }
 
     /**
      * Returns the members whose names are not declared, each as a JsonValue.
      *
      * @param array<array-key, mixed> $values The members of the JSON object.
-     * @param array<array-key, true> $declared The JSON names of the declared fields, as keys.
      * @return array<array-key, JsonValue>
      * @throws DecodeError
      */
-    public function collect(array $values, array $declared, string $path): array
+    public function collect(array $values, string $path): array
     {
         $collected = [];
         /** @var mixed $value */
-        foreach (array_diff_key($values, $declared) as $key => $value) {
+        foreach (array_diff_key($values, $this->declared) as $key => $value) {
             try {
                 $collected[$key] = new JsonValue($value);
             } catch (InvalidArgumentException $error) {

@@ -8,7 +8,6 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\Field;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
-use Eventjet\Json\OtherMembers;
 use JsonSerializable;
 use ReflectionClass;
 use ReflectionProperty;
@@ -16,7 +15,6 @@ use Throwable;
 
 use function array_filter;
 use function array_key_exists;
-use function array_values;
 use function count;
 
 /**
@@ -31,25 +29,21 @@ final class FieldNameRules
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param list<ReflectionProperty> $properties The properties of the class.
-     * @param array<ReflectionProperty> $annotated The properties that declare #[Field] or #[OtherMembers], including
-     *     private ancestor properties.
-     * @return array{array<string, string>, string|null, array<array-key, true>} JSON names keyed by property name, the
-     *     property that collects the other members, if any, and the JSON names of the other public instance properties
-     *     as keys if it exists.
+     * @param list<ReflectionProperty> $named The properties that declare #[Field], including private ancestor
+     *     properties.
+     * @param list<ReflectionProperty> $collecting The properties that declare #[OtherMembers], including private
+     *     ancestor properties.
+     * @return array{array<string, string>, array{string, array<array-key, string>}|null} JSON names keyed by property
+     *     name, and, if a property collects the other members, its name with the names of the other public instance
+     *     properties keyed by JSON name.
      * @throws DecodeError
      */
-    public static function resolve(ReflectionClass $class, array $properties, array $annotated): array
+    public static function resolve(ReflectionClass $class, array $properties, array $named, array $collecting): array
     {
-        $collecting = array_values(array_filter(
-            $annotated,
-            static fn(ReflectionProperty $property): bool => $property->getAttributes(OtherMembers::class) !== [],
-        ));
-        $others = $collecting === [] ? null : OtherMemberRules::resolve($class, $collecting);
+        // Checked first, so that a class without JsonSerializable gets the message that explains #[OtherMembers].
+        $others = $collecting === [] ? null : OtherMemberRules::resolve($class, $collecting, $named);
         try {
-            $names = self::read(array_filter(
-                $annotated,
-                static fn(ReflectionProperty $property): bool => $property->getAttributes(Field::class) !== [],
-            ));
+            $names = self::read($named);
         } catch (DecodeError $error) {
             throw $error;
         } catch (Throwable $error) {
@@ -58,8 +52,8 @@ final class FieldNameRules
         if (!$class->implementsInterface(JsonSerializable::class)) {
             throw InvalidFieldMapping::withoutJsonSerializable();
         }
-        self::rejectCollisions($properties, $names, $others);
-        return [$names, $others, $others === null ? [] : OtherMemberRules::declared($properties, $names, $others)];
+        $owners = self::rejectCollisions($properties, $names, $others);
+        return [$names, $others === null ? null : [$others, $owners]];
     }
 
     /**
@@ -86,14 +80,15 @@ final class FieldNameRules
     }
 
     /**
-     * Rejects two public instance properties that use the same JSON name. The property that collects the other members
-     * has none.
+     * Rejects two public instance properties that use the same JSON name, or returns their names keyed by JSON name.
+     * The property that collects the other members has none.
      *
      * @param list<ReflectionProperty> $properties
      * @param array<string, string> $names
+     * @return array<array-key, string>
      * @throws DecodeError
      */
-    private static function rejectCollisions(array $properties, array $names, string|null $others): void
+    private static function rejectCollisions(array $properties, array $names, string|null $others): array
     {
         $owners = [];
         foreach (array_filter($properties, self::isPublicInstance(...)) as $property) {
@@ -107,9 +102,10 @@ final class FieldNameRules
             }
             $owners[$wireName] = $name;
         }
+        return $owners;
     }
 
-    private static function isPublicInstance(ReflectionProperty $property): bool
+    public static function isPublicInstance(ReflectionProperty $property): bool
     {
         return (
             ($property->getModifiers() & (ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_STATIC))

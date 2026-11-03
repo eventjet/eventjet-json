@@ -132,6 +132,19 @@ final class OtherMembersErrorCases
             DecodeErrorKind::UnsupportedDeclaration,
         ];
         $class = self::declaring(
+            'OtherMembersAndFieldWithoutSerializer',
+            ' { #[\\' . Field::class . '("a")] public int $x = 0; ' . $collecting . ' public array $others = []; }',
+        );
+        yield '#[OtherMembers] and #[Field] without JsonSerializable' => [
+            '{}',
+            $class,
+            sprintf(
+                'Could not create %s from the JSON object: #[OtherMembers] requires the target class to implement JsonSerializable, because json_encode() would write the collected members as one nested member.',
+                $class,
+            ),
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
+        $class = self::declaring(
             'OtherMembersTwice',
             $serializable
             . ' '

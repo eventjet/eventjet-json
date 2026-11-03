@@ -20,28 +20,32 @@ use function array_push;
 final class PropertyAttributes
 {
     /**
-     * Returns the properties that declare any attribute, keyed by name, and the properties that declare #[Field] or
-     * #[OtherMembers], including private ancestor properties.
+     * Returns the properties that declare any attribute, keyed by name, then the properties that declare #[Field] and
+     * those that declare #[OtherMembers], both including private ancestor properties.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param list<ReflectionProperty> $properties The properties of the class.
-     * @return array{array<string, true>, list<ReflectionProperty>}
+     * @return array{array<string, true>, list<ReflectionProperty>, list<ReflectionProperty>}
      */
     public static function of(ReflectionClass $class, array $properties): array
     {
         $attributed = [];
-        $annotated = [];
+        $named = [];
+        $collecting = [];
         foreach ([...$properties, ...self::privateAncestorProperties($class)] as $property) {
             if ($property->getAttributes() === []) {
                 continue;
             }
             $attributed[$property->getName()] = true;
-            if ($property->getAttributes(Field::class) !== [] || $property->getAttributes(OtherMembers::class) !== []) {
-                $annotated[] = $property;
+            if ($property->getAttributes(Field::class) !== []) {
+                $named[] = $property;
+            }
+            if ($property->getAttributes(OtherMembers::class) !== []) {
+                $collecting[] = $property;
             }
         }
-        return [$attributed, $annotated];
+        return [$attributed, $named, $collecting];
     }
 
     /**

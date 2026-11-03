@@ -30,7 +30,7 @@ final class TargetClass
      * The mapping of each class, as mapping() returns it. A field whose property declares no attribute skips looking up
      * its own attributes, which would cost a call per field on every first decode.
      *
-     * @var array<class-string, array{array<string, string>, array<string, true>, string|null, array<array-key, true>}>
+     * @var array<class-string, array{array<string, string>, array<string, true>, array{string, array<array-key, string>}|null}>
      */
     private static array $fields = [];
 
@@ -40,7 +40,7 @@ final class TargetClass
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array{array<string, string>, array<string, true>, string|null, array<array-key, true>}
+     * @return array{array<string, string>, array<string, true>, array{string, array<array-key, string>}|null}
      * @throws DecodeError
      */
     public static function validate(ReflectionClass $class): array
@@ -115,32 +115,21 @@ final class TargetClass
      */
     public static function fieldNames(ReflectionClass $class): array
     {
-        return self::fields($class)[0];
+        return self::mapping($class)[0];
     }
 
     /**
-     * Returns what fieldNames() returns, the names of the properties that declare any attribute, the name of the
-     * property that collects the members that no declared field claims, or null if there is none, and, if there is
-     * one, the JSON names of the other public instance properties as keys.
+     * Returns what fieldNames() returns, the names of the properties that declare any attribute, and, if a property
+     * collects the members that no declared field claims, its name with the JSON names of the other public instance
+     * properties as keys.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array{array<string, string>, array<string, true>, string|null, array<array-key, true>}
+     * @return array{array<string, string>, array<string, true>, array{string, array<array-key, string>}|null}
      * @throws DecodeError
      * @phpstan-impure
      */
     public static function mapping(ReflectionClass $class): array
-    {
-        return self::fields($class);
-    }
-
-    /**
-     * @template T of object
-     * @param ReflectionClass<T> $class
-     * @return array{array<string, string>, array<string, true>, string|null, array<array-key, true>}
-     * @throws DecodeError
-     */
-    private static function fields(ReflectionClass $class): array
     {
         return self::$fields[$class->getName()] ?? self::resolve($class);
     }
@@ -148,22 +137,22 @@ final class TargetClass
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array{array<string, string>, array<string, true>, string|null, array<array-key, true>}
+     * @return array{array<string, string>, array<string, true>, array{string, array<array-key, string>}|null}
      * @throws DecodeError
      */
     private static function resolve(ReflectionClass $class): array
     {
         $className = $class->getName();
         $properties = $class->getProperties();
-        [$attributed, $annotated] = PropertyAttributes::of($class, $properties);
-        if ($annotated === []) {
+        [$attributed, $named, $collecting] = PropertyAttributes::of($class, $properties);
+        if ($named === [] && $collecting === []) {
             if ($class->implementsInterface(JsonSerializable::class)) {
                 NullableJsonValues::requireDecodable($class);
             }
-            return self::$fields[$className] = [[], $attributed, null, []];
+            return self::$fields[$className] = [[], $attributed, null];
         }
-        [$names, $others, $declared] = FieldNameRules::resolve($class, $properties, $annotated);
-        return self::$fields[$className] = [$names, $attributed, $others, $declared];
+        [$names, $others] = FieldNameRules::resolve($class, $properties, $named, $collecting);
+        return self::$fields[$className] = [$names, $attributed, $others];
     }
 
     /**
@@ -186,13 +175,13 @@ final class TargetClass
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array{array<string, string>, array<string, true>, string|null, array<array-key, true>}
+     * @return array{array<string, string>, array<string, true>, array{string, array<array-key, string>}|null}
      * @throws DecodeError
      */
     private static function validateDeclarations(ReflectionClass $class): array
     {
         try {
-            $fields = self::fields($class);
+            $fields = self::mapping($class);
             $constructor = $class->getConstructor();
             if ($constructor !== null && !$constructor->isPublic()) {
                 throw UnsupportedTarget::inaccessibleConstructor($constructor);
