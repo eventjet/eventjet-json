@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\Field;
+use Eventjet\Json\OtherMembers;
 use ReflectionClass;
 use ReflectionProperty;
 
@@ -19,8 +20,8 @@ use function array_push;
 final class PropertyAttributes
 {
     /**
-     * Returns the properties that declare any attribute, keyed by name, and the properties that declare #[Field],
-     * including private ancestor properties.
+     * Returns the properties that declare any attribute, keyed by name, and the properties that declare #[Field] or
+     * #[OtherMembers], including private ancestor properties.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
@@ -36,7 +37,7 @@ final class PropertyAttributes
                 continue;
             }
             $attributed[$property->getName()] = true;
-            if ($property->getAttributes(Field::class) !== []) {
+            if ($property->getAttributes(Field::class) !== [] || $property->getAttributes(OtherMembers::class) !== []) {
                 $annotated[] = $property;
             }
         }

@@ -298,11 +298,48 @@ using `MappedJsonFields`, which leaves out the member when the property is
 
 See the [type reference](docs/types.md#free-form-json-values) for the details.
 
+## Keeping unknown members
+
+Some tools need the members that a class doesn't declare, for example to keep
+vendor extensions when they rewrite a document. Mark one property with
+`#[OtherMembers]` to collect them:
+
+```php
+use Eventjet\Json\JsonValue;
+use Eventjet\Json\MappedJsonFields;
+use Eventjet\Json\OtherMembers;
+
+final readonly class Webhook implements JsonSerializable
+{
+    use MappedJsonFields;
+
+    /** @param array<array-key, JsonValue> $others */
+    public function __construct(
+        public string $event,
+        #[OtherMembers]
+        public array $others = [],
+    ) {}
+}
+
+$webhook = Json::decode('{"event":"push","x-retry":2}', Webhook::class);
+if ($webhook instanceof DecodeError) {
+    throw $webhook;
+}
+
+echo $webhook->others['x-retry']->value(); // 2
+echo json_encode($webhook); // {"event":"push","x-retry":2}
+```
+
+The property collects every member whose name matches no field's JSON name, each
+as a `JsonValue`. The class must implement `JsonSerializable`, for example with
+`MappedJsonFields`, which writes the collected members after the declared
+fields. See the [type reference](docs/types.md#other-members) for the details.
+
 ## Decoding rules
 
 - JSON member names match constructor parameter or public property names by
   default. For names PHP cannot use, see [the example below](#when-json-names-dont-work-as-php-property-names).
-  Unknown members are ignored.
+  Unknown members are ignored, unless the class [keeps them](#keeping-unknown-members).
 - Missing required constructor arguments produce an `InvalidValue` error.
   Missing optional arguments use their defaults. A present `null` requires a
   nullable type. Omitted public properties retain their state after
@@ -313,15 +350,15 @@ See the [type reference](docs/types.md#free-form-json-values) for the details.
 - Constructor parameters need same-named public instance properties.
   Nested classes and collection item classes must be final. Interfaces,
   and abstract classes are unsupported. `JsonSerializable` classes require at
-  least one `#[Field]` annotation or `JsonValue|null` property, and a matching
-  serializer.
+  least one `#[Field]` or `#[OtherMembers]` annotation or `JsonValue|null`
+  property, and a matching serializer.
 - Unions must identify a type unambiguously. For example, `Person|string|null`
   is supported; `Person|Team` is not, because either class represents a JSON
   object.
 
 Round trips preserve supported values and shapes, not the original JSON text.
-Unknown fields are discarded, and re-encoding may include default-valued
-properties omitted from the input. PHPDoc refinements such as `positive-int`
+Unknown fields are discarded unless the class keeps them, and re-encoding may
+include default-valued properties omitted from the input. PHPDoc refinements such as `positive-int`
 and `non-empty-string` validate the underlying scalar type, not the narrower
 constraint.
 

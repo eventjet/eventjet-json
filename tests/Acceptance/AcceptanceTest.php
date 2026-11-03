@@ -24,6 +24,7 @@ use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidDiscriminator;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\InvalidInput;
+use Eventjet\Json\Internal\Error\InvalidOtherMembers;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedClass;
 use Eventjet\Json\Internal\Error\UnsupportedClassUnion;
@@ -54,6 +55,8 @@ use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\NodeCompiler;
 use Eventjet\Json\Internal\NullableJsonValues;
+use Eventjet\Json\Internal\OtherMemberRules;
+use Eventjet\Json\Internal\OtherMembersField;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
@@ -76,6 +79,7 @@ use Eventjet\Json\Json;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\JsonValue;
 use Eventjet\Json\MappedJsonFields;
+use Eventjet\Json\OtherMembers;
 use Eventjet\Json\Test\Acceptance\Cases\ConstructorDefaultCases;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
 use Eventjet\Json\Test\Acceptance\Cases\EmptyShapeRoundTripCases;
@@ -216,6 +220,10 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(JsonValueNode::class)]
 #[CoversClass(NullableJsonValues::class)]
 #[CoversClass(UnsupportedJsonValue::class)]
+#[CoversClass(OtherMembers::class)]
+#[CoversClass(OtherMemberRules::class)]
+#[CoversClass(OtherMembersField::class)]
+#[CoversClass(InvalidOtherMembers::class)]
 final class AcceptanceTest extends TestCase
 {
     /** @param class-string|JsonType<mixed> $type */
