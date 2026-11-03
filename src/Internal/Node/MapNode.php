@@ -16,15 +16,35 @@ use function array_keys;
 use function is_int;
 use function sprintf;
 
-/** @internal */
+/**
+ * A `non-empty-array<string, T>`, `ArrayObject<string, T>`, or `ArrayObject<array-key, T>` map.
+ *
+ * @internal
+ */
 final readonly class MapNode implements Node
 {
-    public function __construct(
+    private function __construct(
         private Node $value,
-        public bool $arrayObject,
+        private bool $arrayObject,
+        private bool $integerKeys,
     ) {}
 
-    /** @return array<string, mixed>|ArrayObject<string, mixed> */
+    public static function nonEmptyArray(Node $value): self
+    {
+        return new self($value, arrayObject: false, integerKeys: false);
+    }
+
+    public static function stringKeyArrayObject(Node $value): self
+    {
+        return new self($value, arrayObject: true, integerKeys: false);
+    }
+
+    public static function anyKeyArrayObject(Node $value): self
+    {
+        return new self($value, arrayObject: true, integerKeys: true);
+    }
+
+    /** @return array<array-key, mixed>|ArrayObject<array-key, mixed> */
     #[Override]
     public function decode(mixed $value, string $path): array|ArrayObject
     {
@@ -35,25 +55,26 @@ final readonly class MapNode implements Node
         if (!$this->arrayObject && $values === []) {
             throw InvalidValue::emptyMap($path);
         }
-        foreach (array_keys($values) as $key) {
-            if (is_int($key)) {
-                throw InvalidValue::integerKey($path, $key);
+        if (!$this->integerKeys) {
+            foreach (array_keys($values) as $key) {
+                if (is_int($key)) {
+                    throw InvalidValue::integerKey($path, $key);
+                }
             }
         }
-        /** @var array<string, mixed> $values */
         $decoded = $this->value instanceof ScalarNode
             ? $this->value->decodeEach(
                 $values,
                 /** @throws JsonException */
-                static fn(string $key): string => FieldPath::key($path, $key),
+                static fn(int|string $key): string => FieldPath::key($path, $key),
             )
             : $this->decodeValues($values, $path);
         return $this->arrayObject ? new ArrayObject($decoded) : $decoded;
     }
 
     /**
-     * @param array<string, mixed> $values
-     * @return array<string, mixed>
+     * @param array<array-key, mixed> $values
+     * @return array<array-key, mixed>
      * @throws DecodeError
      * @throws JsonException
      */
@@ -82,6 +103,11 @@ final readonly class MapNode implements Node
     #[Override]
     public function __toString(): string
     {
-        return sprintf('%s<string, %s>', $this->arrayObject ? 'ArrayObject' : 'non-empty-array', $this->value);
+        return sprintf(
+            '%s<%s, %s>',
+            $this->arrayObject ? 'ArrayObject' : 'non-empty-array',
+            $this->integerKeys ? 'array-key' : 'string',
+            $this->value,
+        );
     }
 }
