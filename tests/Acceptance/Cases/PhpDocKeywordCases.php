@@ -30,6 +30,7 @@ final class PhpDocKeywordCases
             ['array', 'non-empty-list<int|array-key>', ['', 7]],
             ['array', 'array{array-key, array-key}', [-1, '-1']],
             ['ArrayObject', 'ArrayObject<string, array-key>', new ArrayObject(['a' => 1, 'b' => 'c'])],
+            ['ArrayObject', 'ArrayObject<array-key, int>', new ArrayObject([42 => 1, 'b' => 2])],
             ['array|int|string', 'list<int>|array-key', 'a'],
             ['array|int|string', 'list<int>|array-key', 5],
             ['array|int|string', 'array-key|list<int>', [5]],
@@ -89,19 +90,14 @@ final class PhpDocKeywordCases
                 ];
             }
         }
-        foreach (['non-empty-array<array-key, int>', 'ArrayObject<array-key, int>'] as $declaration) {
-            $native = $declaration[0] === 'A' ? 'ArrayObject' : 'array';
-            $class = CollectionDeclarationFixture::create($native, $declaration, 'param');
-            yield 'array-key cannot be a map key: ' . $declaration => [
-                '{"value":{}}',
-                $class,
-                'Could not create '
-                    . $class
-                    . ' from the JSON object: Field value uses unsupported map declaration '
-                    . ($native === 'array' ? 'non-empty-array' : ArrayObject::class)
-                    . '. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
-                DecodeErrorKind::UnsupportedDeclaration,
-            ];
-        }
+        $class = CollectionDeclarationFixture::create('array', 'non-empty-array<array-key, int>', 'param');
+        yield 'array-key cannot be a non-empty-array map key' => [
+            '{"value":{}}',
+            $class,
+            'Could not create '
+                . $class
+                . ' from the JSON object: Field value uses unsupported map declaration non-empty-array. Maps must use non-empty-array<string, TValue>, ArrayObject<string, TValue>, or ArrayObject<array-key, TValue>.',
+            DecodeErrorKind::UnsupportedDeclaration,
+        ];
     }
 }

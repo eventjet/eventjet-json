@@ -81,6 +81,24 @@ final readonly class BenchmarkReport
         return array_map(static fn(BenchmarkWorkload $workload): string => $workload->identity(), $this->workloads);
     }
 
+    /**
+     * @param list<string> $identities
+     * @return array{list<BenchmarkWorkload>, list<BenchmarkWorkload>} the listed workloads, then all others
+     */
+    public function partition(array $identities): array
+    {
+        $listed = [];
+        $others = [];
+        foreach ($this->workloads as $workload) {
+            if (in_array($workload->identity(), $identities, true)) {
+                $listed[] = $workload;
+            } else {
+                $others[] = $workload;
+            }
+        }
+        return [$listed, $others];
+    }
+
     public function requireMode(string $mode): void
     {
         $opcache = $this->xml->xpath('//env/opcache/value[@name="enabled"]');

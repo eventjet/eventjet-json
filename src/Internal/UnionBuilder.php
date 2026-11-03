@@ -7,6 +7,7 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\AmbiguousUnion;
 use Eventjet\Json\Internal\Node\DiscriminatedNode;
+use Eventjet\Json\Internal\Node\JsonValueNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
@@ -66,35 +67,16 @@ final class UnionBuilder
      */
     public function build(): Node
     {
-        $members = $this->members();
-        $classes = 0;
-        foreach ($members as $member) {
-            if (!$member instanceof ObjectNode) {
-                continue;
-            }
-            ++$classes;
-        }
-        $unidentified = [];
-        if ($classes > 1) {
-            try {
-                $members = DiscriminatorInference::group($members, $this->path, $this->discriminator?->name);
-                $discriminated = array_any(
-                    $members,
-                    static fn(Node $member): bool => $member instanceof DiscriminatedNode,
-                );
-                if ($discriminated) {
-                    $this->discriminator?->use();
-                }
-            } catch (DecodeError $error) {
-                $unidentified = [AmbiguousUnion::CLASSES => $error];
-            }
-        }
+        [$members, $unidentified] = $this->discriminate($this->members());
         if ($members === []) {
             assert($this->rejected !== null, description: 'A union with no members rejected at least one.');
             throw $this->rejected;
         }
         if (count($members) === 1 && $this->rejected === null) {
             return $members[0];
+        }
+        if (count($members) > 1) {
+            $this->rejectJsonValue($members);
         }
         $nullable = $this->nullable($members);
         if ($nullable !== null) {
@@ -110,6 +92,47 @@ final class UnionBuilder
             throw $error;
         }
         return UnionNode::of(implode('|', array_keys($this->types)), $claimed);
+    }
+
+    /**
+     * Replaces several classes with one node that picks the class by a discriminator member, or returns why it can't.
+     *
+     * @param list<Node> $members
+     * @return array{list<Node>, array<string, DecodeError>}
+     * @throws ReflectionException
+     */
+    private function discriminate(array $members): array
+    {
+        $classes = 0;
+        foreach ($members as $member) {
+            $classes += (int) ($member instanceof ObjectNode);
+        }
+        if ($classes < 2) {
+            return [$members, []];
+        }
+        try {
+            $members = DiscriminatorInference::group($members, $this->path, $this->discriminator?->name);
+        } catch (DecodeError $error) {
+            return [$members, [AmbiguousUnion::CLASSES => $error]];
+        }
+        $discriminated = array_any($members, static fn(Node $member): bool => $member instanceof DiscriminatedNode);
+        if ($discriminated) {
+            $this->discriminator?->use();
+        }
+        return [$members, []];
+    }
+
+    /**
+     * @param list<Node> $members
+     * @throws DecodeError If a JsonValue shares the union with another member.
+     */
+    private function rejectJsonValue(array $members): void
+    {
+        foreach ($members as $member) {
+            if ($member instanceof JsonValueNode) {
+                throw AmbiguousUnion::jsonValue($this->path);
+            }
+        }
     }
 
     /** @param list<Node> $members */

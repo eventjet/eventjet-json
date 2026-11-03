@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
+use Eventjet\Json\Internal\Node\JsonValueNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionClass;
@@ -68,13 +69,19 @@ final readonly class ClassField
     {
         $properties = self::properties($class);
         $fields = [];
-        foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
+        foreach (self::parameters($class) as $parameter) {
             $field = self::parameter($parameter, $names, $properties);
             $fields[] = $field;
             unset($properties[$field->name]);
         }
         foreach ($properties as $name => $property) {
             $fields[] = new self($names[$name] ?? $name, $name, self::node($property), $property, false);
+        }
+        foreach ($fields as $field) {
+            if (!$field->node instanceof JsonValueNode) {
+                continue;
+            }
+            $field->node->requireSerializer($class, $field->name);
         }
         return $fields;
     }
@@ -90,7 +97,7 @@ final readonly class ClassField
      */
     public static function uncompiled(ReflectionClass $class, array $names): array
     {
-        $parameters = $class->getConstructor()?->getParameters() ?? [];
+        $parameters = self::parameters($class);
         $fields =
             array_combine(array_map(
                 static fn(ReflectionParameter $parameter): string => $parameter->getName(),
@@ -105,6 +112,16 @@ final readonly class ClassField
             array_keys($fields),
             $fields,
         );
+    }
+
+    /**
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @return array<ReflectionParameter>
+     */
+    private static function parameters(ReflectionClass $class): array
+    {
+        return $class->getConstructor()?->getParameters() ?? [];
     }
 
     /**

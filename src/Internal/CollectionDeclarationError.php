@@ -29,8 +29,11 @@ final class CollectionDeclarationError
     ): DecodeError {
         $arguments = $declared->arguments ?? [];
         $map = count($arguments) >= 2 ? $declared?->name : null;
-        $stringKeys = ($arguments[0] ?? null)?->isPlainName('string') === true;
-        $arrayObject = $stringKeys && $map !== null && new PhpDocTypeResolver($field)->container($map) !== null;
+        $key = $arguments[0] ?? null;
+        $arrayObject =
+            self::acceptsKey(ArrayObject::class, $key)
+            && $map !== null
+            && new PhpDocTypeResolver($field)->container($map) !== null;
         $name = $field->getName();
         return match (true) {
             $native->name === ArrayObject::class => $arrayObject
@@ -38,10 +41,16 @@ final class CollectionDeclarationError
                 : UnsupportedCollection::map($name, ArrayObject::class),
             $native->name !== 'array' => self::unrecognized($field),
             $map === 'array' => UnsupportedCollection::genericArrayMap($name),
-            in_array($map, ['non-empty-array', 'non-empty-map'], strict: true) && !$stringKeys
+            in_array($map, ['non-empty-array', 'non-empty-map'], strict: true) && !self::acceptsKey($map, $key)
                 => UnsupportedCollection::map($name, $map),
             default => self::unrecognized($field),
         };
+    }
+
+    /** @mutation-free */
+    private static function acceptsKey(string $container, PhpDocType|null $key): bool
+    {
+        return $key?->mapKeys($container) !== null;
     }
 
     /** Returns the error for an `array` or `ArrayObject` field without a supported PHPDoc collection declaration. */

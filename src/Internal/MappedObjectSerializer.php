@@ -8,6 +8,7 @@ use Eventjet\Json\DecodeError;
 use ReflectionClass;
 use ReflectionException;
 
+use function array_key_exists;
 use function get_object_vars;
 
 /** @internal */
@@ -25,10 +26,14 @@ final class MappedObjectSerializer
         } catch (DecodeError $error) {
             throw $error->whileCreating($class->getName());
         }
+        $nullableJsonValues = NullableJsonValues::of($class);
         $result = [];
         /** @var array<string, array<array-key, mixed>|object|bool|int|float|string|resource|null> $properties */
         $properties = get_object_vars($object);
         foreach ($properties as $name => $value) {
+            if ($value === null && array_key_exists($name, $nullableJsonValues)) {
+                continue;
+            }
             $result[$names[$name] ?? $name] = $value;
         }
         return (object) $result;

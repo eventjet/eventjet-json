@@ -8,6 +8,7 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Discriminator;
 use Eventjet\Json\Field;
+use Eventjet\Json\Internal\CanonicalScalar;
 use Eventjet\Json\Internal\ClassDecoder;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\ClassField;
@@ -29,6 +30,7 @@ use Eventjet\Json\Internal\Error\UnsupportedClassUnion;
 use Eventjet\Json\Internal\Error\UnsupportedCollection;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Error\UnsupportedFieldClass;
+use Eventjet\Json\Internal\Error\UnsupportedJsonValue;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use Eventjet\Json\Internal\FieldDiscriminator;
 use Eventjet\Json\Internal\FieldNameRules;
@@ -38,6 +40,7 @@ use Eventjet\Json\Internal\MappedObjectSerializer;
 use Eventjet\Json\Internal\NamedTypeCompiler;
 use Eventjet\Json\Internal\Node\DiscriminatedNode;
 use Eventjet\Json\Internal\Node\EnumNode;
+use Eventjet\Json\Internal\Node\JsonValueNode;
 use Eventjet\Json\Internal\Node\ListNode;
 use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\MapNode;
@@ -50,6 +53,7 @@ use Eventjet\Json\Internal\Node\TupleNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\NodeCompiler;
+use Eventjet\Json\Internal\NullableJsonValues;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
@@ -69,6 +73,7 @@ use Eventjet\Json\Internal\UnionBuilder;
 use Eventjet\Json\Internal\UnionConflicts;
 use Eventjet\Json\Json;
 use Eventjet\Json\JsonType;
+use Eventjet\Json\JsonValue;
 use Eventjet\Json\MappedJsonFields;
 use Eventjet\Json\Test\Acceptance\Cases\ConstructorDefaultCases;
 use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
@@ -203,6 +208,11 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(ClassField::class)]
 #[CoversClass(ClassDecoders::class)]
 #[CoversClass(EnumRoots::class)]
+#[CoversClass(JsonValue::class)]
+#[CoversClass(CanonicalScalar::class)]
+#[CoversClass(JsonValueNode::class)]
+#[CoversClass(NullableJsonValues::class)]
+#[CoversClass(UnsupportedJsonValue::class)]
 final class AcceptanceTest extends TestCase
 {
     /** @param class-string|JsonType<mixed> $type */

@@ -26,6 +26,7 @@ use Eventjet\Json\Internal\Node\ScalarItems;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\NodeCompiler;
+use Eventjet\Json\Internal\NullableJsonValues;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocConstantImportStatement;
 use Eventjet\Json\Internal\PhpDocConstantResolver;
@@ -129,6 +130,7 @@ use const PHP_INT_MIN;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(TargetClass::class)]
+#[UsesClass(NullableJsonValues::class)]
 #[UsesClass(ScalarItems::class)]
 #[CoversClass(ScalarNode::class)]
 #[UsesClass(TypeCompiler::class)]
