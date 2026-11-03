@@ -36,6 +36,7 @@ use Eventjet\Json\Internal\Node\TupleNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\NodeCompiler;
+use Eventjet\Json\Internal\NullableJsonValues;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocFieldType;
 use Eventjet\Json\Internal\PhpDocImports;
@@ -78,6 +79,7 @@ use function class_alias;
 #[CoversClass(MappedObjectSerializer::class)]
 #[UsesClass(Field::class)]
 #[CoversClass(TargetClass::class)]
+#[CoversClass(NullableJsonValues::class)]
 #[CoversClass(FieldNameRules::class)]
 #[UsesClass(NamedTypeCompiler::class)]
 #[UsesClass(NodeCompiler::class)]

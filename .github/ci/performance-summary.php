@@ -18,6 +18,11 @@ function summaryName(string $name): string
     );
 }
 
+function workloadName(BenchmarkWorkload $workload): string
+{
+    return summaryName($workload->class . '::' . $workload->subject . ' [' . $workload->parameter . ']');
+}
+
 function sectionResult(bool $blocks, bool $slower, bool $faster): string
 {
     if ($slower) {
@@ -73,7 +78,7 @@ function cliSection(string $title, array $comparisons, bool $blocks): array
         $faster += (int) $comparison->faster();
         $workload = $comparison->workload;
         $rows[] = [
-            'name' => summaryName($workload->class . '::' . $workload->subject . ' [' . $workload->parameter . ']'),
+            'name' => workloadName($workload),
             'base' => $comparison->baseline,
             'candidate' => $comparison->candidate,
             'change' => ($ratio - 1) * 100,
@@ -141,11 +146,26 @@ function fpmSection(array $fpm, string $mode): array
     return ['text' => $text . "\n", 'faster' => $faster];
 }
 
+/** @param list<BenchmarkWorkload> $newWorkloads */
+function newWorkloadsSection(array $newWorkloads): string
+{
+    if ($newWorkloads === []) {
+        return '';
+    }
+    $text = "### New workloads · no verdict\n\n"
+        . "The target revision's benchmark suite lacks these workloads, so they ran once on the PR without a comparison.\n\n";
+    foreach ($newWorkloads as $workload) {
+        $text .= '- ' . workloadName($workload) . "\n";
+    }
+    return $text . "\n";
+}
+
 /**
  * @param non-empty-list<BenchmarkComparison> $comparisons
  * @param non-empty-list<FpmComparison>|null $fpm
+ * @param list<BenchmarkWorkload> $newWorkloads
  */
-function performanceSummary(array $comparisons, string $mode, array|null $fpm): string
+function performanceSummary(array $comparisons, string $mode, array|null $fpm, array $newWorkloads): string
 {
     $warm = array_values(array_filter($comparisons, static fn(BenchmarkComparison $c): bool => $c->workload->blocks()));
     $cold = array_values(array_filter($comparisons, static fn(BenchmarkComparison $c): bool => !$c->workload->blocks()));
@@ -166,6 +186,7 @@ function performanceSummary(array $comparisons, string $mode, array|null $fpm): 
     if ($cold !== []) {
         $sections[] = cliSection('Fresh CLI processes', $cold, false)['text'];
     }
+    $sections[] = newWorkloadsSection($newWorkloads);
     $verdict = performanceStatus($comparisons, $mode, $fpm) !== 0
         ? '🔴 Performance regression'
         : ($improved ? '🟢 Performance improvement' : '⚪ No significant performance changes');
@@ -177,6 +198,19 @@ function performanceSummary(array $comparisons, string $mode, array|null $fpm): 
         . "its Target and PR columns are median request times. Negative means faster.\n";
 }
 
+/**
+ * @param list<BenchmarkComparison> $comparisons
+ * @param non-empty-list<FpmComparison>|null $fpm
+ * @param list<BenchmarkWorkload> $newWorkloads
+ */
+function shardSummary(array $comparisons, string $mode, array|null $fpm, array $newWorkloads): string
+{
+    if ($comparisons === []) {
+        return "No workloads assigned to this shard.\n\n" . newWorkloadsSection($newWorkloads);
+    }
+    return performanceSummary($comparisons, $mode, $fpm, $newWorkloads);
+}
+
 /** @param list<BenchmarkComparison> $comparisons */
 function cliReport(array $comparisons): string
 {
@@ -185,7 +219,7 @@ function cliReport(array $comparisons): string
         $workload = $comparison->workload;
         $groups[$workload->category] = ($groups[$workload->category] ?? '') . sprintf(
             "| %s | %s | %.3f µs | %.3f µs | %+.2f%% |\n",
-            summaryName($workload->class . '::' . $workload->subject . ' [' . $workload->parameter . ']'),
+            workloadName($workload),
             $workload->blocks() ? 'blocking' : 'advisory',
             $comparison->baseline,
             $comparison->candidate,

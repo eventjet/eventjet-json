@@ -9,6 +9,7 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
+use Eventjet\Json\JsonValue;
 
 use function array_filter;
 use function array_intersect_key;
@@ -115,6 +116,16 @@ final class AmbiguousUnion
             'Field %s uses multiple class types: %s. JSON does not identify which class to instantiate.',
             $field,
             implode(', ', $classes),
+        ));
+    }
+
+    /** JsonValue takes every JSON value, so it conflicts with any other member, whatever it claims. */
+    public static function jsonValue(string $field): DecodeError
+    {
+        return self::error(sprintf(
+            'Field %s uses %s in a union. It takes every JSON value, null included, so JSON cannot identify another member.',
+            $field,
+            JsonValue::class,
         ));
     }
 

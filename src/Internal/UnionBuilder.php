@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\AmbiguousUnion;
+use Eventjet\Json\Internal\Node\JsonValueNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
@@ -67,6 +69,9 @@ final class UnionBuilder
         if (count($members) === 1 && $this->rejected === null) {
             return $members[0];
         }
+        if (count($members) > 1) {
+            $this->rejectJsonValue($members);
+        }
         $nullable = $this->nullable($members);
         if ($nullable !== null) {
             return $nullable;
@@ -81,6 +86,19 @@ final class UnionBuilder
             throw $error;
         }
         return UnionNode::of(implode('|', array_keys($this->types)), $claimed);
+    }
+
+    /**
+     * @param list<Node> $members
+     * @throws DecodeError If a JsonValue shares the union with another member.
+     */
+    private function rejectJsonValue(array $members): void
+    {
+        foreach ($members as $member) {
+            if ($member instanceof JsonValueNode) {
+                throw AmbiguousUnion::jsonValue($this->path);
+            }
+        }
     }
 
     /** @param list<Node> $members */
