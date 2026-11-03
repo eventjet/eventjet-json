@@ -47,20 +47,6 @@ function benchmarkSuiteDiffers(string $a, string $b): bool
 }
 
 /**
- * Workloads that the baseline revision's own suite lacks have nothing to compare against.
- *
- * @param callable(): BenchmarkReport $discoverBaselineSuite
- * @return list<string>
- */
-function newWorkloads(BenchmarkReport $discovery, string $base, string $workloads, callable $discoverBaselineSuite): array
-{
-    if (!hasBenchmarkSuite($base) || !benchmarkSuiteDiffers($base, $workloads)) {
-        return [];
-    }
-    return array_values(array_diff($discovery->identities(), $discoverBaselineSuite()->identities()));
-}
-
-/**
  * PHPBench takes seconds to parse every benchmark file, so each measurement names only its own file.
  *
  * @param list<string> $classes
@@ -278,18 +264,23 @@ $measure = static function (string $workspace, string $name, int $iterations, st
     $report->requireMode($opcacheOption);
     return $report;
 };
-// The baseline cannot run workloads for features it lacks, so discovery runs on the candidate.
-$discovery = $measure($workspaces['candidate'], 'discovery', 1, '--revs=1');
-$metadata['new_workloads'] = newWorkloads($discovery, $base, $workloads, static function () use (
+$runOwnSuite = static function (string $version, string $revision, string ...$options) use (
     $output,
-    $base,
     $opcache,
     $measure,
 ): BenchmarkReport {
-    $workspace = $output . '/workspace-baseline-workloads';
-    prepareWorkspace($workspace, $output . '/baseline', $output . '/baseline', $base, $opcache);
-    return $measure($workspace, 'baseline-workloads', 1, '--revs=1');
-});
+    $workspace = $output . '/workspace-' . $version . '-workloads';
+    prepareWorkspace($workspace, $output . '/' . $version, $output . '/' . $version, $revision, $opcache);
+    return $measure($workspace, $version . '-workloads', 1, ...$options);
+};
+// The baseline cannot run workloads for features it lacks, so discovery runs on the candidate.
+$discovery = $measure($workspaces['candidate'], 'discovery', 1, '--revs=1');
+if (hasBenchmarkSuite($base) && benchmarkSuiteDiffers($base, $workloads)) {
+    $metadata['new_workloads'] = array_values(array_diff(
+        $discovery->identities(),
+        $runOwnSuite('baseline', $base, '--revs=1')->identities(),
+    ));
+}
 writeJson($results . '/metadata.json', $metadata);
 [$newWorkloads, $comparable] = $discovery->partition($metadata['new_workloads']);
 if ($comparable === []) {
@@ -347,9 +338,7 @@ if ($fpm) {
     $fpmComparisons = FpmMeasurements::compare($samples['baseline'], $samples['candidate'], $opcache);
     $fpmReport = FpmMeasurements::report($fpmComparisons, $opcache);
 }
-$comment = $comparisons === []
-    ? "No workloads assigned to this shard.\n" . ($newWorkloads === [] ? '' : "\n" . newWorkloadsSection($newWorkloads))
-    : performanceSummary($comparisons, $opcacheOption, $fpmComparisons, $newWorkloads);
+$comment = shardSummary($comparisons, $opcacheOption, $fpmComparisons, $newWorkloads);
 file_put_contents($results . '/comment.md', $comment);
 publish(
     $results,
@@ -359,9 +348,7 @@ publish(
     . $fpmReport,
 );
 if ($metadata['workloads_changed'] && ($shard === null || $shard === 1)) {
-    $candidateWorkspace = $output . '/workspace-candidate-workloads';
-    prepareWorkspace($candidateWorkspace, $output . '/candidate', $output . '/candidate', $candidate, $opcache);
-    $measure($candidateWorkspace, 'candidate-workloads', 1);
+    $runOwnSuite('candidate', $candidate);
 }
 writeJson($results . '/complete.json', ['indices' => $indices]);
 exit(performanceStatus($comparisons, $opcacheOption, $fpmComparisons));

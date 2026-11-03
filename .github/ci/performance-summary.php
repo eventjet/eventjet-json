@@ -146,9 +146,12 @@ function fpmSection(array $fpm, string $mode): array
     return ['text' => $text . "\n", 'faster' => $faster];
 }
 
-/** @param non-empty-list<BenchmarkWorkload> $newWorkloads */
+/** @param list<BenchmarkWorkload> $newWorkloads */
 function newWorkloadsSection(array $newWorkloads): string
 {
+    if ($newWorkloads === []) {
+        return '';
+    }
     $text = "### New workloads · no verdict\n\n"
         . "The target revision's benchmark suite lacks these workloads, so they ran once on the PR without a comparison.\n\n";
     foreach ($newWorkloads as $workload) {
@@ -183,9 +186,7 @@ function performanceSummary(array $comparisons, string $mode, array|null $fpm, a
     if ($cold !== []) {
         $sections[] = cliSection('Fresh CLI processes', $cold, false)['text'];
     }
-    if ($newWorkloads !== []) {
-        $sections[] = newWorkloadsSection($newWorkloads);
-    }
+    $sections[] = newWorkloadsSection($newWorkloads);
     $verdict = performanceStatus($comparisons, $mode, $fpm) !== 0
         ? '🔴 Performance regression'
         : ($improved ? '🟢 Performance improvement' : '⚪ No significant performance changes');
@@ -195,6 +196,19 @@ function performanceSummary(array $comparisons, string $mode, array|null $fpm, a
         . 'CLI sections compare median times per decode over alternating rounds; overall is the geometric mean of '
         . "PR/target ratios, with equal weight per workload. The PHP-FPM change is the median of per-round PR/target ratios; "
         . "its Target and PR columns are median request times. Negative means faster.\n";
+}
+
+/**
+ * @param list<BenchmarkComparison> $comparisons
+ * @param non-empty-list<FpmComparison>|null $fpm
+ * @param list<BenchmarkWorkload> $newWorkloads
+ */
+function shardSummary(array $comparisons, string $mode, array|null $fpm, array $newWorkloads): string
+{
+    if ($comparisons === []) {
+        return "No workloads assigned to this shard.\n\n" . newWorkloadsSection($newWorkloads);
+    }
+    return performanceSummary($comparisons, $mode, $fpm, $newWorkloads);
 }
 
 /** @param list<BenchmarkComparison> $comparisons */

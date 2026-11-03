@@ -99,6 +99,21 @@ foreach (['shard' => 1, 'opcache' => 'off', 'fpm' => true, 'baseline' => 'wrong'
 rejects($directory, '2/discovery.xml', measurement(range(0, 7)));
 rejects($directory, '2/metadata.json', json_encode(array_replace($metadata, ['new_workloads' => [1]])));
 rejects($directory, '2/metadata.json', json_encode(array_diff_key($metadata, ['new_workloads' => true])));
+$originals = [];
+for ($shard = 1; $shard <= PerformanceShards::SHARDS; $shard++) {
+    $path = $directory . '/' . $shard . '/metadata.json';
+    $originals[$path] = file_get_contents($path);
+    $shardMetadata = json_decode($originals[$path], true);
+    file_put_contents($path, json_encode(array_replace($shardMetadata, ['new_workloads' => ['Fixture::bench9[case]']])));
+}
+try {
+    PerformanceShards::collect($directory, 'on');
+    throw new LogicException('Shards must not name new workloads that discovery did not find');
+} catch (RuntimeException) {
+}
+foreach ($originals as $path => $original) {
+    file_put_contents($path, $original);
+}
 rejects($directory, '1/fpm.json', json_encode(['baseline' => $fpmSample]));
 rejects($directory, '1/fpm.json', json_encode(['baseline' => $fpmSample, 'candidate' => ['document' => ['rounds' => [[100.0]], 'peak_bytes' => 1024]]]));
 rejects($directory, '1/fpm.json', json_encode(['baseline' => fpmSample(false), 'candidate' => fpmSample(false)]));

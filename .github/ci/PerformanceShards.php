@@ -89,6 +89,19 @@ final class PerformanceShards
         return $identities;
     }
 
+    /**
+     * @param list<string> $newWorkloads
+     * @return array{list<BenchmarkWorkload>, list<BenchmarkWorkload>} the new workloads, then the comparable ones
+     */
+    private static function split(BenchmarkReport $discovery, array $newWorkloads): array
+    {
+        $split = $discovery->partition($newWorkloads);
+        if (count($split[0]) !== count($newWorkloads)) {
+            throw new RuntimeException('Shard metadata names new workloads that discovery did not find');
+        }
+        return $split;
+    }
+
     private static function invalidShared(string $key): RuntimeException
     {
         return new RuntimeException('Missing or invalid shared shard metadata: ' . $key);
@@ -112,7 +125,7 @@ final class PerformanceShards
         $seen = [];
         $comparisons = [];
         $fpm = null;
-        $newWorkloads = [];
+        $split = null;
         foreach ($directories as $shardDirectory) {
             $metadata = self::json($shardDirectory . '/metadata.json');
             $completion = self::json($shardDirectory . '/complete.json');
@@ -133,16 +146,16 @@ final class PerformanceShards
                 'new_workloads' => self::identityList($metadata, 'new_workloads'),
             ];
             $reference ??= $shared;
-            [$newWorkloads, $comparable] = BenchmarkReport::read($shardDirectory . '/discovery.xml')
-                ->partition($shared['new_workloads']);
-            $identities = array_map(static fn(BenchmarkWorkload $workload): string => $workload->identity(), $comparable);
-            $expected ??= $identities;
-            if ($reference !== $shared || $expected !== $identities) {
+            $discovery = BenchmarkReport::read($shardDirectory . '/discovery.xml');
+            $expected ??= $discovery->identities();
+            if ($reference !== $shared || $expected !== $discovery->identities()) {
                 throw new RuntimeException(
                     'Shards disagree about revisions, dependencies, configuration, or workloads',
                 );
             }
-            $assigned = self::assignedIndices(count($identities), $shard);
+            $split ??= self::split($discovery, $shared['new_workloads']);
+            $comparable = $split[1];
+            $assigned = self::assignedIndices(count($comparable), $shard);
             foreach ($assigned as $index) {
                 $rounds = ['baseline' => [], 'candidate' => []];
                 foreach ($rounds as $version => $reports) {
@@ -155,7 +168,7 @@ final class PerformanceShards
                 $comparisons[] = BenchmarkReport::compare(
                     $rounds['baseline'],
                     $rounds['candidate'],
-                    $identities[$index],
+                    $comparable[$index]->identity(),
                     $mode,
                 );
             }
@@ -171,12 +184,12 @@ final class PerformanceShards
                 $fpm = FpmMeasurements::compare($samples['baseline'] ?? null, $samples['candidate'] ?? null, $mode === 'on');
             }
         }
-        if ($comparisons === [] || count($comparisons) !== count($expected)) {
+        if ($comparisons === [] || count($comparisons) !== count($split[1])) {
             throw new RuntimeException('Incomplete workload coverage');
         }
         if ($fpm === null) {
             throw new RuntimeException('Missing PHP-FPM measurements');
         }
-        return ['comparisons' => $comparisons, 'fpm' => $fpm, 'newWorkloads' => $newWorkloads];
+        return ['comparisons' => $comparisons, 'fpm' => $fpm, 'newWorkloads' => $split[0]];
     }
 }

@@ -122,9 +122,10 @@ if (\Fixture\Revision::IDENTITY !== $expectedIdentity) {
     throw new RuntimeException('Autoloader selected the wrong compared revision');
 }
 $files = array_filter($argv, static fn(string $argument): bool => str_starts_with($argument, 'benchmarks/'));
-$runsNewBench = is_file('benchmarks/NewBench.php') && ($files === [] || in_array('benchmarks/NewBench.php', $files, true));
-if (\Fixture\Revision::IDENTITY === 'baseline' && $runsNewBench) {
-    throw new RuntimeException('The baseline cannot run workloads for features it lacks');
+foreach ($files === [] ? glob('benchmarks/*.php') : $files as $file) {
+    if (\Fixture\Revision::IDENTITY === 'baseline' && !is_file('../baseline/' . $file)) {
+        throw new RuntimeException('The baseline cannot run workloads for features it lacks');
+    }
 }
 $time = \Fixture\Revision::time();
 $cold = false;
