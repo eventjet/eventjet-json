@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Parity\Corpus;
 
 /**
- * Every tag that phpstan/phpdoc-parser 2.4.0 knows, an unknown one, and values for them, for
+ * Every tag that phpstan/phpdoc-parser 2.4.1 knows, an unknown one, and values for them, for
  * {@see AnnotationProbeDocs::tagValues()}.
  *
  * @internal
