@@ -10,6 +10,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\Person;
 final class JsonFormattingRoundTripCases
 {
     /**
+     * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{object, string}>
      * @throws \ReflectionException
      * @throws \RuntimeException
