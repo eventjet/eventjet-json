@@ -15,6 +15,8 @@ use Eventjet\Json\Test\Acceptance\NorthStar\Kubernetes\Deployment;
 use Eventjet\Json\Test\Acceptance\NorthStar\Kubernetes\Hydration as KubernetesHydration;
 use Eventjet\Json\Test\Acceptance\NorthStar\Stripe\Hydration as StripeHydration;
 use Eventjet\Json\Test\Acceptance\NorthStar\Stripe\Invoice;
+use InvalidArgumentException;
+use JsonException;
 use RuntimeException;
 
 use function file_get_contents;
@@ -26,12 +28,17 @@ final class SupportedDocumentRoundTripCases
      * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{string, class-string, callable(object): bool}>
      * @throws RuntimeException
+     * @throws InvalidArgumentException
+     * @throws JsonException
      */
     public static function objects(): iterable
     {
         foreach (self::factories() as $name => $factory) {
             yield $name => $factory();
         }
+        yield from JsonValueCases::documents();
+        yield from OtherMembersCases::documents();
+        yield from OtherMembersErrorCases::documents();
     }
 
     /** @return array<string, Closure(): array{string, class-string, callable(object): bool}> */

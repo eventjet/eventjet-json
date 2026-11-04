@@ -19,7 +19,7 @@ use ReflectionParameter;
 use function sprintf;
 
 /**
- * The decoder reads doc comments like phpstan/phpdoc-parser 2.3.6 as PHPStan 2.3.1 sets it up: the same `@param` and
+ * The decoder reads doc comments like phpstan/phpdoc-parser 2.4.0 as PHPStan 2.3.1 sets it up: the same `@param` and
  * `@var` tags with the same types, and number literals with the same values. The only differences are the number
  * literals that the decoder deliberately rejects, which {@see NumberLiterals::rejection()} lists.
  */

@@ -12,6 +12,7 @@ final class ObjectRoundTripCases
      * @return iterable<string, array{object}>
      * @throws \ReflectionException
      * @throws \RuntimeException
+     * @throws \InvalidArgumentException
      */
     public static function objects(): iterable
     {
@@ -26,7 +27,11 @@ final class ObjectRoundTripCases
         yield from CollectionDeclarationRoundTripCases::objects();
         yield from NameResolutionRoundTripCases::objects();
         yield from CollectionsRoundTripCases::objects();
+        yield from AnyKeyMapCases::objects();
         yield from UnionsRoundTripCases::objects();
         yield from EnumsRoundTripCases::objects();
+        yield from DiscriminatedUnionCases::objects();
+        yield from JsonValueCases::objects();
+        yield from OtherMembersCases::objects();
     }
 }

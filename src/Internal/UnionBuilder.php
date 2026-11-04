@@ -5,11 +5,17 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\AmbiguousUnion;
+use Eventjet\Json\Internal\Node\DiscriminatedNode;
+use Eventjet\Json\Internal\Node\JsonValueNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
 use Eventjet\Json\Internal\Node\NullOnlyNode;
+use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\UnionNode;
+use ReflectionException;
 
+use function array_any;
 use function array_filter;
 use function array_keys;
 use function array_map;
@@ -36,6 +42,7 @@ final class UnionBuilder
 
     public function __construct(
         private readonly string $path,
+        private readonly FieldDiscriminator|null $discriminator,
     ) {}
 
     /** Adds a member. A member of the same type as an earlier one replaces it, because it decodes alike. */
@@ -56,16 +63,20 @@ final class UnionBuilder
      * collection or an enum.
      *
      * @throws DecodeError
+     * @throws ReflectionException
      */
     public function build(): Node
     {
-        $members = $this->members();
+        [$members, $unidentified] = $this->discriminate($this->members());
         if ($members === []) {
             assert($this->rejected !== null, description: 'A union with no members rejected at least one.');
             throw $this->rejected;
         }
         if (count($members) === 1 && $this->rejected === null) {
             return $members[0];
+        }
+        if (count($members) > 1) {
+            $this->rejectJsonValue($members);
         }
         $nullable = $this->nullable($members);
         if ($nullable !== null) {
@@ -76,11 +87,52 @@ final class UnionBuilder
             static fn(Node $member): array => [$member, $member->claims()],
             $members,
         );
-        $error = $this->conflict($claimed);
+        $error = $this->conflict($claimed, $unidentified);
         if ($error !== null) {
             throw $error;
         }
         return UnionNode::of(implode('|', array_keys($this->types)), $claimed);
+    }
+
+    /**
+     * Replaces several classes with one node that picks the class by a discriminator member, or returns why it can't.
+     *
+     * @param list<Node> $members
+     * @return array{list<Node>, array<string, DecodeError>}
+     * @throws ReflectionException
+     */
+    private function discriminate(array $members): array
+    {
+        $classes = 0;
+        foreach ($members as $member) {
+            $classes += (int) ($member instanceof ObjectNode);
+        }
+        if ($classes < 2) {
+            return [$members, []];
+        }
+        try {
+            $members = DiscriminatorInference::group($members, $this->path, $this->discriminator?->name);
+        } catch (DecodeError $error) {
+            return [$members, [AmbiguousUnion::CLASSES => $error]];
+        }
+        $discriminated = array_any($members, static fn(Node $member): bool => $member instanceof DiscriminatedNode);
+        if ($discriminated) {
+            $this->discriminator?->use();
+        }
+        return [$members, []];
+    }
+
+    /**
+     * @param list<Node> $members
+     * @throws DecodeError If a JsonValue shares the union with another member.
+     */
+    private function rejectJsonValue(array $members): void
+    {
+        foreach ($members as $member) {
+            if ($member instanceof JsonValueNode) {
+                throw AmbiguousUnion::jsonValue($this->path);
+            }
+        }
     }
 
     /** @param list<Node> $members */
@@ -109,8 +161,9 @@ final class UnionBuilder
      * conflict. Most unions have none, and don't load the rules for them.
      *
      * @param list<array{Node, Claims}> $claimed Each member with its claims.
+     * @param array<string, DecodeError> $errors Errors found before, keyed by their kind of conflict.
      */
-    private function conflict(array $claimed): DecodeError|null
+    private function conflict(array $claimed, array $errors): DecodeError|null
     {
         $types = array_merge(...array_map(
             /**
@@ -120,6 +173,8 @@ final class UnionBuilder
             static fn(array $member): array => array_keys($member[1]),
             $claimed,
         ));
-        return count($types) === count(array_unique($types)) ? null : UnionConflicts::first($this->path, $claimed);
+        return count($types) === count(array_unique($types))
+            ? null
+            : UnionConflicts::first($this->path, $claimed, $errors);
     }
 }

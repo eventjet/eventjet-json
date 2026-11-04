@@ -34,7 +34,8 @@ The suite separates workloads by purpose:
   many-class workloads.
 - **Focused diagnostics:** constructor scalars, public properties, enums, enum
   unions, short/long scalar lists, a 1,000-entry string map, PHPDoc literal
-  types, array shapes, and imported constants. The last three load code
+  types, array shapes, imported constants, a list of a discriminated union, and a
+  recursive expression tree of discriminated unions. The last five load code
   that ordinary declarations skip. Collection DTOs
   contain only the fields being measured, with no acceptance-test bookkeeping in their constructors.
 - **Stress diagnostics:** enum-heavy object and root collections, enum-union
@@ -122,6 +123,16 @@ in that mode, changed candidate workloads also receive a separate verification r
 without a regression verdict. Baseline and candidate revisions only need compatible
 source code; they do not need their own benchmark suites.
 
+A workload that the baseline revision's own suite lacks, such as one added for a new
+feature, often cannot run on the baseline's source. When the frozen suite differs from
+the baseline revision's suite, the runner discovers the baseline suite's workloads
+once on the baseline. Workloads missing from it run only in the candidate's discovery
+run and are listed as new workloads without a regression verdict; an error in them
+still fails the comparison. A changed existing workload that the baseline cannot run
+still fails, as do baseline revisions without a suite of their own, which skip this check.
+A frozen suite made only of new workloads leaves nothing to compare, so the runner
+fails and says so.
+
 The comparison runner defaults to `--opcache on` and CLI-only measurements; add
 `--opcache off` for the secondary mode. Reports and metadata record the selected
 mode; compare timings only within a mode.
@@ -204,6 +215,11 @@ the FPM measurements. Local comparisons remain unsharded unless `--shard N` is
 specified, with N from 1 through 8. Shard one requires `--fpm on`; the other
 shards require `--fpm off`.
 
+Before any shard starts, one job resolves the development dependencies. Every
+shard installs that job's `composer.lock`, so a package release during the run
+cannot give shards different dependencies. The dependency fingerprint is the
+hash of that lock file.
+
 The final comparison checks validate all eight artifacts before publishing one
 combined result. They reject missing or duplicate shards, inconsistent revisions,
 dependencies or configuration, missing workloads, and incomplete sampling.
@@ -214,7 +230,8 @@ cannot fall back to an older passing result, even when it leaves no artifact.
 A completed regression remains a regression; interrupted measurements cannot
 produce a passing comparison. The existing required check names remain unchanged.
 
-The runner discovers workloads with a single-iteration discovery run. It then
+The runner discovers workloads with a single-iteration discovery run on the
+candidate. It then
 measures each workload in 20 rounds per revision, in ABBA order (target, PR, PR,
 target, …). Each round is one PHPBench run of two iterations, preserving cold/warm
 revolution and warmup settings. The runner slows down for seconds at a time;
@@ -481,3 +498,18 @@ this change's commit as candidate and workload revision, and the baseline commit
 above. It measures the ordinary workloads on both revisions, including FPM when
 requested. Run the explicit mapping benchmark separately on the candidate; only
 its `--variant='plain.*'` cases can run against the baseline API.
+
+## Other members
+
+`OtherMembersBench` decodes and encodes a three-field class without
+`#[OtherMembers]`, and the same class with an `#[OtherMembers]` property, once
+with no other members and once with three. It checks the emitted JSON outside
+the timer. Like `FieldMappingBench`, it lives outside the default comparison
+suite, because older revisions don't have the attribute. Run it explicitly:
+
+```bash
+docker compose exec php vendor/bin/phpbench run tests/Performance/OtherMembersBench.php --report=aggregate
+```
+
+[ADR 0006](adr/0006-reject-repeated-names-when-encoding-other-members.md)
+records what checking for repeated names costs when encoding.

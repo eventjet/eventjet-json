@@ -168,6 +168,7 @@ for public properties outside the constructor.
 | Array with at least one item | `non-empty-list<T>` | `array` |
 | Positional array | `array{int, string}` | `array` with typed positions |
 | Object, possibly empty | `ArrayObject<string, T>` | `ArrayObject` |
+| Object with any member names, possibly empty | `ArrayObject<array-key, T>` | `ArrayObject` |
 | Object with at least one member | `non-empty-array<string, T>` | `array` with string keys |
 
 Items and values can be scalars, backed enums, final classes, supported unions,
@@ -253,14 +254,92 @@ A backed enum can also be the root on its own. `Json::decode('"ready"',
 Status::class)` returns `Status::Ready`. Standalone scalar and `null` roots are
 unsupported.
 
-Map keys must remain PHP strings. For example, `"01"` is supported, but `"42"`
-is rejected because PHP converts it to an integer key.
+Maps with `string` keys, at the root or in a field, require keys that remain
+PHP strings. For example, `"01"` is supported, but `"42"` is rejected because
+PHP converts it to an integer key. Only fields declared as
+`ArrayObject<array-key, T>` accept such names.
+
+## Free-form JSON
+
+Use `JsonValue` for a field that can hold any JSON value, such as the
+`metadata` of a webhook or the `details` of an API error:
+
+```php
+use Eventjet\Json\JsonValue;
+
+final readonly class ApiError
+{
+    public function __construct(
+        public string $code,
+        public JsonValue $details,
+    ) {}
+}
+
+$error = Json::decode('{"code":"invalid","details":{"field":"email","limits":[1,2]}}', ApiError::class);
+if ($error instanceof DecodeError) {
+    throw $error;
+}
+
+$details = $error->details->value(); // ArrayObject<array-key, JsonValue>
+echo $details['field']->value(); // email
+```
+
+`value()` returns one level at a time: a JSON array is a `list<JsonValue>`, a
+JSON object is an `ArrayObject<array-key, JsonValue>`, and everything else is a
+scalar or `null`. `new JsonValue(...)` accepts the same PHP values that
+`json_encode()` writes, and throws for others, such as closures. `JsonValue`
+works in fields, lists, maps, and tuples, but not in unions.
+
+A `JsonValue|null` field tells an absent member apart from JSON `null`: PHP
+`null` means the member was absent, and JSON `null` decodes as a `JsonValue`
+that holds `null`. Its class must implement `JsonSerializable`, for example by
+using `MappedJsonFields`, which leaves out the member when the property is
+`null`.
+
+See the [type reference](docs/types.md#free-form-json-values) for the details.
+
+## Keeping unknown members
+
+Some tools need the members that a class doesn't declare, for example to keep
+vendor extensions when they rewrite a document. Mark one property with
+`#[OtherMembers]` to collect them:
+
+```php
+use Eventjet\Json\JsonValue;
+use Eventjet\Json\MappedJsonFields;
+use Eventjet\Json\OtherMembers;
+
+final readonly class Webhook implements JsonSerializable
+{
+    use MappedJsonFields;
+
+    /** @param array<array-key, JsonValue> $others */
+    public function __construct(
+        public string $event,
+        #[OtherMembers]
+        public array $others = [],
+    ) {}
+}
+
+$webhook = Json::decode('{"event":"push","x-retry":2}', Webhook::class);
+if ($webhook instanceof DecodeError) {
+    throw $webhook;
+}
+
+echo $webhook->others['x-retry']->value(); // 2
+echo json_encode($webhook); // {"event":"push","x-retry":2}
+```
+
+The property collects every member whose name matches no field's JSON name, each
+as a `JsonValue`. The class must implement `JsonSerializable`, for example with
+`MappedJsonFields`, which writes the collected members after the declared
+fields. See the [type reference](docs/types.md#other-members) for the details.
 
 ## Decoding rules
 
 - JSON member names match constructor parameter or public property names by
   default. For names PHP cannot use, see [the example below](#when-json-names-dont-work-as-php-property-names).
-  Unknown members are ignored.
+  Unknown members are ignored, unless the class [keeps them](#keeping-unknown-members).
 - Missing required constructor arguments produce an `InvalidValue` error.
   Missing optional arguments use their defaults. A present `null` requires a
   nullable type. Omitted public properties retain their state after
@@ -271,16 +350,17 @@ is rejected because PHP converts it to an integer key.
 - Constructor parameters need same-named public instance properties.
   Nested classes and collection item classes must be final. Interfaces,
   and abstract classes are unsupported. `JsonSerializable` classes require at
-  least one `#[Field]` annotation and a matching serializer.
+  least one `#[Field]` or `#[OtherMembers]` annotation or `JsonValue|null`
+  property, and a matching serializer.
 - Unions must identify a type unambiguously. For example, `Person|string|null`
   is supported; `Person|Team` is not, because either class represents a JSON
   object.
 
 Round trips preserve supported values and shapes, not the original JSON text.
-Unknown fields are discarded, and re-encoding may include default-valued
-properties omitted from the input. PHPDoc refinements such as `positive-int`
-and `non-empty-string` validate the underlying scalar type, not the narrower
-constraint.
+Unknown fields are discarded unless the class keeps them, and re-encoding may
+include default-valued properties omitted from the input. PHPDoc refinements
+such as `positive-int` and `non-empty-string` validate the underlying scalar
+type, not the narrower constraint.
 
 ## When JSON names don't work as PHP property names
 

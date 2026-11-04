@@ -38,6 +38,7 @@ use Eventjet\Json\Internal\Node\TupleNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\NodeCompiler;
+use Eventjet\Json\Internal\NullableJsonValues;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocConstantResolver;
 use Eventjet\Json\Internal\PhpDocFieldType;
@@ -52,6 +53,7 @@ use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
+use Eventjet\Json\Internal\PropertyAttributes;
 use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
@@ -119,6 +121,7 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocMethodParameterTagValue::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTextParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArgumentParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocChildKind::class)]
@@ -131,6 +134,8 @@ use function class_alias;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[UsesClass(TargetClass::class)]
+#[UsesClass(PropertyAttributes::class)]
+#[UsesClass(NullableJsonValues::class)]
 #[UsesClass(FieldNameRules::class)]
 #[CoversClass(NamedTypeCompiler::class)]
 #[CoversClass(NodeCompiler::class)]
@@ -516,6 +521,7 @@ final class MetadataCacheTest extends TestCase
             /** @throws DecodeError|ReflectionException */ static fn(): Node => new TypeCompiler()->field(
                 $property,
                 $type,
+                ['value' => true],
             ),
         );
         return [$node, $node instanceof DecodeError ? [] : $node->dependencies()];

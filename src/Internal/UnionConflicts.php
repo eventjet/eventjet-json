@@ -29,10 +29,11 @@ final class UnionConflicts
      * the union reports.
      *
      * @param list<array{Node, Claims}> $members Each member with its claims.
+     * @param array<string, DecodeError> $errors Errors found before, keyed by their kind of conflict, which take
+     *     precedence over conflicts of the same kind.
      */
-    public static function first(string $path, array $members): DecodeError|null
+    public static function first(string $path, array $members, array $errors): DecodeError|null
     {
-        $errors = [];
         foreach ($members as $index => $first) {
             foreach (array_slice($members, $index + 1) as $second) {
                 $conflict = self::conflict($first, $second);

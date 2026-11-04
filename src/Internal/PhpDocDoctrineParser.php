@@ -96,32 +96,8 @@ final class PhpDocDoctrineParser
     {
         $more = true;
         while ($more && !$tokens->is(PhpDocLexer::CLOSE_PARENTHESES)) {
-            self::argument($tokens);
+            PhpDocDoctrineArgumentParser::argument($tokens);
             $more = $tokens->tryConsume(PhpDocLexer::COMMA);
-        }
-    }
-
-    /**
-     * Parses an argument, which may be named with `name=`.
-     *
-     * @throws PhpDocSyntaxError
-     */
-    private static function argument(PhpDocTokens $tokens): void
-    {
-        if (!$tokens->is(PhpDocLexer::IDENTIFIER)) {
-            self::value($tokens);
-            return;
-        }
-        $state = $tokens->state;
-        try {
-            $state->push();
-            $tokens->next();
-            $tokens->consume(PhpDocLexer::EQUAL);
-            self::value($tokens);
-            $state->drop();
-        } catch (PhpDocSyntaxError) {
-            $state->rollback();
-            self::value($tokens);
         }
     }
 }

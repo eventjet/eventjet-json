@@ -36,6 +36,16 @@ function exportRevision(string $ref, string $destination): void
     }
 }
 
+function hasBenchmarkSuite(string $revision): bool
+{
+    return trim(git('ls-tree', '--name-only', $revision, '--', 'benchmarks')) !== '';
+}
+
+function benchmarkSuiteDiffers(string $a, string $b): bool
+{
+    return git('diff', '--name-only', $a, $b, '--', 'benchmarks', 'tests', 'phpbench.json') !== '';
+}
+
 /**
  * PHPBench takes seconds to parse every benchmark file, so each measurement names only its own file.
  *
@@ -178,9 +188,9 @@ if (file_exists($output)) {
 }
 $results = $output . '/results';
 mkdir($results, 0777, true);
-$dependenciesHash = hash_file('sha256', 'vendor/composer/installed.json');
+$dependenciesHash = hash_file('sha256', 'composer.lock');
 if ($dependenciesHash === false) {
-    throw new RuntimeException('Cannot fingerprint installed dependencies');
+    throw new RuntimeException('Cannot fingerprint locked dependencies');
 }
 $metadata = [
     'shard' => $shard,
@@ -191,8 +201,8 @@ $metadata = [
     'candidate' => $candidate,
     'dependencies_sha256' => $dependenciesHash,
     'workloads_changed' =>
-        !isset($options['workloads'])
-            && git('diff', '--name-only', $base, $candidate, '--', 'benchmarks', 'tests', 'phpbench.json') !== '',
+        !isset($options['workloads']) && benchmarkSuiteDiffers($base, $candidate),
+    'new_workloads' => [],
     'cpu' => 'unknown',
 ];
 $cpuInfo = file('/proc/cpuinfo', FILE_IGNORE_NEW_LINES);
@@ -206,7 +216,7 @@ foreach ($cpuInfo as $line) {
     }
 }
 writeJson($results . '/metadata.json', $metadata);
-if (trim(git('ls-tree', '--name-only', $workloads, '--', 'benchmarks')) === '') {
+if (!hasBenchmarkSuite($workloads)) {
     publish(
         $results,
         "## Performance comparison\n\nNo comparable baseline: workload revision `$workloads` has no benchmark suite. Candidate: `$candidate`. No regression verdict is available.\n",
@@ -254,18 +264,41 @@ $measure = static function (string $workspace, string $name, int $iterations, st
     $report->requireMode($opcacheOption);
     return $report;
 };
-$discovery = $measure($workspaces['baseline'], 'discovery', 1, '--revs=1');
+$runOwnSuite = static function (string $version, string $revision, string ...$options) use (
+    $output,
+    $opcache,
+    $measure,
+): BenchmarkReport {
+    $workspace = $output . '/workspace-' . $version . '-workloads';
+    prepareWorkspace($workspace, $output . '/' . $version, $output . '/' . $version, $revision, $opcache);
+    return $measure($workspace, $version . '-workloads', 1, ...$options);
+};
+// The baseline cannot run workloads for features it lacks, so discovery runs on the candidate.
+$discovery = $measure($workspaces['candidate'], 'discovery', 1, '--revs=1');
+if (hasBenchmarkSuite($base) && benchmarkSuiteDiffers($base, $workloads)) {
+    $metadata['new_workloads'] = array_values(array_diff(
+        $discovery->identities(),
+        $runOwnSuite('baseline', $base, '--revs=1')->identities(),
+    ));
+}
+writeJson($results . '/metadata.json', $metadata);
+[$newWorkloads, $comparable] = $discovery->partition($metadata['new_workloads']);
+if ($comparable === []) {
+    throw new RuntimeException(
+        'No comparable workloads: the baseline revision\'s benchmark suite has none of the frozen suite\'s workloads',
+    );
+}
 $comparisons = [];
-$indices = PerformanceShards::assignedIndices(count($discovery->workloads), $shard);
+$indices = PerformanceShards::assignedIndices(count($comparable), $shard);
 $files = withWorkspace($workspaces['baseline'], static fn(string $active): array => benchmarkFiles(
     $active,
     array_values(array_unique(array_map(
-        static fn(int $index): string => $discovery->workloads[$index]->class,
+        static fn(int $index): string => $comparable[$index]->class,
         $indices,
     ))),
 ));
 foreach ($indices as $index) {
-    $workload = $discovery->workloads[$index];
+    $workload = $comparable[$index];
     $rounds = ['baseline' => [], 'candidate' => []];
     for ($round = 0; $round < BenchmarkComparison::ROUNDS; ++$round) {
         foreach (BenchmarkComparison::order($round) as $version) {
@@ -305,9 +338,7 @@ if ($fpm) {
     $fpmComparisons = FpmMeasurements::compare($samples['baseline'], $samples['candidate'], $opcache);
     $fpmReport = FpmMeasurements::report($fpmComparisons, $opcache);
 }
-$comment = $comparisons === []
-    ? "No workloads assigned to this shard.\n"
-    : performanceSummary($comparisons, $opcacheOption, $fpmComparisons);
+$comment = shardSummary($comparisons, $opcacheOption, $fpmComparisons, $newWorkloads);
 file_put_contents($results . '/comment.md', $comment);
 publish(
     $results,
@@ -317,9 +348,7 @@ publish(
     . $fpmReport,
 );
 if ($metadata['workloads_changed'] && ($shard === null || $shard === 1)) {
-    $candidateWorkspace = $output . '/workspace-candidate-workloads';
-    prepareWorkspace($candidateWorkspace, $output . '/candidate', $output . '/candidate', $candidate, $opcache);
-    $measure($candidateWorkspace, 'candidate-workloads', 1);
+    $runOwnSuite('candidate', $candidate);
 }
 writeJson($results . '/complete.json', ['indices' => $indices]);
 exit(performanceStatus($comparisons, $opcacheOption, $fpmComparisons));
