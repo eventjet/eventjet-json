@@ -42,5 +42,6 @@ final class DecodeErrorCases
         yield from ErrorPathCases::errors();
         yield from JsonValueErrorCases::errors();
         yield from SchemaCases::errors();
+        yield from OtherMembersErrorCases::errors();
     }
 }

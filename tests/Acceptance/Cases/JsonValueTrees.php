@@ -38,6 +38,15 @@ final class JsonValueTrees
     }
 
     /**
+     * @param array<array-key, JsonValue> $members
+     * @return array<array-key, mixed>
+     */
+    public static function members(array $members): array
+    {
+        return array_map(self::tree(...), $members);
+    }
+
+    /**
      * Returns the tree of what json_decode() reads from json_encode() of a value.
      *
      * @throws JsonException

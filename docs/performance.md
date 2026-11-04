@@ -498,3 +498,18 @@ this change's commit as candidate and workload revision, and the baseline commit
 above. It measures the ordinary workloads on both revisions, including FPM when
 requested. Run the explicit mapping benchmark separately on the candidate; only
 its `--variant='plain.*'` cases can run against the baseline API.
+
+## Other members
+
+`OtherMembersBench` decodes and encodes a three-field class without
+`#[OtherMembers]`, and the same class with an `#[OtherMembers]` property, once
+with no other members and once with three. It checks the emitted JSON outside
+the timer. Like `FieldMappingBench`, it lives outside the default comparison
+suite, because older revisions don't have the attribute. Run it explicitly:
+
+```bash
+docker compose exec php vendor/bin/phpbench run tests/Performance/OtherMembersBench.php --report=aggregate
+```
+
+[ADR 0006](adr/0006-reject-repeated-names-when-encoding-other-members.md)
+records what checking for repeated names costs when encoding.

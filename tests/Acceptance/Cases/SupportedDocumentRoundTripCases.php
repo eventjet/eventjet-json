@@ -38,6 +38,8 @@ final class SupportedDocumentRoundTripCases
         }
         yield from JsonValueCases::documents();
         yield from MetaSchemaCases::documents();
+        yield from OtherMembersCases::documents();
+        yield from OtherMembersErrorCases::documents();
     }
 
     /** @return array<string, Closure(): array{string, class-string, callable(object): bool}> */

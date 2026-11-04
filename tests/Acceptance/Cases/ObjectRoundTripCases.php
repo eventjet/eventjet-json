@@ -33,5 +33,6 @@ final class ObjectRoundTripCases
         yield from DiscriminatedUnionCases::objects();
         yield from JsonValueCases::objects();
         yield from SchemaCases::objects();
+        yield from OtherMembersCases::objects();
     }
 }
