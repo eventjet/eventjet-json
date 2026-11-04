@@ -79,7 +79,7 @@ use function class_exists;
  * @phpstan-import-type Claims from Node
  */
 #[UsesClass(FieldPath::class)]
-#[UsesClass(DecodeError::class)]
+#[CoversClass(DecodeError::class)]
 #[UsesClass(DecodeErrors::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(TargetClass::class)]
@@ -326,12 +326,11 @@ final class ConstructorHydrationPlanTest extends TestCase
         $target->value = 1;
         static::assertEquals($target, ClassDecoders::hydrate($class, new stdClass()));
         $input->value = null;
-        static::assertEquals(
-            InvalidValue::typeMismatch('int', null)->inMember('value')->whileCreating($class),
-            ThrownDecodeError::of(
-                /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $input),
-            ),
+        $error = ThrownDecodeError::of(
+            /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $input),
         );
+        static::assertEquals(InvalidValue::typeMismatch('int', null)->inMember('value')->whileCreating($class), $error);
+        static::assertSame(0, $error->getCode());
         static::assertSame($decoder, self::cached($class));
     }
 
