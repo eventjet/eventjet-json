@@ -93,15 +93,12 @@ use Eventjet\Json\Test\Acceptance\Cases\JsonFormattingRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\NumericObjectKeyCases;
 use Eventjet\Json\Test\Acceptance\Cases\ObjectRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\RootCollectionRoundTripCases;
-use Eventjet\Json\Test\Acceptance\Cases\SchemaCases;
 use Eventjet\Json\Test\Acceptance\Cases\SupportedDocumentRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\TypeValidationCases;
 use Eventjet\Json\Test\Acceptance\Cases\UnknownFieldCases;
-use Eventjet\Json\Test\Acceptance\Cases\UnknownKeywordCases;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
@@ -262,6 +259,19 @@ final class AcceptanceTest extends TestCase
         static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
     }
 
+    /** @throws JsonException */
+    #[DataProviderExternal(ObjectRoundTripCases::class, 'objects')]
+    public function testValidatingATypeDoesNotChangeHowItDecodes(object $original): void
+    {
+        static::assertNull(Json::validateType($original::class));
+        $json = json_encode($original, JSON_THROW_ON_ERROR);
+
+        $decoded = Json::decode($json, $original::class);
+
+        static::assertEquals($original, $decoded);
+        static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
+    }
+
     /**
      * @param list<mixed>|object $original
      * @param callable(): JsonType<list<mixed>|object> $createType
@@ -278,22 +288,9 @@ final class AcceptanceTest extends TestCase
         static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
     }
 
-    /**
-     * @return iterable<string, array{object, string}>
-     * @throws \ReflectionException
-     * @throws \RuntimeException
-     * @throws \InvalidArgumentException
-     */
-    public static function jsonDocuments(): iterable
-    {
-        yield from JsonFormattingRoundTripCases::objects();
-        yield from EmptyShapeRoundTripCases::objects();
-        yield from SchemaCases::documents();
-        yield from UnknownKeywordCases::documents();
-    }
-
     /** @throws JsonException */
-    #[DataProvider('jsonDocuments')]
+    #[DataProviderExternal(JsonFormattingRoundTripCases::class, 'objects')]
+    #[DataProviderExternal(EmptyShapeRoundTripCases::class, 'objects')]
     public function testJsonDocumentDecodesWithoutChangingItsMeaning(object $expected, string $json): void
     {
         $decoded = Json::decode($json, $expected::class);
