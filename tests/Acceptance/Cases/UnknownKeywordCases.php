@@ -65,7 +65,7 @@ final class UnknownKeywordCases
      * @return iterable<string, array{string, class-string, callable(object): bool}>
      * @throws InvalidArgumentException
      */
-    public static function encodings(): iterable
+    public static function rejectedEncodings(): iterable
     {
         $value = new JsonValue('x');
         $schemas = [

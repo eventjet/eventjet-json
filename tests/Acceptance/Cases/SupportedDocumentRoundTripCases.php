@@ -38,7 +38,7 @@ final class SupportedDocumentRoundTripCases
         }
         yield from JsonValueCases::documents();
         yield from MetaSchemaCases::documents();
-        yield from UnknownKeywordCases::encodings();
+        yield from UnknownKeywordCases::rejectedEncodings();
         yield from OtherMembersCases::documents();
         yield from OtherMembersErrorCases::documents();
     }
