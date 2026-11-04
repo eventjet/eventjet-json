@@ -20,21 +20,28 @@ final class InvalidDiscriminator
 {
     public static function missing(string $member, string $allowed): DecodeError
     {
-        return self::error(sprintf('has no member %s, which must be one of %s.', $member, $allowed));
+        return new DecodeError(
+            DecodeErrorKind::InvalidValue,
+            sprintf('has no member %s, which must be one of %s.', $member, $allowed),
+            true,
+        );
     }
 
     public static function type(string $allowed, mixed $value): DecodeError
     {
-        return self::error(sprintf('must be one of %s; %s given.', $allowed, get_debug_type($value)));
+        return new DecodeError(
+            DecodeErrorKind::InvalidValue,
+            sprintf('must be one of %s; %s given.', $allowed, get_debug_type($value)),
+            true,
+        );
     }
 
     public static function unknown(string $allowed, int|string $value): DecodeError
     {
-        return self::error(sprintf('must be one of %s; %s given.', $allowed, var_export($value, return: true)));
-    }
-
-    private static function error(string $message): DecodeError
-    {
-        return new DecodeError(DecodeErrorKind::InvalidValue, $message, null, true);
+        return new DecodeError(
+            DecodeErrorKind::InvalidValue,
+            sprintf('must be one of %s; %s given.', $allowed, var_export($value, return: true)),
+            true,
+        );
     }
 }

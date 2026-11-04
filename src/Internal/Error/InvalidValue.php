@@ -27,7 +27,6 @@ final class InvalidValue
         return new DecodeError(
             DecodeErrorKind::InvalidValue,
             sprintf('must be of type %s, %s given.', $expectedType, get_debug_type($value)),
-            null,
             true,
         );
     }
@@ -37,7 +36,6 @@ final class InvalidValue
         return new DecodeError(
             DecodeErrorKind::InvalidValue,
             sprintf('is not a valid JSON value. %s', $error->getMessage()),
-            null,
             true,
         );
     }
@@ -47,7 +45,6 @@ final class InvalidValue
         return new DecodeError(
             DecodeErrorKind::InvalidValue,
             sprintf('must be of type %s, empty list given.', $type),
-            null,
             true,
         );
     }
@@ -57,7 +54,6 @@ final class InvalidValue
         return new DecodeError(
             DecodeErrorKind::InvalidValue,
             'uses non-empty-array<string, TValue> and cannot accept an empty JSON object. Use ArrayObject<string, TValue> when the map may be empty.',
-            null,
             true,
         );
     }
@@ -70,7 +66,6 @@ final class InvalidValue
                 'has numeric-looking member name %d, which PHP converts to an integer array key. Only ArrayObject<array-key, TValue> fields accept such member names.',
                 $key,
             ),
-            null,
             true,
         );
     }
@@ -81,7 +76,6 @@ final class InvalidValue
         return new DecodeError(
             DecodeErrorKind::InvalidValue,
             sprintf('must be of type %s with %s items, %d given.', $type, $length, $count),
-            null,
             true,
         );
     }
@@ -97,7 +91,6 @@ final class InvalidValue
                 $backingType,
                 get_debug_type($value),
             ),
-            null,
             true,
         );
     }
@@ -114,7 +107,6 @@ final class InvalidValue
                 implode('|', $enums),
                 var_export($value, return: true),
             ),
-            null,
             true,
         );
     }

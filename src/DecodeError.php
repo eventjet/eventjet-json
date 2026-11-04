@@ -43,8 +43,8 @@ final class DecodeError extends RuntimeException
     public function __construct(
         public readonly DecodeErrorKind $kind,
         string $message,
-        Throwable|null $previous = null,
         bool $afterPath = false,
+        Throwable|null $previous = null,
     ) {
         parent::__construct($message, 0, $previous);
         $this->detail = $afterPath ? $message : null;
@@ -59,8 +59,7 @@ final class DecodeError extends RuntimeException
     public function inMember(string $name): self
     {
         assert($this->path === '', description: 'Only a new error starts its path.');
-        $this->path = $name;
-        $this->startsWithMember = true;
+        $this->prepend($name, true);
         return $this;
     }
 
@@ -72,9 +71,7 @@ final class DecodeError extends RuntimeException
      */
     public function inItem(int|string $key): self
     {
-        $key = FieldPath::key($key);
-        $this->path = $this->startsWithMember ? $key . '.' . $this->path : $key . $this->path;
-        $this->startsWithMember = false;
+        $this->prepend(FieldPath::key($key), false);
         return $this;
     }
 
@@ -89,8 +86,7 @@ final class DecodeError extends RuntimeException
     public function whileCreating(string $class, string|null $member = null): self
     {
         if ($member !== null) {
-            $this->path = $this->startsWithMember ? $member . '.' . $this->path : $member . $this->path;
-            $this->startsWithMember = true;
+            $this->prepend($member, true);
         }
         if ($this->detail === null) {
             if ($this->class === null) {
@@ -103,5 +99,11 @@ final class DecodeError extends RuntimeException
         $this->message =
             'Could not create ' . $this->class . ' from the JSON object: Field ' . $this->path . ' ' . $this->detail;
         return $this;
+    }
+
+    private function prepend(string $segment, bool $isMember): void
+    {
+        $this->path = $this->startsWithMember ? $segment . '.' . $this->path : $segment . $this->path;
+        $this->startsWithMember = $isMember;
     }
 }

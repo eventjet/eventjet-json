@@ -26,6 +26,6 @@ final class DecodeErrors
             subject: $error->getMessage(),
         ) ?? $error->getMessage();
 
-        return new DecodeError($kind, $message, $error);
+        return new DecodeError($kind, $message, false, $error);
     }
 }
