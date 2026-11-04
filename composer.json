@@ -22,6 +22,9 @@
         "psalm/plugin-phpunit": "^0.19.7",
         "vimeo/psalm": "^6.19"
     },
+    "suggest": {
+        "ext-intl": "Needed to check the hostname, email, idn-hostname and idn-email formats of JSON Schema"
+    },
     "minimum-stability": "stable",
     "autoload": {
         "psr-4": {
@@ -54,7 +57,7 @@
             "@parity",
             "@infection"
         ],
-        "check-deps": "composer-require-checker",
+        "check-deps": "composer-require-checker --config-file=composer-require-checker.json",
         "cs": "mago format",
         "cs-check": "mago format --check",
         "infection": "infection -jmax --with-uncovered",

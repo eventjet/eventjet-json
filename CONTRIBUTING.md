@@ -12,6 +12,14 @@ LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)" docker compose up --build --detach
 docker compose exec php composer install
 ```
 
+The official JSON Schema Test Suite is a Git submodule in
+`tests/JsonSchemaTestSuite`. Clone with `--recurse-submodules`, or fetch it
+afterwards:
+
+```bash
+git submodule update --init
+```
+
 Run the complete quality suite inside the container:
 
 ```bash

@@ -438,10 +438,10 @@ class.
 - **Encoding:** `jsonSerialize()` writes the keywords that aren't `null`,
   under their JSON names, followed by the unknown keywords.
 
-The classes parse schemas; they don't validate them. A JSON `null` decodes like
-an absent keyword, so `{"type": null}` decodes, and `json_encode()` writes it
-back without `type`. Constraints such as non-negative lengths aren't checked.
-The classes don't validate instances against a schema or resolve `$ref`.
+The classes don't check schemas themselves. A JSON `null` decodes like an
+absent keyword, so `{"type": null}` decodes, and `json_encode()` writes it
+back without `type`. Constraints such as non-negative lengths are checked when
+a [validator is compiled](#validating-values).
 
 Unknown keywords, such as `x-*` extensions or keywords of another draft, are
 collected in `$unknownKeywords` with [`#[OtherMembers]`](#other-members), each
@@ -456,14 +456,22 @@ neither, nor `$recursiveRef` and `$recursiveAnchor`. Their values are
 draft, such as `new Draft202012(unknownKeywords: ['$ref' => $value])`, as
 described in [Other members](#other-members).
 
-A schema that is just `true` or `false` returns an `UnexpectedRootValue`
-error, because the classes describe JSON objects. To accept Boolean schemas at
-the root, check for them before decoding:
+`JsonSchema::decode()` picks the class from the document's `$schema`, so you
+don't need to know the draft in advance:
 
 ```php
-$data = json_decode($json);
-$schema = is_bool($data) ? $data : Json::decode($json, Draft202012::class);
+$schema = JsonSchema::decode($json, Draft202012::class, loader: $loader);
 ```
+
+- The second argument is the class for a document without `$schema`.
+- `$schema` with and without an empty fragment (`#`) are the same URI.
+- `true` and `false` return Booleans.
+- A `$schema` that isn't official is passed to the loader, which returns the
+  decoded custom meta-schema. Its class is the class of the document. A loader
+  that decodes with `JsonSchema::decode()` follows a chain of custom
+  meta-schemas until it reaches an official one.
+- An unknown `$schema` without a loader, a loader that finds nothing, and a
+  loop of meta-schemas return an `InvalidValue` error.
 
 When you build schemas in PHP, static analysis may infer a narrower map type
 than a parameter takes. For example, PHPStan reads `new ArrayObject(['name' =>
@@ -476,6 +484,110 @@ Declare the full map type with a `@var` tag:
 $properties = new ArrayObject(['name' => new Draft202012(type: Type::String)]);
 $schema = new Draft202012(type: Type::Object, properties: $properties);
 ```
+
+### Validating values
+
+`Validator::compile()` takes a schema object of any draft class, or `true` or
+`false`, and returns a `Validator` or a `SchemaError`. The class of each
+document decides which draft's rules apply. Pass the options by name; only
+their names are stable, not their order.
+
+```php
+$validator = Validator::compile($schema, loader: $loader, assertFormats: true);
+```
+
+- `validateValue($value)` returns `null` if the value matches, or a
+  `ValidationError`. Its `failures` are `ValidationFailure` objects with the
+  `instanceLocation` (a JSON Pointer into the value), the `keywordLocation`
+  (the path through references), the `absoluteKeywordLocation` (a URI), and an
+  English `message`, like the entries of the "basic" output format. Its
+  message lists every failure, one per line.
+- `isValid($value)` returns a Boolean and stops at the first failure. It is
+  `true` exactly when `validateValue()` returns `null`.
+- Values are read the way `json_encode()` writes them: lists are arrays, other
+  arrays and `stdClass` and `ArrayObject` are objects, `JsonSerializable`
+  objects count as what `jsonSerialize()` returns, and backed enums as their
+  values. A value that `json_encode()` can't write, such as `INF`, invalid
+  UTF-8, or more than 512 levels of nesting, returns a
+  `ValidationError` of kind `UnsupportedValue`, and `isValid()` returns
+  `false`.
+- Equality for `const`, `enum`, and `uniqueItems` is JSON Schema's: `1` equals
+  `1.0`, and the order of object members doesn't matter.
+- `minLength` and `maxLength` count Unicode code points.
+- In Draft 4, a float counts as an integer only outside the range of PHP
+  integers, where `json_decode()` gives floats for integers too. So `1.0`
+  isn't an integer, as Draft 4 says. From Draft 6 on, it is. A float with a
+  zero fraction stays a float when the value is read, although `json_encode()`
+  writes `1.0` as `1` by default.
+- Unknown keywords are ignored. `$ref` into them still works.
+- The validator keeps no cache. Keep the `Validator` and reuse it.
+
+`compile()` returns a `SchemaError` where the validator would otherwise have
+to guess:
+
+- a reference or `$schema` that it can't resolve, or a `$schema` that names a
+  different draft than the class, at the root or in an embedded resource
+  (from Draft 2019-09 on)
+- a regex that isn't valid ECMA-262
+- a keyword value that the spec forbids, such as a negative `minLength` or a
+  `multipleOf` of 0 or less. From Draft 6 on, whole floats such as `2.0` are
+  fine for counts.
+- a `$ref` loop that never moves into the value, such as `{"$ref": "#"}`
+- a format that needs the intl extension, with format checking on, but
+  without the extension
+- a custom meta-schema that requires an unknown vocabulary
+
+It doesn't check the schema against its meta-schema. To do that, compile the
+meta-schema and validate the schema object with it.
+
+#### Loading documents
+
+The library never fetches anything itself. Documents that `$ref` and `$schema`
+point to come from the loader, a closure that takes a URI without fragment and
+returns a schema object, a Boolean, a `DecodeError`, or `null` for "not
+found". `compile()` calls it for every URI that it can't resolve, including
+URIs in loaded documents, and never while values are checked. A `null` or a
+`DecodeError` gives a `SchemaError`, which keeps the `DecodeError` as its
+previous exception. The official meta-schemas of all five drafts are built in,
+so references to them need no loader.
+
+```php
+$loader = static function (string $uri) use (&$loader): Draft202012|bool|DecodeError|null {
+    $json = $cache->get($uri); // your own allow-list, files, or HTTP client
+    return $json === null ? null : JsonSchema::decode($json, Draft202012::class, loader: $loader);
+};
+```
+
+#### Formats
+
+`format` is an annotation by default in every draft. `assertFormats: true`
+turns on checking of `date-time`, `date`, `time`, `duration`, `email`,
+`idn-email`, `hostname`, `idn-hostname`, `ipv4`, `ipv6`, `uri`,
+`uri-reference`, `iri`, `iri-reference`, `uri-template`, `json-pointer`,
+`relative-json-pointer`, `regex`, and `uuid`. So does a Draft 2020-12
+meta-schema with the format-assertion vocabulary. Unknown formats are always
+annotations. Checking `idn-hostname` and `idn-email` needs the intl extension,
+and so do `hostname` and `email` from Draft 7 on, which check A-labels.
+
+In Draft 7, `contentEncoding: "base64"` and `contentMediaType:
+"application/json"` check strings. Later drafts made them annotations.
+
+#### Regexes
+
+`pattern` and `patternProperties` follow ECMA-262 with the `u` flag, as JSON
+Schema says. Each regex is translated to PCRE once, while compiling: `$`
+matches only at the end, `.` doesn't match line terminators, `\d`, `\w`, and
+`\b` are ASCII only, `\s` matches Unicode whitespace, and Unicode property
+names such as `\p{Letter}` work. Syntax that is valid only in PCRE, such as
+`(?i)` or `\a`, is a `SchemaError`. PCRE can't run some valid ECMA-262 regexes,
+such as lookbehinds of unbounded length; those are `SchemaError`s too.
+
+#### Trust
+
+Schemas are trusted input, and values are not. The validator guards against
+hostile values, but not against hostile schemas: a `pattern` such as
+`(a+)+$` can make PCRE backtrack for a long time, and a large schema takes long
+to compile. Only compile schemas from sources you trust.
 
 ## Collection declarations
 

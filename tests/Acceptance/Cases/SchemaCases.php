@@ -77,6 +77,7 @@ final class SchemaCases
                 ref: '#/definitions/base',
                 default: new JsonValue(null),
                 type: [Type::Object, Type::Null],
+                maximum: 10,
                 exclusiveMaximum: true,
                 items: [new Draft4(), new Draft4(type: Type::String)],
                 additionalItems: false,
@@ -86,7 +87,7 @@ final class SchemaCases
                 definitions: $definitions,
             ),
             '{"$schema":"http://json-schema.org/draft-04/schema#","id":"https://example.com/person",'
-                . '"$ref":"#/definitions/base","default":null,"type":["object","null"],"exclusiveMaximum":true,'
+                . '"$ref":"#/definitions/base","default":null,"type":["object","null"],"maximum":10,"exclusiveMaximum":true,'
                 . '"items":[{},{"type":"string"}],"additionalItems":false,'
                 . '"properties":{"name":{"type":"string","minLength":1},"200":{"enum":[1,null]}},'
                 . '"additionalProperties":{},"dependencies":{"name":["age"],"age":{"required":["name"]}},'
