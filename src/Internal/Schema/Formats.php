@@ -66,13 +66,10 @@ final class Formats
     private static function uri(string $format): Closure
     {
         $pattern = match ($format) {
-            'uri' => new UriPattern(UriPattern::UNRESERVED, '')->absolute(),
-            'uri-reference' => new UriPattern(UriPattern::UNRESERVED, '')->reference(),
-            'iri' => new UriPattern(UriPattern::UNRESERVED . UriPattern::UCSCHAR, UriPattern::IPRIVATE)->absolute(),
-            'iri-reference' => new UriPattern(
-                UriPattern::UNRESERVED . UriPattern::UCSCHAR,
-                UriPattern::IPRIVATE,
-            )->reference(),
+            'uri' => new UriPattern('', '')->absolute(),
+            'uri-reference' => new UriPattern('', '')->reference(),
+            'iri' => new UriPattern(UriPattern::UCSCHAR, UriPattern::IPRIVATE)->absolute(),
+            'iri-reference' => new UriPattern(UriPattern::UCSCHAR, UriPattern::IPRIVATE)->reference(),
         };
         return static fn(string $value): bool => Uris::matches($value, $pattern);
     }

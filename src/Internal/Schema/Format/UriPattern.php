@@ -13,27 +13,32 @@ use function preg_quote;
  */
 final readonly class UriPattern
 {
-    public const string UNRESERVED = 'A-Za-z0-9\-._\~';
+    /**
+     * The ucschar ranges of RFC 3987 as alternatives, each with a leading `|`. Each range has a class of its own
+     * because PCRE2 10.46 fails to match some code points of a class with many ranges above U+00FF.
+     */
     public const string UCSCHAR =
-        '\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}'
-            . '\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}'
-            . '\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}'
-            . '\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}';
-    public const string IPRIVATE = '\x{E000}-\x{F8FF}\x{F0000}-\x{FFFFD}\x{100000}-\x{10FFFD}';
+        '|[\x{A0}-\x{D7FF}]|[\x{F900}-\x{FDCF}]|[\x{FDF0}-\x{FFEF}]|[\x{10000}-\x{1FFFD}]|[\x{20000}-\x{2FFFD}]'
+            . '|[\x{30000}-\x{3FFFD}]|[\x{40000}-\x{4FFFD}]|[\x{50000}-\x{5FFFD}]|[\x{60000}-\x{6FFFD}]'
+            . '|[\x{70000}-\x{7FFFD}]|[\x{80000}-\x{8FFFD}]|[\x{90000}-\x{9FFFD}]|[\x{A0000}-\x{AFFFD}]'
+            . '|[\x{B0000}-\x{BFFFD}]|[\x{C0000}-\x{CFFFD}]|[\x{D0000}-\x{DFFFD}]|[\x{E1000}-\x{EFFFD}]';
+    /** The iprivate ranges of RFC 3987, in the form of {@see self::UCSCHAR}. */
+    public const string IPRIVATE = '|[\x{E000}-\x{F8FF}]|[\x{F0000}-\x{FFFFD}]|[\x{100000}-\x{10FFFD}]';
+    private const string UNRESERVED = 'A-Za-z0-9\-._\~';
     private const string SUB_DELIMS = '!$&\'()*+,;=';
     private const string PCT = '%[0-9A-Fa-f]{2}';
 
     private string $pchar;
 
     /**
-     * @param string $unreserved The unreserved characters, as a character class body.
-     * @param string $private The characters that a query allows beyond those of a URI.
+     * @param string $ucschar The unreserved characters beyond those of a URI, as {@see self::UCSCHAR} or ''.
+     * @param string $private The characters that a query allows beyond those of a URI, as {@see self::IPRIVATE} or ''.
      */
     public function __construct(
-        private string $unreserved,
+        private string $ucschar,
         private string $private,
     ) {
-        $this->pchar = '(?:[' . $unreserved . preg_quote(self::SUB_DELIMS, delimiter: '~') . ':@]|' . self::PCT . ')';
+        $this->pchar = $this->unreserved(preg_quote(self::SUB_DELIMS, delimiter: '~') . ':@');
     }
 
     /** @return non-empty-string */
@@ -57,7 +62,7 @@ final readonly class UriPattern
     private function relativePart(): string
     {
         $sub = preg_quote(self::SUB_DELIMS, delimiter: '~');
-        $first = '(?:[' . $this->unreserved . $sub . '@]|' . self::PCT . ')+';
+        $first = $this->unreserved($sub . '@') . '+';
         return '(?:' . $this->authorityAndPath() . '|' . $first . '(?:\/' . $this->pchar . '*)*)?';
     }
 
@@ -65,8 +70,8 @@ final readonly class UriPattern
     private function authorityAndPath(): string
     {
         $sub = preg_quote(self::SUB_DELIMS, delimiter: '~');
-        $userinfo = '(?:[' . $this->unreserved . $sub . ':]|' . self::PCT . ')*';
-        $regName = '(?:[' . $this->unreserved . $sub . ']|' . self::PCT . ')*';
+        $userinfo = $this->unreserved($sub . ':') . '*';
+        $regName = $this->unreserved($sub) . '*';
         $authority = '(?:' . $userinfo . '@)?(?:\[(?<ip>[^\]]*)\]|' . $regName . ')(?::\d*)?';
         $pathAbempty = '(?:\/' . $this->pchar . '*)*';
         $pathAbsolute = '\/(?:' . $this->pchar . '+(?:\/' . $this->pchar . '*)*)?';
@@ -75,8 +80,14 @@ final readonly class UriPattern
 
     private function tail(): string
     {
-        $query = '(?:' . $this->pchar . '|[\/?' . $this->private . '])*';
+        $query = '(?:' . $this->pchar . '|[\/?]' . $this->private . ')*';
         $fragment = '(?:' . $this->pchar . '|[\/?])*';
         return '(?:\?' . $query . ')?(?:#' . $fragment . ')?';
+    }
+
+    /** An unreserved character, a percent-encoded octet, or one of the ASCII characters of a class body. */
+    private function unreserved(string $ascii): string
+    {
+        return '(?:[' . self::UNRESERVED . $ascii . ']|' . self::PCT . $this->ucschar . ')';
     }
 }
