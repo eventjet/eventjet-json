@@ -110,12 +110,11 @@ final readonly class ClassDecoder
             $assignments[] = [$field->property, $value];
         }
         if ($this->others !== null) {
-            [$arguments, $assignments] = self::withOthers(
-                $this->others,
-                $this->others->collect($values, $path),
-                $arguments,
-                $assignments,
-            );
+            $collected = $this->others->collect($values);
+            if ($collected instanceof DecodeError) {
+                return $collected;
+            }
+            [$arguments, $assignments] = self::withOthers($this->others, $collected, $arguments, $assignments);
         }
         try {
             /**

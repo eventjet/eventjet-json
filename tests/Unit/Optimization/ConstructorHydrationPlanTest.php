@@ -255,7 +255,7 @@ final class ConstructorHydrationPlanTest extends TestCase
         ] as $property => $value) {
             new ReflectionProperty(ClassField::class, $property)->setValue($field, $value);
         }
-        $decoder = new ClassDecoder($target::class, [$field]);
+        $decoder = new ClassDecoder($target::class, [$field], null);
 
         $decoder->decode(JsonObject::of(['value' => $skipped]));
         $skippedCalls = $node->calls;
