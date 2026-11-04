@@ -149,11 +149,10 @@ an arbitrary method's behavior. `JsonSerializable` classes without `#[Field]`,
 `#[OtherMembers]` or a `JsonValue|null` property, and custom-serialized enums,
 remain outside this opt-in contract.
 
-This feature does not restore `Json::encode()`, add docblock mapping syntax, or
-make full JSON Schema models supported. Boolean schema roots and exact
-preservation of omitted keywords remain separate concerns. For arbitrary JSON
-values, see [Free-form JSON values](#free-form-json-values). To keep members
-that no field declares, such as unknown keywords, see
+This feature does not restore `Json::encode()` or add docblock mapping syntax.
+For the package's JSON Schema models, see [JSON Schema](#json-schema).
+For arbitrary JSON values, see [Free-form JSON values](#free-form-json-values).
+To keep members that no field declares, such as unknown keywords, see
 [Other members](#other-members).
 
 ## Discriminated unions
@@ -405,6 +404,78 @@ it encodes such an object, also when it leaves out the declared field, for
 example a `JsonValue|null` property that is `null`.
 [ADR 0006](adr/0006-reject-repeated-names-when-encoding-other-members.md)
 records the measurements behind this check.
+
+## JSON Schema
+
+The `Eventjet\Json\Schema` namespace has a class for each supported draft of
+JSON Schema: `Draft4`, `Draft6`, `Draft7`, `Draft201909`, and `Draft202012`.
+They are final readonly classes with one property per keyword of the draft, in
+its constructor. `Type` is a backed enum for the values of the `type` keyword.
+The classes follow the same rules as your own classes, so `Json::decode()`,
+`Json::validateType()`, and `json_encode()` work with them as with any other
+class.
+
+- **`null` means absent.** Apart from `default` and `const`, no keyword takes
+  `null` as its value, so a property that is `null` stands for a keyword the
+  schema doesn't have.
+- **`default` and `const`** are `JsonValue|null`. PHP `null` means the keyword
+  is absent, and `new JsonValue(null)` means it is present with the value JSON
+  `null`. The items of `enum` and `examples` are `JsonValue` objects.
+- **Nested schemas** have the class of the draft. From Draft 6 on, they can
+  also be `true` or `false`. In Draft 4, only `additionalItems` and
+  `additionalProperties` take Booleans.
+- **Maps** such as `properties`, `patternProperties`, `$defs`, and
+  `dependentSchemas` are `ArrayObject<array-key, …>` maps, so empty objects
+  stay `{}` and member names such as `"200"` work. PHP turns such names into
+  integer keys.
+- **Numbers** are `int|float`. A JSON integer becomes an `int`, and a JSON
+  number with a fraction or an exponent becomes a `float`. `json_encode()`
+  writes a whole float such as `1.0` as `1`, which decodes as an `int`. JSON
+  Schema treats both as the same number.
+- **Names that start with `$`**, such as `$ref`, `$id`, and `$schema`, are
+  mapped with `#[Field]`. The PHP property leaves out the `$`, as in
+  `$schema->ref`. In Draft 4, the identifier keyword is `id`, without `$`.
+- **Encoding:** `jsonSerialize()` writes the keywords that aren't `null`,
+  under their JSON names, followed by the unknown keywords.
+
+The classes parse schemas; they don't validate them. A JSON `null` decodes like
+an absent keyword, so `{"type": null}` decodes, and `json_encode()` writes it
+back without `type`. Constraints such as non-negative lengths aren't checked.
+The classes don't validate instances against a schema or resolve `$ref`.
+
+Unknown keywords, such as `x-*` extensions or keywords of another draft, are
+collected in `$unknownKeywords` with [`#[OtherMembers]`](#other-members), each
+as a `JsonValue`, and `json_encode()` writes them back after the keywords of
+the draft. So a schema keeps everything it has through a round trip, apart from
+the order of its members. Keywords that a draft replaced count as unknown:
+`Draft201909` has `definitions` but not `dependencies`, and `Draft202012` has
+neither, nor `$recursiveRef` and `$recursiveAnchor`. Their values are
+`JsonValue` objects, not schema objects.
+
+`json_encode()` rejects an unknown keyword with the name of a keyword of the
+draft, such as `new Draft202012(unknownKeywords: ['$ref' => $value])`, as
+described in [Other members](#other-members).
+
+A schema that is just `true` or `false` returns an `UnexpectedRootValue`
+error, because the classes describe JSON objects. To accept Boolean schemas at
+the root, check for them before decoding:
+
+```php
+$data = json_decode($json);
+$schema = is_bool($data) ? $data : Json::decode($json, Draft202012::class);
+```
+
+When you build schemas in PHP, static analysis may infer a narrower map type
+than a parameter takes. For example, PHPStan reads `new ArrayObject(['name' =>
+new Draft202012()])` as `ArrayObject<string, Draft202012>` and rejects it for
+`properties`, because the key and value types of `ArrayObject` are invariant.
+Declare the full map type with a `@var` tag:
+
+```php
+/** @var ArrayObject<array-key, Draft202012|bool> $properties */
+$properties = new ArrayObject(['name' => new Draft202012(type: Type::String)]);
+$schema = new Draft202012(type: Type::Object, properties: $properties);
+```
 
 ## Collection declarations
 

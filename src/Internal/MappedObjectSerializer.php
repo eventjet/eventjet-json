@@ -9,6 +9,7 @@ use ReflectionClass;
 use ReflectionException;
 use UnexpectedValueException;
 
+use function array_filter;
 use function array_key_exists;
 use function get_object_vars;
 use function sprintf;
@@ -28,15 +29,45 @@ final class MappedObjectSerializer
     public static function serialize(object $object): object
     {
         $class = new ReflectionClass($object);
+        /** @var array<string, array<array-key, mixed>|object|bool|int|float|string|resource|null> $properties */
+        $properties = get_object_vars($object);
+        foreach (NullableJsonValues::of($class) as $name => $_) {
+            if (($properties[$name] ?? null) !== null) {
+                continue;
+            }
+            unset($properties[$name]);
+        }
+        return self::write($class, $properties);
+    }
+
+    /**
+     * Like serialize(), but leaves out every property that is null, for classes in which null means absent.
+     *
+     * @throws DecodeError
+     * @throws ReflectionException
+     * @throws UnexpectedValueException If a collected member has the JSON name of a declared field.
+     */
+    public static function serializeWithoutNulls(object $object): object
+    {
+        /** @var array<string, array<array-key, mixed>|object|bool|int|float|string|resource|null> $properties */
+        $properties = array_filter(get_object_vars($object), static fn(mixed $value): bool => $value !== null);
+        return self::write(new ReflectionClass($object), $properties);
+    }
+
+    /**
+     * @param ReflectionClass<object> $class
+     * @param array<string, array<array-key, mixed>|object|bool|int|float|string|resource|null> $properties
+     * @throws DecodeError
+     * @throws UnexpectedValueException
+     */
+    private static function write(ReflectionClass $class, array $properties): object
+    {
         try {
             [$names, , $others] = TargetClass::mapping($class);
         } catch (DecodeError $error) {
             throw $error->whileCreating($class->getName());
         }
-        $nullableJsonValues = NullableJsonValues::of($class);
         $result = [];
-        /** @var array<string, array<array-key, mixed>|object|bool|int|float|string|resource|null> $properties */
-        $properties = get_object_vars($object);
         $members = [];
         if ($others !== null) {
             $collecting = $others->property;
@@ -55,9 +86,6 @@ final class MappedObjectSerializer
             }
         }
         foreach ($properties as $name => $value) {
-            if ($value === null && array_key_exists($name, $nullableJsonValues)) {
-                continue;
-            }
             $result[$names[$name] ?? $name] = $value;
         }
         return (object) ($result + $members);
