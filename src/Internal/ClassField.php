@@ -15,6 +15,7 @@ use ReflectionParameter;
 use ReflectionProperty;
 
 use function array_combine;
+use function array_filter;
 use function array_key_exists;
 use function array_keys;
 use function array_map;
@@ -50,27 +51,45 @@ final readonly class ClassField
         public ReflectionProperty|null $property,
         public bool $required,
     ) {
-        $this->scalar = $node instanceof ScalarNode ? $node->name : null;
-        $this->nullable = $node instanceof ScalarNode && $node->nullable;
+        $scalar = $node instanceof ScalarNode ? $node : null;
+        $this->scalar = $scalar?->name;
+        $this->nullable = $scalar?->nullable === true;
     }
 
     /**
      * Compiles the fields of a class: its constructor parameters, then its public instance properties that the
-     * constructor does not set, each in declaration order. Returns the first declaration that cannot round-trip.
+     * constructor does not set, each in declaration order, and separately the field that collects the other members.
+     * Throws for the first declaration that cannot round-trip.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<string, string> $names JSON names of renamed properties, keyed by property name.
      * @param array<string, true> $attributed The properties that declare any attribute, keyed by name.
-     * @return list<self>
+     * @param OtherMembersMapping|null $others The property that collects the other members, if any.
+     * @return array{list<self>, OtherMembersField|null}
      * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function compile(ReflectionClass $class, array $names, array $attributed): array
-    {
+    public static function compile(
+        ReflectionClass $class,
+        array $names,
+        array $attributed,
+        OtherMembersMapping|null $others,
+    ): array {
+        $parameters = self::parameters($class);
         $properties = self::properties($class);
+        $collector = null;
+        if ($others !== null) {
+            $collector = OtherMembersField::of($class, $others, $parameters);
+            $collecting = $collector->name;
+            unset($properties[$collecting]);
+            $parameters = array_filter(
+                $parameters,
+                static fn(ReflectionParameter $parameter): bool => $parameter->getName() !== $collecting,
+            );
+        }
         $fields = [];
-        foreach (self::parameters($class) as $parameter) {
+        foreach ($parameters as $parameter) {
             $field = self::parameter($parameter, $names, $properties);
             $fields[] = $field;
             unset($properties[$field->name]);
@@ -84,12 +103,13 @@ final readonly class ClassField
             }
             $field->node->requireSerializer($class, $field->name);
         }
-        return $fields;
+        return [$fields, $collector];
     }
 
     /**
      * Returns the fields of a class with their JSON names, without compiling or checking them, in the order that
-     * compile() compiles them.
+     * compile() compiles them. Unlike compile(), it includes the field that collects the other members, under its own
+     * name. Its array type has no literal values, so it never tells classes apart.
      *
      * @template T of object
      * @param ReflectionClass<T> $class

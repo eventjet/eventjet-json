@@ -37,6 +37,8 @@ final class SupportedDocumentRoundTripCases
             yield $name => $factory();
         }
         yield from JsonValueCases::documents();
+        yield from OtherMembersCases::documents();
+        yield from OtherMembersErrorCases::documents();
     }
 
     /** @return array<string, Closure(): array{string, class-string, callable(object): bool}> */
