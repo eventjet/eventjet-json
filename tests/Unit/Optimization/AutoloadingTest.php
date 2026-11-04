@@ -219,7 +219,7 @@ final class AutoloadingTest extends TestCase
         spl_autoload_register($autoload, prepend: true);
         try {
             $items = new ListNode(new ObjectNode(DeferredListItem::class, false), false);
-            static::assertSame([], $items->decode([], 'items'));
+            static::assertSame([], $items->decode([]));
             static::assertSame(0, $requests->count);
             static::assertFalse(class_exists(DeferredListItem::class, autoload: false));
         } finally {
@@ -295,7 +295,7 @@ final class AutoloadingTest extends TestCase
                 $compiler = new TypeCompiler();
                 $property = $class->getProperty($name);
                 foreach ([$parameter, $property] as $field) {
-                    static::assertSame($value, $compiler->field($field, $type, [$name => true])->decode($value, $name));
+                    static::assertSame($value, $compiler->field($field, $type, [$name => true])->decode($value));
                 }
             }
             $impreciseType = $imprecise->getType();
@@ -421,9 +421,12 @@ final class AutoloadingTest extends TestCase
             foreach ($fields as $name => [$field, $value]) {
                 $type = $field->getType();
                 static::assertNotNull($type);
-                static::assertSame($value, new TypeCompiler()
-                    ->field($field, $type, [$name => true])
-                    ->decode($value, $name));
+                static::assertSame(
+                    $value,
+                    new TypeCompiler()
+                        ->field($field, $type, [$name => true])
+                        ->decode($value),
+                );
             }
         } finally {
             spl_autoload_unregister($autoload);
@@ -457,11 +460,11 @@ final class AutoloadingTest extends TestCase
             static::assertSame(
                 DecodeErrorKind::InvalidValue,
                 ThrownDecodeError::of(
-                    /** @throws DecodeError|JsonException */ static fn(): object => $enum->decode(1, 'value'),
+                    /** @throws DecodeError|JsonException */ static fn(): object => $enum->decode(1),
                 )->kind,
             );
             static::assertNotContains(DeferredEnumBacking::class, $requests->names);
-            static::assertSame(DeferredValueEnum::Ready, $enum->decode('ready', 'value'));
+            static::assertSame(DeferredValueEnum::Ready, $enum->decode('ready'));
             static::assertContains(DeferredEnumBacking::class, $requests->names);
         } finally {
             spl_autoload_unregister($autoload);

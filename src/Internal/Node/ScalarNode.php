@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Node;
 
-use Closure;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
@@ -37,7 +36,7 @@ final readonly class ScalarNode implements Node
      * @throws DecodeError
      */
     #[Override]
-    public function decode(mixed $value, string $path): array|bool|float|int|object|string|null
+    public function decode(mixed $value): array|bool|float|int|object|string|null
     {
         $matches = $value === null
             ? $this->nullable
@@ -48,30 +47,29 @@ final readonly class ScalarNode implements Node
                 default => is_string($value),
             };
         if (!$matches) {
-            throw InvalidValue::typeMismatch($path, $this->expected, $value);
+            throw InvalidValue::typeMismatch($this->expected, $value);
         }
         /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
         return $this->name === 'float' && is_int($value) ? (float) $value : $value;
     }
 
     /**
-     * Decodes collection items of type bool, int, string, or float without building a path for each valid item.
+     * Decodes collection items of type bool, int, string, or float without a node call for each item.
      *
      * @template TKey of array-key
      * @param array<TKey, mixed> $values
-     * @param Closure(TKey): string $path
      * @return array<TKey, mixed>
      * @throws DecodeError
      * @throws JsonException
      */
-    public function decodeEach(array $values, Closure $path): array
+    public function decodeEach(array $values): array
     {
         if ($this->name === 'float') {
-            return $this->floats($values, $path);
+            return $this->floats($values);
         }
         $invalid = ScalarItems::firstInvalid($values, $this->name);
         if ($invalid !== null) {
-            throw InvalidValue::typeMismatch($path($invalid), $this->name, $values[$invalid] ?? null);
+            throw InvalidValue::typeMismatch($this->name, $values[$invalid] ?? null)->inItem($invalid);
         }
         return $values;
     }
@@ -81,11 +79,11 @@ final readonly class ScalarNode implements Node
      *
      * @template TKey of array-key
      * @param array<TKey, mixed> $values
-     * @param Closure(TKey): string $path
      * @return array<TKey, mixed>
      * @throws DecodeError
+     * @throws JsonException
      */
-    private function floats(array $values, Closure $path): array
+    private function floats(array $values): array
     {
         /** @var mixed $value */
         foreach ($values as $key => $value) {
@@ -93,7 +91,7 @@ final readonly class ScalarNode implements Node
                 continue;
             }
             if (!is_int($value)) {
-                throw InvalidValue::typeMismatch($path($key), 'float', $value);
+                throw InvalidValue::typeMismatch('float', $value)->inItem($key);
             }
             $values[$key] = (float) $value;
         }

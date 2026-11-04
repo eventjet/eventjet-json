@@ -15,17 +15,16 @@ use const JSON_THROW_ON_ERROR;
 /** @internal */
 final class FieldPath
 {
-    public static function field(string $parent, string $name): string
-    {
-        return $parent === '' ? $name : $parent . '.' . $name;
-    }
-
-    /** @throws JsonException */
-    public static function key(string $parent, int|string $key): string
+    /**
+     * Returns the path segment of a list index or map key.
+     *
+     * @throws JsonException
+     */
+    public static function key(int|string $key): string
     {
         $simple = is_int($key) || preg_match('/^[a-zA-Z0-9_-]+$/D', $key) === 1;
         $name = $simple ? $key : json_encode($key, JSON_THROW_ON_ERROR);
 
-        return $parent . '[' . $name . ']';
+        return '[' . $name . ']';
     }
 }

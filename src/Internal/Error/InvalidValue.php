@@ -22,57 +22,52 @@ use function var_export;
  */
 final class InvalidValue
 {
-    public static function typeMismatch(string $path, string $expectedType, mixed $value): DecodeError
+    public static function typeMismatch(string $expectedType, mixed $value): DecodeError
     {
-        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
-            'Field %s must be of type %s, %s given.',
-            $path,
+        return new DecodeError(DecodeErrorKind::InvalidValue, detail: sprintf(
+            'must be of type %s, %s given.',
             $expectedType,
             get_debug_type($value),
         ));
     }
 
-    public static function jsonValue(string $path, Throwable $error): DecodeError
+    public static function jsonValue(Throwable $error): DecodeError
     {
-        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
-            'Field %s is not a valid JSON value. %s',
-            $path,
+        return new DecodeError(DecodeErrorKind::InvalidValue, detail: sprintf(
+            'is not a valid JSON value. %s',
             $error->getMessage(),
         ));
     }
 
-    public static function emptyList(string $path, string $type): DecodeError
+    public static function emptyList(string $type): DecodeError
     {
-        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
-            'Field %s must be of type %s, empty list given.',
-            $path,
+        return new DecodeError(DecodeErrorKind::InvalidValue, detail: sprintf(
+            'must be of type %s, empty list given.',
             $type,
         ));
     }
 
-    public static function emptyMap(string $path): DecodeError
+    public static function emptyMap(): DecodeError
     {
-        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
-            'Field %s uses non-empty-array<string, TValue> and cannot accept an empty JSON object. Use ArrayObject<string, TValue> when the map may be empty.',
-            $path,
-        ));
+        return new DecodeError(
+            DecodeErrorKind::InvalidValue,
+            detail: 'uses non-empty-array<string, TValue> and cannot accept an empty JSON object. Use ArrayObject<string, TValue> when the map may be empty.',
+        );
     }
 
-    public static function integerKey(string $path, int $key): DecodeError
+    public static function integerKey(int $key): DecodeError
     {
-        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
-            'Field %s has numeric-looking member name %d, which PHP converts to an integer array key. Only ArrayObject<array-key, TValue> fields accept such member names.',
-            $path,
+        return new DecodeError(DecodeErrorKind::InvalidValue, detail: sprintf(
+            'has numeric-looking member name %d, which PHP converts to an integer array key. Only ArrayObject<array-key, TValue> fields accept such member names.',
             $key,
         ));
     }
 
-    public static function tupleLength(string $path, string $type, int $required, int $max, int $count): DecodeError
+    public static function tupleLength(string $type, int $required, int $max, int $count): DecodeError
     {
         $length = $required === $max ? sprintf('exactly %d', $max) : sprintf('between %d and %d', $required, $max);
-        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
-            'Field %s must be of type %s with %s items, %d given.',
-            $path,
+        return new DecodeError(DecodeErrorKind::InvalidValue, detail: sprintf(
+            'must be of type %s with %s items, %d given.',
             $type,
             $length,
             $count,
@@ -80,11 +75,10 @@ final class InvalidValue
     }
 
     /** @param 'int'|'string' $backingType */
-    public static function enumBackingType(string $path, string $enum, string $backingType, mixed $value): DecodeError
+    public static function enumBackingType(string $enum, string $backingType, mixed $value): DecodeError
     {
-        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
-            'Field %s uses backed enum %s, which expects a %s backing value; %s given.',
-            $path,
+        return new DecodeError(DecodeErrorKind::InvalidValue, detail: sprintf(
+            'uses backed enum %s, which expects a %s backing value; %s given.',
             $enum,
             $backingType,
             get_debug_type($value),
@@ -92,12 +86,11 @@ final class InvalidValue
     }
 
     /** @param non-empty-list<string> $enums */
-    public static function unknownEnumCase(string $path, array $enums, int|string $value): DecodeError
+    public static function unknownEnumCase(array $enums, int|string $value): DecodeError
     {
         sort($enums);
-        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
-            'Field %s uses %s %s, which has no case with backing value %s.',
-            $path,
+        return new DecodeError(DecodeErrorKind::InvalidValue, detail: sprintf(
+            'uses %s %s, which has no case with backing value %s.',
             count($enums) === 1 ? 'backed enum' : 'backed enum union',
             implode('|', $enums),
             var_export($value, return: true),

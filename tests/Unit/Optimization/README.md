@@ -12,8 +12,9 @@ visible to mutation testing without relying on timing thresholds.
   `JsonType` descriptors share one compiled node, and that a descriptor is compiled
   again after its missing item class loads.
 - `ConstructorHydrationPlanTest` checks that cached class decoders still validate each
-  input, that values of a field's declared scalar type skip the field's node, and
-  that unions keep the JSON value types they decode.
+  input, that values of a field's declared scalar type skip the field's node, that
+  valid values build no error paths, and that unions keep the JSON value types they
+  decode.
 - `ConstructorValidationPlanTest` checks that cached decoders still validate and convert each
   input, preserve error paths, report the first invalid field in declaration order,
   and recheck unresolved dependencies.

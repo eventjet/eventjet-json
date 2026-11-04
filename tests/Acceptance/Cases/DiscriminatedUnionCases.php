@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\DecodeErrorKind;
-use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Test\Acceptance\Cases\Discriminated\Document;
 use Eventjet\Json\Test\Acceptance\Fixtures\Discriminated\Codes;
 use Eventjet\Json\Test\Acceptance\Fixtures\Discriminated\NumericCode;
@@ -102,7 +101,7 @@ final class DiscriminatedUnionCases
             sprintf(
                 'Could not create %s from the JSON object: Field %s must be one of %s; %s given.',
                 $tagged->container,
-                FieldPath::field($tagged->path, $tagged->tag->member),
+                $tagged->path === '' ? $tagged->tag->member : $tagged->path . '.' . $tagged->tag->member,
                 $tagged->tag->allowed,
                 var_export($tagged->undeclared(), return: true),
             ),

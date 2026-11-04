@@ -63,12 +63,12 @@ final readonly class ClassDecoder
 
     /**
      * Decodes the members of a JSON object field by field, stopping at the first error, then creates the object: it
-     * calls the constructor and assigns the public properties outside it.
+     * calls the constructor and assigns the public properties outside it. Returns the error instead of throwing it,
+     * because each throw makes rejected documents measurably slower.
      *
-     * @throws DecodeError
      * @throws JsonException
      */
-    public function decode(stdClass $object, string $path): object
+    public function decode(stdClass $object): object
     {
         /** @var array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values */
         $values = get_object_vars($object);
@@ -91,7 +91,11 @@ final readonly class ClassDecoder
                     default => false,
                 };
             if (!$unchanged) {
-                $value = $field->node->decode($value, $path === '' ? $name : FieldPath::field($path, $name));
+                try {
+                    $value = $field->node->decode($value);
+                } catch (DecodeError $error) {
+                    return $error->inMember($name);
+                }
             }
             if ($field->property === null) {
                 $arguments[$field->name] = $value;
@@ -107,14 +111,13 @@ final readonly class ClassDecoder
             $created = new $this->class(...$arguments);
         } catch (Throwable $error) {
             $missing = $this->missesArgument($arguments);
-            $failure = $missing ? InvalidValue::missingArgument($error) : ConstructorFailure::constructorThrew($error);
-            throw $failure;
+            return $missing ? InvalidValue::missingArgument($error) : ConstructorFailure::constructorThrew($error);
         }
         foreach ($assignments as [$property, $value]) {
             try {
                 $property->setValue($created, $value);
             } catch (Throwable $error) {
-                throw ConstructorFailure::assignmentThrew($property, $error);
+                return ConstructorFailure::assignmentThrew($property, $error);
             }
         }
         return $created;
