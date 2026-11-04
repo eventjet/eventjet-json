@@ -15,18 +15,19 @@ must not be relied on, even if a particular value happens to decode.
 | Readonly classes | Supported at the root | The same constructor rules as other concrete classes apply. |
 | `string`, `int`, `float`, and `bool` constructor fields | Supported | Values must have the declared type. An integer JSON value is also valid for a `float` field because the declaration restores it as a PHP float. Other implicit scalar coercions are rejected. |
 | `null`, nullable scalar fields, and literal `true` and `false` fields | Supported | A non-null value must still match the non-null member of a nullable type. Literal Boolean fields accept only their declared value. |
-| Collection fields | Limited | PHPDoc `list<T>` and `non-empty-list<T>` declarations are decoded and validated for constructor fields and public properties, where `T` is `string`, `int`, `float`, `bool`, a backed enum, a final class, or a supported union of those types and `null`, `true`, or `false`. Lists, tuples, and maps may nest recursively in any combination, including nullable nested collections and supported unions, with the same rules at every level. Empty JSON arrays are rejected for `non-empty-list<T>`. Positional tuples such as `array{int, string}` require exactly the declared positions and validate each independently, using the same supported item types. `array{}` preserves empty JSON arrays. Explicit consecutive indexes starting at zero and optional trailing positions are supported, such as `array{0: int, 1?: string}`; omitted positions remain absent. Nonempty maps use `non-empty-array<string, T>` or its alias `non-empty-map<string, T>`; maps that may be empty use `ArrayObject<string, T>`. For either map form, `T` supports the same declarations. JSON arrays are rejected for maps, `{}` is rejected for nonempty-array maps, and member names that PHP converts to integer keys are rejected. Whole-valued JSON integers in float collections are restored as floats. Class and enum names follow the declaring class's namespace and class imports, including aliases, grouped imports, namespace aliases, fully qualified names, namespace-relative names, and global-namespace shorthand. `self` resolves to the declaring class and requires it to be final. Missing, malformed, unknown, and unsupported collection declarations return a `DecodeError`, including when the member is omitted. Native arrays require a supported collection PHPDoc declaration. |
-| Nested class fields | Supported for final classes | JSON objects are recursively converted to final classes declared directly on constructor fields, including readonly classes, nullable fields, `self` declarations that resolve to a final class, and unions with backed enums, scalar, and null members. Non-final declarations, including `parent`, are rejected because their values may be subclasses. Classes with a private or protected constructor are rejected, even when the member is missing or `null`. A final class may join a union with a list or tuple; maps and classes cannot share a union because both encode as JSON objects. |
+| Collection fields | Limited | PHPDoc `list<T>` and `non-empty-list<T>` declarations are decoded and validated for constructor fields and public properties, where `T` is `string`, `int`, `float`, `bool`, a backed enum, a final class, a supported union of those types and `null`, `true`, or `false`, or a [discriminated union](#discriminated-unions) of several final classes. Lists, tuples, and maps may nest recursively in any combination, including nullable nested collections and supported unions, with the same rules at every level. Empty JSON arrays are rejected for `non-empty-list<T>`. Positional tuples such as `array{int, string}` require exactly the declared positions and validate each independently, using the same supported item types. `array{}` preserves empty JSON arrays. Explicit consecutive indexes starting at zero and optional trailing positions are supported, such as `array{0: int, 1?: string}`; omitted positions remain absent. Nonempty maps use `non-empty-array<string, T>` or its alias `non-empty-map<string, T>`; maps that may be empty use `ArrayObject<string, T>`, or `ArrayObject<array-key, T>` to accept every member name. For every map form, `T` supports the same declarations. JSON arrays are rejected for maps, `{}` is rejected for nonempty-array maps, and member names that PHP converts to integer keys are rejected unless the key type is `array-key` or `int|string`. Whole-valued JSON integers in float collections are restored as floats. Class and enum names follow the declaring class's namespace and class imports, including aliases, grouped imports, namespace aliases, fully qualified names, namespace-relative names, and global-namespace shorthand. `self` resolves to the declaring class and requires it to be final. Missing, malformed, unknown, and unsupported collection declarations return a `DecodeError`, including when the member is omitted. Native arrays require a supported collection PHPDoc declaration. |
+| Nested class fields | Supported for final classes | JSON objects are recursively converted to final classes declared directly on constructor fields, including readonly classes, nullable fields, `self` declarations that resolve to a final class, and unions with backed enums, scalar, and null members. A union of several final classes is supported when a member of the objects identifies the class; see [Discriminated unions](#discriminated-unions). Non-final declarations, including `parent`, are rejected because their values may be subclasses. Classes with a private or protected constructor are rejected, even when the member is missing or `null`. A final class may join a union with a list or tuple; maps and classes cannot share a union because both encode as JSON objects. |
 | Backed enum fields | Supported in direct constructor fields, public properties, unambiguous unions, lists, and maps | String-backed and int-backed values are converted without coercion, including nullable enum fields, lists, `non-empty-array<string, BackedEnum>` and `ArrayObject<string, BackedEnum>` maps, unions where scalar members use different JSON types from the enum backing type, and unions of backed enums whose case values do not overlap. Non-backed enum values cannot be decoded. A non-backed enum without custom serialization may join a union with supported members, including `null`. |
-| General union types | Limited | Nullable scalar declarations, one final class alongside a backed enum and scalar or null members, backed enum/scalar unions with distinct JSON types, and unambiguous unions of backed enums are supported. Scalar members must use JSON types distinct from the enum's backing type. Supported collection declarations may join field, tuple-position, list-item, and map-value unions, with at most one member for each JSON array or object shape. |
+| General union types | Limited | Nullable scalar declarations, one final class or a [discriminated union](#discriminated-unions) of several final classes alongside a backed enum and scalar or null members, backed enum/scalar unions with distinct JSON types, and unambiguous unions of backed enums are supported. Scalar members must use JSON types distinct from the enum's backing type. Supported collection declarations may join field, tuple-position, list-item, and map-value unions, with at most one member for each JSON array or object shape. |
 | Intersection types | Rejected | JSON does not identify a concrete class that satisfies the intersection. |
 | Interfaces and abstract classes | Rejected at the root and in field types | Root targets, direct constructor field declarations, union members, list item declarations, and map value declarations return dedicated errors because JSON does not identify a concrete implementation or subclass to instantiate. |
 | Public properties outside the constructor, inherited properties, and other unsupported class shapes | Limited | Declared scalar, array, backed enum, nested final class, and supported union public properties are hydrated after construction, including inherited properties, nullable and recursively nested `self` declarations, and classes without constructors. Public properties accept the same declarations as constructor fields and report the same errors. Supplied property values are validated and converted before the target constructor runs, then assigned after construction. Constructor-bound properties, including promoted readonly properties, are not assigned again. Omitted public properties keep their state after construction: initialized properties retain their values, while uninitialized properties remain uninitialized, including readonly properties. Targets with private or protected constructors are rejected with a dedicated error. |
-| `mixed`, untyped fields, `object`, `stdClass`, `iterable`, and `callable` | Rejected | These declarations cannot preserve every value's original PHP type and JSON object/array shape, so they return a dedicated `DecodeError` whether or not the member is present. Use `ArrayObject<string, T>` rather than `stdClass` for a typed JSON object map, and a PHPDoc collection declaration on `array` rather than `iterable`. |
+| `mixed`, untyped fields, `object`, `stdClass`, `iterable`, and `callable` | Rejected | These declarations cannot preserve every value's original PHP type and JSON object/array shape, so they return a dedicated `DecodeError` whether or not the member is present. Use `JsonValue` for any JSON value, `ArrayObject<string, T>` rather than `stdClass` for a typed JSON object map, and a PHPDoc collection declaration on `array` rather than `iterable`. |
+| `JsonValue` | Supported in fields, list items, map values, and tuple positions | Takes any JSON value. It cannot join a union, except as a `JsonValue\|null` field, whose class must implement `JsonSerializable`. It is unsupported at the root and as a `JsonType` item. See [Free-form JSON values](#free-form-json-values). |
 | Root arrays and maps | Limited | `JsonType::array()` returns lists and `JsonType::map()` returns `ArrayObject<string, T>` maps, preserving empty JSON arrays and objects. Values may be final classes, backed enums, or recursively nested array and map descriptors. Map keys must remain PHP strings. |
 | Backed enums at the root | Supported | `Json::decode('"ready"', Status::class)` returns `Status::Ready`. The JSON root must be a backing value of the enum's backing type. Another JSON type returns an `UnexpectedRootValue` error, and a value without a case returns an `InvalidValue` error. Non-backed enums and enums that implement `JsonSerializable` are rejected, as in fields. |
 | Root scalars and `null` | Unsupported | There are no descriptors for standalone values of these types. Use a transport class with a typed field. |
-| Classes implementing `JsonSerializable` | Opt-in through `#[Field]` | At least one annotated public instance property is required. Use `MappedJsonFields` or supply a serializer that emits the declared field names and values. Unannotated serializers remain rejected. |
+| Classes implementing `JsonSerializable` | Opt-in through `#[Field]` or a `JsonValue\|null` property | At least one annotated public instance property, or one public instance property declared as `JsonValue\|null`, is required. Use `MappedJsonFields` or supply a serializer that emits the declared field names and values and leaves out `JsonValue\|null` properties that are `null`. Other serializers remain rejected. |
 
 The round-trip contract also has these representation limits:
 
@@ -37,8 +38,9 @@ The round-trip contract also has these representation limits:
   [Numeric round trips](#numeric-round-trips).
 - Map keys starting with a null byte are outside the round-trip domain, see
   [Collection declarations](#collection-declarations).
-- JSON does not retain PHP class identity. It cannot choose between multiple
-  possible classes without an additional discriminator or selection rule.
+- JSON does not retain PHP class identity. It can choose between multiple
+  possible classes only through a discriminator member that every class
+  declares; see [Discriminated unions](#discriminated-unions).
 - A backed enum case and its backing scalar encode to the same JSON value, so a
   union containing both cannot recover the original PHP type.
 - Collection declarations enforce both item types and JSON shape. Lists require
@@ -135,7 +137,8 @@ nested type whose field is omitted or whose collection is empty.
 `MappedJsonFields` implements `jsonSerialize()` using the shared field metadata.
 It returns an object containing initialized public instance properties, retaining
 nulls and the same default-valued properties that native object encoding exposes.
-Uninitialized properties are omitted. Private, protected, and static state is not
+Uninitialized properties are omitted, and so are `JsonValue|null` properties that
+are `null`. Private, protected, and static state is not
 exposed. An empty result stays `{}` and numeric member names remain object keys.
 Nested mapped objects are handled by PHP's normal `JsonSerializable` support.
 
@@ -144,13 +147,114 @@ resolved names and unchanged property values. It must not drop required values,
 rename them differently, or replace the object with a scalar or list. That is the
 class author's round-trip responsibility; the decoder does not execute a
 serializer to infer or verify its behavior. An interface or marker cannot prove
-an arbitrary method's behavior. `JsonSerializable` classes without `#[Field]`
-and custom-serialized enums remain outside this opt-in contract.
+an arbitrary method's behavior. `JsonSerializable` classes without `#[Field]` or
+a `JsonValue|null` property, and custom-serialized enums, remain outside this
+opt-in contract.
 
 This feature does not restore `Json::encode()`, add docblock mapping syntax, or
-make full JSON Schema models supported. Arbitrary JSON values, Boolean schema
-roots, unknown keyword retention, and exact preservation of omitted keywords
-remain separate concerns.
+make full JSON Schema models supported. Boolean schema roots, unknown keyword
+retention, and exact preservation of omitted keywords remain separate concerns.
+For arbitrary JSON values, see [Free-form JSON values](#free-form-json-values).
+
+## Discriminated unions
+
+A union of several final classes decodes when the JSON objects carry a member
+that names their class. Each class declares that member as an ordinary
+literal-typed field, so the classes need nothing specific to this library:
+
+```php
+final readonly class Circle
+{
+    /** @param 'circle' $type */
+    public function __construct(public float $radius, public string $type = 'circle') {}
+}
+
+final readonly class Rectangle
+{
+    /** @param 'rectangle' $type */
+    public function __construct(public int $width, public int $height, public string $type = 'rectangle') {}
+}
+
+final readonly class Drawing
+{
+    /** @param list<Circle|Rectangle> $shapes */
+    public function __construct(public array $shapes) {}
+}
+```
+
+Decoding `{"shapes":[{"radius":2,"type":"circle"},{"width":3,"height":4,"type":"rectangle"}]}`
+into `Drawing::class` restores a `Circle` and a `Rectangle`. `json_encode()`
+writes the member back, so the document round-trips, and PHPStan and Psalm
+narrow `$shape->type === 'circle'` to `Circle`.
+
+The decoder infers the discriminator from the classes. A JSON member name is a
+candidate when all of these hold:
+
+- Every class in the union declares it, as a constructor field or a public
+  instance property. With `#[Field]`, the JSON name counts.
+- Its type in every class is one or more string literals, int literals, or
+  backed enum cases, such as `'circle'`, `1`, `'square'|'box'`, or
+  `Kind::Circle` in PHPDoc on a field whose native type is `Kind`.
+- No two classes share a JSON value. An enum case counts as its backing value,
+  and the integer `1` and the string `'1'` are different values.
+
+Without an attribute, the union needs exactly one candidate. A member that holds
+the same literal in every class, such as a `version` of `1`, is not a candidate,
+so it does not get in the way. A whole enum, `true`, `false`, floats, and `null`
+are never discriminator types.
+
+When more than one member is a candidate, name the JSON member with
+`#[Discriminator]` on the field that holds the union:
+
+```php
+use Eventjet\Json\Discriminator;
+
+final readonly class EventLog
+{
+    /** @param list<Created|Deleted> $events */
+    public function __construct(#[Discriminator('event')] public array $events) {}
+}
+```
+
+The attribute works on promoted and ordinary constructor parameters and on
+public properties. It applies to every union of several classes in the
+declaration, including nested ones such as `list<list<Circle|Rectangle>>`.
+The decoder still works out which value selects which class. The named member
+must meet the candidate rules above. A name that starts with a null byte throws
+an `InvalidArgumentException`, as with `#[Field]`.
+
+Discriminated unions work wherever one final class does: constructor fields,
+public properties, list items, tuple positions, and map values, including
+recursive structures such as an `AndFilter` that holds
+`list<AndFilter|OrFilter|Equals>`. The classes take the union's one JSON-object
+member, so they may share a union with `null`, scalars, backed enums, and one
+list or tuple, but not with a map. Each class must meet the usual rules for a
+final class. Only the members of a class are read for inference: if one of the
+classes does not exist, the union is rejected as ambiguous.
+
+Each decode reads the discriminator member, chooses the class, and decodes the
+object with that class, including the discriminator field. The member is
+required even when the field has a default. These are `InvalidValue` errors
+that list the allowed values, such as `Field shapes[1].type must be one of
+'circle', 'rectangle'; 'triangle' given.`:
+
+- The object has no discriminator member.
+- The discriminator has a different JSON type, such as `null` or a float.
+- The discriminator matches no class.
+
+Errors inside the chosen class keep their usual messages and paths, such as
+`shapes[1].width`. These declarations return `UnsupportedDeclaration`, from
+both `Json::decode()` and `Json::validateType()`:
+
+- No member is a candidate.
+- Several members are candidates and no attribute names one.
+- The member that `#[Discriminator]` names is not a candidate, for example
+  because it is misspelled, not a literal, or shares a value between classes.
+- `#[Discriminator]` is on a declaration without a union of several classes.
+
+[ADR 0005](adr/0005-infer-discriminators-from-literal-fields.md) explains why
+the decoder infers the discriminator instead of matching class fields or using
+an explicit mapping.
 
 ## Numeric round trips
 
@@ -185,11 +289,70 @@ object or map, and a JSON object cannot stand in for a list, even when its
 member names are sequential integers such as `"0"` and `"1"`.
 
 Maps preserve numeric-looking member names that remain PHP string keys, such
-as `"01"` and `"1e0"`. They reject names that PHP converts to integer keys, such
-as `"0"` and `"42"`. For concrete class targets, numeric-looking names are
+as `"01"` and `"1e0"`. Maps with `string` keys reject names that PHP converts to
+integer keys, such as `"0"` and `"42"`; `ArrayObject<array-key, T>` maps accept
+them as integer keys. For concrete class targets, numeric-looking names are
 unknown fields and follow the same ignore policy as other unknown members.
 These rules also apply to root collections declared with `JsonType::array()`
-or `JsonType::map()`.
+or `JsonType::map()`, whose maps have `string` keys.
+
+## Free-form JSON values
+
+`Eventjet\Json\JsonValue` holds any JSON value: `null`, a Boolean, a number, a
+string, an array, or an object, nested in any combination. Use it for members
+whose shape the format leaves open, such as JSON Schema's `const` and
+`default`. Plain PHP can't declare such a type: `mixed` allows PHP values that
+don't round-trip, and PHPStan and Psalm reject a recursive type alias. So, like
+`#[Field]`, `JsonValue` is a class from this package that your classes import.
+
+`value()` returns the value one level at a time. A JSON array is a
+`list<JsonValue>`, a JSON object is an `ArrayObject<array-key, JsonValue>`, and
+other values are `null`, `bool`, `int`, `float`, or `string`. Member names that
+PHP turns into integer keys, such as `"42"`, stay integer keys in the
+`ArrayObject`; `json_encode()` still writes it as an object. Changing a list or
+an `ArrayObject` that `value()` returned doesn't change the `JsonValue`.
+`json_encode()` writes a `JsonValue` as the JSON value that it holds.
+
+A `JsonValue` stores what a `json_encode()`/`json_decode()` round trip of its
+input gives. Associative arrays, `stdClass`, and `ArrayObject` become objects,
+lists become arrays, backed enums become their backing values, and
+`JsonSerializable` objects become what their `jsonSerialize()` returns. Numbers
+follow `json_encode()`: whole floats that it writes without an exponent become
+integers, so `1.0` becomes `1` and `-0.0` becomes `0`. Other floats stay
+floats. So `Json::decode(json_encode($object), $class)` gives back identical
+values, PHP types included. JSON Schema treats `1.0` and `1` as equal anyway.
+
+The constructor throws an `InvalidArgumentException` for input that isn't
+JSON-shaped: objects of other classes, such as closures, resources, non-backed
+enums, `INF` and `NAN`, strings or member names that aren't valid UTF-8, member
+names that start with a null byte, and input nested more than 512 levels deep.
+Each `jsonSerialize()` call counts as a level, and so do the levels inside
+`JsonValue` objects in the input. If a `jsonSerialize()` method throws, the
+constructor throws an `InvalidArgumentException` with that exception as its
+previous one.
+
+The decoder wraps the JSON value of a `JsonValue` field, list item, map value,
+or tuple position, including `null`. A JSON number too large for a PHP float,
+such as `1e400`, returns an `InvalidValue` error. `JsonValue` takes every JSON
+value, so it cannot share a union with another type, `null` included, and a
+union like `JsonValue|string` returns an `UnsupportedDeclaration` error.
+
+The exception is a field declared as `JsonValue|null`, which keeps an absent
+member apart from JSON `null`. PHP `null` means the member was absent, and
+`new JsonValue(null)` is a present JSON `null`. `json_encode()` would write an
+absent value as `null`, so a class with a public `JsonValue|null` property must
+implement `JsonSerializable` and leave out the member when the property is
+`null`. `MappedJsonFields` does that. Without `JsonSerializable`,
+`Json::decode()` and `Json::validateType()` return an `UnsupportedDeclaration`
+error. This requirement follows the type that the decoder reads for the field,
+which is the constructor parameter's type when a constructor parameter sets the
+property. Such a property also opts the class into `JsonSerializable`, as
+`#[Field]` does. For that, only the declared type of the property counts, not
+that of a constructor parameter.
+
+`JsonValue` is unsupported as the root type and as a `JsonType` item. It has no
+`equals()` method, because `==` treats values such as `"1"` and `1` as equal.
+To compare two values, compare their `json_encode()` output.
 
 ## Collection declarations
 
@@ -252,6 +415,16 @@ is a standard PHP container whose empty value encodes as `{}`. The decoder
 treats it as a map container rather than as an ordinary non-final class and
 always constructs an exact `ArrayObject`; subclasses are outside the supported
 round-trip domain.
+
+Use `ArrayObject<array-key, T>`, or its equivalent `ArrayObject<int|string, T>`,
+for a JSON object whose member names are free-form, such as the HTTP status
+codes in an OpenAPI `responses` object. It accepts every member name. As in any
+PHP array, a name such as `"200"` becomes the integer key `200`, while names such
+as `"01"` and `"-0"` stay strings. The round trip stays exact because
+`json_encode()` always writes an `ArrayObject` as a JSON object:
+`new ArrayObject([200 => 'OK'])` encodes as `{"200":"OK"}`. `non-empty-array`
+maps keep `string` keys, because `json_encode([0 => 'x'])` writes the list
+`["x"]`. `ArrayObject<int, T>` is unsupported.
 
 Map keys starting with a null byte are outside the round-trip domain.
 `json_encode()` omits them from an `ArrayObject`, as it does for object
@@ -336,7 +509,8 @@ and unsupported class types still apply.
 
 Collection items and values may use unions, such as `list<string|int|Person>`,
 `ArrayObject<string, Status|null>`, or `array{int|string, Person|null}`.
-Each union may contain scalar types, `true`, `false`, `null`, one final class,
+Each union may contain scalar types, `true`, `false`, `null`, one final class
+or a [discriminated union](#discriminated-unions) of several final classes,
 and backed enums with unambiguous case values. The same class and enum
 restrictions as ordinary object fields apply, even when the collection is
 empty or the field is omitted. Enum backing scalars and overlapping enum
@@ -402,8 +576,8 @@ Each union may have at most one JSON-array member and one JSON-object member.
 `list<int>|non-empty-array<string, int>` also works, with an empty object
 rejected by the map's nonempty constraint. `list<int>|list<string>` and
 `list<int>|array{int}` are rejected because JSON arrays do not identify which
-member to restore. A map alongside a class or another map is rejected for the
-same reason. Unsupported or ambiguous declarations are rejected even when
+member to restore. A map alongside a class, a discriminated union of classes, or
+another map is rejected for the same reason. Unsupported or ambiguous declarations are rejected even when
 the collection is empty or the field is omitted.
 
 Tuples may contain lists, maps, and other tuples, and may appear inside list
@@ -601,7 +775,8 @@ are meant for people.
 - `InvalidValue`: the JSON does not match the declarations. This includes
   values of the wrong type, unknown enum cases, values outside a literal type,
   an empty array for `non-empty-list<T>`, an empty object for
-  `non-empty-array<string, T>`, member names that PHP converts to integer keys,
+  `non-empty-array<string, T>`, member names that PHP converts to integer keys
+  in a map with `string` keys,
   tuples of the wrong length, and missing required constructor members. For a
   missing member, the message is PHP's own message about the constructor call.
   If several members are invalid, the error names the first field in
@@ -632,7 +807,6 @@ These exclusions keep decoding unambiguous and preserve PHP types and JSON shape
 
 | Feature or value | Why it is unsupported |
 | --- | --- |
-| Unions containing more than one class, such as `ClassA\|ClassB` | JSON objects do not identify their PHP class. Choosing a class would require a discriminator or inspecting class fields, adding complexity to decoding. |
 | Unions containing multiple enums with overlapping backing values | The same JSON scalar would identify cases from more than one enum, so decoding could not recover the original enum type. |
 | Unions combining a backed enum with its backing scalar type, such as `MyStringBackedEnum\|string` or `MyIntBackedEnum\|int` | An enum case and its backing scalar encode to the same JSON value. Checking the enum first would turn an original scalar into an enum case; checking the scalar first would lose the enum case. JSON cannot recover the original PHP type, so these unions break the round-trip contract. |
 | Interface and abstract class type hints | They cannot be instantiated directly, and JSON does not identify which concrete implementation or subclass to create. Resolving one would require additional selection rules or metadata. |
@@ -646,5 +820,5 @@ These exclusions keep decoding unambiguous and preserve PHP types and JSON shape
 | JSON objects with duplicate member names | They cannot be produced by `json_encode()` from supported PHP values. PHP's decoder does not report them separately, and detecting them would require reparsing every document. Callers must not rely on which duplicate value is retained. |
 | Implicit coercion of mismatched scalar types | Converting values such as `"42"` to `42` hides a type mismatch and changes the value's type. Decoding must validate the declared type. |
 | Automatic naming strategies and multiple aliases for one property | Only explicit `#[Field]` mappings are supported. Each property has one accepted JSON name. |
-| `mixed`, untyped, `object`, `stdClass`, `iterable`, and `callable` fields | These declarations do not provide enough type information to restore every value's original PHP type and JSON shape. In particular, `object` omits the concrete class, while `mixed`, untyped fields, and `stdClass` members can contain PHP arrays that encode as JSON objects. `iterable` does not declare its items, or whether a JSON array holds a list or a map. A `callable` can be a closure, which has no JSON representation, and a JSON string or array does not show that it names a callable. |
-| Generic `array<TKey, TValue>` map declarations | An empty PHP array encodes as `[]`, so it cannot represent an empty JSON object. Depending on its runtime keys, a nonempty PHP array can also encode as either an array or an object. Use `non-empty-array<string, TValue>` for a map that cannot be empty or `ArrayObject<string, TValue>` for a map that may be empty. |
+| `mixed`, untyped, `object`, `stdClass`, `iterable`, and `callable` fields | These declarations do not provide enough type information to restore every value's original PHP type and JSON shape. Use `JsonValue` for any JSON value. In particular, `object` omits the concrete class, while `mixed`, untyped fields, and `stdClass` members can contain PHP arrays that encode as JSON objects. `iterable` does not declare its items, or whether a JSON array holds a list or a map. A `callable` can be a closure, which has no JSON representation, and a JSON string or array does not show that it names a callable. |
+| Generic `array<TKey, TValue>` map declarations | An empty PHP array encodes as `[]`, so it cannot represent an empty JSON object. Depending on its runtime keys, a nonempty PHP array can also encode as either an array or an object. Use `non-empty-array<string, TValue>` for a map that cannot be empty or `ArrayObject<string, TValue>` or `ArrayObject<array-key, TValue>` for a map that may be empty. |

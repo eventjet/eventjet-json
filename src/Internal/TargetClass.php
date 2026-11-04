@@ -6,15 +6,11 @@ namespace Eventjet\Json\Internal;
 
 use BackedEnum;
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\Field;
 use Eventjet\Json\Internal\Error\UnsupportedClass;
 use Eventjet\Json\Internal\Error\UnsupportedTarget;
 use JsonSerializable;
 use ReflectionClass;
-use ReflectionProperty;
 
-use function array_filter;
-use function array_push;
 use function is_a;
 
 /**
@@ -30,16 +26,23 @@ use function is_a;
  */
 final class TargetClass
 {
-    /** @var array<class-string, array<string, string>> */
-    private static array $names = [];
+    /**
+     * The JSON names of the renamed properties of each class, and the names of its properties that declare any
+     * attribute. A field whose property declares none skips looking up its own attributes, which would cost a call per
+     * field on every first decode.
+     *
+     * @var array<class-string, array{array<string, string>, array<string, true>}>
+     */
+    private static array $fields = [];
 
     /**
      * Rejects a class whose objects JSON cannot restore, or returns the JSON names of its renamed properties, keyed by
-     * property name. A class decoder applies these rules to every class, at the root or nested.
+     * property name, and the names of its properties that declare any attribute. A class decoder applies these rules to
+     * every class, at the root or nested.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array<string, string>
+     * @return array{array<string, string>, array<string, true>}
      * @throws DecodeError
      */
     public static function validate(ReflectionClass $class): array
@@ -114,47 +117,41 @@ final class TargetClass
      */
     public static function fieldNames(ReflectionClass $class): array
     {
-        return self::$names[$class->getName()] ?? self::resolve($class);
+        return self::fields($class)[0];
     }
 
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array<string, string>
+     * @return array{array<string, string>, array<string, true>}
+     * @throws DecodeError
+     */
+    private static function fields(ReflectionClass $class): array
+    {
+        return self::$fields[$class->getName()] ?? self::resolve($class);
+    }
+
+    /**
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @return array{array<string, string>, array<string, true>}
      * @throws DecodeError
      */
     private static function resolve(ReflectionClass $class): array
     {
         $className = $class->getName();
         $properties = $class->getProperties();
-        $annotated = array_filter(
-            [...$properties, ...self::privateAncestorProperties($class)],
-            static fn(ReflectionProperty $property): bool => $property->getAttributes(Field::class) !== [],
-        );
+        [$attributed, $annotated] = PropertyAttributes::of($class, $properties);
         if ($annotated === []) {
-            return $class->implementsInterface(JsonSerializable::class)
-                ? throw UnsupportedTarget::jsonSerializable($className)
-                : (self::$names[$className] = []);
+            if ($class->implementsInterface(JsonSerializable::class)) {
+                NullableJsonValues::requireDecodable($class);
+            }
+            return self::$fields[$className] = [[], $attributed];
         }
-        return self::$names[$className] = FieldNameRules::resolve($class, $properties, $annotated);
-    }
-
-    /**
-     * Returns the private properties of all ancestors, which reflection leaves out of the properties of the class.
-     *
-     * @template T of object
-     * @param ReflectionClass<T> $class
-     * @return list<ReflectionProperty>
-     */
-    private static function privateAncestorProperties(ReflectionClass $class): array
-    {
-        $properties = [];
-        $parent = $class->getParentClass();
-        while ($parent !== false) {
-            array_push($properties, ...$parent->getProperties(ReflectionProperty::IS_PRIVATE));
-            $parent = $parent->getParentClass();
-        }
-        return $properties;
+        return self::$fields[$className] = [
+            FieldNameRules::resolve($class, $properties, $annotated),
+            $attributed,
+        ];
     }
 
     /**
@@ -173,22 +170,23 @@ final class TargetClass
     }
 
     /**
-     * Rejects a class whose own declarations JSON cannot restore, or returns the JSON names of its renamed properties.
+     * Rejects a class whose own declarations JSON cannot restore, or returns the JSON names of its renamed properties
+     * and the names of its properties that declare any attribute.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array<string, string>
+     * @return array{array<string, string>, array<string, true>}
      * @throws DecodeError
      */
     private static function validateDeclarations(ReflectionClass $class): array
     {
         try {
-            $names = self::fieldNames($class);
+            $fields = self::fields($class);
             $constructor = $class->getConstructor();
             if ($constructor !== null && !$constructor->isPublic()) {
                 throw UnsupportedTarget::inaccessibleConstructor($constructor);
             }
-            return $names;
+            return $fields;
         } catch (DecodeError $error) {
             throw $error->whileCreating($class->getName());
         }

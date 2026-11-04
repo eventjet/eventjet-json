@@ -59,7 +59,61 @@ final class PerformanceShards
         return $validated;
     }
 
-    /** @return array{comparisons: non-empty-list<BenchmarkComparison>, fpm: non-empty-list<FpmComparison>} */
+    /** @param array<string, mixed> $metadata */
+    private static function requiredString(array $metadata, string $key): string
+    {
+        $value = $metadata[$key] ?? null;
+        if (!is_string($value) || $value === '') {
+            throw self::invalidShared($key);
+        }
+        return $value;
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     * @return list<string>
+     */
+    private static function identityList(array $metadata, string $key): array
+    {
+        $value = $metadata[$key] ?? null;
+        if (!is_array($value) || !array_is_list($value)) {
+            throw self::invalidShared($key);
+        }
+        $identities = [];
+        foreach ($value as $identity) {
+            if (!is_string($identity)) {
+                throw self::invalidShared($key);
+            }
+            $identities[] = $identity;
+        }
+        return $identities;
+    }
+
+    /**
+     * @param list<string> $newWorkloads
+     * @return array{list<BenchmarkWorkload>, list<BenchmarkWorkload>} the new workloads, then the comparable ones
+     */
+    private static function partitionKnownNewWorkloads(BenchmarkReport $discovery, array $newWorkloads): array
+    {
+        $partition = $discovery->partition($newWorkloads);
+        if (count($partition[0]) !== count($newWorkloads)) {
+            throw new RuntimeException('Shard metadata names new workloads that discovery did not find');
+        }
+        return $partition;
+    }
+
+    private static function invalidShared(string $key): RuntimeException
+    {
+        return new RuntimeException('Missing or invalid shared shard metadata: ' . $key);
+    }
+
+    /**
+     * @return array{
+     *     comparisons: non-empty-list<BenchmarkComparison>,
+     *     fpm: non-empty-list<FpmComparison>,
+     *     newWorkloads: list<BenchmarkWorkload>,
+     * }
+     */
     public static function collect(string $directory, string $mode): array
     {
         $directories = glob($directory . '/*', GLOB_ONLYDIR);
@@ -71,6 +125,9 @@ final class PerformanceShards
         $seen = [];
         $comparisons = [];
         $fpm = null;
+        $partition = null;
+        $newWorkloads = [];
+        $comparable = [];
         foreach ($directories as $shardDirectory) {
             $metadata = self::json($shardDirectory . '/metadata.json');
             $completion = self::json($shardDirectory . '/complete.json');
@@ -82,23 +139,27 @@ final class PerformanceShards
             if (($metadata['opcache'] ?? null) !== $mode || ($metadata['fpm'] ?? null) !== ($shard === 1)) {
                 throw new RuntimeException('Shard runtime mode or FPM ownership differs');
             }
-            $shared = [];
-            foreach (['baseline', 'candidate', 'workloads', 'dependencies_sha256', 'configuration_sha256'] as $key) {
-                $value = $metadata[$key] ?? null;
-                if (!is_string($value) || $value === '') {
-                    throw new RuntimeException('Missing shared shard metadata: ' . $key);
-                }
-                $shared[$key] = $value;
-            }
+            $shared = [
+                'baseline' => self::requiredString($metadata, 'baseline'),
+                'candidate' => self::requiredString($metadata, 'candidate'),
+                'workloads' => self::requiredString($metadata, 'workloads'),
+                'dependencies_sha256' => self::requiredString($metadata, 'dependencies_sha256'),
+                'configuration_sha256' => self::requiredString($metadata, 'configuration_sha256'),
+                'new_workloads' => self::identityList($metadata, 'new_workloads'),
+            ];
             $reference ??= $shared;
-            $identities = BenchmarkReport::read($shardDirectory . '/discovery.xml')->identities();
-            $expected ??= $identities;
-            if ($reference !== $shared || $expected !== $identities) {
+            $discovery = BenchmarkReport::read($shardDirectory . '/discovery.xml');
+            $expected ??= $discovery->identities();
+            if ($reference !== $shared || $expected !== $discovery->identities()) {
                 throw new RuntimeException(
                     'Shards disagree about revisions, dependencies, configuration, or workloads',
                 );
             }
-            $assigned = self::assignedIndices(count($identities), $shard);
+            [$newWorkloads, $comparable] = $partition ??= self::partitionKnownNewWorkloads(
+                $discovery,
+                $shared['new_workloads'],
+            );
+            $assigned = self::assignedIndices(count($comparable), $shard);
             foreach ($assigned as $index) {
                 $rounds = ['baseline' => [], 'candidate' => []];
                 foreach ($rounds as $version => $reports) {
@@ -111,7 +172,7 @@ final class PerformanceShards
                 $comparisons[] = BenchmarkReport::compare(
                     $rounds['baseline'],
                     $rounds['candidate'],
-                    $identities[$index],
+                    $comparable[$index]->identity(),
                     $mode,
                 );
             }
@@ -127,12 +188,12 @@ final class PerformanceShards
                 $fpm = FpmMeasurements::compare($samples['baseline'] ?? null, $samples['candidate'] ?? null, $mode === 'on');
             }
         }
-        if ($comparisons === [] || count($comparisons) !== count($expected)) {
+        if ($comparisons === [] || count($comparisons) !== count($comparable)) {
             throw new RuntimeException('Incomplete workload coverage');
         }
         if ($fpm === null) {
             throw new RuntimeException('Missing PHP-FPM measurements');
         }
-        return ['comparisons' => $comparisons, 'fpm' => $fpm];
+        return ['comparisons' => $comparisons, 'fpm' => $fpm, 'newWorkloads' => $newWorkloads];
     }
 }

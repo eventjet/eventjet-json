@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Eventjet\Json\Benchmark;
 
 use ArrayObject;
+use Eventjet\Json\Benchmark\Fixtures\FilterTree;
 use Eventjet\Json\Benchmark\Fixtures\ImportedConstants;
 use Eventjet\Json\Benchmark\Fixtures\LiteralRecord;
 use Eventjet\Json\Benchmark\Fixtures\ScalarLists;
+use Eventjet\Json\Benchmark\Fixtures\ShapeList;
 use Eventjet\Json\Benchmark\Fixtures\ShapeRecord;
 use Eventjet\Json\Benchmark\Fixtures\StringMap;
 use Eventjet\Json\Test\Acceptance\Fixtures\BackedEnumFields;
@@ -56,6 +58,8 @@ final class DecodeWorkloads
             ),
             'array shapes' => new ShapeRecord([7, 'header', true], [[1.5, 2.5], [3.0, 4.0]], ['series', [1, 2, 3]]),
             'imported constants' => ImportedConstants::record(),
+            'discriminated union list' => ShapeList::mixed(20),
+            'recursive expression tree' => FilterTree::query(3),
             'enum union collections' => self::enumUnions(),
             'scalar lists' => self::scalarLists(2),
             'long scalar lists' => self::scalarLists(1000),
@@ -137,6 +141,8 @@ final class DecodeWorkloads
             'literal fields',
             'array shapes',
             'imported constants',
+            'discriminated union list',
+            'recursive expression tree',
         ] as $scenario) {
             yield $scenario => ['scenario' => $scenario];
         }

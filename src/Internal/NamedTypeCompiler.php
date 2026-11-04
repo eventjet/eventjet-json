@@ -9,6 +9,7 @@ use BackedEnum;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
 use Eventjet\Json\Internal\Node\EnumNode;
+use Eventjet\Json\Internal\Node\JsonValueNode;
 use Eventjet\Json\Internal\Node\LiteralNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\NullableNode;
@@ -16,6 +17,7 @@ use Eventjet\Json\Internal\Node\NullOnlyNode;
 use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
+use Eventjet\Json\JsonValue;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
@@ -92,6 +94,7 @@ final class NamedTypeCompiler
         $node = self::named($name, $field->getName());
         return match (true) {
             $node instanceof DecodeError => $nullable ? null : throw $node,
+            $nullable && $node instanceof JsonValueNode => new JsonValueNode(nullable: true),
             $nullable => NullableNode::of($node),
             default => $node,
         };
@@ -126,6 +129,7 @@ final class NamedTypeCompiler
     {
         return match (true) {
             array_key_exists($name, self::IMPRECISE) => throw UnsupportedField::imprecise($path, $name),
+            $name === JsonValue::class => new JsonValueNode(nullable: false),
             enum_exists($name) => TargetClass::unrepresentableEnum($name, $path) ?? EnumNode::of($name),
             default => self::object($name, $path),
         };

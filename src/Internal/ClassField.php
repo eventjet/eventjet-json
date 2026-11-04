@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\UnsupportedField;
+use Eventjet\Json\Internal\Node\JsonValueNode;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use ReflectionClass;
@@ -13,7 +14,10 @@ use ReflectionException;
 use ReflectionParameter;
 use ReflectionProperty;
 
+use function array_combine;
 use function array_key_exists;
+use function array_keys;
+use function array_map;
 
 /**
  * A member of the JSON object that a class decoder reads: a constructor parameter, or a public property outside the
@@ -57,11 +61,78 @@ final readonly class ClassField
      * @template T of object
      * @param ReflectionClass<T> $class
      * @param array<string, string> $names JSON names of renamed properties, keyed by property name.
+     * @param array<string, true> $attributed The properties that declare any attribute, keyed by name.
      * @return list<self>
      * @throws DecodeError
      * @throws ReflectionException
      */
-    public static function compile(ReflectionClass $class, array $names): array
+    public static function compile(ReflectionClass $class, array $names, array $attributed): array
+    {
+        $properties = self::properties($class);
+        $fields = [];
+        foreach (self::parameters($class) as $parameter) {
+            $field = self::parameter($parameter, $names, $properties);
+            $fields[] = $field;
+            unset($properties[$field->name]);
+        }
+        foreach ($properties as $name => $property) {
+            $fields[] = new self($names[$name] ?? $name, $name, self::node($property, $attributed), $property, false);
+        }
+        foreach ($fields as $field) {
+            if (!$field->node instanceof JsonValueNode) {
+                continue;
+            }
+            $field->node->requireSerializer($class, $field->name);
+        }
+        return $fields;
+    }
+
+    /**
+     * Returns the fields of a class with their JSON names, without compiling or checking them, in the order that
+     * compile() compiles them.
+     *
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @param array<string, string> $names JSON names of renamed properties, keyed by property name.
+     * @return list<array{string, ReflectionParameter|ReflectionProperty}>
+     */
+    public static function uncompiled(ReflectionClass $class, array $names): array
+    {
+        $parameters = self::parameters($class);
+        $fields =
+            array_combine(array_map(
+                static fn(ReflectionParameter $parameter): string => $parameter->getName(),
+                $parameters,
+            ), $parameters) + self::properties($class);
+        return array_map(
+            /** @return array{string, ReflectionParameter|ReflectionProperty} */
+            static fn(string $name, ReflectionParameter|ReflectionProperty $field): array => [
+                $names[$name] ?? $name,
+                $field,
+            ],
+            array_keys($fields),
+            $fields,
+        );
+    }
+
+    /**
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @return array<ReflectionParameter>
+     */
+    private static function parameters(ReflectionClass $class): array
+    {
+        return $class->getConstructor()?->getParameters() ?? [];
+    }
+
+    /**
+     * Returns the public instance properties of a class, keyed by name.
+     *
+     * @template T of object
+     * @param ReflectionClass<T> $class
+     * @return array<string, ReflectionProperty>
+     */
+    private static function properties(ReflectionClass $class): array
     {
         $properties = [];
         foreach ($class->getProperties() as $property) {
@@ -73,16 +144,7 @@ final readonly class ClassField
             }
             $properties[$property->getName()] = $property;
         }
-        $fields = [];
-        foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
-            $field = self::parameter($parameter, $names, $properties);
-            $fields[] = $field;
-            unset($properties[$field->name]);
-        }
-        foreach ($properties as $name => $property) {
-            $fields[] = new self($names[$name] ?? $name, $name, self::node($property), $property, false);
-        }
-        return $fields;
+        return $properties;
     }
 
     /**
@@ -100,21 +162,24 @@ final readonly class ClassField
         if ($parameter->isVariadic()) {
             throw UnsupportedField::variadic($name);
         }
-        $node = self::node($parameter);
+        $node = self::node($parameter, [$name => true]);
         return array_key_exists($name, $properties)
             ? new self($names[$name] ?? $name, $name, $node, null, !$parameter->isOptional())
             : throw UnsupportedField::withoutProperty($name);
     }
 
     /**
+     * @param array<string, true> $attributed The fields that may declare attributes, keyed by name. A constructor
+     *     parameter always may: an ordinary one has attributes of its own, and telling it from a promoted one costs as
+     *     much as looking them up.
      * @throws DecodeError
      * @throws ReflectionException
      */
-    private static function node(ReflectionParameter|ReflectionProperty $field): Node
+    private static function node(ReflectionParameter|ReflectionProperty $field, array $attributed): Node
     {
         $type = $field->getType();
         return $type === null
             ? throw UnsupportedField::untyped($field->getName())
-            : new TypeCompiler()->field($field, $type);
+            : new TypeCompiler()->field($field, $type, $attributed);
     }
 }

@@ -37,7 +37,7 @@ final class UnsupportedCollection
     public static function map(string $field, string $type): DecodeError
     {
         return self::error(sprintf(
-            'Field %s uses unsupported map declaration %s. Maps must use non-empty-array<string, TValue> or ArrayObject<string, TValue>.',
+            'Field %s uses unsupported map declaration %s. Maps must use non-empty-array<string, TValue>, ArrayObject<string, TValue>, or ArrayObject<array-key, TValue>.',
             $field,
             $type,
         ));

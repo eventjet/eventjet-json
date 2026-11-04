@@ -57,7 +57,8 @@ final readonly class ClassDecoder
      */
     public static function compile(ReflectionClass $class): self
     {
-        return new self($class->getName(), ClassField::compile($class, TargetClass::validate($class)));
+        [$names, $attributed] = TargetClass::validate($class);
+        return new self($class->getName(), ClassField::compile($class, $names, $attributed));
     }
 
     /**

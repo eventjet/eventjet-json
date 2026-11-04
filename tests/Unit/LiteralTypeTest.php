@@ -26,6 +26,7 @@ use Eventjet\Json\Internal\Node\ScalarItems;
 use Eventjet\Json\Internal\Node\ScalarNode;
 use Eventjet\Json\Internal\Node\UnionNode;
 use Eventjet\Json\Internal\NodeCompiler;
+use Eventjet\Json\Internal\NullableJsonValues;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
 use Eventjet\Json\Internal\PhpDocConstantImportStatement;
 use Eventjet\Json\Internal\PhpDocConstantResolver;
@@ -43,6 +44,7 @@ use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
+use Eventjet\Json\Internal\PropertyAttributes;
 use Eventjet\Json\Internal\TargetClass;
 use Eventjet\Json\Internal\TypeCompiler;
 use Eventjet\Json\Internal\UnionBuilder;
@@ -119,6 +121,7 @@ use const PHP_INT_MIN;
 #[UsesClass(\Eventjet\Json\Internal\PhpDocMethodParameterTagValue::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTextParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
+#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArgumentParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocChildKind::class)]
@@ -129,6 +132,8 @@ use const PHP_INT_MIN;
 #[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
 #[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
 #[UsesClass(TargetClass::class)]
+#[UsesClass(PropertyAttributes::class)]
+#[UsesClass(NullableJsonValues::class)]
 #[UsesClass(ScalarItems::class)]
 #[CoversClass(ScalarNode::class)]
 #[UsesClass(TypeCompiler::class)]
@@ -505,6 +510,6 @@ final class LiteralTypeTest extends TestCase
         $class = $field->getDeclaringClass();
         static::assertNotNull($type);
         static::assertNotNull($class);
-        return new TypeCompiler()->field($field, $type);
+        return new TypeCompiler()->field($field, $type, [$field->getName() => true]);
     }
 }

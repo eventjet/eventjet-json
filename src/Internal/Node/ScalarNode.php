@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal\Node;
 
 use Closure;
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\InvalidNumber;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use JsonException;
@@ -56,7 +57,7 @@ final readonly class ScalarNode implements Node
             }
             // A float is finite exactly when subtracting it from itself gives 0.0, which is cheaper than is_finite().
             if (is_float($value) && ($value - $value) !== 0.0) {
-                throw InvalidValue::nonFiniteNumber($path, $value);
+                throw InvalidNumber::nonFinite($path, $value);
             }
         }
         /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
@@ -102,7 +103,7 @@ final readonly class ScalarNode implements Node
                 // A float is finite exactly when subtracting it from itself gives 0.0, which is cheaper than
                 // is_finite(). Rejecting here instead of in decode() keeps the check observable to tests.
                 if (($value - $value) !== 0.0) {
-                    throw InvalidValue::nonFiniteNumber($path($key), $value);
+                    throw InvalidNumber::nonFinite($path($key), $value);
                 }
                 continue;
             }

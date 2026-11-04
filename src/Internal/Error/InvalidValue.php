@@ -32,12 +32,12 @@ final class InvalidValue
         ));
     }
 
-    public static function nonFiniteNumber(string $path, float $value): DecodeError
+    public static function jsonValue(string $path, Throwable $error): DecodeError
     {
         return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
-            'Field %s must be a finite float. The JSON number is outside the PHP float range and decodes as %s, which json_encode() cannot write.',
+            'Field %s is not a valid JSON value. %s',
             $path,
-            var_export($value, return: true),
+            $error->getMessage(),
         ));
     }
 
@@ -61,7 +61,7 @@ final class InvalidValue
     public static function integerKey(string $path, int $key): DecodeError
     {
         return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
-            'Field %s has numeric-looking member name %d, which PHP converts to an integer array key. Supported maps require member names that remain strings.',
+            'Field %s has numeric-looking member name %d, which PHP converts to an integer array key. Only ArrayObject<array-key, TValue> fields accept such member names.',
             $path,
             $key,
         ));

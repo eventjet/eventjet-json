@@ -66,7 +66,7 @@ final class LiteralDeclarationErrorCases
                 . Coordinates::class
                 . ', '
                 . Person::class
-                . '. JSON does not identify which class to instantiate.',
+                . '. No member identifies the class: every class needs a member that declares distinct string, int, or backed enum case literal types, such as @var \'circle\'.',
             DecodeErrorKind::UnsupportedDeclaration,
         ];
         $class = CollectionDeclarationFixture::create(

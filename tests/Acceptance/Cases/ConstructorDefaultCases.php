@@ -10,6 +10,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\DefaultedConstructorFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\OmittedInitializedReadonlyPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\OmittedPublicProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields;
+use InvalidArgumentException;
 use JsonException;
 use ReflectionException;
 use RuntimeException;
@@ -27,11 +28,13 @@ final class ConstructorDefaultCases
      * @throws JsonException
      * @throws ReflectionException
      * @throws RuntimeException
+     * @throws InvalidArgumentException
      */
     public static function objects(): iterable
     {
         yield from FieldMappingCases::decoded();
         yield from NumericBoundaryRoundTripCases::decoded();
+        yield from JsonValueCases::decoded();
         yield 'omitted collection union uses constructor default' => ['{}', new CollectionUnionDefaults()];
         yield 'null collection union overrides constructor default' => [
             '{"value":null}',

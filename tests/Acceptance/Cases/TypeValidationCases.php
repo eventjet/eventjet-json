@@ -6,6 +6,7 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
+use InvalidArgumentException;
 use JsonException;
 use ReflectionException;
 use RuntimeException;
@@ -19,6 +20,7 @@ final class TypeValidationCases
      * @throws ReflectionException
      * @throws RuntimeException
      * @throws JsonException
+     * @throws InvalidArgumentException
      */
     public static function declarations(): iterable
     {
@@ -31,6 +33,7 @@ final class TypeValidationCases
      * @throws ReflectionException
      * @throws RuntimeException
      * @throws JsonException
+     * @throws InvalidArgumentException
      */
     private static function valid(): iterable
     {
@@ -57,6 +60,7 @@ final class TypeValidationCases
      * @return iterable<string, array{class-string|JsonType<mixed>, string}>
      * @throws ReflectionException
      * @throws RuntimeException
+     * @throws InvalidArgumentException
      */
     private static function invalid(): iterable
     {
@@ -67,11 +71,13 @@ final class TypeValidationCases
             UnsupportedTargetErrorCases::errors(),
             UnsupportedUnionErrorCases::errors(),
             AmbiguousUnionErrorCases::errors(),
+            JsonValueErrorCases::declarations(),
         ] as $cases) {
             foreach ($cases as $label => [1 => $class, 2 => $message]) {
                 yield $label => [$class, $message];
             }
         }
+        yield from DiscriminatedDeclarationErrorCases::errors();
         $unknown = CollectionNameSource::load(
             'ValidationUnknownChild',
             'final class ValidationUnknownChild { public function __construct(public ?ValidationMissingChild $child = null) {} }',

@@ -9,6 +9,7 @@ use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Internal\Node\Node;
 use Eventjet\Json\Internal\Node\ObjectNode;
 use Eventjet\Json\Internal\Node\UncheckedNode;
+use Eventjet\Json\JsonValue;
 
 use function array_filter;
 use function array_intersect_key;
@@ -37,8 +38,11 @@ use function var_export;
  */
 final class AmbiguousUnion
 {
+    /** The kind of conflict between classes that JSON does not tell apart. */
+    public const string CLASSES = 'classes';
+
     /** The kinds of conflicts between union members, in the order in which errors report them. */
-    private const array ORDER = ['literals', 'classes', 'enumAndFloat', 'enumAndBackingType', 'enums', 'shapes'];
+    private const array ORDER = ['literals', self::CLASSES, 'enumAndFloat', 'enumAndBackingType', 'enums', 'shapes'];
 
     /**
      * Returns the kind of conflict between two members of a union that claim the same JSON value and decode it
@@ -57,7 +61,7 @@ final class AmbiguousUnion
         return match (true) {
             $aClaim['others'] === null, $bClaim['others'] === null => ['literals', self::overlappingLiterals($field)],
             count($classes) === 2 => [
-                'classes',
+                self::CLASSES,
                 self::classes($field, $members),
             ],
             $aClaim['enums'] !== [] && $bClaim['enums'] !== [] => [
@@ -115,6 +119,16 @@ final class AmbiguousUnion
             'Field %s uses multiple class types: %s. JSON does not identify which class to instantiate.',
             $field,
             implode(', ', $classes),
+        ));
+    }
+
+    /** JsonValue takes every JSON value, so it conflicts with any other member, whatever it claims. */
+    public static function jsonValue(string $field): DecodeError
+    {
+        return self::error(sprintf(
+            'Field %s uses %s in a union. It takes every JSON value, null included, so JSON cannot identify another member.',
+            $field,
+            JsonValue::class,
         ));
     }
 
