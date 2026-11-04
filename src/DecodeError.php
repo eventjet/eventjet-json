@@ -9,6 +9,8 @@ use JsonException;
 use RuntimeException;
 use Throwable;
 
+use function assert;
+
 /** @api */
 final class DecodeError extends RuntimeException
 {
@@ -28,36 +30,35 @@ final class DecodeError extends RuntimeException
     /** For an invalid value, the text after its path, from which whileCreating() renders the message. */
     private string|null $detail = null;
 
-    /** @internal */
+    /**
+     * Errors of invalid values come from this constructor, with arguments by position: a named constructor adds a frame
+     * to the trace that each exception records, and named arguments add work, which both make rejected values
+     * measurably slower.
+     *
+     * @param bool $afterPath Whether the error is about an invalid value and the message is the text after its path,
+     *     such as "must be of type int, string given." The message names the path once whileCreating() renders it.
+     * @internal
+     */
     public function __construct(
         public readonly DecodeErrorKind $kind,
         string $message,
         Throwable|null $previous = null,
+        bool $afterPath = false,
     ) {
         parent::__construct($message, previous: $previous);
+        $this->detail = $afterPath ? $message : null;
     }
 
     /**
-     * Creates the error of an invalid value. Its message names the path of the value once whileCreating() renders it.
-     *
-     * @param string $detail The text after the path, such as "must be of type int, string given."
-     * @internal
-     */
-    public static function invalidValue(string $detail): self
-    {
-        $error = new self(DecodeErrorKind::InvalidValue, $detail);
-        $error->detail = $detail;
-        return $error;
-    }
-
-    /**
-     * Adds the member of a JSON object that holds the invalid value to the front of its path.
+     * Starts the path of a new error at the member of a JSON object that holds the invalid value. The objects around it
+     * add their members through whileCreating().
      *
      * @internal
      */
     public function inMember(string $name): self
     {
-        $this->path = $this->startsWithMember ? $name . '.' . $this->path : $name . $this->path;
+        assert($this->path === '', description: 'Only a new error starts its path.');
+        $this->path = $name;
         $this->startsWithMember = true;
         return $this;
     }
@@ -80,10 +81,16 @@ final class DecodeError extends RuntimeException
      * Names the class whose object could not be created, and renders the path of an invalid value into the message. An
      * error that already names a class, such as an error from a nested object, keeps it.
      *
+     * @param string|null $member The member of the object that holds the invalid value, which this adds to the front of
+     *     the path, so that each object that the error leaves needs one call.
      * @internal
      */
-    public function whileCreating(string $class): self
+    public function whileCreating(string $class, string|null $member = null): self
     {
+        if ($member !== null) {
+            $this->path = $this->startsWithMember ? $member . '.' . $this->path : $member . $this->path;
+            $this->startsWithMember = true;
+        }
         if ($this->detail === null) {
             if ($this->class === null) {
                 $this->class = $class;

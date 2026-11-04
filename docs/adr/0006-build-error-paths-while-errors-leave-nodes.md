@@ -7,9 +7,14 @@ member name or key to the front, and throws it again (decided on 2026-11-03). A 
 something throws, so decoding valid values builds no paths. The messages stay the same.
 
 `ClassDecoder::decode()` returns the errors of its fields instead of throwing them once more, so each object still throws
-once, as [ADR 0004](0004-return-decode-errors-throw-them-inside.md) requires. `DecodeError::whileCreating()`, which every
-object and every root decode calls, renders the path into the message, so that an error renders it once per object, not
-once per member or key.
+once, as [ADR 0004](0004-return-decode-errors-throw-them-inside.md) requires. It names its class in each error it returns
+with `DecodeError::whileCreating()`, which every object and every root decode calls. For an error in a field, the same
+call adds the member name to the path. It renders the path into the message, so that an error renders it once per
+object, not once per member or key.
+
+`InvalidValue` and `InvalidDiscriminator` create the errors of invalid values with `new DecodeError()` and pass the
+arguments by position. An exception records the call stack when it is created, so a named constructor such as
+`DecodeError::invalidValue()` would add a frame to every trace. Named arguments add work to every call.
 
 ## Measurement
 
@@ -37,16 +42,27 @@ Warm CLI decodes:
 The same run reported public scalar properties at +10.6% in warm decodes. Three local alternating runs measured
 1.17 µs against 1.18 µs, so it was noise.
 
-## Accepted regression
+## Rejected values
 
-An unknown enum value in a tiny root object (`ErrorBench`, unknown enum) is about 6.5% slower: 1.56 µs before, 1.67 µs
-after, in three local alternating PHPBench runs of the final candidate. This fails the blocking 3% check, and the
-regression was accepted for the gains above. Adding the member name and rendering the message cost about 110 ns. Before,
-the field of a root object needed no path work at all. Two steps brought it down from 11%: returning field errors from
-`ClassDecoder::decode()` instead of throwing them again, and rendering the message once in `whileCreating()` instead of
-after every member or key. The list error cases stay within 1%.
+At first, an unknown enum value in a tiny root object (`ErrorBench`, unknown enum) was about 6% slower: +6.17% with
+OPcache on and +5.76% with OPcache off on CI ([run](https://github.com/eventjet/eventjet-json/actions/runs/41806406770)).
+Before, the field of a root object needed no path work at all. Two steps had brought it down from 11%: returning field
+errors from `ClassDecoder::decode()` instead of throwing them again, and rendering the message once in `whileCreating()`
+instead of after every member or key. In a local loop of 10,000 decodes per process, with 40 to 80 alternating rounds,
+these steps removed most of the rest:
+
+| Step | Unknown enum value |
+|---|---:|
+| `new DecodeError()` instead of the named constructor `DecodeError::invalidValue()`, whose frame every trace recorded | about −2% to −3% |
+| The flag for invalid values by position instead of by name | about −0.5% to −1% |
+| `whileCreating()` adds the member name, instead of a separate `inMember()` call per object | about −1.5% |
+
+Local PHPBench on 2026-11-04 with production `php.ini` settings, 24 alternating rounds of two iterations per revision,
+against master (a59d951): the unknown enum value is 2.58% slower with OPcache on and 0.70% slower with OPcache off. The
+list error cases stay within 1.2%. Against the candidate before these steps, successful decodes changed by −3.2% to
++2.1%. A comparison of master with itself varied by up to 3.5%.
 
 ## Consequences
 
 A `DecodeError` of an invalid value shows its full path only after `whileCreating()`. Code that returns such an error
-to callers must call it, as `ClassDecoders` and `RootDescriptor` do.
+to callers must call it, as `ClassDecoder` and `RootDescriptor` do.

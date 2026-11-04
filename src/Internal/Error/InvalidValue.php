@@ -24,70 +24,99 @@ final class InvalidValue
 {
     public static function typeMismatch(string $expectedType, mixed $value): DecodeError
     {
-        return DecodeError::invalidValue(sprintf(
-            'must be of type %s, %s given.',
-            $expectedType,
-            get_debug_type($value),
-        ));
+        return new DecodeError(
+            DecodeErrorKind::InvalidValue,
+            sprintf('must be of type %s, %s given.', $expectedType, get_debug_type($value)),
+            null,
+            true,
+        );
     }
 
     public static function jsonValue(Throwable $error): DecodeError
     {
-        return DecodeError::invalidValue(sprintf('is not a valid JSON value. %s', $error->getMessage()));
+        return new DecodeError(
+            DecodeErrorKind::InvalidValue,
+            sprintf('is not a valid JSON value. %s', $error->getMessage()),
+            null,
+            true,
+        );
     }
 
     public static function emptyList(string $type): DecodeError
     {
-        return DecodeError::invalidValue(sprintf('must be of type %s, empty list given.', $type));
+        return new DecodeError(
+            DecodeErrorKind::InvalidValue,
+            sprintf('must be of type %s, empty list given.', $type),
+            null,
+            true,
+        );
     }
 
     public static function emptyMap(): DecodeError
     {
-        return DecodeError::invalidValue(
+        return new DecodeError(
+            DecodeErrorKind::InvalidValue,
             'uses non-empty-array<string, TValue> and cannot accept an empty JSON object. Use ArrayObject<string, TValue> when the map may be empty.',
+            null,
+            true,
         );
     }
 
     public static function integerKey(int $key): DecodeError
     {
-        return DecodeError::invalidValue(sprintf(
-            'has numeric-looking member name %d, which PHP converts to an integer array key. Only ArrayObject<array-key, TValue> fields accept such member names.',
-            $key,
-        ));
+        return new DecodeError(
+            DecodeErrorKind::InvalidValue,
+            sprintf(
+                'has numeric-looking member name %d, which PHP converts to an integer array key. Only ArrayObject<array-key, TValue> fields accept such member names.',
+                $key,
+            ),
+            null,
+            true,
+        );
     }
 
     public static function tupleLength(string $type, int $required, int $max, int $count): DecodeError
     {
         $length = $required === $max ? sprintf('exactly %d', $max) : sprintf('between %d and %d', $required, $max);
-        return DecodeError::invalidValue(sprintf(
-            'must be of type %s with %s items, %d given.',
-            $type,
-            $length,
-            $count,
-        ));
+        return new DecodeError(
+            DecodeErrorKind::InvalidValue,
+            sprintf('must be of type %s with %s items, %d given.', $type, $length, $count),
+            null,
+            true,
+        );
     }
 
     /** @param 'int'|'string' $backingType */
     public static function enumBackingType(string $enum, string $backingType, mixed $value): DecodeError
     {
-        return DecodeError::invalidValue(sprintf(
-            'uses backed enum %s, which expects a %s backing value; %s given.',
-            $enum,
-            $backingType,
-            get_debug_type($value),
-        ));
+        return new DecodeError(
+            DecodeErrorKind::InvalidValue,
+            sprintf(
+                'uses backed enum %s, which expects a %s backing value; %s given.',
+                $enum,
+                $backingType,
+                get_debug_type($value),
+            ),
+            null,
+            true,
+        );
     }
 
     /** @param non-empty-list<string> $enums */
     public static function unknownEnumCase(array $enums, int|string $value): DecodeError
     {
         sort($enums);
-        return DecodeError::invalidValue(sprintf(
-            'uses %s %s, which has no case with backing value %s.',
-            count($enums) === 1 ? 'backed enum' : 'backed enum union',
-            implode('|', $enums),
-            var_export($value, return: true),
-        ));
+        return new DecodeError(
+            DecodeErrorKind::InvalidValue,
+            sprintf(
+                'uses %s %s, which has no case with backing value %s.',
+                count($enums) === 1 ? 'backed enum' : 'backed enum union',
+                implode('|', $enums),
+                var_export($value, return: true),
+            ),
+            null,
+            true,
+        );
     }
 
     public static function unknownRootEnumCase(string $enum, int|string $value): DecodeError

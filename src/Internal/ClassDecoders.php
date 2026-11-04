@@ -75,7 +75,7 @@ final class ClassDecoders
             throw UnsupportedTarget::unreadable($error)->whileCreating($class);
         }
         if ($decoded instanceof DecodeError) {
-            throw $decoded->whileCreating($decoder->class);
+            throw $decoded;
         }
         /** @var T */
         return $decoded;
@@ -116,6 +116,6 @@ final class ClassDecoders
             return UnsupportedTarget::unreadable($error)->whileCreating($class);
         }
         /** @var T|DecodeError */
-        return $decoded instanceof DecodeError ? $decoded->whileCreating($decoder->class) : $decoded;
+        return $decoded;
     }
 }
