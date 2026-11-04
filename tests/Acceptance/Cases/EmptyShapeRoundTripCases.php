@@ -12,6 +12,7 @@ use Eventjet\Json\Test\Acceptance\Fixtures\EmptyObjectFields;
 final class EmptyShapeRoundTripCases
 {
     /**
+     * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{object, string}>
      * @throws \ReflectionException
      * @throws \RuntimeException
