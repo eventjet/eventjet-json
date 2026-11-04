@@ -51,4 +51,10 @@ final readonly class RequiredKeyword implements Keyword
         }
         return $valid;
     }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
+    }
 }

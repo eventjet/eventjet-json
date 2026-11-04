@@ -38,7 +38,7 @@ final readonly class UnevaluatedItemsKeyword implements Keyword
             if ($index < $annotations->items || array_key_exists($index, $annotations->indices)) {
                 continue;
             }
-            $ip = $run->collect ? $instanceLocation . '/' . $index : '';
+            $ip = $run->path($instanceLocation, $index);
             $matches = $this->schema->evaluate($item, $run, $ip, $kp, null);
             if ($matches) {
                 continue;
@@ -50,5 +50,11 @@ final readonly class UnevaluatedItemsKeyword implements Keyword
         }
         $annotations->allItems = true;
         return $valid;
+    }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
     }
 }

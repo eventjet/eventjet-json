@@ -8,7 +8,11 @@ use Eventjet\Json\Schema\SchemaError;
 use stdClass;
 
 use function array_key_exists;
+use function in_array;
 use function sprintf;
+use function str_starts_with;
+use function strlen;
+use function substr;
 
 /**
  * Which groups of keywords a schema resource uses, as the `$vocabulary` of its meta-schema says.
@@ -50,20 +54,14 @@ final readonly class Vocabulary
         $active = [];
         /** @var mixed $required */
         foreach ((array) $vocabularies as $vocabulary => $required) {
-            $name = null;
-            foreach ($known as $candidate) {
-                if ((string) $vocabulary !== $prefix . $candidate) {
-                    continue;
-                }
-
-                $name = $candidate;
-            }
-            if ($name === null) {
+            $vocabulary = (string) $vocabulary;
+            $name = str_starts_with($vocabulary, $prefix) ? substr($vocabulary, strlen($prefix)) : null;
+            if (!in_array($name, $known, strict: true)) {
                 if ($required === true) {
                     throw new SchemaError(sprintf(
                         'The meta-schema %s requires the unknown vocabulary %s.',
                         $uri,
-                        (string) $vocabulary,
+                        $vocabulary,
                     ));
                 }
                 continue;

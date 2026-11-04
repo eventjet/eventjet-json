@@ -56,9 +56,7 @@ final class DependencyKeywords
                 $dependencies[$member] = KeywordValues::strings($dependency, $schema->at($name));
                 continue;
             }
-            $subschema = $compiler->child($dependency, $schema->location, $name, $member);
-            $schema->node->inPlace[] = $subschema;
-            $dependencies[$member] = $subschema;
+            $dependencies[$member] = $compiler->child($dependency, $schema->location, $name, $member);
         }
         return $dependencies;
     }

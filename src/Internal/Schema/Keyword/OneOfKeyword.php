@@ -32,7 +32,7 @@ final readonly class OneOfKeyword implements Keyword
         $mark = $run->mark();
         $matches = 0;
         foreach ($this->schemas as $index => $schema) {
-            $kp = $run->collect ? $keywordLocation . '/oneOf/' . $index : '';
+            $kp = $run->path($keywordLocation, 'oneOf', $index);
             $match = $schema->evaluate($value, $run, $instanceLocation, $kp, $annotations);
             if (!$match) {
                 continue;
@@ -55,5 +55,11 @@ final readonly class OneOfKeyword implements Keyword
             $this->location,
             sprintf('The value must match exactly one of the "oneOf" schemas, but it matches %d.', $matches),
         );
+    }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return $this->schemas;
     }
 }

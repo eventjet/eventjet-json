@@ -8,7 +8,6 @@ use Eventjet\Json\Internal\Schema\Annotations;
 use Eventjet\Json\Internal\Schema\Keyword;
 use Eventjet\Json\Internal\Schema\Node;
 use Eventjet\Json\Internal\Schema\Run;
-use Eventjet\Json\Internal\Schema\Uri;
 use Override;
 use stdClass;
 
@@ -47,9 +46,7 @@ final readonly class DependenciesKeyword implements Keyword
             if (!property_exists($value, $member)) {
                 continue;
             }
-            $location = $run->collect
-                ? $keywordLocation . '/' . $this->name . '/' . Uri::escapePointerToken($member)
-                : '';
+            $location = $run->path($keywordLocation, $this->name, $member);
             if (is_array($dependency)) {
                 foreach ($dependency as $required) {
                     if (property_exists($value, $required)) {
@@ -78,5 +75,18 @@ final readonly class DependenciesKeyword implements Keyword
             }
         }
         return $valid;
+    }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        $schemas = [];
+        foreach ($this->dependencies as $dependency) {
+            if (!$dependency instanceof Node) {
+                continue;
+            }
+            $schemas[] = $dependency;
+        }
+        return $schemas;
     }
 }

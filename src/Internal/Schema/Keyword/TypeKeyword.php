@@ -5,16 +5,15 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Schema\Keyword;
 
 use Eventjet\Json\Internal\Schema\Annotations;
+use Eventjet\Json\Internal\Schema\JsonKey;
 use Eventjet\Json\Internal\Schema\Keyword;
 use Eventjet\Json\Internal\Schema\Run;
 use Override;
 use stdClass;
 
-use function floor;
 use function implode;
 use function is_array;
 use function is_bool;
-use function is_finite;
 use function is_float;
 use function is_int;
 use function is_string;
@@ -23,8 +22,6 @@ use function sprintf;
 /** @internal */
 final readonly class TypeKeyword implements Keyword
 {
-    private const float INT_LIMIT = 9.223_372_036_854_775_807E18;
-
     /** @param list<string> $types */
     public function __construct(
         private array $types,
@@ -71,9 +68,15 @@ final readonly class TypeKeyword implements Keyword
     /** @mutation-free */
     private function isIntegralFloat(mixed $value): bool
     {
-        if (!is_float($value) || !is_finite($value) || floor($value) !== $value) {
+        if (!is_float($value) || !JsonKey::isIntegral($value)) {
             return false;
         }
-        return !$this->floatsAreIntegersOnlyIfLarge || $value >= self::INT_LIMIT || $value <= -self::INT_LIMIT;
+        return !$this->floatsAreIntegersOnlyIfLarge || !JsonKey::fitsInt($value);
+    }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
     }
 }

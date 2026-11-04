@@ -50,8 +50,10 @@ final class ReferenceLoops
             ));
         }
         $state[$node] = self::VISITING;
-        foreach ($node->inPlace as $next) {
-            self::visit($next, $state);
+        foreach ($node->keywords as $keyword) {
+            foreach ($keyword->inPlace() as $next) {
+                self::visit($next, $state);
+            }
         }
         $state[$node] = self::DONE;
     }

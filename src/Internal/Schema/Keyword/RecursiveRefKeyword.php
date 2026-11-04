@@ -41,4 +41,10 @@ final readonly class RecursiveRefKeyword implements Keyword
         }
         return $target->evaluate($value, $run, $instanceLocation, $keywordLocation . '/$recursiveRef', $annotations);
     }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [$this->target];
+    }
 }

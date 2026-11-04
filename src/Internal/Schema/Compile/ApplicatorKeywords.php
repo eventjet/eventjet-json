@@ -29,9 +29,7 @@ final class ApplicatorKeywords
     {
         $keywords = self::combinations($compiler, $schema);
         if ($schema->has('not')) {
-            $not = $schema->subschema($compiler, 'not');
-            $schema->node->inPlace[] = $not;
-            $keywords[] = new NotKeyword($not, $schema->at('not'));
+            $keywords[] = new NotKeyword($schema->subschema($compiler, 'not'), $schema->at('not'));
         }
         if ($schema->draft->atLeast(Draft::Draft7) && $schema->has('if')) {
             $keywords[] = self::conditional($compiler, $schema);
@@ -58,9 +56,6 @@ final class ApplicatorKeywords
                 continue;
             }
             $schemas = $schema->subschemas($compiler, $name);
-            foreach ($schemas as $subschema) {
-                $schema->node->inPlace[] = $subschema;
-            }
             $keywords[] = match ($name) {
                 'allOf' => new AllOfKeyword($schemas),
                 'anyOf' => new AnyOfKeyword($schemas, $schema->at($name)),
@@ -76,13 +71,6 @@ final class ApplicatorKeywords
         $if = $schema->subschema($compiler, 'if');
         $then = $schema->has('then') ? $schema->subschema($compiler, 'then') : null;
         $else = $schema->has('else') ? $schema->subschema($compiler, 'else') : null;
-        $schema->node->inPlace[] = $if;
-        if ($then !== null) {
-            $schema->node->inPlace[] = $then;
-        }
-        if ($else !== null) {
-            $schema->node->inPlace[] = $else;
-        }
         return new IfKeyword($if, $then, $else);
     }
 }

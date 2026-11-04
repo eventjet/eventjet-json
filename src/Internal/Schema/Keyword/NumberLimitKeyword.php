@@ -60,4 +60,10 @@ final readonly class NumberLimitKeyword implements Keyword
             ),
         );
     }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
+    }
 }

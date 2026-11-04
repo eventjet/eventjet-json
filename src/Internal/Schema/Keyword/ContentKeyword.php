@@ -61,4 +61,10 @@ final readonly class ContentKeyword implements Keyword
         }
         return true;
     }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
+    }
 }

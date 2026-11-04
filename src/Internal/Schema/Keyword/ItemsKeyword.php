@@ -39,7 +39,7 @@ final readonly class ItemsKeyword implements Keyword
             if ($index < $this->start) {
                 continue;
             }
-            $ip = $run->collect ? $instanceLocation . '/' . $index : '';
+            $ip = $run->path($instanceLocation, $index);
             $matches = $this->schema->evaluate($item, $run, $ip, $kp, null);
             if ($matches) {
                 continue;
@@ -53,5 +53,11 @@ final readonly class ItemsKeyword implements Keyword
             $annotations->allItems = true;
         }
         return $valid;
+    }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
     }
 }

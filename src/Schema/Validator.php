@@ -7,16 +7,13 @@ namespace Eventjet\Json\Schema;
 use Closure;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Schema\Compiler;
-use Eventjet\Json\Internal\Schema\Draft;
-use Eventjet\Json\Internal\Schema\Location;
 use Eventjet\Json\Internal\Schema\Node;
 use Eventjet\Json\Internal\Schema\Registry;
 use Eventjet\Json\Internal\Schema\Run;
-use Eventjet\Json\Internal\Schema\SchemaTree;
 use JsonException;
 use Throwable;
 
-use function is_bool;
+use function assert;
 use function json_decode;
 use function json_encode;
 
@@ -54,17 +51,14 @@ final readonly class Validator
     ): self|SchemaError {
         try {
             $registry = new Registry($loader, $assertFormats);
-            $tree = is_bool($schema) ? $schema : SchemaTree::of($schema);
-            $draft = is_bool($schema) ? Draft::Draft202012 : Draft::of($schema);
-            $resource = $registry->addDocument($tree, $draft, '');
-            $location = is_bool($tree) ? null : $registry->location($tree);
+            $resource = $registry->addSchema($schema, '');
             $compiler = new Compiler($registry);
-            $root = $compiler->compile($tree, $location ?? new Location($resource->uri, $resource, ''));
+            $root = $compiler->compile($resource->root, $registry->rootLocation($resource));
             $compiler->checkLoops();
         } catch (SchemaError $error) {
             return $error;
         }
-        return new self($root, $compiler->annotates, $compiler->dynamic);
+        return new self($root, $compiler->annotates(), $compiler->dynamic());
     }
 
     /** Returns null if the value matches the schema, or why it doesn't. */
@@ -80,11 +74,7 @@ final readonly class Validator
         if ($valid) {
             return null;
         }
-        if ($run->failures === []) {
-            return ValidationError::invalidValue([
-                new ValidationFailure('', '', $this->root->absoluteLocation, 'The value does not match the schema.'),
-            ]);
-        }
+        assert($run->failures !== [], description: 'Every keyword that fails records why.');
         return ValidationError::invalidValue($run->failures);
     }
 

@@ -12,7 +12,6 @@ use Eventjet\Json\Schema\Draft7;
 use stdClass;
 
 use function is_string;
-use function rtrim;
 
 /** @internal */
 enum Draft: int
@@ -37,13 +36,28 @@ enum Draft: int
     /** Returns the draft whose meta-schema has the given URI, with or without an empty fragment. */
     public static function ofMetaSchema(string $uri): self|null
     {
-        return match (rtrim($uri, characters: '#')) {
-            'http://json-schema.org/draft-04/schema' => self::Draft4,
-            'http://json-schema.org/draft-06/schema' => self::Draft6,
-            'http://json-schema.org/draft-07/schema' => self::Draft7,
-            'https://json-schema.org/draft/2019-09/schema' => self::Draft201909,
-            'https://json-schema.org/draft/2020-12/schema' => self::Draft202012,
-            default => null,
+        $uri = Uri::withoutEmptyFragment($uri);
+        foreach (self::cases() as $draft) {
+            if ($draft->metaSchema() === $uri) {
+                return $draft;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The URI of the draft's meta-schema.
+     *
+     * @mutation-free
+     */
+    private function metaSchema(): string
+    {
+        return match ($this) {
+            self::Draft4 => 'http://json-schema.org/draft-04/schema',
+            self::Draft6 => 'http://json-schema.org/draft-06/schema',
+            self::Draft7 => 'http://json-schema.org/draft-07/schema',
+            self::Draft201909 => 'https://json-schema.org/draft/2019-09/schema',
+            self::Draft202012 => 'https://json-schema.org/draft/2020-12/schema',
         };
     }
 

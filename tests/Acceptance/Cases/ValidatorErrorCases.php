@@ -27,6 +27,29 @@ use const NAN;
 final class ValidatorErrorCases
 {
     /**
+     * Schemas whose in-place subschemas refer back to the root, for every keyword that applies subschemas in place.
+     *
+     * @return iterable<string, Draft7|Draft201909|Draft202012>
+     */
+    private static function loops(): iterable
+    {
+        yield 'not' => new Draft7(not: new Draft7(ref: '#'));
+        yield 'if' => new Draft7(if: new Draft7(ref: '#'));
+        yield 'then' => new Draft7(if: true, then: new Draft7(ref: '#'));
+        yield 'else' => new Draft7(if: true, else: new Draft7(ref: '#'));
+        /** @var ArrayObject<array-key, Draft7|bool|list<string>> $dependencies */
+        $dependencies = new ArrayObject(['a' => ['b'], 'b' => new Draft7(), 'c' => new Draft7(ref: '#')]);
+        yield 'a later dependency' => new Draft7(dependencies: $dependencies);
+        /** @var ArrayObject<array-key, Draft202012|bool> $dependentSchemas */
+        $dependentSchemas = new ArrayObject(['a' => new Draft202012(ref: '#')]);
+        yield 'dependentSchemas' => new Draft202012(dependentSchemas: $dependentSchemas);
+        yield 'a static $dynamicRef' => new Draft202012(dynamicRef: '#');
+        yield 'a dynamic $dynamicRef' => new Draft202012(dynamicRef: '#node', dynamicAnchor: 'node');
+        yield 'a static $recursiveRef' => new Draft201909(recursiveRef: '#');
+        yield 'a dynamic $recursiveRef' => new Draft201909(recursiveRef: '#', recursiveAnchor: true);
+    }
+
+    /**
      * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{Draft4|Draft6|Draft7|Draft201909|Draft202012|bool, (Closure(string): mixed)|null, string, DecodeError|null}>
      */
@@ -74,6 +97,14 @@ final class ValidatorErrorCases
             'The schema at # refers to itself without moving into the value, so it would never finish.',
             null,
         ];
+        foreach (self::loops() as $name => $schema) {
+            yield 'loop through ' . $name => [
+                $schema,
+                null,
+                'The schema at # refers to itself without moving into the value, so it would never finish.',
+                null,
+            ];
+        }
         yield 'negative minLength' => [
             new Draft202012(minLength: -1),
             null,

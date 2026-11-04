@@ -43,4 +43,10 @@ final readonly class EnumKeyword implements Keyword
                 : 'The value must be one of the enumerated values.',
         );
     }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
+    }
 }

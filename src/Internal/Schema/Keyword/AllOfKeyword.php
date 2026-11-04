@@ -28,7 +28,7 @@ final readonly class AllOfKeyword implements Keyword
     ): bool {
         $valid = true;
         foreach ($this->schemas as $index => $schema) {
-            $kp = $run->collect ? $keywordLocation . '/allOf/' . $index : '';
+            $kp = $run->path($keywordLocation, 'allOf', $index);
             $matches = $schema->evaluate($value, $run, $instanceLocation, $kp, $annotations);
             if ($matches) {
                 continue;
@@ -39,5 +39,11 @@ final readonly class AllOfKeyword implements Keyword
             }
         }
         return $valid;
+    }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return $this->schemas;
     }
 }

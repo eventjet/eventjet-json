@@ -8,7 +8,6 @@ use Eventjet\Json\Internal\Schema\Annotations;
 use Eventjet\Json\Internal\Schema\Keyword;
 use Eventjet\Json\Internal\Schema\Node;
 use Eventjet\Json\Internal\Schema\Run;
-use Eventjet\Json\Internal\Schema\Uri;
 use Override;
 use stdClass;
 
@@ -39,7 +38,7 @@ final readonly class UnevaluatedPropertiesKeyword implements Keyword
             if (array_key_exists($name, $annotations->properties)) {
                 continue;
             }
-            $ip = $run->collect ? $instanceLocation . '/' . Uri::escapePointerToken($name) : '';
+            $ip = $run->path($instanceLocation, $name);
             $matches = $this->schema->evaluate($member, $run, $ip, $keywordLocation . '/unevaluatedProperties', null);
             if (!$matches) {
                 $valid = false;
@@ -50,5 +49,11 @@ final readonly class UnevaluatedPropertiesKeyword implements Keyword
             $annotations->properties[$name] = true;
         }
         return $valid;
+    }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
     }
 }

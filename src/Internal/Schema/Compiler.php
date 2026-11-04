@@ -7,10 +7,15 @@ namespace Eventjet\Json\Internal\Schema;
 use Eventjet\Json\Internal\Schema\Compile\KeywordCompiler;
 use Eventjet\Json\Internal\Schema\Compile\ReferenceLoops;
 use Eventjet\Json\Internal\Schema\Compile\SchemaObject;
+use Eventjet\Json\Internal\Schema\Keyword\DynamicRefKeyword;
+use Eventjet\Json\Internal\Schema\Keyword\RecursiveRefKeyword;
+use Eventjet\Json\Internal\Schema\Keyword\UnevaluatedItemsKeyword;
+use Eventjet\Json\Internal\Schema\Keyword\UnevaluatedPropertiesKeyword;
 use Eventjet\Json\Schema\SchemaError;
 use SplObjectStorage;
 use stdClass;
 
+use function array_any;
 use function is_bool;
 use function sprintf;
 
@@ -21,12 +26,6 @@ use function sprintf;
  */
 final class Compiler
 {
-    /** Whether a schema uses `unevaluatedProperties` or `unevaluatedItems`, which need annotations. */
-    public bool $annotates = false;
-
-    /** Whether a schema uses `$dynamicRef` or `$recursiveRef` dynamically, which needs the dynamic scope. */
-    public bool $dynamic = false;
-
     /** @var SplObjectStorage<stdClass, Node> */
     private SplObjectStorage $nodes;
 
@@ -70,6 +69,18 @@ final class Compiler
         ReferenceLoops::check($this->compiled);
     }
 
+    /** Whether a schema uses `unevaluatedProperties` or `unevaluatedItems`, which need annotations. */
+    public function annotates(): bool
+    {
+        return $this->uses(UnevaluatedItemsKeyword::class, UnevaluatedPropertiesKeyword::class);
+    }
+
+    /** Whether a schema uses `$dynamicRef` or `$recursiveRef` dynamically, which needs the dynamic scope. */
+    public function dynamic(): bool
+    {
+        return $this->uses(DynamicRefKeyword::class, RecursiveRefKeyword::class);
+    }
+
     /** @throws SchemaError */
     public function child(mixed $schema, Location $parent, string ...$tokens): Node
     {
@@ -98,7 +109,7 @@ final class Compiler
             return;
         }
         $resource->prepared = true;
-        foreach ($resource->dynamicAnchorSchemas as $name => $schema) {
+        foreach ($this->registry->dynamicAnchors($resource) as $name => $schema) {
             $location = $this->registry->location($schema);
             if ($location !== null) {
                 $resource->dynamicAnchors[$name] = $this->compile($schema, $location);
@@ -110,5 +121,17 @@ final class Compiler
                 $resource->rootNode = $this->compile($resource->root, $location);
             }
         }
+    }
+
+    /** @param class-string<Keyword> ...$classes */
+    private function uses(string ...$classes): bool
+    {
+        return array_any($this->compiled, static fn(Node $node): bool => array_any(
+            $node->keywords,
+            static fn(Keyword $keyword): bool => array_any(
+                $classes,
+                static fn(string $class): bool => $keyword instanceof $class,
+            ),
+        ));
     }
 }

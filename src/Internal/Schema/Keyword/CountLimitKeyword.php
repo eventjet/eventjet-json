@@ -66,4 +66,10 @@ final readonly class CountLimitKeyword implements Keyword
             ),
         );
     }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
+    }
 }

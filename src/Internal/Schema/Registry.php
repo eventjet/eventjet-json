@@ -45,7 +45,16 @@ final class Registry
     }
 
     /** @throws SchemaError */
-    public function addDocument(stdClass|bool $root, Draft $draft, string $uri): Resource
+    public function addSchema(Draft4|Draft6|Draft7|Draft201909|Draft202012|bool $schema, string $uri): Resource
+    {
+        if (is_bool($schema)) {
+            return $this->addDocument($schema, Draft::Draft202012, $uri);
+        }
+        return $this->addDocument(SchemaTree::of($schema), Draft::of($schema), $uri);
+    }
+
+    /** @throws SchemaError */
+    private function addDocument(stdClass|bool $root, Draft $draft, string $uri): Resource
     {
         $id = $root instanceof stdClass ? $draft->id($root) : null;
         $canonical = $id !== null && !str_starts_with($id, '#') ? Uri::withoutFragment(Uri::resolve($uri, $id)) : $uri;
@@ -65,6 +74,17 @@ final class Registry
     public function location(stdClass $schema): Location|null
     {
         return $this->index->location($schema);
+    }
+
+    public function rootLocation(Resource $resource): Location
+    {
+        return $this->index->rootLocation($resource);
+    }
+
+    /** @return array<string, stdClass> The subschemas of the resource with a `$dynamicAnchor`, by anchor name. */
+    public function dynamicAnchors(Resource $resource): array
+    {
+        return $this->index->dynamicAnchors($resource);
     }
 
     /**
@@ -113,10 +133,7 @@ final class Registry
         if ($document === null) {
             throw new SchemaError(sprintf('Could not resolve %s: the loader found no document.', $uri));
         }
-        if (is_bool($document)) {
-            return $this->addDocument($document, Draft::Draft202012, $uri);
-        }
-        return $this->addDocument(SchemaTree::of($document), Draft::of($document), $uri);
+        return $this->addSchema($document, $uri);
     }
 
     /**

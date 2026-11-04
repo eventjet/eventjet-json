@@ -10,7 +10,7 @@ use stdClass;
 
 use function file_get_contents;
 use function json_decode;
-use function rtrim;
+use function str_replace;
 
 use const JSON_THROW_ON_ERROR;
 
@@ -21,53 +21,22 @@ use const JSON_THROW_ON_ERROR;
  */
 final class MetaSchemas
 {
-    private const array FILES = [
-        'http://json-schema.org/draft-04/schema' => ['draft-04/schema.json', Draft::Draft4],
-        'http://json-schema.org/draft-06/schema' => ['draft-06/schema.json', Draft::Draft6],
-        'http://json-schema.org/draft-07/schema' => ['draft-07/schema.json', Draft::Draft7],
-        'https://json-schema.org/draft/2019-09/schema' => ['2019-09/schema.json', Draft::Draft201909],
-        'https://json-schema.org/draft/2019-09/meta/core' => ['2019-09/meta/core.json', Draft::Draft201909],
-        'https://json-schema.org/draft/2019-09/meta/applicator' => [
-            '2019-09/meta/applicator.json',
-            Draft::Draft201909,
-        ],
-        'https://json-schema.org/draft/2019-09/meta/validation' => [
-            '2019-09/meta/validation.json',
-            Draft::Draft201909,
-        ],
-        'https://json-schema.org/draft/2019-09/meta/meta-data' => [
-            '2019-09/meta/meta-data.json',
-            Draft::Draft201909,
-        ],
-        'https://json-schema.org/draft/2019-09/meta/format' => ['2019-09/meta/format.json', Draft::Draft201909],
-        'https://json-schema.org/draft/2019-09/meta/content' => ['2019-09/meta/content.json', Draft::Draft201909],
-        'https://json-schema.org/draft/2020-12/schema' => ['2020-12/schema.json', Draft::Draft202012],
-        'https://json-schema.org/draft/2020-12/meta/core' => ['2020-12/meta/core.json', Draft::Draft202012],
-        'https://json-schema.org/draft/2020-12/meta/applicator' => [
-            '2020-12/meta/applicator.json',
-            Draft::Draft202012,
-        ],
-        'https://json-schema.org/draft/2020-12/meta/unevaluated' => [
-            '2020-12/meta/unevaluated.json',
-            Draft::Draft202012,
-        ],
-        'https://json-schema.org/draft/2020-12/meta/validation' => [
-            '2020-12/meta/validation.json',
-            Draft::Draft202012,
-        ],
-        'https://json-schema.org/draft/2020-12/meta/meta-data' => [
-            '2020-12/meta/meta-data.json',
-            Draft::Draft202012,
-        ],
-        'https://json-schema.org/draft/2020-12/meta/format-annotation' => [
-            '2020-12/meta/format-annotation.json',
-            Draft::Draft202012,
-        ],
-        'https://json-schema.org/draft/2020-12/meta/format-assertion' => [
-            '2020-12/meta/format-assertion.json',
-            Draft::Draft202012,
-        ],
-        'https://json-schema.org/draft/2020-12/meta/content' => ['2020-12/meta/content.json', Draft::Draft202012],
+    /** The meta-schemas of the vocabularies, which the meta-schemas of the drafts are made of. */
+    private const array VOCABULARIES = [
+        'https://json-schema.org/draft/2019-09/meta/core' => Draft::Draft201909,
+        'https://json-schema.org/draft/2019-09/meta/applicator' => Draft::Draft201909,
+        'https://json-schema.org/draft/2019-09/meta/validation' => Draft::Draft201909,
+        'https://json-schema.org/draft/2019-09/meta/meta-data' => Draft::Draft201909,
+        'https://json-schema.org/draft/2019-09/meta/format' => Draft::Draft201909,
+        'https://json-schema.org/draft/2019-09/meta/content' => Draft::Draft201909,
+        'https://json-schema.org/draft/2020-12/meta/core' => Draft::Draft202012,
+        'https://json-schema.org/draft/2020-12/meta/applicator' => Draft::Draft202012,
+        'https://json-schema.org/draft/2020-12/meta/unevaluated' => Draft::Draft202012,
+        'https://json-schema.org/draft/2020-12/meta/validation' => Draft::Draft202012,
+        'https://json-schema.org/draft/2020-12/meta/meta-data' => Draft::Draft202012,
+        'https://json-schema.org/draft/2020-12/meta/format-annotation' => Draft::Draft202012,
+        'https://json-schema.org/draft/2020-12/meta/format-assertion' => Draft::Draft202012,
+        'https://json-schema.org/draft/2020-12/meta/content' => Draft::Draft202012,
     ];
 
     /**
@@ -78,11 +47,15 @@ final class MetaSchemas
      */
     public static function load(string $uri): array|null
     {
-        $entry = self::FILES[rtrim($uri, characters: '#')] ?? null;
-        if ($entry === null) {
+        $uri = Uri::withoutEmptyFragment($uri);
+        $draft = self::VOCABULARIES[$uri] ?? Draft::ofMetaSchema($uri);
+        if ($draft === null) {
             return null;
         }
-        $path = __DIR__ . '/../../../resources/meta-schemas/' . $entry[0];
+        $file =
+            str_replace(['http://json-schema.org/', 'https://json-schema.org/draft/'], replace: '', subject: $uri)
+            . '.json';
+        $path = __DIR__ . '/../../../resources/meta-schemas/' . $file;
         $json = file_get_contents($path);
         if ($json === false) {
             throw new SchemaError('Could not read the meta-schema ' . $path . '.');
@@ -93,6 +66,6 @@ final class MetaSchemas
         } catch (JsonException $exception) {
             throw new SchemaError('Could not parse the meta-schema ' . $path . '.', $exception);
         }
-        return [$document, $entry[1]];
+        return [$document, $draft];
     }
 }

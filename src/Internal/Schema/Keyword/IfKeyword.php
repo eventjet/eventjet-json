@@ -41,4 +41,17 @@ final readonly class IfKeyword implements Keyword
             || $this->else->evaluate($value, $run, $instanceLocation, $keywordLocation . '/else', $annotations)
         );
     }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        $schemas = [$this->if];
+        if ($this->then !== null) {
+            $schemas[] = $this->then;
+        }
+        if ($this->else !== null) {
+            $schemas[] = $this->else;
+        }
+        return $schemas;
+    }
 }

@@ -8,7 +8,6 @@ use Eventjet\Json\Internal\Schema\Annotations;
 use Eventjet\Json\Internal\Schema\Keyword;
 use Eventjet\Json\Internal\Schema\Node;
 use Eventjet\Json\Internal\Schema\Run;
-use Eventjet\Json\Internal\Schema\Uri;
 use Override;
 use stdClass;
 
@@ -45,8 +44,8 @@ final readonly class PatternPropertiesKeyword implements Keyword
                 if ($annotations !== null) {
                     $annotations->properties[$name] = true;
                 }
-                $ip = $run->collect ? $instanceLocation . '/' . Uri::escapePointerToken($name) : '';
-                $kp = $run->collect ? $keywordLocation . '/patternProperties/' . Uri::escapePointerToken($pattern) : '';
+                $ip = $run->path($instanceLocation, $name);
+                $kp = $run->path($keywordLocation, 'patternProperties', $pattern);
                 $matches = $schema->evaluate($member, $run, $ip, $kp, null);
                 if ($matches) {
                     continue;
@@ -58,5 +57,11 @@ final readonly class PatternPropertiesKeyword implements Keyword
             }
         }
         return $valid;
+    }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
     }
 }

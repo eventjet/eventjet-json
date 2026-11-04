@@ -44,6 +44,12 @@ final class SchemaIndex
         return $location ?? new Location($resource->uri, $resource, '');
     }
 
+    /** @return array<string, stdClass> The subschemas of the resource with a `$dynamicAnchor`, by anchor name. */
+    public function dynamicAnchors(Resource $resource): array
+    {
+        return $this->anchors->dynamic($resource);
+    }
+
     /**
      * @return array{stdClass, Location, bool}|null
      * @mutation-free

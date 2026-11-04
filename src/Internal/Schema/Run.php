@@ -8,6 +8,7 @@ use Eventjet\Json\Schema\ValidationFailure;
 
 use function array_slice;
 use function count;
+use function is_int;
 
 /**
  * The state of one validation: the failures found so far and the dynamic scope.
@@ -52,8 +53,26 @@ final class Run
         }
     }
 
+    /**
+     * Appends reference tokens to a JSON Pointer, if the run collects failures. Without, locations are never read, so
+     * this skips building them.
+     */
+    public function path(string $pointer, string|int ...$tokens): string
+    {
+        return $this->collect ? self::append($pointer, $tokens) : '';
+    }
+
     public function mark(): int
     {
         return $this->collect ? count($this->failures) : 0;
+    }
+
+    /** @param array<array-key, string|int> $tokens */
+    private static function append(string $pointer, array $tokens): string
+    {
+        foreach ($tokens as $token) {
+            $pointer .= '/' . (is_int($token) ? $token : Uri::escapePointerToken($token));
+        }
+        return $pointer;
     }
 }

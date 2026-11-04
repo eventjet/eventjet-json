@@ -4,7 +4,7 @@ set -euo pipefail
 fixture=$(mktemp -d)
 trap 'rm -rf -- "$fixture"' EXIT
 mkdir "$fixture/workspace"
-cp -a benchmarks tests src vendor composer.json "$fixture/workspace/"
+cp -a benchmarks tests src resources vendor composer.json "$fixture/workspace/"
 (cd "$fixture/workspace" && composer dump-autoload --optimize --no-interaction)
 FPM_RESULTS="$fixture" php <<'PHP'
 <?php
@@ -63,8 +63,8 @@ $configuration['runner.php_config']['serialize_precision'] = '7';
 $configuration['runner.php_config']['precision'] = '9';
 $configuration['runner.php_config']['auto_prepend_file'] = $prepend;
 $names = Eventjet\Json\Ci\FpmMeasurements::names($directory . '/workspace');
-if (count($names) !== 9) {
-    throw new RuntimeException('Expected all nine document and batch workloads');
+if (count($names) !== 11) {
+    throw new RuntimeException('Expected all nine document and batch workloads and both schema workloads');
 }
 foreach ([true, false] as $opcache) {
     $settings = Eventjet\Json\Ci\BenchmarkRuntime::settings($configuration, $opcache);

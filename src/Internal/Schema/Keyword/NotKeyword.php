@@ -39,4 +39,10 @@ final readonly class NotKeyword implements Keyword
             'The value must not match the "not" schema.',
         );
     }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [$this->schema];
+    }
 }

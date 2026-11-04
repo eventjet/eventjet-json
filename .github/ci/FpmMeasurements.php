@@ -38,9 +38,7 @@ final class FpmMeasurements
             BenchmarkCommand::run([
                 PHP_BINARY,
                 '-r',
-                'require "vendor/autoload.php"; $schemas = Eventjet\\Json\\Benchmark\\SchemaWorkloads::class;'
-                . ' echo json_encode([...Eventjet\\Json\\Benchmark\\DocumentWorkloads::names(),'
-                . ' ...(class_exists($schemas) ? $schemas::names() : [])], JSON_THROW_ON_ERROR);',
+                'require "vendor/autoload.php"; echo json_encode(Eventjet\\Json\\Benchmark\\RequestWorkloads::names(), JSON_THROW_ON_ERROR);',
             ], $workspace),
             true,
             flags: JSON_THROW_ON_ERROR,

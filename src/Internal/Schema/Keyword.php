@@ -19,4 +19,7 @@ interface Keyword
         string $keywordLocation,
         Annotations|null $annotations,
     ): bool;
+
+    /** @return list<Node> The subschemas that apply to the same value, for finding reference loops. */
+    public function inPlace(): array;
 }

@@ -63,4 +63,10 @@ final readonly class MultipleOfKeyword implements Keyword
         }
         return abs($quotient - round($quotient)) < 1e-9;
     }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
+    }
 }

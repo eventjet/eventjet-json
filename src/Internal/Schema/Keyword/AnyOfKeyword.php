@@ -30,7 +30,7 @@ final readonly class AnyOfKeyword implements Keyword
         $mark = $run->mark();
         $valid = false;
         foreach ($this->schemas as $index => $schema) {
-            $kp = $run->collect ? $keywordLocation . '/anyOf/' . $index : '';
+            $kp = $run->path($keywordLocation, 'anyOf', $index);
             $matches = $schema->evaluate($value, $run, $instanceLocation, $kp, $annotations);
             if (!$matches) {
                 continue;
@@ -50,5 +50,11 @@ final readonly class AnyOfKeyword implements Keyword
             $this->location,
             'The value must match at least one of the "anyOf" schemas.',
         );
+    }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return $this->schemas;
     }
 }

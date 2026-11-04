@@ -45,4 +45,10 @@ final readonly class PatternKeyword implements Keyword
             sprintf('The value must match the pattern %s.', $this->pattern),
         );
     }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
+    }
 }

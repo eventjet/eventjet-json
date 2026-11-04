@@ -29,6 +29,22 @@ final class JsonKey
 {
     private const float INT_LIMIT = 9.223_372_036_854_775_807E18;
 
+    /** @mutation-free */
+    public static function isIntegral(float $value): bool
+    {
+        return is_finite($value) && floor($value) === $value;
+    }
+
+    /**
+     * Whether a float lies inside the range of PHP integers.
+     *
+     * @mutation-free
+     */
+    public static function fitsInt(float $value): bool
+    {
+        return $value > -self::INT_LIMIT && $value < self::INT_LIMIT;
+    }
+
     public static function of(mixed $value): string
     {
         if ($value === null) {
@@ -41,12 +57,7 @@ final class JsonKey
             return 'i' . $value;
         }
         if (is_float($value)) {
-            if (
-                is_finite($value)
-                && floor($value) === $value
-                && $value > -self::INT_LIMIT
-                && $value < self::INT_LIMIT
-            ) {
+            if (self::isIntegral($value) && self::fitsInt($value)) {
                 return 'i' . (int) $value;
             }
             return 'd' . var_export($value, return: true);

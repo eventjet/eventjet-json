@@ -40,7 +40,7 @@ final readonly class ContainsKeyword implements Keyword
         $kp = $keywordLocation . '/contains';
         /** @var mixed $item */
         foreach ($value as $index => $item) {
-            $ip = $run->collect ? $instanceLocation . '/' . $index : '';
+            $ip = $run->path($instanceLocation, $index);
             $match = $this->schema->evaluate($item, $run, $ip, $kp, null);
             if (!$match) {
                 continue;
@@ -72,5 +72,11 @@ final readonly class ContainsKeyword implements Keyword
             );
         }
         return true;
+    }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
     }
 }

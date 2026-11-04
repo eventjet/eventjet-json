@@ -67,7 +67,7 @@ final class SchemaWorkloads
         return array_keys(self::factories());
     }
 
-    /** @api Used by the PHP-FPM request script in CI. */
+    /** @mutation-free */
     public static function handles(string $name): bool
     {
         return str_starts_with($name, self::PREFIX);

@@ -48,4 +48,10 @@ final readonly class UniqueItemsKeyword implements Keyword
         }
         return true;
     }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
+    }
 }

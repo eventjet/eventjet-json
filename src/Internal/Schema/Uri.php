@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal\Schema;
 
 use function explode;
 use function rawurldecode;
+use function str_ends_with;
 use function str_replace;
 use function strpos;
 use function substr;
@@ -69,6 +70,12 @@ final class Uri
     public static function withoutFragment(string $uri): string
     {
         return self::split($uri)[0];
+    }
+
+    /** Drops a trailing `#`, which names the same resource as no fragment. */
+    public static function withoutEmptyFragment(string $uri): string
+    {
+        return str_ends_with($uri, '#') ? substr($uri, offset: 0, length: -1) : $uri;
     }
 
     /**

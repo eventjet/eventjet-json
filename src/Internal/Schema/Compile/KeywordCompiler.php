@@ -53,11 +53,9 @@ final class KeywordCompiler
         }
         $keywords = [];
         if ($schema->has('unevaluatedItems')) {
-            $compiler->annotates = true;
             $keywords[] = new UnevaluatedItemsKeyword($schema->subschema($compiler, 'unevaluatedItems'));
         }
         if ($schema->has('unevaluatedProperties')) {
-            $compiler->annotates = true;
             $keywords[] = new UnevaluatedPropertiesKeyword($schema->subschema($compiler, 'unevaluatedProperties'));
         }
         return $keywords;

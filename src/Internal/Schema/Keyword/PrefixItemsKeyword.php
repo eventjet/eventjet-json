@@ -39,8 +39,8 @@ final readonly class PrefixItemsKeyword implements Keyword
                 break;
             }
             $count++;
-            $ip = $run->collect ? $instanceLocation . '/' . $index : '';
-            $kp = $run->collect ? $keywordLocation . '/' . $this->name . '/' . $index : '';
+            $ip = $run->path($instanceLocation, $index);
+            $kp = $run->path($keywordLocation, $this->name, $index);
             $matches = $schema->evaluate($value[$index], $run, $ip, $kp, null);
             if ($matches) {
                 continue;
@@ -54,5 +54,11 @@ final readonly class PrefixItemsKeyword implements Keyword
             $annotations->items = $count;
         }
         return $valid;
+    }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
     }
 }

@@ -41,4 +41,10 @@ final readonly class DynamicRefKeyword implements Keyword
         }
         return $target->evaluate($value, $run, $instanceLocation, $keywordLocation . '/$dynamicRef', $annotations);
     }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [$this->target];
+    }
 }

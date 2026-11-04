@@ -13,13 +13,11 @@ use stdClass;
  */
 final class Resource
 {
-    /** @var array<string, stdClass> The subschemas with a `$dynamicAnchor`, by anchor name. */
-    public array $dynamicAnchorSchemas = [];
-
     /** @var array<string, Node> */
     public array $dynamicAnchors = [];
 
-    public bool $recursiveAnchor = false;
+    /** Whether the root of the resource has `"$recursiveAnchor": true`. */
+    public readonly bool $recursiveAnchor;
 
     public Node|null $rootNode = null;
 
@@ -31,5 +29,10 @@ final class Resource
         public readonly Draft $draft,
         public readonly Vocabulary $vocabulary,
         public readonly stdClass|bool $root,
-    ) {}
+    ) {
+        $this->recursiveAnchor =
+            $draft === Draft::Draft201909
+            && $root instanceof stdClass
+            && (((array) $root)['$recursiveAnchor'] ?? null) === true;
+    }
 }

@@ -8,6 +8,7 @@ use Closure;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Internal\Schema\Draft;
+use Eventjet\Json\Internal\Schema\Uri;
 use Eventjet\Json\Json;
 use JsonException;
 use stdClass;
@@ -16,7 +17,6 @@ use function array_key_exists;
 use function is_bool;
 use function is_string;
 use function json_decode;
-use function rtrim;
 use function sprintf;
 
 use const JSON_THROW_ON_ERROR;
@@ -41,7 +41,9 @@ final class JsonSchema
      *     `$schema`.
      * @param (Closure(string): (Draft4|Draft6|Draft7|Draft201909|Draft202012|bool|DecodeError|null))|null $loader
      *     Returns the custom meta-schema with the given URI, for a `$schema` that isn't official, or null if there
-     *     is none. The draft of the meta-schema it returns is the draft of the document.
+     *     is none. The draft of the meta-schema it returns is the draft of the document. To follow the meta-schema's
+     *     own `$schema`, the loader can decode it with this method. While the loader runs, this class remembers the
+     *     URI, so a chain of `$schema` that leads back to it returns an error instead of never ending.
      */
     public static function decode(
         string $json,
@@ -90,7 +92,7 @@ final class JsonSchema
                 $metaSchema,
             ));
         }
-        $key = rtrim($metaSchema, characters: '#');
+        $key = Uri::withoutEmptyFragment($metaSchema);
         if (array_key_exists($key, self::$resolving)) {
             return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
                 'The meta-schema %s is its own meta-schema through a loop of $schema.',

@@ -45,4 +45,10 @@ final readonly class FormatKeyword implements Keyword
             sprintf('The value must be a valid %s.', $this->format),
         );
     }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [];
+    }
 }

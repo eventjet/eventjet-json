@@ -19,9 +19,6 @@ final class Node
     /** @var list<Keyword> */
     public array $keywords = [];
 
-    /** @var list<Node> Subschemas that apply to the same value, for finding reference loops. */
-    public array $inPlace = [];
-
     public function __construct(
         public readonly Resource $resource,
         public readonly string $absoluteLocation,

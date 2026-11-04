@@ -11,12 +11,11 @@ use Eventjet\Json\Internal\Schema\Run;
 use Override;
 
 /** `$ref`, and `$dynamicRef` and `$recursiveRef` where they act like it. @internal */
-final class RefKeyword implements Keyword
+final readonly class RefKeyword implements Keyword
 {
-    public Node|null $target = null;
-
     public function __construct(
-        private readonly string $name,
+        private string $name,
+        private Node $target,
     ) {}
 
     #[Override]
@@ -27,8 +26,18 @@ final class RefKeyword implements Keyword
         string $keywordLocation,
         Annotations|null $annotations,
     ): bool {
-        $target = $this->target;
-        return $target === null
-        || $target->evaluate($value, $run, $instanceLocation, $keywordLocation . '/' . $this->name, $annotations);
+        return $this->target->evaluate(
+            $value,
+            $run,
+            $instanceLocation,
+            $keywordLocation . '/' . $this->name,
+            $annotations,
+        );
+    }
+
+    #[Override]
+    public function inPlace(): array
+    {
+        return [$this->target];
     }
 }
