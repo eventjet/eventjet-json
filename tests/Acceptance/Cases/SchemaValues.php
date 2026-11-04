@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\JsonValue;
+use Eventjet\Json\OtherMembers;
 use Eventjet\Json\Schema\Type;
 use InvalidArgumentException;
 use Random\Randomizer;
 use ReflectionException;
+use ReflectionProperty;
 use RuntimeException;
 
 use function bin2hex;
@@ -64,7 +66,8 @@ final class SchemaValues
      */
     public static function arrayValue(Randomizer $random, string $draft, string $keyword, int $depth): array
     {
-        return $keyword === 'unknownKeywords'
+        $collectsUnknownKeywords = new ReflectionProperty($draft, $keyword)->getAttributes(OtherMembers::class) !== [];
+        return $collectsUnknownKeywords
             ? self::unknownKeywords($random)
             : self::items($random, $draft, $keyword, $depth);
     }

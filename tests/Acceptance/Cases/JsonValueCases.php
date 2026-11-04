@@ -55,6 +55,9 @@ final class JsonValueCases
         $optional->extra = new JsonValue([null]);
         yield 'present optional JsonValue that holds null' => [$optional];
         yield 'omitted optional JsonValue before a present one' => [new OptionalJsonValue(new JsonValue(1))];
+        $before = new OptionalJsonValue();
+        $before->extra = new JsonValue(1);
+        yield 'present optional JsonValue before an omitted one' => [$before];
     }
 
     /**

@@ -82,7 +82,7 @@ final class UnknownKeywordCases
         ];
         foreach ($schemas as [$schema, $name]) {
             $expected = sprintf(
-                'Cannot encode %s, because its unknown keywords include "%s", which is a keyword of the draft.',
+                'Cannot encode %s, because its property unknownKeywords holds a member named "%s", which is the JSON name of a declared field.',
                 $schema::class,
                 $name,
             );

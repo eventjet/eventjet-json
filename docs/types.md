@@ -452,11 +452,9 @@ the order of its members. Keywords that a draft replaced count as unknown:
 neither, nor `$recursiveRef` and `$recursiveAnchor`. Their values are
 `JsonValue` objects, not schema objects.
 
-A schema built in PHP can hold an unknown keyword with the name of a keyword
-of its draft, such as `new Draft202012(unknownKeywords: ['$ref' => $value])`.
-Decoding its JSON would bind that member to the keyword, so `json_encode()`
-throws an `UnexpectedValueException` for it, like `MappedJsonFields` does,
-whether the schema has that keyword or not.
+`json_encode()` rejects an unknown keyword with the name of a keyword of the
+draft, such as `new Draft202012(unknownKeywords: ['$ref' => $value])`, as
+described in [Other members](#other-members).
 
 A schema that is just `true` or `false` returns an `UnexpectedRootValue`
 error, because the classes describe JSON objects. To accept Boolean schemas at
