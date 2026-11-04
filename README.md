@@ -335,6 +335,47 @@ as a `JsonValue`. The class must implement `JsonSerializable`, for example with
 `MappedJsonFields`, which writes the collected members after the declared
 fields. See the [type reference](docs/types.md#other-members) for the details.
 
+## JSON Schema
+
+The package includes classes for JSON Schema documents of Draft 4, Draft 6,
+Draft 7, Draft 2019-09, and Draft 2020-12, in the `Eventjet\Json\Schema`
+namespace:
+
+```php
+use Eventjet\Json\Schema\Draft202012;
+use Eventjet\Json\Schema\Type;
+
+$schema = Json::decode(
+    '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string"}}}',
+    Draft202012::class,
+);
+if ($schema instanceof DecodeError) {
+    throw $schema;
+}
+
+var_dump($schema->type === Type::Object);   // bool(true)
+echo $schema->title ?? 'Untitled';           // Untitled
+$name = $schema->properties['name'] ?? null; // Draft202012|bool|null
+echo json_encode($schema, JSON_THROW_ON_ERROR); // the same document
+```
+
+Each keyword is a property, and `null` means the schema doesn't have it, so
+you can read keywords with `??` and `?->`. The classes parse schemas; they
+don't validate them, validate instances against them, or resolve `$ref`.
+
+Keywords that the draft doesn't define, such as `x-*` extensions, are kept in
+`$schema->unknownKeywords`, so `json_encode()` writes the whole document back.
+
+A schema that is just `true` or `false` returns an `UnexpectedRootValue`
+error. Check for it first if your input can be one:
+
+```php
+$data = json_decode($json);
+$schema = is_bool($data) ? $data : Json::decode($json, Draft202012::class);
+```
+
+See the [type reference](docs/types.md#json-schema) for the details.
+
 ## Decoding rules
 
 - JSON member names match constructor parameter or public property names by
