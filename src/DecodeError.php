@@ -33,7 +33,8 @@ final class DecodeError extends RuntimeException
     /**
      * Errors of invalid values come from this constructor, with arguments by position: a named constructor adds a frame
      * to the trace that each exception records, and named arguments add work, which both make rejected values
-     * measurably slower.
+     * measurably slower. For the same reason, it passes the parent constructor the default code instead of naming the
+     * previous exception.
      *
      * @param bool $afterPath Whether the error is about an invalid value and the message is the text after its path,
      *     such as "must be of type int, string given." The message names the path once whileCreating() renders it.
@@ -45,7 +46,7 @@ final class DecodeError extends RuntimeException
         Throwable|null $previous = null,
         bool $afterPath = false,
     ) {
-        parent::__construct($message, previous: $previous);
+        parent::__construct($message, 0, $previous);
         $this->detail = $afterPath ? $message : null;
     }
 

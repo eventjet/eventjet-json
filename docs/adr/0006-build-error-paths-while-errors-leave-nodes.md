@@ -13,8 +13,9 @@ call adds the member name to the path. It renders the path into the message, so 
 object, not once per member or key.
 
 `InvalidValue` and `InvalidDiscriminator` create the errors of invalid values with `new DecodeError()` and pass the
-arguments by position. An exception records the call stack when it is created, so a named constructor such as
-`DecodeError::invalidValue()` would add a frame to every trace. Named arguments add work to every call.
+arguments by position. The constructor also calls its parent with arguments by position. An exception records the call
+stack when it is created, so a named constructor such as `DecodeError::invalidValue()` would add a frame to every trace.
+Named arguments add work to every call.
 
 ## Measurement
 
@@ -56,11 +57,12 @@ these steps removed most of the rest:
 | `new DecodeError()` instead of the named constructor `DecodeError::invalidValue()`, whose frame every trace recorded | about −2% to −3% |
 | The flag for invalid values by position instead of by name | about −0.5% to −1% |
 | `whileCreating()` adds the member name, instead of a separate `inMember()` call per object | about −1.5% |
+| The parent constructor gets the code by position instead of the previous exception by name | about −1.5% to −2% |
 
 Local PHPBench on 2026-11-04 with production `php.ini` settings, 24 alternating rounds of two iterations per revision,
-against master (a59d951): the unknown enum value is 2.58% slower with OPcache on and 0.70% slower with OPcache off. The
-list error cases stay within 1.2%. Against the candidate before these steps, successful decodes changed by −3.2% to
-+2.1%. A comparison of master with itself varied by up to 3.5%.
+against master (a59d951): the unknown enum value is as fast with OPcache on (+0.01%) and 0.48% faster with OPcache off.
+The list error cases stay within 1.3%. Against the candidate before these steps, successful decodes changed by −3.8% to
++2.7%. A comparison of master with itself varied by up to 3.5%.
 
 ## Consequences
 
