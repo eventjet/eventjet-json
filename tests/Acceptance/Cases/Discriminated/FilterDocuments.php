@@ -35,7 +35,7 @@ final class FilterDocuments
         $and = $dice->chance(50);
         $class = $and ? AndFilter::class : OrFilter::class;
         $operands = [];
-        $operandsPath = $path === '' ? 'operands' : $path . '.operands';
+        $operandsPath = Document::memberPath($path, 'operands');
         for ($index = $dice->int(0, 3); $index > 0; --$index) {
             $operandPath = sprintf('%s[%d]', $operandsPath, count($operands));
             $operands[] = self::filter($document, $class, $operandPath, $depth + 1);

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Error;
 
 use Eventjet\Json\DecodeError;
-use Eventjet\Json\DecodeErrorKind;
 
 use function get_debug_type;
 use function sprintf;
@@ -35,6 +34,6 @@ final class InvalidDiscriminator
 
     private static function error(string $message): DecodeError
     {
-        return new DecodeError(DecodeErrorKind::InvalidValue, detail: $message);
+        return DecodeError::invalidValue($message);
     }
 }

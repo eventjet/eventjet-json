@@ -101,7 +101,7 @@ final class DiscriminatedUnionCases
             sprintf(
                 'Could not create %s from the JSON object: Field %s must be one of %s; %s given.',
                 $tagged->container,
-                $tagged->path === '' ? $tagged->tag->member : $tagged->path . '.' . $tagged->tag->member,
+                Document::memberPath($tagged->path, $tagged->tag->member),
                 $tagged->tag->allowed,
                 var_export($tagged->undeclared(), return: true),
             ),

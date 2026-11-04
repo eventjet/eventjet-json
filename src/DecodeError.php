@@ -9,8 +9,6 @@ use JsonException;
 use RuntimeException;
 use Throwable;
 
-use function substr;
-
 /** @api */
 final class DecodeError extends RuntimeException
 {
@@ -20,23 +18,36 @@ final class DecodeError extends RuntimeException
     /**
      * The path of an invalid value below the value that the decoder currently handles. Each enclosing object, list, and
      * map adds its part while the error leaves it, so that decoding valid values builds no paths. The message shows the
-     * path once whileCreating() renders it, which every object and every root decode calls. Each member name keeps the
-     * dot before it, which rendering removes from the front of the path.
+     * path once whileCreating() renders it, which every object and every root decode calls.
      */
     private string $path = '';
 
-    /**
-     * @param string|null $detail For an invalid value, the text after its path. whileCreating() renders the message from
-     *     it. Null for an error without a path.
-     * @internal
-     */
+    /** Whether the path starts with a member name, which needs a dot before it once something adds to the front. */
+    private bool $startsWithMember = false;
+
+    /** For an invalid value, the text after its path, from which whileCreating() renders the message. */
+    private string|null $detail = null;
+
+    /** @internal */
     public function __construct(
         public readonly DecodeErrorKind $kind,
-        string $message = '',
+        string $message,
         Throwable|null $previous = null,
-        private readonly string|null $detail = null,
     ) {
-        parent::__construct($detail ?? $message, previous: $previous);
+        parent::__construct($message, previous: $previous);
+    }
+
+    /**
+     * Creates the error of an invalid value. Its message names the path of the value once whileCreating() renders it.
+     *
+     * @param string $detail The text after the path, such as "must be of type int, string given."
+     * @internal
+     */
+    public static function invalidValue(string $detail): self
+    {
+        $error = new self(DecodeErrorKind::InvalidValue, $detail);
+        $error->detail = $detail;
+        return $error;
     }
 
     /**
@@ -46,7 +57,8 @@ final class DecodeError extends RuntimeException
      */
     public function inMember(string $name): self
     {
-        $this->path = '.' . $name . $this->path;
+        $this->path = $this->startsWithMember ? $name . '.' . $this->path : $name . $this->path;
+        $this->startsWithMember = true;
         return $this;
     }
 
@@ -58,7 +70,9 @@ final class DecodeError extends RuntimeException
      */
     public function inItem(int|string $key): self
     {
-        $this->path = FieldPath::key($key) . $this->path;
+        $key = FieldPath::key($key);
+        $this->path = $this->startsWithMember ? $key . '.' . $this->path : $key . $this->path;
+        $this->startsWithMember = false;
         return $this;
     }
 
@@ -78,9 +92,8 @@ final class DecodeError extends RuntimeException
             return $this;
         }
         $this->class ??= $class;
-        $path = $this->path !== '' && $this->path[0] === '.' ? substr($this->path, offset: 1) : $this->path;
         $this->message =
-            'Could not create ' . $this->class . ' from the JSON object: Field ' . $path . ' ' . $this->detail;
+            'Could not create ' . $this->class . ' from the JSON object: Field ' . $this->path . ' ' . $this->detail;
         return $this;
     }
 }

@@ -66,6 +66,7 @@ final readonly class ClassDecoder
      * calls the constructor and assigns the public properties outside it. Returns the error instead of throwing it,
      * because each throw makes rejected documents measurably slower.
      *
+     * @return object|DecodeError
      * @throws JsonException
      */
     public function decode(stdClass $object): object
