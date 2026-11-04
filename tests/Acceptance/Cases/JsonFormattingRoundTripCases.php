@@ -14,6 +14,7 @@ final class JsonFormattingRoundTripCases
      * @return iterable<string, array{object, string}>
      * @throws \ReflectionException
      * @throws \RuntimeException
+     * @throws \InvalidArgumentException
      */
     public static function objects(): iterable
     {
@@ -25,5 +26,7 @@ final class JsonFormattingRoundTripCases
             new Person('Ada', 'Lovelace'),
             " \t\n" . '{"firstName":"Ada","lastName":"Lovelace","middleName":null,"age":null}' . " \t\n",
         ];
+        yield from SchemaCases::documents();
+        yield from UnknownKeywordCases::documents();
     }
 }
