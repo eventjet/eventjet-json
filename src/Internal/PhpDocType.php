@@ -104,10 +104,19 @@ final readonly class PhpDocType
         if ($this->isPlainName('string')) {
             return 'string';
         }
+        return $container === ArrayObject::class && $this->isAnyKey() ? 'array-key' : null;
+    }
+
+    /**
+     * Whether the type accepts every array key: `array-key` or `int|string`.
+     *
+     * @mutation-free
+     */
+    public function isAnyKey(): bool
+    {
         $names = array_map(static fn(self $member): string|null => $member->plainName(), $this->members());
         sort($names);
-        $anyKey = in_array(implode('|', $names), ['array-key', 'int|string'], strict: true);
-        return $anyKey && $container === ArrayObject::class ? 'array-key' : null;
+        return in_array(implode('|', $names), ['array-key', 'int|string'], strict: true);
     }
 
     /**

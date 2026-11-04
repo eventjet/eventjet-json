@@ -72,6 +72,7 @@ final class TypeValidationCases
             UnsupportedUnionErrorCases::errors(),
             AmbiguousUnionErrorCases::errors(),
             JsonValueErrorCases::declarations(),
+            OtherMembersErrorCases::declarations(),
         ] as $cases) {
             foreach ($cases as $label => [1 => $class, 2 => $message]) {
                 yield $label => [$class, $message];
