@@ -11,13 +11,21 @@ use Eventjet\Json\Schema\Draft4;
 use Eventjet\Json\Schema\Draft6;
 use Eventjet\Json\Schema\Draft7;
 use InvalidArgumentException;
+use JsonException;
+use Random\Engine\Mt19937;
+use Random\Randomizer;
 use RuntimeException;
 
 use function file_get_contents;
 use function get_debug_type;
+use function json_encode;
+use function sprintf;
+
+use const JSON_PRESERVE_ZERO_FRACTION;
+use const JSON_THROW_ON_ERROR;
 
 /**
- * Valid schema documents of every draft, and the official meta-schema that each must match.
+ * Hand-written and generated valid schema documents of every draft, and the official meta-schema that each must match.
  *
  * @internal
  */
@@ -25,12 +33,15 @@ final class SchemaDocumentCases
 {
     private const array DRAFTS = [Draft4::class, Draft6::class, Draft7::class, Draft201909::class, Draft202012::class];
 
+    private const int GENERATED = 20;
+
     /**
      * Valid schema documents and their draft classes.
      *
      * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{string, class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012>}>
      * @throws InvalidArgumentException
+     * @throws JsonException
      * @throws RuntimeException
      */
     public static function documents(): iterable
@@ -39,10 +50,16 @@ final class SchemaDocumentCases
             yield $name => [$json, self::draftClass($class)];
         }
         foreach (SchemaCases::documents() as $name => [$schema, $json]) {
-            if ($json === '{}') {
-                continue;
-            }
             yield $name => [$json, self::draftClass($schema::class)];
+        }
+        foreach (self::DRAFTS as $draft) {
+            for ($seed = 1; $seed <= self::GENERATED; $seed++) {
+                $schema = ValidSchemaInputs::document(new Randomizer(new Mt19937($seed)), $draft);
+                yield sprintf('generated %s, seed %d', $draft, $seed) => [
+                    json_encode($schema, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+                    $draft,
+                ];
+            }
         }
     }
 
