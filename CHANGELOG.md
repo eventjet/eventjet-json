@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0](https://github.com/eventjet/eventjet-json/compare/v1.0.0...v1.1.0) (2026-11-03)
+
+
+### Features
+
+* Accept any member name in `ArrayObject<array-key, T>` maps ([#112](https://github.com/eventjet/eventjet-json/issues/112)) ([b8a33f4](https://github.com/eventjet/eventjet-json/commit/b8a33f470c1ff91e26fe1467b0c2930846fd5f41))
+* Add JsonValue for fields that hold any JSON value ([#114](https://github.com/eventjet/eventjet-json/issues/114)) ([4177bb0](https://github.com/eventjet/eventjet-json/commit/4177bb0fb39742a52531bbec5aad684a30f8a95d))
+* Decode unions of several classes through a discriminator member ([#116](https://github.com/eventjet/eventjet-json/issues/116)) ([a8ff547](https://github.com/eventjet/eventjet-json/commit/a8ff5471f9787b1dee27d19108a9152c8cd9513f))
+
+
+### Bug Fixes
+
+* Read doc comments like phpdoc-parser 2.4.0 ([#99](https://github.com/eventjet/eventjet-json/issues/99)) ([26d6ec8](https://github.com/eventjet/eventjet-json/commit/26d6ec8809ff8d553bbb0103459ca7fa35e22c26))
+
+
+### Continuous Integration
+
+* Automate releases with release-please ([#102](https://github.com/eventjet/eventjet-json/issues/102)) ([e089d60](https://github.com/eventjet/eventjet-json/commit/e089d60b12d5a9f83cf200d71d13fbf7b1282290))
+* Give every performance shard the same dependencies ([#105](https://github.com/eventjet/eventjet-json/issues/105)) ([ccc476d](https://github.com/eventjet/eventjet-json/commit/ccc476df3bb7b5fb1c5f82681980a04d244740ba))
+* Move CI to ubuntu-26.04 runners ([#104](https://github.com/eventjet/eventjet-json/issues/104)) ([40031c6](https://github.com/eventjet/eventjet-json/commit/40031c69d68b669274c9aec2012e062b034bce8f))
+* Report workloads missing from the baseline suite without a verdict ([#117](https://github.com/eventjet/eventjet-json/issues/117)) ([3be1d42](https://github.com/eventjet/eventjet-json/commit/3be1d423546672af5e4aeb14a6a6adfc0aa87ca6))
+
+
+### Miscellaneous Chores
+
+* **deps:** bump shivammathur/setup-php from 2.37.2 to 2.40.0 ([#98](https://github.com/eventjet/eventjet-json/issues/98)) ([a06de52](https://github.com/eventjet/eventjet-json/commit/a06de5263b9ba46e8e30ddfef145a0d61ccf6e03))
+
 ## [1.0.0] - 2026-11-02
 
 This release rewrites the library as a typed decoder that pairs with PHP's `json_encode()`. Data classes describe their

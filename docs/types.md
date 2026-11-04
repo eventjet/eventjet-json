@@ -11,7 +11,7 @@ must not be relied on, even if a particular value happens to decode.
 
 | Target or value | Status | Limits |
 | --- | --- | --- |
-| Concrete classes | Supported at the root | The JSON root must be an object. Recognized member names are passed as named constructor arguments, so they must match the constructor parameter names or their public properties' `#[Field]` names. Each parameter must have a same-named public instance property so `json_encode()` can expose its value. Additional members are ignored. |
+| Concrete classes | Supported at the root | The JSON root must be an object. Recognized member names are passed as named constructor arguments, so they must match the constructor parameter names or their public properties' `#[Field]` names. Each parameter must have a same-named public instance property so `json_encode()` can expose its value. Additional members are ignored, unless a property collects them; see [Other members](#other-members). |
 | Readonly classes | Supported at the root | The same constructor rules as other concrete classes apply. |
 | `string`, `int`, `float`, and `bool` constructor fields | Supported | Values must have the declared type. An integer JSON value is also valid for a `float` field because the declaration restores it as a PHP float. Other implicit scalar coercions are rejected. |
 | `null`, nullable scalar fields, and literal `true` and `false` fields | Supported | A non-null value must still match the non-null member of a nullable type. Literal Boolean fields accept only their declared value. |
@@ -27,7 +27,7 @@ must not be relied on, even if a particular value happens to decode.
 | Root arrays and maps | Limited | `JsonType::array()` returns lists and `JsonType::map()` returns `ArrayObject<string, T>` maps, preserving empty JSON arrays and objects. Values may be final classes, backed enums, or recursively nested array and map descriptors. Map keys must remain PHP strings. |
 | Backed enums at the root | Supported | `Json::decode('"ready"', Status::class)` returns `Status::Ready`. The JSON root must be a backing value of the enum's backing type. Another JSON type returns an `UnexpectedRootValue` error, and a value without a case returns an `InvalidValue` error. Non-backed enums and enums that implement `JsonSerializable` are rejected, as in fields. |
 | Root scalars and `null` | Unsupported | There are no descriptors for standalone values of these types. Use a transport class with a typed field. |
-| Classes implementing `JsonSerializable` | Opt-in through `#[Field]` or a `JsonValue\|null` property | At least one annotated public instance property, or one public instance property declared as `JsonValue\|null`, is required. Use `MappedJsonFields` or supply a serializer that emits the declared field names and values and leaves out `JsonValue\|null` properties that are `null`. Other serializers remain rejected. |
+| Classes implementing `JsonSerializable` | Opt-in through `#[Field]`, `#[OtherMembers]` or a `JsonValue\|null` property | At least one annotated public instance property, or one public instance property declared as `JsonValue\|null`, is required. Use `MappedJsonFields` or supply a serializer that emits the declared field names and values, leaves out `JsonValue\|null` properties that are `null`, and writes the [other members](#other-members) next to the declared fields. Other serializers remain rejected. |
 
 The round-trip contract also has these representation limits:
 
@@ -56,7 +56,8 @@ The round-trip contract also has these representation limits:
   example `list<Foo>` on an `int` field, the decoding result is unspecified.
 - JSON object members without matching constructor parameters or supported
   public properties are ignored and do not appear when the decoded object is
-  re-encoded.
+  re-encoded, unless the class collects them in a property marked with
+  [`#[OtherMembers]`](#other-members).
 - A missing required constructor-bound member produces an `InvalidValue` error.
   A missing optional member uses its constructor default. A present `null` is
   passed to the constructor and therefore overrides a nullable non-null default.
@@ -138,7 +139,8 @@ nested type whose field is omitted or whose collection is empty.
 It returns an object containing initialized public instance properties, retaining
 nulls and the same default-valued properties that native object encoding exposes.
 Uninitialized properties are omitted, and so are `JsonValue|null` properties that
-are `null`. Private, protected, and static state is not
+are `null`. The members that an `#[OtherMembers]` property holds come after the
+declared fields. Private, protected, and static state is not
 exposed. An empty result stays `{}` and numeric member names remain object keys.
 Nested mapped objects are handled by PHP's normal `JsonSerializable` support.
 
@@ -147,14 +149,16 @@ resolved names and unchanged property values. It must not drop required values,
 rename them differently, or replace the object with a scalar or list. That is the
 class author's round-trip responsibility; the decoder does not execute a
 serializer to infer or verify its behavior. An interface or marker cannot prove
-an arbitrary method's behavior. `JsonSerializable` classes without `#[Field]` or
-a `JsonValue|null` property, and custom-serialized enums, remain outside this
-opt-in contract.
+an arbitrary method's behavior. `JsonSerializable` classes without `#[Field]`,
+`#[OtherMembers]` or a `JsonValue|null` property, and custom-serialized enums,
+remain outside this opt-in contract.
 
 This feature does not restore `Json::encode()`, add docblock mapping syntax, or
-make full JSON Schema models supported. Boolean schema roots, unknown keyword
-retention, and exact preservation of omitted keywords remain separate concerns.
-For arbitrary JSON values, see [Free-form JSON values](#free-form-json-values).
+make full JSON Schema models supported. Boolean schema roots and exact
+preservation of omitted keywords remain separate concerns. For arbitrary JSON
+values, see [Free-form JSON values](#free-form-json-values). To keep members
+that no field declares, such as unknown keywords, see
+[Other members](#other-members).
 
 ## Discriminated unions
 
@@ -292,7 +296,8 @@ Maps preserve numeric-looking member names that remain PHP string keys, such
 as `"01"` and `"1e0"`. Maps with `string` keys reject names that PHP converts to
 integer keys, such as `"0"` and `"42"`; `ArrayObject<array-key, T>` maps accept
 them as integer keys. For concrete class targets, numeric-looking names are
-unknown fields and follow the same ignore policy as other unknown members.
+unknown fields and follow the same policy as other unknown members: they are
+ignored, or collected as [other members](#other-members).
 These rules also apply to root collections declared with `JsonType::array()`
 or `JsonType::map()`, whose maps have `string` keys.
 
@@ -353,6 +358,68 @@ that of a constructor parameter.
 `JsonValue` is unsupported as the root type and as a `JsonType` item. It has no
 `equals()` method, because `==` treats values such as `"1"` and `1` as equal.
 To compare two values, compare their `json_encode()` output.
+
+## Other members
+
+The decoder ignores members that no field declares, unless the class collects
+them. Mark one public property with `#[OtherMembers]` to collect them, for
+example to keep vendor extensions or the unknown keywords of a JSON Schema:
+
+```php
+use Eventjet\Json\Field;
+use Eventjet\Json\JsonValue;
+use Eventjet\Json\MappedJsonFields;
+use Eventjet\Json\OtherMembers;
+
+final readonly class Schema implements JsonSerializable
+{
+    use MappedJsonFields;
+
+    /** @param array<array-key, JsonValue> $others */
+    public function __construct(
+        #[Field('$id')]
+        public string|null $id = null,
+        public string|null $type = null,
+        #[OtherMembers]
+        public array $others = [],
+    ) {}
+}
+```
+
+Decoding `{"type":"string","x-label":"Name","id":"legacy"}` gives `$others`
+with the members `x-label` and `id`, each as a `JsonValue`.
+
+- A member is collected when its name matches no declared field's JSON name.
+  With `#[Field]`, only the JSON name counts, so a legacy `"id"` next to
+  `#[Field('$id')] $id` is collected, not bound to `$id`. The name of the
+  collecting property doesn't count either: a member named `"others"` is
+  collected too. Every unknown member is collected, not only `x-` members.
+- The property holds the members in document order, keyed by name. Names that
+  PHP turns into integer keys, such as `"42"`, become integer keys, and
+  `json_encode()` writes them back as `"42"`. If there are no unknown members,
+  the decoder passes an empty array, even to a property without a default value.
+- Declare the property as a public instance property, promoted or not, with the
+  native type `array` and the PHPDoc type `array<array-key, JsonValue>`.
+  `array<int|string, JsonValue>` and `array<JsonValue>` work too. `null`, other
+  key or value types, and a variadic constructor parameter are rejected.
+- A class can mark only one property, and that property can't also use
+  `#[Field]`. The class must implement `JsonSerializable`, because
+  `json_encode()` would write the property as one nested member.
+  `Json::decode()` and `Json::validateType()` return an `UnsupportedDeclaration`
+  error for each of these.
+- `MappedJsonFields` writes the collected members after the declared fields. A
+  round trip can therefore change the order of the members, but not the
+  document's meaning. A handwritten `jsonSerialize()` must write them next to
+  the declared fields as well.
+
+Decoded objects never hold a collected member that has the JSON name of a
+declared field. An object built by hand can, but then the round trip isn't
+guaranteed: decoding would bind the member to the declared field. Constructors
+don't check this. `MappedJsonFields` throws an `UnexpectedValueException` when
+it encodes such an object, also when it leaves out the declared field, for
+example a `JsonValue|null` property that is `null`.
+[ADR 0006](adr/0006-reject-repeated-names-when-encoding-other-members.md)
+records the measurements behind this check.
 
 ## Collection declarations
 

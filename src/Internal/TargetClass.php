@@ -27,22 +27,20 @@ use function is_a;
 final class TargetClass
 {
     /**
-     * The JSON names of the renamed properties of each class, and the names of its properties that declare any
-     * attribute. A field whose property declares none skips looking up its own attributes, which would cost a call per
-     * field on every first decode.
+     * The mapping of each class, as mapping() returns it. A field whose property declares no attribute skips looking up
+     * its own attributes, which would cost a call per field on every first decode.
      *
-     * @var array<class-string, array{array<string, string>, array<string, true>}>
+     * @var array<class-string, array{array<string, string>, array<string, true>, OtherMembersMapping|null}>
      */
     private static array $fields = [];
 
     /**
-     * Rejects a class whose objects JSON cannot restore, or returns the JSON names of its renamed properties, keyed by
-     * property name, and the names of its properties that declare any attribute. A class decoder applies these rules to
-     * every class, at the root or nested.
+     * Rejects a class whose objects JSON cannot restore, or returns its mapping, as mapping() returns it. A class decoder
+     * applies these rules to every class, at the root or nested.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array{array<string, string>, array<string, true>}
+     * @return array{array<string, string>, array<string, true>, OtherMembersMapping|null}
      * @throws DecodeError
      */
     public static function validate(ReflectionClass $class): array
@@ -117,16 +115,21 @@ final class TargetClass
      */
     public static function fieldNames(ReflectionClass $class): array
     {
-        return self::fields($class)[0];
+        return self::mapping($class)[0];
     }
 
     /**
+     * Returns what fieldNames() returns, the names of the properties that declare any attribute, and, if a property
+     * collects the members that no declared field claims, its name with the JSON names of the other public instance
+     * properties as keys.
+     *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array{array<string, string>, array<string, true>}
+     * @return array{array<string, string>, array<string, true>, OtherMembersMapping|null}
      * @throws DecodeError
+     * @phpstan-impure
      */
-    private static function fields(ReflectionClass $class): array
+    public static function mapping(ReflectionClass $class): array
     {
         return self::$fields[$class->getName()] ?? self::resolve($class);
     }
@@ -134,24 +137,22 @@ final class TargetClass
     /**
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array{array<string, string>, array<string, true>}
+     * @return array{array<string, string>, array<string, true>, OtherMembersMapping|null}
      * @throws DecodeError
      */
     private static function resolve(ReflectionClass $class): array
     {
         $className = $class->getName();
         $properties = $class->getProperties();
-        [$attributed, $annotated] = PropertyAttributes::of($class, $properties);
-        if ($annotated === []) {
+        [$attributed, $named, $collecting] = PropertyAttributes::of($class, $properties);
+        if ($named === [] && $collecting === []) {
             if ($class->implementsInterface(JsonSerializable::class)) {
                 NullableJsonValues::requireDecodable($class);
             }
-            return self::$fields[$className] = [[], $attributed];
+            return self::$fields[$className] = [[], $attributed, null];
         }
-        return self::$fields[$className] = [
-            FieldNameRules::resolve($class, $properties, $annotated),
-            $attributed,
-        ];
+        [$names, $others] = FieldNameRules::resolve($class, $properties, $named, $collecting);
+        return self::$fields[$className] = [$names, $attributed, $others];
     }
 
     /**
@@ -170,18 +171,17 @@ final class TargetClass
     }
 
     /**
-     * Rejects a class whose own declarations JSON cannot restore, or returns the JSON names of its renamed properties
-     * and the names of its properties that declare any attribute.
+     * Rejects a class whose own declarations JSON cannot restore, or returns its mapping, as mapping() returns it.
      *
      * @template T of object
      * @param ReflectionClass<T> $class
-     * @return array{array<string, string>, array<string, true>}
+     * @return array{array<string, string>, array<string, true>, OtherMembersMapping|null}
      * @throws DecodeError
      */
     private static function validateDeclarations(ReflectionClass $class): array
     {
         try {
-            $fields = self::fields($class);
+            $fields = self::mapping($class);
             $constructor = $class->getConstructor();
             if ($constructor !== null && !$constructor->isPublic()) {
                 throw UnsupportedTarget::inaccessibleConstructor($constructor);

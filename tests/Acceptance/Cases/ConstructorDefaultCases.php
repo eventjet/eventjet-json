@@ -35,6 +35,7 @@ final class ConstructorDefaultCases
         yield from FieldMappingCases::decoded();
         yield from NumericBoundaryRoundTripCases::decoded();
         yield from JsonValueCases::decoded();
+        yield from OtherMembersCases::decoded();
         yield 'omitted collection union uses constructor default' => ['{}', new CollectionUnionDefaults()];
         yield 'null collection union overrides constructor default' => [
             '{"value":null}',

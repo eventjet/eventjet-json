@@ -7,9 +7,11 @@ namespace Eventjet\Json\Internal;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\ConstructorFailure;
 use Eventjet\Json\Internal\Error\InvalidValue;
+use Eventjet\Json\JsonValue;
 use JsonException;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionProperty;
 use stdClass;
 use Throwable;
 
@@ -36,10 +38,12 @@ final readonly class ClassDecoder
     /**
      * @param class-string $class
      * @param list<ClassField> $fields The constructor parameters, then the public properties outside the constructor.
+     * @param OtherMembersField|null $others The field that collects the members that no other field claims, if any.
      */
     public function __construct(
         public string $class,
         public array $fields,
+        private OtherMembersField|null $others,
     ) {
         $this->complete = array_all($fields, static fn(ClassField $field): bool => array_all(
             $field->node->dependencies(),
@@ -57,8 +61,9 @@ final readonly class ClassDecoder
      */
     public static function compile(ReflectionClass $class): self
     {
-        [$names, $attributed] = TargetClass::validate($class);
-        return new self($class->getName(), ClassField::compile($class, $names, $attributed));
+        [$names, $attributed, $others] = TargetClass::validate($class);
+        [$fields, $collector] = ClassField::compile($class, $names, $attributed, $others);
+        return new self($class->getName(), $fields, $collector);
     }
 
     /**
@@ -101,6 +106,14 @@ final readonly class ClassDecoder
             }
             $assignments[] = [$field->property, $value];
         }
+        if ($this->others !== null) {
+            [$arguments, $assignments] = self::withOthers(
+                $this->others,
+                $this->others->collect($values, $path),
+                $arguments,
+                $assignments,
+            );
+        }
         try {
             /**
              * @mago-expect analysis:unknown-class-instantiation The constructor target is intentionally dynamic.
@@ -120,6 +133,28 @@ final readonly class ClassDecoder
             }
         }
         return $created;
+    }
+
+    /**
+     * Adds the collected other members to the arguments or the assignments, like a declared field.
+     *
+     * @param array<array-key, JsonValue> $collected
+     * @param array<string, mixed> $arguments
+     * @param list<array{ReflectionProperty, array<array-key, mixed>|bool|float|int|object|string|null}> $assignments
+     * @return array{array<string, mixed>, list<array{ReflectionProperty, array<array-key, mixed>|bool|float|int|object|string|null}>}
+     */
+    private static function withOthers(
+        OtherMembersField $others,
+        array $collected,
+        array $arguments,
+        array $assignments,
+    ): array {
+        if ($others->property === null) {
+            $arguments[$others->name] = $collected;
+            return [$arguments, $assignments];
+        }
+        $assignments[] = [$others->property, $collected];
+        return [$arguments, $assignments];
     }
 
     /**
