@@ -329,6 +329,7 @@ final class AcceptanceTest extends TestCase
         static::assertTrue($decoded instanceof DecodeError);
         static::assertSame($message, $decoded->getMessage());
         static::assertSame($kind, $decoded->kind);
+        static::assertSame(0, $decoded->getCode());
         if ($previous !== null) {
             static::assertSame($previous, $decoded->getPrevious());
         }
