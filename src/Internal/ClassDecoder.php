@@ -69,7 +69,8 @@ final readonly class ClassDecoder
     /**
      * Decodes the members of a JSON object field by field, stopping at the first error, then creates the object: it
      * calls the constructor and assigns the public properties outside it. Returns the error, naming the class, instead of
-     * throwing it, because each throw makes rejected documents measurably slower.
+     * throwing it, because each throw makes rejected documents measurably slower. It never throws a DecodeError, because
+     * ClassDecoders reports every exception from it as an unreadable class. Mago's check of the throws tag enforces this.
      *
      * @return object|DecodeError
      * @throws JsonException
