@@ -57,6 +57,14 @@ final class JsonSchemaCases
             ]),
             Draft6::class,
         ];
+        yield 'chain of custom meta-schemas that the loader decodes into other classes' => [
+            '{"$schema":"https://example.com/a"}',
+            self::objectLoader([
+                'https://example.com/a' => new Draft7(schema: 'https://example.com/b'),
+                'https://example.com/b' => new Draft4(schema: 'https://json-schema.org/draft/2020-12/schema'),
+            ]),
+            Draft202012::class,
+        ];
         yield 'true' => ['true', null, true];
         yield 'false' => ['false', null, false];
     }
@@ -108,5 +116,31 @@ final class JsonSchemaCases
             'The meta-schema https://example.com/a is its own meta-schema through a loop of $schema.',
             DecodeErrorKind::InvalidValue,
         ];
+        yield 'loop of meta-schemas that the loader does not decode with JsonSchema' => [
+            '{"$schema":"https://example.com/a"}',
+            self::objectLoader([
+                'https://example.com/a' => new Draft7(schema: 'https://example.com/b'),
+                'https://example.com/b' => new Draft7(schema: 'https://example.com/a#'),
+            ]),
+            'The meta-schema https://example.com/a# is its own meta-schema through a loop of $schema.',
+            DecodeErrorKind::InvalidValue,
+        ];
+        yield 'error in a chain of meta-schemas' => [
+            '{"$schema":"https://example.com/a"}',
+            self::objectLoader(['https://example.com/a' => new Draft7(schema: 'https://example.com/b')]),
+            'The loader found no meta-schema for the $schema https://example.com/b.',
+            DecodeErrorKind::InvalidValue,
+        ];
+    }
+
+    /**
+     * A loader that returns the given schema objects as they are.
+     *
+     * @param array<string, Draft4|Draft6|Draft7|Draft201909|Draft202012> $documents
+     * @return Closure(string): (Draft4|Draft6|Draft7|Draft201909|Draft202012|null)
+     */
+    private static function objectLoader(array $documents): Closure
+    {
+        return static fn(string $uri): Draft4|Draft6|Draft7|Draft201909|Draft202012|null => $documents[$uri] ?? null;
     }
 }

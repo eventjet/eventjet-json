@@ -41,9 +41,10 @@ final class JsonSchema
      *     `$schema`.
      * @param (Closure(string): (Draft4|Draft6|Draft7|Draft201909|Draft202012|bool|DecodeError|null))|null $loader
      *     Returns the custom meta-schema with the given URI, for a `$schema` that isn't official, or null if there
-     *     is none. The draft of the meta-schema it returns is the draft of the document. To follow the meta-schema's
-     *     own `$schema`, the loader can decode it with this method. While the loader runs, this class remembers the
-     *     URI, so a chain of `$schema` that leads back to it returns an error instead of never ending.
+     *     is none. This method follows the meta-schema's own `$schema` through the loader until it reaches an
+     *     official meta-schema, whose draft is the draft of the document. A meta-schema without `$schema` gives its
+     *     own class. While a chain is followed, this class remembers its URIs, so a chain that leads back to one of
+     *     them returns an error instead of never ending, even if the loader decodes with this method.
      */
     public static function decode(
         string $json,
@@ -101,10 +102,21 @@ final class JsonSchema
         }
         self::$resolving[$key] = true;
         try {
-            $document = $loader($metaSchema);
+            return self::classOfLoaded($metaSchema, $loader($metaSchema), $loader);
         } finally {
             unset(self::$resolving[$key]);
         }
+    }
+
+    /**
+     * @param (Closure(string): (Draft4|Draft6|Draft7|Draft201909|Draft202012|bool|DecodeError|null)) $loader
+     * @return class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012>|DecodeError
+     */
+    private static function classOfLoaded(
+        string $metaSchema,
+        Draft4|Draft6|Draft7|Draft201909|Draft202012|bool|DecodeError|null $document,
+        Closure $loader,
+    ): string|DecodeError {
         if ($document instanceof DecodeError) {
             return $document;
         }
@@ -114,6 +126,6 @@ final class JsonSchema
                 $metaSchema,
             ));
         }
-        return $document::class;
+        return $document->schema === null ? $document::class : self::classOf($document->schema, $loader);
     }
 }

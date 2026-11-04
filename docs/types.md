@@ -467,9 +467,10 @@ $schema = JsonSchema::decode($json, Draft202012::class, loader: $loader);
 - `$schema` with and without an empty fragment (`#`) are the same URI.
 - `true` and `false` return Booleans.
 - A `$schema` that isn't official is passed to the loader, which returns the
-  decoded custom meta-schema. Its class is the class of the document. A loader
-  that decodes with `JsonSchema::decode()` follows a chain of custom
-  meta-schemas until it reaches an official one.
+  decoded custom meta-schema. `JsonSchema::decode()` follows the meta-schema's
+  own `$schema` through the loader until it reaches an official one, whose
+  class is the class of the document. A meta-schema without `$schema` gives
+  its own class.
 - An unknown `$schema` without a loader, a loader that finds nothing, and a
   loop of meta-schemas return an `InvalidValue` error.
 
