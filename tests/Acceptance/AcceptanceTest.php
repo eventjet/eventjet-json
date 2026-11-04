@@ -97,6 +97,7 @@ use Eventjet\Json\Test\Acceptance\Cases\SchemaCases;
 use Eventjet\Json\Test\Acceptance\Cases\SupportedDocumentRoundTripCases;
 use Eventjet\Json\Test\Acceptance\Cases\TypeValidationCases;
 use Eventjet\Json\Test\Acceptance\Cases\UnknownFieldCases;
+use Eventjet\Json\Test\Acceptance\Cases\UnknownKeywordCases;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
@@ -288,6 +289,7 @@ final class AcceptanceTest extends TestCase
         yield from JsonFormattingRoundTripCases::objects();
         yield from EmptyShapeRoundTripCases::objects();
         yield from SchemaCases::documents();
+        yield from UnknownKeywordCases::documents();
     }
 
     /** @throws JsonException */

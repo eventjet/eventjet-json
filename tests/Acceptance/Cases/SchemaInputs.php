@@ -108,7 +108,7 @@ final class SchemaInputs
 
     /**
      * @param class-string $draft
-     * @return object|bool|int|float|string|list<mixed>
+     * @return object|bool|int|float|string|array<array-key, mixed>
      * @throws InvalidArgumentException
      * @throws ReflectionException
      * @throws RuntimeException
@@ -130,7 +130,7 @@ final class SchemaInputs
             'self' => self::subschema($random, $draft, $depth),
             'bool|self' => self::booleanOrSubschema($random, $draft, $depth),
             'array|bool|self', 'array|self' => self::subschemaOrItems($random, $draft, $name, $depth),
-            'array' => SchemaValues::items($random, $draft, $name, $depth),
+            'array' => SchemaValues::arrayValue($random, $draft, $name, $depth),
             ArrayObject::class => new ArrayObject(SchemaValues::members($random, $draft, $name, $depth)),
             default => throw new RuntimeException(sprintf('No values for keyword %s of %s.', $name, $draft)),
         };

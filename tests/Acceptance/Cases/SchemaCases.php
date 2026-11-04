@@ -199,18 +199,6 @@ final class SchemaCases
                 $empty,
             ];
         }
-        yield 'draft 4 ignores unknown keywords such as $id' => [
-            '{"$id":"https://example.com","x-internal":true,"title":"a"}',
-            new Draft4(title: 'a'),
-        ];
-        yield 'draft 6 ignores id, which draft 4 used' => [
-            '{"id":"https://example.com","$id":"https://example.org"}',
-            new Draft6(id: 'https://example.org'),
-        ];
-        yield 'draft 2020-12 ignores keywords that it replaced' => [
-            '{"definitions":{},"dependencies":{},"$recursiveRef":"#","additionalItems":false}',
-            new Draft202012(),
-        ];
     }
 
     /**

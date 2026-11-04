@@ -28,6 +28,9 @@ final class SchemaValues
     /** Member names, including ones that PHP turns into integer array keys. */
     private const array NAMES = ['a', '', '0', '200', '-1', '01', '$ref', 'ä'];
 
+    /** Names that no draft has a keyword for, including ones that PHP turns into integer array keys. */
+    private const array UNKNOWN_KEYWORDS = ['x-label', '', '0', '-1', 'ä', '$id2', 'unknownKeywords'];
+
     /** Numbers that json_encode() writes in a form that json_decode() reads back with the same PHP type. */
     private const array NUMBERS = [0, 1, -1, 42, PHP_INT_MAX, PHP_INT_MIN, 0.5, -2.5, 1e-7, 1.5e300];
 
@@ -48,6 +51,38 @@ final class SchemaValues
             $random->getInt(PHP_INT_MIN, PHP_INT_MAX),
             (float) $random->getInt(-1_000_000, 1_000_000) + 0.25,
         ]);
+    }
+
+    /**
+     * The value of a keyword with the native type `array`: the unknown keywords, or the items of a list.
+     *
+     * @param class-string $draft
+     * @return array<array-key, mixed>
+     * @throws InvalidArgumentException
+     * @throws ReflectionException
+     * @throws RuntimeException
+     */
+    public static function arrayValue(Randomizer $random, string $draft, string $keyword, int $depth): array
+    {
+        return $keyword === 'unknownKeywords'
+            ? self::unknownKeywords($random)
+            : self::items($random, $draft, $keyword, $depth);
+    }
+
+    /**
+     * @return array<array-key, JsonValue>
+     * @throws InvalidArgumentException
+     */
+    private static function unknownKeywords(Randomizer $random): array
+    {
+        $keywords = [];
+        for ($count = $random->getInt(0, 3); $count > 0; $count--) {
+            $keywords[JsonValueInputs::pick($random, self::UNKNOWN_KEYWORDS)] = new JsonValue(JsonValueInputs::value(
+                $random,
+                0,
+            ));
+        }
+        return $keywords;
     }
 
     /** @return Type|list<Type> */

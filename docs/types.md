@@ -436,7 +436,7 @@ class.
   mapped with `#[Field]`. The PHP property leaves out the `$`, as in
   `$schema->ref`. In Draft 4, the identifier keyword is `id`, without `$`.
 - **Encoding:** `jsonSerialize()` writes the keywords that aren't `null`,
-  under their JSON names.
+  under their JSON names, followed by the unknown keywords.
 
 The classes parse schemas; they don't validate them. A JSON `null` decodes like
 an absent keyword, so `{"type": null}` decodes, and `json_encode()` writes it
@@ -444,11 +444,19 @@ back without `type`. Constraints such as non-negative lengths aren't checked.
 The classes don't validate instances against a schema or resolve `$ref`.
 
 Unknown keywords, such as `x-*` extensions or keywords of another draft, are
-ignored like any other unknown member. `json_encode()` doesn't write them back.
-This includes keywords that a draft replaced: `Draft201909` has `definitions`
-but not `dependencies`, and `Draft202012` has neither, nor `$recursiveRef` and
-`$recursiveAnchor`. Use `$defs`, `dependentSchemas`, `dependentRequired`,
-`$dynamicRef`, and `$dynamicAnchor` instead.
+collected in `$unknownKeywords` with [`#[OtherMembers]`](#other-members), each
+as a `JsonValue`, and `json_encode()` writes them back after the keywords of
+the draft. So a schema keeps everything it has through a round trip, apart from
+the order of its members. Keywords that a draft replaced count as unknown:
+`Draft201909` has `definitions` but not `dependencies`, and `Draft202012` has
+neither, nor `$recursiveRef` and `$recursiveAnchor`. Their values are
+`JsonValue` objects, not schema objects.
+
+A schema built in PHP can hold an unknown keyword with the name of a keyword
+of its draft, such as `new Draft202012(unknownKeywords: ['$ref' => $value])`.
+Decoding its JSON would bind that member to the keyword, so `json_encode()`
+throws an `UnexpectedValueException` for it, like `MappedJsonFields` does,
+whether the schema has that keyword or not.
 
 A schema that is just `true` or `false` returns an `UnexpectedRootValue`
 error, because the classes describe JSON objects. To accept Boolean schemas at

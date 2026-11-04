@@ -363,6 +363,9 @@ Each keyword is a property, and `null` means the schema doesn't have it, so
 you can read keywords with `??` and `?->`. The classes parse schemas; they
 don't validate them, validate instances against them, or resolve `$ref`.
 
+Keywords that the draft doesn't define, such as `x-*` extensions, are kept in
+`$schema->unknownKeywords`, so `json_encode()` writes the whole document back.
+
 A schema that is just `true` or `false` returns an `UnexpectedRootValue`
 error. Check for it first if your input can be one:
 

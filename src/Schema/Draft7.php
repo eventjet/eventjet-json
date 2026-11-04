@@ -7,10 +7,14 @@ namespace Eventjet\Json\Schema;
 use ArrayObject;
 use Eventjet\Json\Field;
 use Eventjet\Json\JsonValue;
+use Eventjet\Json\OtherMembers;
 use JsonSerializable;
 use Override;
+use UnexpectedValueException;
 
 use function array_filter;
+use function array_key_exists;
+use function sprintf;
 
 /**
  * A JSON Schema of draft 7. Each property holds one keyword, and `null` means that the schema doesn't have it.
@@ -32,6 +36,7 @@ final readonly class Draft7 implements JsonSerializable
      * @param ArrayObject<array-key, self|bool>|null $patternProperties
      * @param ArrayObject<array-key, self|bool|list<string>>|null $dependencies
      * @param ArrayObject<array-key, self|bool>|null $definitions
+     * @param array<array-key, JsonValue> $unknownKeywords
      * @mago-expect lint:excessive-parameter-list Each keyword of the draft is one parameter.
      */
     public function __construct(
@@ -85,62 +90,88 @@ final readonly class Draft7 implements JsonSerializable
         public string|null $contentEncoding = null,
         public string|null $contentMediaType = null,
         public ArrayObject|null $definitions = null,
+        #[OtherMembers]
+        public array $unknownKeywords = [],
     ) {}
 
-    /** Returns the keywords that the schema has, under their JSON names. */
+    /**
+     * Returns the keywords that the schema has, under their JSON names, followed by its unknown keywords.
+     *
+     * @throws UnexpectedValueException If an unknown keyword has the name of a keyword of the draft, because decoding
+     *     would bind it to that keyword.
+     */
     #[Override]
     public function jsonSerialize(): object
     {
-        return (object) array_filter(
-            [
-                '$schema' => $this->schema,
-                '$id' => $this->id,
-                '$ref' => $this->ref,
-                '$comment' => $this->comment,
-                'title' => $this->title,
-                'description' => $this->description,
-                'default' => $this->default,
-                'readOnly' => $this->readOnly,
-                'writeOnly' => $this->writeOnly,
-                'examples' => $this->examples,
-                'type' => $this->type,
-                'enum' => $this->enum,
-                'const' => $this->const,
-                'multipleOf' => $this->multipleOf,
-                'maximum' => $this->maximum,
-                'exclusiveMaximum' => $this->exclusiveMaximum,
-                'minimum' => $this->minimum,
-                'exclusiveMinimum' => $this->exclusiveMinimum,
-                'maxLength' => $this->maxLength,
-                'minLength' => $this->minLength,
-                'pattern' => $this->pattern,
-                'maxItems' => $this->maxItems,
-                'minItems' => $this->minItems,
-                'uniqueItems' => $this->uniqueItems,
-                'maxProperties' => $this->maxProperties,
-                'minProperties' => $this->minProperties,
-                'required' => $this->required,
-                'allOf' => $this->allOf,
-                'anyOf' => $this->anyOf,
-                'oneOf' => $this->oneOf,
-                'not' => $this->not,
-                'if' => $this->if,
-                'then' => $this->then,
-                'else' => $this->else,
-                'items' => $this->items,
-                'additionalItems' => $this->additionalItems,
-                'contains' => $this->contains,
-                'properties' => $this->properties,
-                'patternProperties' => $this->patternProperties,
-                'additionalProperties' => $this->additionalProperties,
-                'dependencies' => $this->dependencies,
-                'propertyNames' => $this->propertyNames,
-                'format' => $this->format,
-                'contentEncoding' => $this->contentEncoding,
-                'contentMediaType' => $this->contentMediaType,
-                'definitions' => $this->definitions,
-            ],
-            static fn(mixed $value): bool => $value !== null,
+        $keywords = $this->keywords();
+        foreach ($this->unknownKeywords as $name => $_) {
+            if (array_key_exists($name, $keywords)) {
+                throw new UnexpectedValueException(sprintf(
+                    'Cannot encode %s, because its unknown keywords include "%s", which is a keyword of the draft.',
+                    self::class,
+                    $name,
+                ));
+            }
+        }
+        return (object) (
+            array_filter($keywords, static fn(mixed $value): bool => $value !== null) + $this->unknownKeywords
         );
+    }
+
+    /**
+     * Every keyword of the draft under its JSON name, including those that are `null`.
+     *
+     * @return array<string, mixed>
+     */
+    private function keywords(): array
+    {
+        return [
+            '$schema' => $this->schema,
+            '$id' => $this->id,
+            '$ref' => $this->ref,
+            '$comment' => $this->comment,
+            'title' => $this->title,
+            'description' => $this->description,
+            'default' => $this->default,
+            'readOnly' => $this->readOnly,
+            'writeOnly' => $this->writeOnly,
+            'examples' => $this->examples,
+            'type' => $this->type,
+            'enum' => $this->enum,
+            'const' => $this->const,
+            'multipleOf' => $this->multipleOf,
+            'maximum' => $this->maximum,
+            'exclusiveMaximum' => $this->exclusiveMaximum,
+            'minimum' => $this->minimum,
+            'exclusiveMinimum' => $this->exclusiveMinimum,
+            'maxLength' => $this->maxLength,
+            'minLength' => $this->minLength,
+            'pattern' => $this->pattern,
+            'maxItems' => $this->maxItems,
+            'minItems' => $this->minItems,
+            'uniqueItems' => $this->uniqueItems,
+            'maxProperties' => $this->maxProperties,
+            'minProperties' => $this->minProperties,
+            'required' => $this->required,
+            'allOf' => $this->allOf,
+            'anyOf' => $this->anyOf,
+            'oneOf' => $this->oneOf,
+            'not' => $this->not,
+            'if' => $this->if,
+            'then' => $this->then,
+            'else' => $this->else,
+            'items' => $this->items,
+            'additionalItems' => $this->additionalItems,
+            'contains' => $this->contains,
+            'properties' => $this->properties,
+            'patternProperties' => $this->patternProperties,
+            'additionalProperties' => $this->additionalProperties,
+            'dependencies' => $this->dependencies,
+            'propertyNames' => $this->propertyNames,
+            'format' => $this->format,
+            'contentEncoding' => $this->contentEncoding,
+            'contentMediaType' => $this->contentMediaType,
+            'definitions' => $this->definitions,
+        ];
     }
 }
