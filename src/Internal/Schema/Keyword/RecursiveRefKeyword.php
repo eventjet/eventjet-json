@@ -32,7 +32,7 @@ final readonly class RecursiveRefKeyword implements Keyword
     ): bool {
         $target = $this->target;
         foreach ($run->scope as $resource) {
-            if (!($resource->recursiveAnchor && $resource->rootNode !== null)) {
+            if ($resource->rootNode === null) {
                 continue;
             }
 

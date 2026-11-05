@@ -52,7 +52,7 @@ final class ReferenceKeywords
     private static function recursiveRef(Compiler $compiler, SchemaObject $schema, string $reference): Keyword
     {
         [$target] = $compiler->resolve($reference, $schema->location);
-        if ($target->resource->recursiveAnchor && $target->resource->rootNode === $target) {
+        if ($target->resource->rootNode === $target) {
             return new RecursiveRefKeyword($target);
         }
         return new RefKeyword('$recursiveRef', $target);
