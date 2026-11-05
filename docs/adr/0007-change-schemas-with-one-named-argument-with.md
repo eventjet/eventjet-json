@@ -42,7 +42,8 @@ property without `public(set)` even outside `clone with`.
 ## Consequences
 
 - A new keyword needs a parameter in both the constructor and `with()`. The unit tests compare `with()` with the
-  constructor for every keyword, so a missing parameter fails them.
+  constructor for every keyword, so a missing parameter fails them. They also compare the parameters' names, native
+  types, and PHPDoc types, because static analysis accepts a `with()` type that is narrower than the constructor's.
 - `with()` has as many parameters as the constructor, so it carries the same Mago suppression for the parameter list.
   In `Draft201909` and `Draft202012`, it also exceeds Mago's Halstead volume limit.
 - The copy shares nested schemas and `ArrayObject` maps with the original. `readonly` doesn't stop changes to a map in
