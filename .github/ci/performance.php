@@ -23,9 +23,14 @@ function git(string ...$arguments): string
 function exportRevision(string $ref, string $destination): void
 {
     // git archive honors export-ignore, which would omit benchmark fixtures.
-    $names = explode("\0", git('ls-tree', '-rz', '--name-only', $ref, '--', 'src', 'benchmarks', 'tests'));
-    foreach ($names as $name) {
-        if ($name === '') {
+    $entries = explode("\0", git('ls-tree', '-rz', $ref, '--', 'src', 'resources', 'benchmarks', 'tests'));
+    foreach ($entries as $entry) {
+        if ($entry === '') {
+            continue;
+        }
+        [$object, $name] = explode("\t", $entry, 2);
+        // Submodules, such as the JSON Schema Test Suite, are commits that no benchmark reads.
+        if (explode(' ', $object)[1] !== 'blob') {
             continue;
         }
         $path = $destination . '/' . $name;
@@ -120,6 +125,10 @@ function prepareWorkspace(
     copy('composer.json', $workspace . '/composer.json');
     $settings = configureWorkloads($workloads, $workspace, $opcache);
     BenchmarkCommand::run(['cp', '-a', $source . '/src', $workspace . '/src']);
+    // The source reads the meta-schemas from here; revisions before the validator have none.
+    if (is_dir($source . '/resources')) {
+        BenchmarkCommand::run(['cp', '-a', $source . '/resources', $workspace . '/resources']);
+    }
     foreach (['benchmarks', 'tests'] as $name) {
         BenchmarkCommand::run(['cp', '-a', $workloadFiles . '/' . $name, $workspace . '/' . $name]);
     }
