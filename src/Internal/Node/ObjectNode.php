@@ -12,8 +12,6 @@ use JsonException;
 use Override;
 use stdClass;
 
-use function sprintf;
-
 /** @internal */
 final readonly class ObjectNode implements Node
 {
@@ -24,16 +22,16 @@ final readonly class ObjectNode implements Node
     ) {}
 
     #[Override]
-    public function decode(mixed $value, string $path): object|null
+    public function decode(mixed $value): object|null
     {
         if ($value === null && $this->nullable) {
             return null;
         }
         if (!$value instanceof stdClass) {
             $expected = $this->nullable ? FieldTypeNameResolver::withNull($this->target) : $this->target;
-            throw InvalidValue::typeMismatch($path, $expected, $value);
+            throw InvalidValue::typeMismatch($expected, $value);
         }
-        return ClassDecoders::hydrate($this->target, $value, $path);
+        return ClassDecoders::hydrate($this->target, $value);
     }
 
     /**
@@ -44,15 +42,18 @@ final readonly class ObjectNode implements Node
      * @throws DecodeError
      * @throws JsonException
      */
-    public function decodeEach(array $values, string $path): array
+    public function decodeEach(array $values): array
     {
         $decoded = [];
         /** @var mixed $value */
         foreach ($values as $index => $value) {
-            $itemPath = sprintf('%s[%d]', $path, $index);
-            $decoded[] = $value instanceof stdClass
-                ? ClassDecoders::hydrate($this->target, $value, $itemPath)
-                : $this->decode($value, $itemPath);
+            try {
+                $decoded[] = $value instanceof stdClass
+                    ? ClassDecoders::hydrate($this->target, $value)
+                    : $this->decode($value);
+            } catch (DecodeError $error) {
+                throw $error->inItem($index);
+            }
         }
         return $decoded;
     }

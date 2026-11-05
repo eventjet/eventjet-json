@@ -34,6 +34,12 @@ final class Document
         };
     }
 
+    /** Returns the path of a member of the object at the given path, as decode errors show it. */
+    public static function memberPath(string $path, string $member): string
+    {
+        return $path === '' ? $member : $path . '.' . $member;
+    }
+
     /**
      * Records an object that a discriminated union holds.
      *

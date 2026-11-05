@@ -69,7 +69,7 @@ final readonly class LiteralNode implements Node
     }
 
     #[Override]
-    public function decode(mixed $value, string $path): mixed
+    public function decode(mixed $value): mixed
     {
         foreach ($this->values as [, $json, $literal]) {
             if ($json === $value) {
@@ -77,8 +77,8 @@ final readonly class LiteralNode implements Node
             }
         }
         return $this->fallback === null
-            ? throw InvalidValue::typeMismatch($path, $this->type, $value)
-            : $this->fallback->decode($value, $path);
+            ? throw InvalidValue::typeMismatch($this->type, $value)
+            : $this->fallback->decode($value);
     }
 
     #[Override]
