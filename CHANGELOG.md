@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0](https://github.com/eventjet/eventjet-json/compare/v1.2.0...v1.3.0) (2026-11-05)
+
+
+### Features
+
+* Add with() to the JSON Schema classes ([#127](https://github.com/eventjet/eventjet-json/issues/127)) ([4b2ec64](https://github.com/eventjet/eventjet-json/commit/4b2ec64c18bacd9d17c0c31895a9378206b942b0))
+
+
+### Performance Improvements
+
+* Build decode error paths only when decoding fails ([#123](https://github.com/eventjet/eventjet-json/issues/123)) ([f869819](https://github.com/eventjet/eventjet-json/commit/f8698191f52e1d0a341e93923ac58005bb21efa0))
+
 ## [1.2.0](https://github.com/eventjet/eventjet-json/compare/v1.1.0...v1.2.0) (2026-11-04)
 
 
