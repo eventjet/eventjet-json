@@ -528,7 +528,7 @@ to guess:
 
 - a reference or `$schema` that it can't resolve, or a `$schema` that names a
   different draft than the class, at the root or in an embedded resource
-  (from Draft 2019-09 on)
+- a regex that isn't valid ECMA-262, or that PCRE can't run
 - a regex that isn't valid ECMA-262
 - a keyword value that the spec forbids, such as a negative `minLength` or a
   `multipleOf` of 0 or less. From Draft 6 on, whole floats such as `2.0` are

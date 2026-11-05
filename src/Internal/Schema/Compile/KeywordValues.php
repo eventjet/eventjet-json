@@ -14,6 +14,9 @@ use function is_array;
 use function is_float;
 use function is_int;
 use function is_string;
+use function preg_match;
+use function restore_error_handler;
+use function set_error_handler;
 use function sprintf;
 
 /**
@@ -73,6 +76,16 @@ final class KeywordValues
         $pcre = EcmaRegex::toPcre($pattern);
         if ($pcre === null) {
             throw new SchemaError(sprintf('The regex at %s is not valid ECMA-262: %s', $location, $pattern));
+        }
+        set_error_handler(static fn(): bool => true);
+        $runs = preg_match($pcre, subject: '') !== false;
+        restore_error_handler();
+        if (!$runs) {
+            throw new SchemaError(sprintf(
+                'The regex at %s is valid ECMA-262, but PCRE cannot run it: %s',
+                $location,
+                $pattern,
+            ));
         }
         return $pcre;
     }

@@ -1,0 +1,10 @@
+[
+    {
+        "description": "Assigned matches every assigned code point",
+        "schema": {"pattern": "^[\\p{Assigned}]$"},
+        "tests": [
+            {"description": "an assigned code point matches", "data": "a", "valid": true},
+            {"description": "an unassigned code point does not match", "data": "͸", "valid": false}
+        ]
+    }
+]

@@ -135,6 +135,18 @@ final class ValidatorErrorCases
             'The regex at #/pattern is not valid ECMA-262: (?i)a',
             null,
         ];
+        yield 'lookbehind of unbounded length' => [
+            new Draft202012(pattern: '(?<=a+)b'),
+            null,
+            'The regex at #/pattern is valid ECMA-262, but PCRE cannot run it: (?<=a+)b',
+            null,
+        ];
+        yield 'Unicode property that PCRE does not know' => [
+            new Draft202012(pattern: '\\p{CWKCF}'),
+            null,
+            'The regex at #/pattern is valid ECMA-262, but PCRE cannot run it: \\p{CWKCF}',
+            null,
+        ];
         /** @var ArrayObject<array-key, Draft202012|bool> $patternProperties */
         $patternProperties = new ArrayObject(['[z-a]' => true]);
         yield 'invalid regex in patternProperties' => [
