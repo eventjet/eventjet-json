@@ -23,21 +23,15 @@ use function get_object_vars;
 use function sprintf;
 
 /**
- * The `with()` method of a schema, its arguments, and the schema that the constructor builds from the keywords that the changed
- * schema should have. Generated cases leave out each keyword, pass `Keep::Current` for it, or pass the keyword of
- * another generated schema, which removes the keyword if it is `null`.
+ * The `with()` method of a schema, its arguments, and the schema that the constructor builds from the keywords that the
+ * changed schema should have. Generated cases leave out each keyword, pass `Keep::Current` for it, or pass the keyword
+ * of another generated schema, which removes the keyword if it is `null`.
  *
  * @internal
  */
 final class WithCases
 {
     private const int GENERATED = 10;
-
-    private const int LEAVE_OUT = 0;
-
-    private const int KEEP = 1;
-
-    private const int REPLACE = 2;
 
     /**
      * @api Called by PHPUnit through DataProviderExternal.
@@ -71,10 +65,13 @@ final class WithCases
                 $schema = SchemaInputs::schema($random, $draft);
                 $other = get_object_vars(SchemaInputs::schema($random, $draft));
                 $choices = self::choices($random, $other);
-                $kept = array_filter($choices, static fn(int $choice): bool => $choice === self::KEEP);
+                $kept = array_filter(
+                    $choices,
+                    static fn(KeywordChoice $choice): bool => $choice === KeywordChoice::Keep,
+                );
                 $replaced = array_intersect_key($other, array_filter(
                     $choices,
-                    static fn(int $choice): bool => $choice === self::REPLACE,
+                    static fn(KeywordChoice $choice): bool => $choice === KeywordChoice::Replace,
                 ));
                 yield sprintf('generated %s changed, seed %d', $draft, $seed) => [
                     $schema->with(...),
@@ -95,16 +92,14 @@ final class WithCases
     }
 
     /**
-     * Picks for each keyword whether to leave it out, keep it, or replace it.
-     *
      * @param array<array-key, mixed> $keywords
-     * @return array<array-key, int>
+     * @return array<array-key, KeywordChoice>
      */
     private static function choices(Randomizer $random, array $keywords): array
     {
         $choices = [];
         foreach (array_keys($keywords) as $keyword) {
-            $choices[$keyword] = $random->getInt(self::LEAVE_OUT, self::REPLACE);
+            $choices[$keyword] = KeywordChoice::random($random);
         }
         return $choices;
     }

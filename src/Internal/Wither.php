@@ -10,8 +10,6 @@ use Eventjet\Json\Schema\Keep;
 final class Wither
 {
     /**
-     * Returns the new value, or the current one if the new value is `Keep::Current`.
-     *
      * @template T
      * @param T|Keep $new
      * @param T $current
