@@ -72,11 +72,12 @@ final class SchemaIndex
         $location = new Location($resource->uri, $resource, '');
         $id = self::id($root, $resource->draft);
         if ($id !== null) {
-            $resolved = Uri::resolve($location->base, $id);
-            if (!str_starts_with($id, '#')) {
-                $location = new Location(Uri::withoutFragment($resolved), $resource, '');
-            }
-            $this->anchors->addId($resolved, $root, $location);
+            $fragment = Uri::split($id)[1];
+            $this->anchors->addId(
+                $fragment === null ? $resource->uri : $resource->uri . '#' . $fragment,
+                $root,
+                $location,
+            );
         }
         $this->record($root, $location);
     }

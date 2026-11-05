@@ -183,6 +183,7 @@ final class OfficialTestSuiteTest extends TestCase
      * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
      */
     #[DataProviderExternal(OfficialSuiteCases::class, 'cases')]
+    #[DataProviderExternal(OfficialSuiteCases::class, 'regressions')]
     public function testValidatorAgreesWithTheOfficialTestSuite(
         string $schemaJson,
         string $class,

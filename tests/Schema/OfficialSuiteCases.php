@@ -16,6 +16,7 @@ use RuntimeException;
 use SplFileInfo;
 
 use function file_get_contents;
+use function is_dir;
 use function is_file;
 use function json_decode;
 use function json_encode;
@@ -40,6 +41,9 @@ final class OfficialSuiteCases
 {
     public const string SUITE = __DIR__ . '/../JsonSchemaTestSuite';
 
+    /** Cases in the format of the suite for bugs that the suite doesn't catch. */
+    private const string REGRESSIONS = __DIR__ . '/Regressions';
+
     private const array DRAFTS = [
         'draft4' => Draft4::class,
         'draft6' => Draft6::class,
@@ -58,9 +62,35 @@ final class OfficialSuiteCases
      */
     public static function cases(): iterable
     {
+        $present = is_file(self::SUITE . '/README.md');
+        if (!$present) {
+            throw new RuntimeException('The JSON Schema Test Suite is missing. Run "git submodule update --init".');
+        }
+        yield from self::directoryCases(self::SUITE . '/tests', prefix: '');
+    }
+
+    /**
+     * @api Called by PHPUnit through DataProviderExternal.
+     * @return iterable<string, array{string, class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012>, mixed, bool, bool}>
+     *     The same as {@see self::cases()}.
+     * @throws JsonException
+     * @throws RuntimeException
+     */
+    public static function regressions(): iterable
+    {
+        yield from self::directoryCases(self::REGRESSIONS, prefix: 'regressions/');
+    }
+
+    /**
+     * @return iterable<string, array{string, class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012>, mixed, bool, bool}>
+     * @throws JsonException
+     * @throws RuntimeException
+     */
+    private static function directoryCases(string $root, string $prefix): iterable
+    {
         foreach (self::DRAFTS as $draft => $class) {
-            foreach (self::files($draft) as $file) {
-                yield from self::fileCases($file, $class);
+            foreach (self::files($root, $draft) as $file) {
+                yield from self::fileCases($root, $file, $class, $prefix);
             }
         }
     }
@@ -71,10 +101,10 @@ final class OfficialSuiteCases
      * @throws JsonException
      * @throws RuntimeException
      */
-    private static function fileCases(string $file, string $class): iterable
+    private static function fileCases(string $root, string $file, string $class, string $prefix): iterable
     {
         /** @var list<object{description: string, schema: mixed, tests: list<object{description: string, data: mixed, valid: bool}>}> $groups */
-        $groups = json_decode(self::read(self::SUITE . '/tests/' . $file), flags: JSON_THROW_ON_ERROR);
+        $groups = json_decode(self::read($root . '/' . $file), flags: JSON_THROW_ON_ERROR);
         $assertFormats = str_contains($file, '/optional/format/');
         foreach ($groups as $group) {
             $schema = json_encode(
@@ -82,7 +112,7 @@ final class OfficialSuiteCases
                 JSON_PRESERVE_ZERO_FRACTION | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR,
             );
             foreach ($group->tests as $test) {
-                $name = sprintf('%s: %s: %s', $file, $group->description, $test->description);
+                $name = sprintf('%s%s: %s: %s', $prefix, $file, $group->description, $test->description);
                 yield $name => [$schema, $class, $test->data, $test->valid, $assertFormats];
             }
         }
@@ -92,12 +122,12 @@ final class OfficialSuiteCases
      * @return list<string>
      * @throws RuntimeException
      */
-    private static function files(string $draft): array
+    private static function files(string $root, string $draft): array
     {
-        $directory = self::SUITE . '/tests/' . $draft;
-        $present = is_file(self::SUITE . '/README.md');
-        if (!$present) {
-            throw new RuntimeException('The JSON Schema Test Suite is missing. Run "git submodule update --init".');
+        $directory = $root . '/' . $draft;
+        $exists = is_dir($directory);
+        if (!$exists) {
+            return [];
         }
         $files = [];
         /** @var SplFileInfo $file */
@@ -106,7 +136,7 @@ final class OfficialSuiteCases
             if (!$isJson) {
                 continue;
             }
-            $files[] = substr($file->getPathname(), strlen(self::SUITE . '/tests/'));
+            $files[] = substr($file->getPathname(), strlen($root . '/'));
         }
         sort($files);
         return $files;
