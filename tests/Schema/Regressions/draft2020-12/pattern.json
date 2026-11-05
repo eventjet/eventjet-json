@@ -6,5 +6,36 @@
             {"description": "an assigned code point matches", "data": "a", "valid": true},
             {"description": "an unassigned code point does not match", "data": "͸", "valid": false}
         ]
+    },
+    {
+        "description": "a back reference before its group matches the empty string",
+        "schema": {"pattern": "^\\1(a)$"},
+        "tests": [
+            {"description": "the group alone matches", "data": "a", "valid": true},
+            {"description": "a repeated group does not match", "data": "aa", "valid": false}
+        ]
+    },
+    {
+        "description": "a named back reference before its group matches the empty string",
+        "schema": {"pattern": "^\\k<a>(?<a>x)$"},
+        "tests": [
+            {"description": "the group alone matches", "data": "x", "valid": true}
+        ]
+    },
+    {
+        "description": "a back reference to a group in another alternative matches the empty string",
+        "schema": {"pattern": "^(?:(a)|\\1b)$"},
+        "tests": [
+            {"description": "the other alternative matches", "data": "b", "valid": true},
+            {"description": "the group matches", "data": "a", "valid": true}
+        ]
+    },
+    {
+        "description": "a back reference to a group that has matched",
+        "schema": {"pattern": "^(a)\\1$"},
+        "tests": [
+            {"description": "the repeated group matches", "data": "aa", "valid": true},
+            {"description": "the group alone does not match", "data": "a", "valid": false}
+        ]
     }
 ]

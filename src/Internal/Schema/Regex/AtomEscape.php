@@ -29,7 +29,7 @@ final readonly class AtomEscape
         if ($char !== '0' && str_contains(Cursor::DECIMAL, $char)) {
             $number = (int) $this->cursor->span(Cursor::DECIMAL);
             $this->groups->reference($number);
-            return '(?:\g{' . $number . '})';
+            return '(?(' . $number . ')\g{' . $number . '})';
         }
         if ($char === 'k') {
             return $this->namedReference();
@@ -53,6 +53,6 @@ final readonly class AtomEscape
             return null;
         }
         $this->groups->referenceNamed($name);
-        return '\k<' . $name . '>';
+        return '(?(<' . $name . '>)\k<' . $name . '>)';
     }
 }
