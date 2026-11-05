@@ -23,7 +23,7 @@ testing passing as support grows. These are ongoing development requirements.
 
 ### PHPDoc parity
 
-The decoder reads doc comments like phpstan/phpdoc-parser 2.4.0 as PHPStan
+The decoder reads doc comments like phpstan/phpdoc-parser 2.4.1 as PHPStan
 2.3.1 sets it up (see [Reading PHPDoc](docs/types.md#reading-phpdoc)). The
 `parity` test suite checks this against the real phpdoc-parser, which is a
 development dependency pinned to that version. It also checks that the fast path
