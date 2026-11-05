@@ -54,10 +54,12 @@ use Eventjet\Json\Internal\UnionConflicts;
 use Eventjet\Json\Test\Acceptance\Fixtures\IntBackedStatus;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
 use Eventjet\Json\Test\Acceptance\Fixtures\StringBackedStatus;
+use Eventjet\Json\Test\Unit\Fixtures\CountingNode;
 use Eventjet\Json\Test\Unit\Fixtures\JsonObject;
 use Eventjet\Json\Test\Unit\Fixtures\ThrownDecodeError;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -77,7 +79,7 @@ use function class_exists;
  * @phpstan-import-type Claims from Node
  */
 #[UsesClass(FieldPath::class)]
-#[UsesClass(DecodeError::class)]
+#[CoversClass(DecodeError::class)]
 #[UsesClass(DecodeErrors::class)]
 #[UsesClass(FieldTypeNameResolver::class)]
 #[CoversClass(TargetClass::class)]
@@ -174,11 +176,11 @@ final class ConstructorHydrationPlanTest extends TestCase
             new ScalarNode('bool', false),
             new NullOnlyNode('null'),
         ]));
-        static::assertSame(StringBackedStatus::Ready, $union->decode(StringBackedStatus::Ready->value, 'value'));
-        static::assertSame(StringBackedStatus::Pending, $union->decode(StringBackedStatus::Pending->value, 'value'));
-        static::assertSame(IntBackedStatus::Ready, $union->decode(IntBackedStatus::Ready->value, 'value'));
-        static::assertTrue($union->decode(true, 'value'));
-        static::assertNull($union->decode(null, 'value'));
+        static::assertSame(StringBackedStatus::Ready, $union->decode(StringBackedStatus::Ready->value));
+        static::assertSame(StringBackedStatus::Pending, $union->decode(StringBackedStatus::Pending->value));
+        static::assertSame(IntBackedStatus::Ready, $union->decode(IntBackedStatus::Ready->value));
+        static::assertTrue($union->decode(true));
+        static::assertNull($union->decode(null));
         foreach ([
             (string) IntBackedStatus::Ready->value,
             (float) IntBackedStatus::Ready->value,
@@ -188,7 +190,7 @@ final class ConstructorHydrationPlanTest extends TestCase
             static::assertSame(
                 DecodeErrorKind::InvalidValue,
                 ThrownDecodeError::of(
-                    /** @throws DecodeError|JsonException */ static fn(): mixed => $union->decode($value, 'value'),
+                    /** @throws DecodeError|JsonException */ static fn(): mixed => $union->decode($value),
                 )->kind,
             );
         }
@@ -197,18 +199,73 @@ final class ConstructorHydrationPlanTest extends TestCase
             new ScalarNode('int', false),
             new ScalarNode('float', false),
         ]));
-        static::assertSame(1, $numbers->decode(1, 'value'));
-        static::assertSame(1.5, $numbers->decode(1.5, 'value'));
+        static::assertSame(1, $numbers->decode(1));
+        static::assertSame(1.5, $numbers->decode(1.5));
         $floats = UnionNode::of('float|string', self::claimed([
             new ScalarNode('float', false),
             new ScalarNode('string', false),
         ]));
-        static::assertSame(1.0, $floats->decode(1, 'value'));
+        static::assertSame(1.0, $floats->decode(1));
     }
 
     /**
-     * A value that already has its field's scalar type skips the field's node, so no error path is built for it.
-     * FieldPath, which builds error paths, stays unloaded until a value needs its node.
+     * @return iterable<string, array{'bool'|'float'|'int'|'string', bool, bool|float|int|string|null, bool|float|int|string|null}>
+     */
+    public static function scalarFieldValues(): iterable
+    {
+        yield 'bool' => ['bool', false, true, 1];
+        yield 'float' => ['float', false, 1.5, 1];
+        yield 'int' => ['int', false, 1, 1.5];
+        yield 'string' => ['string', false, 'value', 1];
+        yield 'nullable' => ['int', true, null, 'value'];
+        yield 'null without nullable' => ['int', false, 1, null];
+    }
+
+    /**
+     * A value that already has its field's scalar type skips the field's node, because a node call per field slows
+     * down hydration measurably.
+     *
+     * @param 'bool'|'float'|'int'|'string' $scalar
+     * @throws DecodeError
+     * @throws JsonException
+     * @throws ReflectionException
+     */
+    #[DataProvider('scalarFieldValues')]
+    public function testValuesOfTheDeclaredScalarTypeSkipTheirNodes(
+        string $scalar,
+        bool $nullable,
+        bool|float|int|string|null $skipped,
+        bool|float|int|string|null $decoded,
+    ): void {
+        $target = new class {
+            public function __construct(
+                public mixed $value = null,
+            ) {}
+        };
+        $node = new CountingNode();
+        $field = new ReflectionClass(ClassField::class)->newInstanceWithoutConstructor();
+        foreach ([
+            'json' => 'value',
+            'name' => 'value',
+            'node' => $node,
+            'property' => null,
+            'required' => false,
+            'scalar' => $scalar,
+            'nullable' => $nullable,
+        ] as $property => $value) {
+            new ReflectionProperty(ClassField::class, $property)->setValue($field, $value);
+        }
+        $decoder = new ClassDecoder($target::class, [$field], null);
+
+        $decoder->decode(JsonObject::of(['value' => $skipped]));
+        $skippedCalls = $node->calls;
+        $decoder->decode(JsonObject::of(['value' => $decoded]));
+        static::assertSame([0, 1], [$skippedCalls, $node->calls]);
+    }
+
+    /**
+     * Errors build their paths while they leave the nodes, so FieldPath, which renders map keys and list indexes in
+     * paths, stays unloaded while values are valid, whether a value has its field's scalar type or needs its node.
      *
      * @throws Exception
      * @throws JsonException
@@ -217,7 +274,7 @@ final class ConstructorHydrationPlanTest extends TestCase
      */
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
-    public function testValuesOfTheDeclaredScalarTypeSkipTheirNodes(): void
+    public function testValidValuesBuildNoErrorPaths(): void
     {
         $target = new class {
             public function __construct(
@@ -232,14 +289,14 @@ final class ConstructorHydrationPlanTest extends TestCase
         $values = ['boolean' => true, 'float' => 1.5, 'integer' => 1, 'string' => 'value', 'nullable' => null];
         static::assertEquals(
             $class->newInstanceArgs($values),
-            ClassDecoders::hydrate($class->getName(), JsonObject::of($values), 'nested'),
+            ClassDecoders::hydrate($class->getName(), JsonObject::of($values)),
         );
         static::assertFalse(class_exists(FieldPath::class, autoload: false));
         static::assertEquals(
             $class->newInstanceArgs(['float' => 2.0]),
-            ClassDecoders::hydrate($class->getName(), JsonObject::of(['float' => 2]), 'nested'),
+            ClassDecoders::hydrate($class->getName(), JsonObject::of(['float' => 2])),
         );
-        static::assertTrue(class_exists(FieldPath::class, autoload: false));
+        static::assertFalse(class_exists(FieldPath::class, autoload: false));
     }
 
     /**
@@ -269,12 +326,11 @@ final class ConstructorHydrationPlanTest extends TestCase
         $target->value = 1;
         static::assertEquals($target, ClassDecoders::hydrate($class, new stdClass()));
         $input->value = null;
-        static::assertEquals(
-            InvalidValue::typeMismatch('nested.value', 'int', null)->whileCreating($class),
-            ThrownDecodeError::of(
-                /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $input, 'nested'),
-            ),
+        $error = ThrownDecodeError::of(
+            /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $input),
         );
+        static::assertEquals(InvalidValue::typeMismatch('int', null)->inMember('value')->whileCreating($class), $error);
+        static::assertSame(0, $error->getCode());
         static::assertSame($decoder, self::cached($class));
     }
 
@@ -304,9 +360,9 @@ final class ConstructorHydrationPlanTest extends TestCase
         static::assertEquals($target, ClassDecoders::hydrate($class, $input));
         $input->label = false;
         static::assertEquals(
-            InvalidValue::typeMismatch('nested.label', 'string', false)->whileCreating($class),
+            InvalidValue::typeMismatch('string', false)->inMember('label')->whileCreating($class),
             ThrownDecodeError::of(
-                /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $input, 'nested'),
+                /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $input),
             ),
         );
         static::assertSame($decoder, self::cached($class));
@@ -343,9 +399,9 @@ final class ConstructorHydrationPlanTest extends TestCase
         static::assertEquals($target, ClassDecoders::hydrate($class, new stdClass()));
         $input->value = [];
         $error = ThrownDecodeError::of(
-            /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $input, 'nested'),
+            /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $input),
         );
-        static::assertStringContainsString('Field nested.value must be of type', $error->getMessage());
+        static::assertStringContainsString('Field value must be of type', $error->getMessage());
         static::assertSame($decoder, self::cached($class));
     }
 
@@ -367,9 +423,9 @@ final class ConstructorHydrationPlanTest extends TestCase
             static::assertNotNull(self::cached($class));
             static::assertEquals(new MappedDefaults(), ClassDecoders::hydrate($class, new stdClass()));
             static::assertEquals(
-                InvalidValue::typeMismatch('nested.$ref', 'string|null', 42)->whileCreating($class),
+                InvalidValue::typeMismatch('string|null', 42)->inMember('$ref')->whileCreating($class),
                 ThrownDecodeError::of(
-                    /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $invalid, 'nested'),
+                    /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class, $invalid),
                 ),
             );
         }

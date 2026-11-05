@@ -11,4 +11,5 @@ thrown, so this made cold decodes 1.5–4.7% faster than returning errors throug
 
 `ClassDecoders::hydrate()` throws the error of a nested object, but `ClassDecoders::decodeRoot()` returns the error of
 the root object instead of throwing it once more. Each extra throw costs about 35 ns, which made an unknown enum value
-in a tiny document 6.5% slower.
+in a tiny document 6.5% slower. For the same reason, `ClassDecoder::decode()` returns the errors of its fields, and
+`hydrate()` throws them once ([ADR 0006](0006-build-error-paths-while-errors-leave-nodes.md)).

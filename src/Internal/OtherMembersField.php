@@ -97,13 +97,13 @@ final readonly class OtherMembersField
     }
 
     /**
-     * Returns the members whose names are not declared, each as a JsonValue.
+     * Returns the members whose names are not declared, each as a JsonValue, or the error of the first member that is
+     * not a valid JSON value.
      *
      * @param array<array-key, mixed> $values The members of the JSON object.
-     * @return array<array-key, JsonValue>
-     * @throws DecodeError
+     * @return array<array-key, JsonValue>|DecodeError
      */
-    public function collect(array $values, string $path): array
+    public function collect(array $values): array|DecodeError
     {
         $collected = [];
         /** @var mixed $value */
@@ -111,7 +111,7 @@ final readonly class OtherMembersField
             try {
                 $collected[$key] = new JsonValue($value);
             } catch (InvalidArgumentException $error) {
-                throw InvalidValue::jsonValue(FieldPath::field($path, (string) $key), $error);
+                return InvalidValue::jsonValue($error)->inMember((string) $key);
             }
         }
         return $collected;

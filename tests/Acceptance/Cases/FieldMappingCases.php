@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\ManualMappedReference;
+use Eventjet\Json\Test\Acceptance\Fixtures\MappedBracketHolder;
+use Eventjet\Json\Test\Acceptance\Fixtures\MappedBracketReference;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDefaults;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDocument;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedOrdinaryConstructor;
@@ -31,6 +33,9 @@ final class FieldMappingCases
         yield 'empty mapped list and scalar union' => [new MappedDocument('urn:example', [], 'literal')];
         yield 'mapped collection with nullable union' => [new MappedDocument('urn:example', [], null)];
         yield 'empty numeric and swapped mappings' => [new MappedSpecialNames('zero', 'empty', 'A', 'B')];
+        yield 'member name that looks like a list index' => [new MappedBracketHolder(
+            new MappedBracketReference('ref'),
+        )];
         yield 'uninitialized mapped public property' => [new MappedProperties()];
         $properties = new MappedProperties();
         $properties->anchor = 'node';

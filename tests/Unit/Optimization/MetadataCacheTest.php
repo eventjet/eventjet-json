@@ -234,7 +234,7 @@ final class MetadataCacheTest extends TestCase
             'yes' => true,
         ])));
         static::assertEquals(
-            InvalidValue::typeMismatch('no', 'false', true)->whileCreating($booleans::class),
+            InvalidValue::typeMismatch('false', true)->inMember('no')->whileCreating($booleans::class),
             ThrownDecodeError::of(
                 /** @throws DecodeError|JsonException */ static fn(): object => ClassDecoders::hydrate($booleans::class, JsonObject::of([
                     'no' => true,
@@ -243,7 +243,7 @@ final class MetadataCacheTest extends TestCase
             ),
         );
         static::assertEquals(
-            InvalidValue::typeMismatch('yes', 'true', false)->whileCreating($booleans::class),
+            InvalidValue::typeMismatch('true', false)->inMember('yes')->whileCreating($booleans::class),
             ThrownDecodeError::of(
                 /** @throws DecodeError|JsonException */ static fn(): object => ClassDecoders::hydrate($booleans::class, JsonObject::of([
                     'no' => false,
@@ -266,7 +266,7 @@ final class MetadataCacheTest extends TestCase
         };
         static::assertEquals($numeric, ClassDecoders::hydrate($numeric::class, JsonObject::of(['1' => 1])));
         static::assertEquals(
-            InvalidValue::typeMismatch('1', 'int', 'wrong')->whileCreating($numeric::class),
+            InvalidValue::typeMismatch('int', 'wrong')->inMember('1')->whileCreating($numeric::class),
             ThrownDecodeError::of(
                 /** @throws DecodeError|JsonException */ static fn(): object => ClassDecoders::hydrate($numeric::class, JsonObject::of([
                     '1' => 'wrong',
@@ -354,15 +354,12 @@ final class MetadataCacheTest extends TestCase
                     static::assertSame(
                         DecodeErrorKind::InvalidValue,
                         ThrownDecodeError::of(
-                            /** @throws DecodeError|JsonException */ static fn(): mixed => $node->decode(
-                                $value,
-                                'value',
-                            ),
+                            /** @throws DecodeError|JsonException */ static fn(): mixed => $node->decode($value),
                         )->kind,
                     );
                     continue;
                 }
-                static::assertSame($expected, $node->decode($value, 'value'));
+                static::assertSame($expected, $node->decode($value));
             }
         }
     }
@@ -493,16 +490,13 @@ final class MetadataCacheTest extends TestCase
         static::assertSame(
             DecodeErrorKind::InvalidValue,
             ThrownDecodeError::of(
-                /** @throws DecodeError|JsonException */ static fn(): mixed => $node->decode(
-                    StringBackedStatus::Ready->value,
-                    'value',
-                ),
+                /** @throws DecodeError|JsonException */ static fn(): mixed => $node->decode(StringBackedStatus::Ready->value),
             )->kind,
         );
         static::assertTrue(class_alias(StringBackedStatus::class, $enumDependency));
         $node = self::compileValue($enumClass)[0];
         static::assertNotInstanceOf(DecodeError::class, $node);
-        static::assertSame(StringBackedStatus::Ready, $node->decode(StringBackedStatus::Ready->value, 'value'));
+        static::assertSame(StringBackedStatus::Ready, $node->decode(StringBackedStatus::Ready->value));
     }
 
     /**

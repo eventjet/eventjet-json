@@ -130,7 +130,7 @@ final class RootDescriptor
             return InvalidInput::rootValue($value, $shape);
         }
         try {
-            return $this->node()->decode($value, '');
+            return $this->node()->decode($value);
         } catch (DecodeError $error) {
             return $error->whileCreating($this->itemClass);
         } catch (Throwable $error) {
