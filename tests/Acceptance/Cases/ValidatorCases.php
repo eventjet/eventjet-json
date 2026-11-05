@@ -26,6 +26,7 @@ use function sprintf;
 
 use const JSON_PRESERVE_ZERO_FRACTION;
 use const JSON_THROW_ON_ERROR;
+use const PHP_INT_MIN;
 
 /**
  * Generated values and schemas for the laws of the JSON Schema validator, and the error values that it returns.
@@ -74,6 +75,8 @@ final class ValidatorCases
             yield sprintf('two generated values, seed %d', $seed) => [$value, self::value($seed + 1000)];
         }
         yield 'an integer and the equal float' => [1, 1.0];
+        yield 'the smallest integer and the equal float' => [PHP_INT_MIN, (float) PHP_INT_MIN];
+        yield 'the smallest integer and the opposite float' => [PHP_INT_MIN, -(float) PHP_INT_MIN];
         yield 'zero and negative zero' => [0, -0.0];
         yield 'false and zero' => [false, 0];
         yield 'null and an empty string' => [null, ''];

@@ -42,7 +42,7 @@ final class JsonKey
      */
     public static function fitsInt(float $value): bool
     {
-        return $value > -self::INT_LIMIT && $value < self::INT_LIMIT;
+        return $value >= -self::INT_LIMIT && $value < self::INT_LIMIT;
     }
 
     public static function of(mixed $value): string
