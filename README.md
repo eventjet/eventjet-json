@@ -363,6 +363,13 @@ Each keyword is a property, and `null` means the schema doesn't have it, so
 you can read keywords with `??` and `?->`. The classes parse schemas; they
 don't validate them, validate instances against them, or resolve `$ref`.
 
+The classes are readonly. To change a schema, call `with()` with the keywords
+to change as named arguments. It returns a copy, and `null` removes a keyword:
+
+```php
+$person = $schema->with(title: 'Person', description: null);
+```
+
 Keywords that the draft doesn't define, such as `x-*` extensions, are kept in
 `$schema->unknownKeywords`, so `json_encode()` writes the whole document back.
 
