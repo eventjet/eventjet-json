@@ -25,7 +25,8 @@ final class Dates
         $year = (int) substr($value, offset: 0, length: 4);
         $month = (int) substr($value, offset: 5, length: 2);
         $day = (int) substr($value, offset: 8, length: 2);
-        return checkdate($month, $day, $year);
+        // checkdate() rejects the year 0, which RFC 3339 allows. Leap years repeat every 400 years.
+        return checkdate($month, $day, $year + 400);
     }
 
     public static function time(string $value): bool
