@@ -63,16 +63,16 @@ final class JsonKey
             return 'd' . var_export($value, return: true);
         }
         if (is_string($value)) {
-            return 's' . strlen($value) . ':' . $value;
+            return 's' . $value;
         }
         if (is_array($value)) {
             $key = 'a[';
             /** @var mixed $item */
             foreach ($value as $item) {
                 $itemKey = self::of($item);
-                $key .= strlen($itemKey) . ':' . $itemKey;
+                $key .= strlen($itemKey) . $itemKey;
             }
-            return $key . ']';
+            return $key;
         }
         $members = [];
         if ($value instanceof stdClass) {
@@ -84,8 +84,8 @@ final class JsonKey
         ksort($members, SORT_STRING);
         $key = 'o{';
         foreach ($members as $name => $memberKey) {
-            $key .= strlen((string) $name) . ':' . $name . strlen($memberKey) . ':' . $memberKey;
+            $key .= strlen((string) $name) . ':' . $name . strlen($memberKey) . $memberKey;
         }
-        return $key . '}';
+        return $key;
     }
 }

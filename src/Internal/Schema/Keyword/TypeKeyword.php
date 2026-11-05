@@ -22,7 +22,7 @@ use function sprintf;
 /** @internal */
 final readonly class TypeKeyword implements Keyword
 {
-    /** @param list<string> $types */
+    /** @param list<'array'|'boolean'|'integer'|'null'|'number'|'object'|'string'> $types */
     public function __construct(
         private array $types,
         private bool $floatsAreIntegersOnlyIfLarge,
@@ -50,7 +50,10 @@ final readonly class TypeKeyword implements Keyword
         );
     }
 
-    /** @mutation-free */
+    /**
+     * @param 'array'|'boolean'|'integer'|'null'|'number'|'object'|'string' $type
+     * @mutation-free
+     */
     private function matches(string $type, mixed $value): bool
     {
         return match ($type) {
@@ -61,7 +64,6 @@ final readonly class TypeKeyword implements Keyword
             'integer' => is_int($value) || $this->isIntegralFloat($value),
             'boolean' => is_bool($value),
             'null' => $value === null,
-            default => false,
         };
     }
 

@@ -37,7 +37,7 @@ final class IdnaContext
     {
         return (
             !str_contains($label, "\u{00B7}")
-            || preg_match('/^(?:[^\x{00B7}]|(?<=l)\x{00B7}(?=l))*$/uD', $label) === 1
+            || preg_match('/^(?:[^\x{00B7}]|(?<=l)\x{00B7}(?=l))*$/u', $label) === 1
         );
     }
 

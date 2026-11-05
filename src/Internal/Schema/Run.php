@@ -48,7 +48,7 @@ final class Run
     /** Drops the failures found since the given count, for subschemas whose failure doesn't fail their parent. */
     public function rollBack(int $count): void
     {
-        if ($this->collect && count($this->failures) > $count) {
+        if (count($this->failures) > $count) {
             $this->failures = array_slice($this->failures, offset: 0, length: $count);
         }
     }
@@ -64,7 +64,7 @@ final class Run
 
     public function mark(): int
     {
-        return $this->collect ? count($this->failures) : 0;
+        return count($this->failures);
     }
 
     /** @param array<array-key, string|int> $tokens */

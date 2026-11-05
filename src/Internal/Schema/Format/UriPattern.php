@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Schema\Format;
 
-use function preg_quote;
-
 /**
  * Builds the PCRE patterns for URIs of RFC 3986 and IRIs of RFC 3987.
  *
@@ -38,7 +36,7 @@ final readonly class UriPattern
         private string $ucschar,
         private string $private,
     ) {
-        $this->pchar = $this->unreserved(preg_quote(self::SUB_DELIMS, delimiter: '~') . ':@');
+        $this->pchar = $this->unreserved(self::SUB_DELIMS . ':@');
     }
 
     /** @return non-empty-string */
@@ -61,17 +59,15 @@ final readonly class UriPattern
 
     private function relativePart(): string
     {
-        $sub = preg_quote(self::SUB_DELIMS, delimiter: '~');
-        $first = $this->unreserved($sub . '@') . '+';
+        $first = $this->unreserved(self::SUB_DELIMS . '@') . '+';
         return '(?:' . $this->authorityAndPath() . '|' . $first . '(?:\/' . $this->pchar . '*)*)?';
     }
 
     /** The `//` authority path-abempty and the path-absolute alternatives. */
     private function authorityAndPath(): string
     {
-        $sub = preg_quote(self::SUB_DELIMS, delimiter: '~');
-        $userinfo = $this->unreserved($sub . ':') . '*';
-        $regName = $this->unreserved($sub) . '*';
+        $userinfo = $this->unreserved(self::SUB_DELIMS . ':') . '*';
+        $regName = $this->unreserved(self::SUB_DELIMS) . '*';
         $authority = '(?:' . $userinfo . '@)?(?:\[(?<ip>[^\]]*)\]|' . $regName . ')(?::\d*)?';
         $pathAbempty = '(?:\/' . $this->pchar . '*)*';
         $pathAbsolute = '\/(?:' . $this->pchar . '+(?:\/' . $this->pchar . '*)*)?';

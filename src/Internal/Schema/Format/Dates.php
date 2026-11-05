@@ -7,7 +7,6 @@ namespace Eventjet\Json\Internal\Schema\Format;
 use function checkdate;
 use function preg_match;
 use function strcspn;
-use function strlen;
 use function substr;
 
 /**
@@ -48,16 +47,13 @@ final class Dates
         if ($second !== 60) {
             return true;
         }
-        $utc = (((($hour * 60) + $minute - $offset) % 1440) + 1440) % 1440;
+        $utc = (($hour * 60) + $minute - $offset + 1440) % 1440;
         return $utc === ((23 * 60) + 59);
     }
 
     public static function dateTime(string $value): bool
     {
         $separator = strcspn($value, characters: 'Tt');
-        if ($separator === 0 || $separator >= (strlen($value) - 1)) {
-            return false;
-        }
         return (
             self::date(substr($value, offset: 0, length: $separator))
             && self::time(substr($value, offset: $separator + 1))

@@ -71,7 +71,7 @@ final class ValidationKeywords
             $dependencies = [];
             /** @var mixed $names */
             foreach ((array) $dependentRequired as $member => $names) {
-                $dependencies[(string) $member] = KeywordValues::strings($names, $location);
+                $dependencies[$member] = KeywordValues::strings($names, $location);
             }
             $keywords[] = new DependenciesKeyword('dependentRequired', $dependencies, $location);
         }

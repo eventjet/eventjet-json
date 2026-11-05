@@ -7,6 +7,7 @@ namespace Eventjet\Json\Internal\Schema\Format;
 use function explode;
 use function preg_match;
 use function str_contains;
+use function str_ends_with;
 use function strrpos;
 use function substr;
 use function substr_count;
@@ -39,14 +40,11 @@ final class IpAddresses
             }
             $groups = substr($value, offset: 0, length: $colon + 1);
             $ipv4Groups = 2;
-            if (!str_contains(substr($groups, -2), '::')) {
+            if (!str_ends_with($groups, '::')) {
                 $groups = substr($groups, offset: 0, length: -1);
             }
         }
         $compressions = substr_count($groups, needle: '::');
-        if ($compressions > 1 || str_contains($groups, ':::')) {
-            return false;
-        }
         $count = $ipv4Groups;
         foreach ($compressions === 1 ? explode('::', $groups) : [$groups] as $part) {
             if ($part === '') {

@@ -31,11 +31,9 @@ final class Quantifier
 
     private static function braces(Cursor $cursor): string|null
     {
-        $start = $cursor->pos;
         $cursor->pos++;
         $min = $cursor->span(Cursor::DECIMAL);
         if ($min === '') {
-            $cursor->pos = $start;
             return null;
         }
         $max = $min;
@@ -47,6 +45,6 @@ final class Quantifier
             return null;
         }
         $cursor->pos++;
-        return $max === $min ? '{' . $min . '}' : '{' . $min . ',' . $max . '}';
+        return '{' . $min . ',' . $max . '}';
     }
 }

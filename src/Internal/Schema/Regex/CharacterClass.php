@@ -28,9 +28,6 @@ final readonly class CharacterClass
         $items = '';
         while (true) {
             $char = $this->cursor->peek();
-            if ($char === null) {
-                return null;
-            }
             if ($char === ']') {
                 break;
             }
@@ -56,7 +53,7 @@ final readonly class CharacterClass
         }
         $next = $this->cursor->peek(offset: 1);
         $range = match ($next) {
-            null, ']' => false,
+            ']' => false,
             default => $this->cursor->peek() === '-',
         };
         if (!$range) {

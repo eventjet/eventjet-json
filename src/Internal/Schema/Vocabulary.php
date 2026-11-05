@@ -22,10 +22,10 @@ use function substr;
 final readonly class Vocabulary
 {
     public function __construct(
+        public bool $formatAssertion,
         public bool $applicator = true,
         public bool $unevaluated = true,
         public bool $validation = true,
-        public bool $formatAssertion = false,
     ) {}
 
     public static function all(bool $formatAssertion): self

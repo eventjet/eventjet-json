@@ -50,7 +50,7 @@ final class AnyTypeKeywords
     }
 
     /**
-     * @return list<string>
+     * @return list<'array'|'boolean'|'integer'|'null'|'number'|'object'|'string'>
      * @throws SchemaError
      */
     private static function types(SchemaObject $schema): array

@@ -42,7 +42,7 @@ final class Uris
 
     public static function jsonPointer(string $value): bool
     {
-        return preg_match('@^(?:/(?:[^/~]|~[01])*)*$@uD', $value) === 1;
+        return preg_match('@^(?:/(?:[^/~]|~[01])*)*$@D', $value) === 1;
     }
 
     public static function relativeJsonPointer(string $value): bool

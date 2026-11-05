@@ -38,7 +38,7 @@ final readonly class OneOfKeyword implements Keyword
                 continue;
             }
             $matches++;
-            if ($matches > 1 && $annotations === null && !$run->collect) {
+            if ($matches > 1 && !$run->collect) {
                 break;
             }
         }
