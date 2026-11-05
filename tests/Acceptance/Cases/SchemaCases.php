@@ -239,7 +239,7 @@ final class SchemaCases
     }
 
     /** @return list<Draft4|Draft6|Draft7|Draft201909|Draft202012> */
-    private static function empty(): array
+    public static function empty(): array
     {
         return [new Draft4(), new Draft6(), new Draft7(), new Draft201909(), new Draft202012()];
     }
