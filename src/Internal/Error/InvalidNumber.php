@@ -17,12 +17,15 @@ use function var_export;
  */
 final class InvalidNumber
 {
-    public static function nonFinite(string $path, float $value): DecodeError
+    public static function nonFinite(float $value): DecodeError
     {
-        return new DecodeError(DecodeErrorKind::InvalidValue, sprintf(
-            'Field %s must be a finite float. The JSON number is outside the PHP float range and decodes as %s, which json_encode() cannot write.',
-            $path,
-            var_export($value, return: true),
-        ));
+        return new DecodeError(
+            DecodeErrorKind::InvalidValue,
+            sprintf(
+                'must be a finite float. The JSON number is outside the PHP float range and decodes as %s, which json_encode() cannot write.',
+                var_export($value, return: true),
+            ),
+            true,
+        );
     }
 }

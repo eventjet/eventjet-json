@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Node;
 
-use Closure;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\InvalidNumber;
 use Eventjet\Json\Internal\Error\InvalidValue;
@@ -38,7 +37,7 @@ final readonly class ScalarNode implements Node
      * @throws DecodeError
      */
     #[Override]
-    public function decode(mixed $value, string $path): array|bool|float|int|object|string|null
+    public function decode(mixed $value): array|bool|float|int|object|string|null
     {
         $matches = $value === null
             ? $this->nullable
@@ -49,7 +48,7 @@ final readonly class ScalarNode implements Node
                 default => is_string($value),
             };
         if (!$matches) {
-            throw InvalidValue::typeMismatch($path, $this->expected, $value);
+            throw InvalidValue::typeMismatch($this->expected, $value);
         }
         if ($this->name === 'float') {
             if (is_int($value)) {
@@ -57,7 +56,7 @@ final readonly class ScalarNode implements Node
             }
             // A float is finite exactly when subtracting it from itself gives 0.0, which is cheaper than is_finite().
             if (is_float($value) && ($value - $value) !== 0.0) {
-                throw InvalidNumber::nonFinite($path, $value);
+                throw InvalidNumber::nonFinite($value);
             }
         }
         /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
@@ -65,23 +64,22 @@ final readonly class ScalarNode implements Node
     }
 
     /**
-     * Decodes collection items of type bool, int, string, or float without building a path for each valid item.
+     * Decodes collection items of type bool, int, string, or float without a node call for each item.
      *
      * @template TKey of array-key
      * @param array<TKey, mixed> $values
-     * @param Closure(TKey): string $path
      * @return array<TKey, mixed>
      * @throws DecodeError
      * @throws JsonException
      */
-    public function decodeEach(array $values, Closure $path): array
+    public function decodeEach(array $values): array
     {
         if ($this->name === 'float') {
-            return $this->floats($values, $path);
+            return $this->floats($values);
         }
         $invalid = ScalarItems::firstInvalid($values, $this->name);
         if ($invalid !== null) {
-            throw InvalidValue::typeMismatch($path($invalid), $this->name, $values[$invalid] ?? null);
+            throw InvalidValue::typeMismatch($this->name, $values[$invalid] ?? null)->inItem($invalid);
         }
         return $values;
     }
@@ -91,27 +89,26 @@ final readonly class ScalarNode implements Node
      *
      * @template TKey of array-key
      * @param array<TKey, mixed> $values
-     * @param Closure(TKey): string $path
      * @return array<TKey, mixed>
      * @throws DecodeError
+     * @throws JsonException
      */
-    private function floats(array $values, Closure $path): array
+    private function floats(array $values): array
     {
         /** @var mixed $value */
         foreach ($values as $key => $value) {
             if (is_float($value)) {
                 // A float is finite exactly when subtracting it from itself gives 0.0, which is cheaper than
-                // is_finite(). Rejecting here instead of in decode() keeps the check observable to tests.
+                // is_finite().
                 if (($value - $value) !== 0.0) {
-                    throw InvalidNumber::nonFinite($path($key), $value);
+                    throw InvalidNumber::nonFinite($value)->inItem($key);
                 }
                 continue;
             }
-            if (is_int($value)) {
-                $values[$key] = (float) $value;
-                continue;
+            if (!is_int($value)) {
+                throw InvalidValue::typeMismatch('float', $value)->inItem($key);
             }
-            $values[$key] = $this->decode($value, $path($key));
+            $values[$key] = (float) $value;
         }
         return $values;
     }

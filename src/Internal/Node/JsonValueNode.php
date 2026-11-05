@@ -28,12 +28,12 @@ final readonly class JsonValueNode implements Node
 
     /** JSON numbers too large for a float decode as INF, which a JsonValue rejects. */
     #[Override]
-    public function decode(mixed $value, string $path): JsonValue
+    public function decode(mixed $value): JsonValue
     {
         try {
             return new JsonValue($value);
         } catch (InvalidArgumentException $error) {
-            throw InvalidValue::jsonValue($path, $error);
+            throw InvalidValue::jsonValue($error);
         }
     }
 

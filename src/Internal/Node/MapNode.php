@@ -7,7 +7,6 @@ namespace Eventjet\Json\Internal\Node;
 use ArrayObject;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Error\InvalidValue;
-use Eventjet\Json\Internal\FieldPath;
 use JsonException;
 use Override;
 use stdClass;
@@ -46,29 +45,25 @@ final readonly class MapNode implements Node
 
     /** @return array<array-key, mixed>|ArrayObject<array-key, mixed> */
     #[Override]
-    public function decode(mixed $value, string $path): array|ArrayObject
+    public function decode(mixed $value): array|ArrayObject
     {
         if (!$value instanceof stdClass) {
-            throw InvalidValue::typeMismatch($path, 'JSON object', $value);
+            throw InvalidValue::typeMismatch('JSON object', $value);
         }
         $values = (array) $value;
         if (!$this->arrayObject && $values === []) {
-            throw InvalidValue::emptyMap($path);
+            throw InvalidValue::emptyMap();
         }
         if (!$this->integerKeys) {
             foreach (array_keys($values) as $key) {
                 if (is_int($key)) {
-                    throw InvalidValue::integerKey($path, $key);
+                    throw InvalidValue::integerKey($key);
                 }
             }
         }
         $decoded = $this->value instanceof ScalarNode
-            ? $this->value->decodeEach(
-                $values,
-                /** @throws JsonException */
-                static fn(int|string $key): string => FieldPath::key($path, $key),
-            )
-            : $this->decodeValues($values, $path);
+            ? $this->value->decodeEach($values)
+            : $this->decodeValues($values);
         return $this->arrayObject ? new ArrayObject($decoded) : $decoded;
     }
 
@@ -78,12 +73,16 @@ final readonly class MapNode implements Node
      * @throws DecodeError
      * @throws JsonException
      */
-    private function decodeValues(array $values, string $path): array
+    private function decodeValues(array $values): array
     {
         $decoded = [];
         /** @var mixed $value */
         foreach ($values as $key => $value) {
-            $decoded[$key] = $this->value->decode($value, FieldPath::key($path, $key));
+            try {
+                $decoded[$key] = $this->value->decode($value);
+            } catch (DecodeError $error) {
+                throw $error->inItem($key);
+            }
         }
         return $decoded;
     }

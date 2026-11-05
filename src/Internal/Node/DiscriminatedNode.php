@@ -8,7 +8,6 @@ use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\ClassDecoders;
 use Eventjet\Json\Internal\Error\InvalidDiscriminator;
 use Eventjet\Json\Internal\Error\InvalidValue;
-use Eventjet\Json\Internal\FieldPath;
 use Override;
 use stdClass;
 
@@ -66,10 +65,10 @@ final readonly class DiscriminatedNode implements Node
     }
 
     #[Override]
-    public function decode(mixed $value, string $path): object
+    public function decode(mixed $value): object
     {
         if (!$value instanceof stdClass) {
-            throw InvalidValue::typeMismatch($path, $this->type, $value);
+            throw InvalidValue::typeMismatch($this->type, $value);
         }
         $members = get_object_vars($value);
         /** @var mixed $tag */
@@ -79,23 +78,19 @@ final readonly class DiscriminatedNode implements Node
             is_int($tag) => $this->ints[$tag] ?? null,
             default => null,
         };
-        return $class === null
-            ? throw $this->invalid($members, $tag, $path)
-            : ClassDecoders::hydrate($class, $value, $path);
+        return $class === null ? throw $this->invalid($members, $tag) : ClassDecoders::hydrate($class, $value);
     }
 
     /** @param array<array-key, mixed> $members */
-    private function invalid(array $members, mixed $tag, string $path): DecodeError
+    private function invalid(array $members, mixed $tag): DecodeError
     {
-        $member = FieldPath::field($path, $this->member);
         return match (true) {
-            !array_key_exists($this->member, $members) => InvalidDiscriminator::missing(
-                $path,
-                $this->member,
+            !array_key_exists($this->member, $members) => InvalidDiscriminator::missing($this->member, $this->allowed),
+            is_string($tag), is_int($tag) => InvalidDiscriminator::unknown(
                 $this->allowed,
-            ),
-            is_string($tag), is_int($tag) => InvalidDiscriminator::unknown($member, $this->allowed, $tag),
-            default => InvalidDiscriminator::type($member, $this->allowed, $tag),
+                $tag,
+            )->inMember($this->member),
+            default => InvalidDiscriminator::type($this->allowed, $tag)->inMember($this->member),
         };
     }
 

@@ -173,17 +173,17 @@ final class ConstructorValidationPlanTest extends TestCase
         $class = new ReflectionClass($target);
         for ($lookup = 0; $lookup < 3; ++$lookup) {
             static::assertEquals(
-                InvalidValue::typeMismatch('before.first', 'int|null', false)->whileCreating($class->getName()),
-                self::decode($class, ['first' => false, 'second' => 1], 'before'),
+                InvalidValue::typeMismatch('int|null', false)->inMember('first')->whileCreating($class->getName()),
+                self::decode($class, ['first' => false, 'second' => 1]),
             );
-            static::assertEquals($class->newInstanceArgs([]), self::decode($class, [], ''));
+            static::assertEquals($class->newInstanceArgs([]), self::decode($class, []));
             static::assertEquals(
                 $class->newInstanceArgs(['first' => null, 'second' => 'valid']),
-                self::decode($class, ['first' => null, 'second' => 'valid'], ''),
+                self::decode($class, ['first' => null, 'second' => 'valid']),
             );
             static::assertEquals(
-                InvalidValue::typeMismatch('after.second', 'string', 1)->whileCreating($class->getName()),
-                self::decode($class, ['first' => 1, 'second' => 1], 'after'),
+                InvalidValue::typeMismatch('string', 1)->inMember('second')->whileCreating($class->getName()),
+                self::decode($class, ['first' => 1, 'second' => 1]),
             );
         }
     }
@@ -205,8 +205,8 @@ final class ConstructorValidationPlanTest extends TestCase
         $class = new ReflectionClass($target);
         $declarationError = UnsupportedField::imprecise('second', 'mixed')->whileCreating($class->getName());
         for ($lookup = 0; $lookup < 2; ++$lookup) {
-            static::assertEquals($declarationError, self::decode($class, ['first' => false], ''));
-            static::assertEquals($declarationError, self::decode($class, ['first' => 1], ''));
+            static::assertEquals($declarationError, self::decode($class, ['first' => false]));
+            static::assertEquals($declarationError, self::decode($class, ['first' => 1]));
         }
 
         $invalidTarget = new class {
@@ -220,7 +220,7 @@ final class ConstructorValidationPlanTest extends TestCase
         $invalidClass = new ReflectionClass($invalidTarget);
         static::assertEquals(
             UnsupportedField::imprecise('value', 'mixed')->whileCreating($invalidClass->getName()),
-            self::decode($invalidClass, [], ''),
+            self::decode($invalidClass, []),
         );
 
         $enumTarget = new class {
@@ -232,24 +232,23 @@ final class ConstructorValidationPlanTest extends TestCase
         $enumClass = new ReflectionClass($enumTarget);
         for ($lookup = 0; $lookup < 3; ++$lookup) {
             static::assertEquals(
-                InvalidValue::unknownEnumCase('nested.first', [StringBackedStatus::class], 'unknown')->whileCreating(
-                    $enumClass->getName(),
-                ),
-                self::decode($enumClass, ['second' => false, 'first' => 'unknown'], 'nested'),
+                InvalidValue::unknownEnumCase([StringBackedStatus::class], 'unknown')
+                    ->inMember('first')
+                    ->whileCreating($enumClass->getName()),
+                self::decode($enumClass, ['second' => false, 'first' => 'unknown']),
             );
             static::assertEquals(
-                InvalidValue::typeMismatch('nested.second', 'int', false)->whileCreating($enumClass->getName()),
-                self::decode($enumClass, ['first' => StringBackedStatus::Ready->value, 'second' => false], 'nested'),
+                InvalidValue::typeMismatch('int', false)->inMember('second')->whileCreating($enumClass->getName()),
+                self::decode($enumClass, ['first' => StringBackedStatus::Ready->value, 'second' => false]),
             );
             static::assertEquals(
                 $enumClass->newInstanceArgs(['first' => StringBackedStatus::Ready, 'second' => 1]),
-                self::decode($enumClass, ['first' => StringBackedStatus::Ready->value, 'second' => 1], ''),
+                self::decode($enumClass, ['first' => StringBackedStatus::Ready->value, 'second' => 1]),
             );
-            static::assertInstanceOf(DecodeError::class, self::decode(
-                $enumClass,
-                ['first' => 'unknown', 'second' => 1],
-                '',
-            ));
+            static::assertInstanceOf(DecodeError::class, self::decode($enumClass, [
+                'first' => 'unknown',
+                'second' => 1,
+            ]));
         }
     }
 
@@ -285,14 +284,14 @@ final class ConstructorValidationPlanTest extends TestCase
         for ($lookup = 0; $lookup < 3; ++$lookup) {
             static::assertEquals(
                 $class->newInstanceArgs(['ref' => 'next', 'count' => 9]),
-                self::decode($class, ['$ref' => 'next', 'count' => 9], ''),
+                self::decode($class, ['$ref' => 'next', 'count' => 9]),
             );
-            static::assertEquals($class->newInstanceArgs(['ref' => null]), self::decode($class, ['$ref' => null], ''));
-            static::assertEquals($class->newInstanceArgs([]), self::decode($class, ['ref' => 'ignored'], ''));
+            static::assertEquals($class->newInstanceArgs(['ref' => null]), self::decode($class, ['$ref' => null]));
+            static::assertEquals($class->newInstanceArgs([]), self::decode($class, ['ref' => 'ignored']));
             static::assertSame(ClassDecoders::get(MappedDefaults::class), ClassDecoders::get(MappedDefaults::class));
             static::assertEquals(
-                InvalidValue::typeMismatch('nested.$ref', 'string|null', 42)->whileCreating($class->getName()),
-                self::decode($class, ['$ref' => 42], 'nested'),
+                InvalidValue::typeMismatch('string|null', 42)->inMember('$ref')->whileCreating($class->getName()),
+                self::decode($class, ['$ref' => 42]),
             );
         }
     }
@@ -318,15 +317,18 @@ final class ConstructorValidationPlanTest extends TestCase
         };
         $class = new ReflectionClass($target);
         for ($lookup = 0; $lookup < 2; ++$lookup) {
-            $error = self::decode($class, ['0' => 'unknown'], 'nested');
+            $error = self::decode($class, ['0' => 'unknown']);
             static::assertInstanceOf(DecodeError::class, $error);
-            static::assertStringContainsString('nested.0', $error->getMessage());
-            $rootError = self::decode($class, ['0' => 'unknown'], '');
+            static::assertStringContainsString(
+                'Field [3].0 uses backed enum',
+                $error->inItem(3)->whileCreating('Outer')->getMessage(),
+            );
+            $rootError = self::decode($class, ['0' => 'unknown']);
             static::assertInstanceOf(DecodeError::class, $rootError);
             static::assertStringContainsString('Field 0 uses backed enum', $rootError->getMessage());
             static::assertEquals(
                 $class->newInstanceArgs(['value' => StringBackedStatus::Ready]),
-                self::decode($class, ['0' => StringBackedStatus::Ready->value], ''),
+                self::decode($class, ['0' => StringBackedStatus::Ready->value]),
             );
         }
     }
@@ -357,7 +359,7 @@ final class ConstructorValidationPlanTest extends TestCase
                 (object) ['internal' => 'public', 'shared' => 'other'],
                 MappedObjectSerializer::serialize($namesReflection->newInstance()),
             );
-            $decoded = self::decode($namesReflection, ['internal' => 'decoded', 'shared' => 'also decoded'], '');
+            $decoded = self::decode($namesReflection, ['internal' => 'decoded', 'shared' => 'also decoded']);
             static::assertInstanceOf($namesClass, $decoded);
             static::assertEquals(
                 (object) ['internal' => 'decoded', 'shared' => 'also decoded'],
@@ -386,7 +388,7 @@ final class ConstructorValidationPlanTest extends TestCase
                  */
                 static fn(): mixed => TargetClass::validate($reflection),
             ));
-            static::assertEquals($named, self::decode($reflection, [], ''));
+            static::assertEquals($named, self::decode($reflection, []));
             static::assertEquals($named, ThrownDecodeError::of(
                 /** @throws DecodeError|ReflectionException */ static fn(): object => ClassDecoders::get($class),
             ));
@@ -438,7 +440,7 @@ final class ConstructorValidationPlanTest extends TestCase
                          */
                         static fn(): mixed => TargetClass::validate($reflection),
                     ));
-                    static::assertEquals($named, self::decode($reflection, [], ''));
+                    static::assertEquals($named, self::decode($reflection, []));
                     static::assertEquals($named, ThrownDecodeError::of(
                         /**
                          * @throws DecodeError
@@ -486,11 +488,11 @@ final class ConstructorValidationPlanTest extends TestCase
      * @param array<array-key, bool|float|int|string|null> $values
      * @throws JsonException
      */
-    private static function decode(ReflectionClass $class, array $values, string $path): object
+    private static function decode(ReflectionClass $class, array $values): object
     {
         $object = JsonObject::of($values);
         return ThrownDecodeError::orResult(
-            /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class->getName(), $object, $path),
+            /** @throws DecodeError */ static fn(): object => ClassDecoders::hydrate($class->getName(), $object),
         );
     }
 }

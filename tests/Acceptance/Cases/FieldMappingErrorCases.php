@@ -6,6 +6,8 @@ namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\JsonType;
+use Eventjet\Json\Test\Acceptance\Fixtures\MappedBracketHolder;
+use Eventjet\Json\Test\Acceptance\Fixtures\MappedBracketReference;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedDocument;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedProperties;
 use Eventjet\Json\Test\Acceptance\Fixtures\MappedReference;
@@ -123,6 +125,14 @@ final class FieldMappingErrorCases
             'Could not create '
                 . MappedReference::class
                 . ' from the JSON object: Field links[0].$ref must be of type string, int given.',
+            DecodeErrorKind::InvalidValue,
+        ];
+        yield 'mapped member name that looks like a list index' => [
+            '{"reference":{"[0]":42}}',
+            MappedBracketHolder::class,
+            'Could not create '
+                . MappedBracketReference::class
+                . ' from the JSON object: Field reference.[0] must be of type string, int given.',
             DecodeErrorKind::InvalidValue,
         ];
         yield 'mapped public property mismatch' => [

@@ -76,7 +76,7 @@ final readonly class UnionNode implements Node
     }
 
     #[Override]
-    public function decode(mixed $value, string $path): mixed
+    public function decode(mixed $value): mixed
     {
         $valueType = match ($value) {
             true => 'true',
@@ -84,9 +84,7 @@ final readonly class UnionNode implements Node
             default => get_debug_type($value),
         };
         $member = $this->members[$valueType] ?? null;
-        return $member === null
-            ? throw InvalidValue::typeMismatch($path, $this->type, $value)
-            : $member->decode($value, $path);
+        return $member === null ? throw InvalidValue::typeMismatch($this->type, $value) : $member->decode($value);
     }
 
     #[Override]

@@ -27,18 +27,16 @@ final readonly class ListNode implements Node
 
     /** @return list<mixed> */
     #[Override]
-    public function decode(mixed $value, string $path): array
+    public function decode(mixed $value): array
     {
         if (!is_array($value) || !array_is_list($value)) {
-            throw InvalidValue::typeMismatch($path, $this->type, $value);
+            throw InvalidValue::typeMismatch($this->type, $value);
         }
         if ($this->nonEmpty && $value === []) {
-            throw InvalidValue::emptyList($path, $this->type);
+            throw InvalidValue::emptyList($this->type);
         }
         /** @var list<mixed> */
-        return $this->item instanceof ScalarNode
-            ? $this->item->decodeEach($value, static fn(int $index): string => sprintf('%s[%d]', $path, $index))
-            : $this->decodeItems($value, $path);
+        return $this->item instanceof ScalarNode ? $this->item->decodeEach($value) : $this->decodeItems($value);
     }
 
     /**
@@ -47,11 +45,9 @@ final readonly class ListNode implements Node
      * @throws DecodeError
      * @throws JsonException
      */
-    private function decodeItems(array $values, string $path): array
+    private function decodeItems(array $values): array
     {
-        return $this->item instanceof ObjectNode
-            ? $this->item->decodeEach($values, $path)
-            : $this->decodeEachItem($values, $path);
+        return $this->item instanceof ObjectNode ? $this->item->decodeEach($values) : $this->decodeEachItem($values);
     }
 
     /**
@@ -60,12 +56,16 @@ final readonly class ListNode implements Node
      * @throws DecodeError
      * @throws JsonException
      */
-    private function decodeEachItem(array $values, string $path): array
+    private function decodeEachItem(array $values): array
     {
         $decoded = [];
         /** @var mixed $item */
         foreach ($values as $index => $item) {
-            $decoded[] = $this->item->decode($item, sprintf('%s[%d]', $path, $index));
+            try {
+                $decoded[] = $this->item->decode($item);
+            } catch (DecodeError $error) {
+                throw $error->inItem($index);
+            }
         }
         return $decoded;
     }

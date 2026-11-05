@@ -68,23 +68,24 @@ final readonly class ClassDecoder
 
     /**
      * Decodes the members of a JSON object field by field, stopping at the first error, then creates the object: it
-     * calls the constructor and assigns the public properties outside it.
+     * calls the constructor and assigns the public properties outside it. Returns the error, naming the class, instead of
+     * throwing it, because each throw makes rejected documents measurably slower. It never throws a DecodeError, because
+     * ClassDecoders reports every exception from it as an unreadable class. Mago's check of the throws tag enforces this.
      *
-     * @throws DecodeError
+     * @return object|DecodeError
      * @throws JsonException
      */
-    public function decode(stdClass $object, string $path): object
+    public function decode(stdClass $object): object
     {
         /** @var array<array-key, array<array-key, mixed>|bool|float|int|object|string|null> $values */
         $values = get_object_vars($object);
         $arguments = [];
         $assignments = [];
         foreach ($this->fields as $field) {
-            $name = $field->json;
-            if (!array_key_exists($name, $values)) {
+            if (!array_key_exists($field->json, $values)) {
                 continue;
             }
-            $value = $values[$name];
+            $value = $values[$field->json];
             // Values that already have the declared scalar type skip the node. The node checks and converts all others.
             // Non-finite floats go to the node, which rejects them. A float is finite exactly when subtracting it from
             // itself gives 0.0, which is cheaper than is_finite().
@@ -98,7 +99,11 @@ final readonly class ClassDecoder
                     default => false,
                 };
             if (!$unchanged) {
-                $value = $field->node->decode($value, $path === '' ? $name : FieldPath::field($path, $name));
+                try {
+                    $value = $field->node->decode($value);
+                } catch (DecodeError $error) {
+                    return $error->whileCreating($this->class, $field->json);
+                }
             }
             if ($field->property === null) {
                 $arguments[$field->name] = $value;
@@ -107,12 +112,11 @@ final readonly class ClassDecoder
             $assignments[] = [$field->property, $value];
         }
         if ($this->others !== null) {
-            [$arguments, $assignments] = self::withOthers(
-                $this->others,
-                $this->others->collect($values, $path),
-                $arguments,
-                $assignments,
-            );
+            $collected = $this->others->collect($values);
+            if ($collected instanceof DecodeError) {
+                return $collected->whileCreating($this->class);
+            }
+            [$arguments, $assignments] = self::withOthers($this->others, $collected, $arguments, $assignments);
         }
         try {
             /**
@@ -121,15 +125,13 @@ final readonly class ClassDecoder
              */
             $created = new $this->class(...$arguments);
         } catch (Throwable $error) {
-            $missing = $this->missesArgument($arguments);
-            $failure = $missing ? InvalidValue::missingArgument($error) : ConstructorFailure::constructorThrew($error);
-            throw $failure;
+            return $this->constructorFailure($arguments, $error);
         }
         foreach ($assignments as [$property, $value]) {
             try {
                 $property->setValue($created, $value);
             } catch (Throwable $error) {
-                throw ConstructorFailure::assignmentThrew($property, $error);
+                return ConstructorFailure::assignmentThrew($property, $error)->whileCreating($this->class);
             }
         }
         return $created;
@@ -158,16 +160,18 @@ final readonly class ClassDecoder
     }
 
     /**
-     * Whether a parameter without a default value has no argument, so that PHP rejected the call before the constructor
-     * ran.
+     * Returns the error of a constructor call that threw, naming the class. When a parameter without a default value has
+     * no argument, PHP rejected the call before the constructor ran.
      *
      * @param array<string, mixed> $arguments Keyed by parameter name.
      */
-    private function missesArgument(array $arguments): bool
+    private function constructorFailure(array $arguments, Throwable $error): DecodeError
     {
-        return array_any(
+        $missing = array_any(
             $this->fields,
             static fn(ClassField $field): bool => $field->required && !array_key_exists($field->name, $arguments),
         );
+        $failure = $missing ? InvalidValue::missingArgument($error) : ConstructorFailure::constructorThrew($error);
+        return $failure->whileCreating($this->class);
     }
 }

@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0](https://github.com/eventjet/eventjet-json/compare/v1.1.0...v1.2.0) (2026-11-04)
+
+
+### Features
+
+* Add JSON Schema model classes for Draft 4 to 2020-12 ([#118](https://github.com/eventjet/eventjet-json/issues/118)) ([6ed2732](https://github.com/eventjet/eventjet-json/commit/6ed27321f73f85b15995ea53fcc6545240777d82))
+* Keep unknown members with #[OtherMembers] ([#120](https://github.com/eventjet/eventjet-json/issues/120)) ([51524ad](https://github.com/eventjet/eventjet-json/commit/51524adbbb7e310a9a7f433e75e931d3daaa28fb))
+
+
+### Tests
+
+* Cover decoding a type after validating it ([#115](https://github.com/eventjet/eventjet-json/issues/115)) ([a59d951](https://github.com/eventjet/eventjet-json/commit/a59d95143b93fc32192680d7a2ad9533993eb309))
+
 ## [1.1.0](https://github.com/eventjet/eventjet-json/compare/v1.0.0...v1.1.0) (2026-11-03)
 
 

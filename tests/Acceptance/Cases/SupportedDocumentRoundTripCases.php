@@ -37,6 +37,8 @@ final class SupportedDocumentRoundTripCases
             yield $name => $factory();
         }
         yield from JsonValueCases::documents();
+        yield from MetaSchemaCases::documents();
+        yield from UnknownKeywordCases::rejectedEncodings();
         yield from OtherMembersCases::documents();
         yield from OtherMembersErrorCases::documents();
     }

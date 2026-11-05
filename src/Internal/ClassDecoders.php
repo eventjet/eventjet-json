@@ -65,18 +65,20 @@ final class ClassDecoders
      * @return T
      * @throws DecodeError
      */
-    public static function hydrate(string $class, stdClass $object, string $path = ''): object
+    public static function hydrate(string $class, stdClass $object): object
     {
         // Skips the call to get() for cached decoders, because a call per object slows down hydration measurably.
         $decoder = self::$decoders[$class] ?? self::compile($class);
         try {
-            /** @var T */
-            return $decoder->decode($object, $path);
-        } catch (DecodeError $error) {
-            throw $error->whileCreating($decoder->class);
+            $decoded = $decoder->decode($object);
         } catch (Throwable $error) {
             throw UnsupportedTarget::unreadable($error)->whileCreating($class);
         }
+        if ($decoded instanceof DecodeError) {
+            throw $decoded;
+        }
+        /** @var T */
+        return $decoded;
     }
 
     /**
@@ -109,12 +111,11 @@ final class ClassDecoders
             return $error;
         }
         try {
-            /** @var T */
-            return $decoder->decode($value, '');
-        } catch (DecodeError $error) {
-            return $error->whileCreating($decoder->class);
+            $decoded = $decoder->decode($value);
         } catch (Throwable $error) {
             return UnsupportedTarget::unreadable($error)->whileCreating($class);
         }
+        /** @var T|DecodeError */
+        return $decoded;
     }
 }

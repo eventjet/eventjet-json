@@ -24,12 +24,12 @@ final readonly class UncheckedNode implements Node
     ) {}
 
     #[Override]
-    public function decode(mixed $value, string $path): null
+    public function decode(mixed $value): null
     {
         return match (true) {
             $value !== null => throw UnsupportedFieldClass::unknown($this->field, $this->name),
             $this->nullable => null,
-            default => throw InvalidValue::typeMismatch($path, $this->name, $value),
+            default => throw InvalidValue::typeMismatch($this->name, $value),
         };
     }
 

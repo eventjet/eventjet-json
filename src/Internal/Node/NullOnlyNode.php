@@ -19,9 +19,9 @@ final readonly class NullOnlyNode implements Node
     ) {}
 
     #[Override]
-    public function decode(mixed $value, string $path): null
+    public function decode(mixed $value): null
     {
-        return $value === null ? null : throw InvalidValue::typeMismatch($path, $this->type, $value);
+        return $value === null ? null : throw InvalidValue::typeMismatch($this->type, $value);
     }
 
     #[Override]

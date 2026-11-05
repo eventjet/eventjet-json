@@ -75,15 +75,15 @@ final readonly class EnumNode implements Node
     }
 
     #[Override]
-    public function decode(mixed $value, string $path): BackedEnum
+    public function decode(mixed $value): BackedEnum
     {
         $matches = $this->backingType === 'int' ? is_int($value) : is_string($value);
         if (!$matches) {
-            throw InvalidValue::enumBackingType($path, $this->enums[0], $this->backingType, $value);
+            throw InvalidValue::enumBackingType($this->enums[0], $this->backingType, $value);
         }
         /** @var int|string $value */
         $case = $this->cases === null ? ($this->find)($value) : $this->cases[$value] ?? null;
-        return $case ?? throw InvalidValue::unknownEnumCase($path, $this->enums, $value);
+        return $case ?? throw InvalidValue::unknownEnumCase($this->enums, $value);
     }
 
     /**

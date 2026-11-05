@@ -36,7 +36,7 @@ interface Node extends Stringable
      * @throws DecodeError If the value does not match.
      * @throws JsonException
      */
-    public function decode(mixed $value, string $path): mixed;
+    public function decode(mixed $value): mixed;
 
     /**
      * Returns the classes that decoded values may be instances of, including declared classes that are not loaded.
