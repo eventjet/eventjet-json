@@ -179,6 +179,20 @@ final class ValidatorErrorCases
             'The meta-schema https://example.com/meta requires the unknown vocabulary https://example.com/vocab.',
             null,
         ];
+        yield 'custom meta-schema that names itself, with an unknown required vocabulary' => [
+            new Draft202012(schema: 'https://example.com/meta'),
+            static fn(): Draft202012 => new Draft202012(schema: 'https://example.com/meta', vocabulary: $vocabulary),
+            'The meta-schema https://example.com/meta requires the unknown vocabulary https://example.com/vocab.',
+            null,
+        ];
+        yield 'custom meta-schemas that name each other, with an unknown required vocabulary' => [
+            new Draft202012(schema: 'https://example.com/a'),
+            static fn(string $uri): Draft202012 => $uri === 'https://example.com/a'
+                ? new Draft202012(schema: 'https://example.com/b')
+                : new Draft202012(schema: 'https://example.com/a', vocabulary: $vocabulary),
+            'The meta-schema https://example.com/b requires the unknown vocabulary https://example.com/vocab.',
+            null,
+        ];
         $decodeError = new DecodeError(DecodeErrorKind::InvalidJson, 'Invalid JSON: Syntax error');
         yield 'document the loader cannot decode' => [
             new Draft202012(ref: 'https://example.com/broken'),

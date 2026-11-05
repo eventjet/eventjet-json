@@ -15,12 +15,25 @@ use function sprintf;
  *
  * @internal
  */
-final readonly class Vocabularies
+final class Vocabularies
 {
+    /**
+     * @var array<string, array{stdClass|bool, Draft}> The root and the draft of each document, by the URI that it was
+     *     loaded from, so that a meta-schema can name itself or a meta-schema that names it.
+     */
+    private array $documents = [];
+
     public function __construct(
-        private Registry $registry,
-        private bool $assertFormats,
+        private readonly Registry $registry,
+        private readonly bool $assertFormats,
     ) {}
+
+    /** @throws SchemaError */
+    public function ofDocument(stdClass|bool $root, Draft $draft, string $uri): Vocabulary
+    {
+        $this->documents[$uri] = [$root, $draft];
+        return $this->of($root, $draft, null);
+    }
 
     /**
      * @param Resource|null $parent The resource that encloses the schema, if it isn't the root of a document.
@@ -40,16 +53,30 @@ final readonly class Vocabularies
             }
             return Vocabulary::all($this->assertFormats);
         }
-        $meta = $this->registry->resource(Uri::withoutFragment($metaSchema));
-        if ($meta->draft !== $draft) {
-            throw self::draftMismatch($metaSchema, $meta->draft, $draft);
+        [$metaRoot, $metaDraft] = $this->metaSchema(Uri::withoutFragment($metaSchema));
+        if ($metaDraft !== $draft) {
+            throw self::draftMismatch($metaSchema, $metaDraft, $draft);
         }
         /** @var mixed $vocabularies */
-        $vocabularies = $meta->root instanceof stdClass ? ((array) $meta->root)['$vocabulary'] ?? null : null;
+        $vocabularies = $metaRoot instanceof stdClass ? ((array) $metaRoot)['$vocabulary'] ?? null : null;
         if (!$vocabularies instanceof stdClass || !$draft->atLeast(Draft::Draft201909)) {
             return Vocabulary::all($this->assertFormats);
         }
         return Vocabulary::fromMetaSchema($vocabularies, $draft, $this->assertFormats, $metaSchema);
+    }
+
+    /**
+     * @return array{stdClass|bool, Draft}
+     * @throws SchemaError
+     */
+    private function metaSchema(string $uri): array
+    {
+        $document = $this->documents[$uri] ?? null;
+        if ($document !== null) {
+            return $document;
+        }
+        $resource = $this->registry->resource($uri);
+        return [$resource->root, $resource->draft];
     }
 
     private static function draftMismatch(string $metaSchema, Draft $named, Draft $draft): SchemaError

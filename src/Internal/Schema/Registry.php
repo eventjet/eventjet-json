@@ -58,7 +58,7 @@ final class Registry
     {
         $id = $root instanceof stdClass ? $draft->id($root) : null;
         $canonical = $id !== null && !str_starts_with($id, '#') ? Uri::withoutFragment(Uri::resolve($uri, $id)) : $uri;
-        $resource = new Resource($canonical, $draft, $this->vocabularies->of($root, $draft, null), $root);
+        $resource = new Resource($canonical, $draft, $this->vocabularies->ofDocument($root, $draft, $uri), $root);
         $this->resources[$canonical] = $resource;
         $this->resources[$uri] ??= $resource;
         $this->index->document($root, $resource);
