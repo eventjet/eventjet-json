@@ -7,6 +7,9 @@ namespace Eventjet\Json\Internal\Schema\Format;
 use Eventjet\Json\Internal\Schema\Draft;
 
 use function preg_match;
+use function str_ends_with;
+use function str_starts_with;
+use function strlen;
 use function strrpos;
 use function substr;
 
@@ -51,10 +54,23 @@ final class Emails
         if ($at === false) {
             return null;
         }
-        $dotAtom = '[' . $atext . ']+(?:\.[' . $atext . ']+)*';
-        $quoted = '"(?:[\x20\x21\x23-\x5B\x5D-\x7E' . $qtext . ']|\\\\[\x20-\x7E])*"';
-        $valid = preg_match('/^(?:' . $dotAtom . '|' . $quoted . ')$/uD', substr($value, offset: 0, length: $at)) === 1;
-        return $valid ? substr($value, offset: $at + 1) : null;
+        $local = substr($value, offset: 0, length: $at);
+        $dotAtom = self::dotAtom($local, $atext);
+        $quotedString = self::quotedString($local, $qtext);
+        return $dotAtom || $quotedString ? substr($value, offset: $at + 1) : null;
+    }
+
+    /** A dot-atom is atoms with single dots between them. */
+    private static function dotAtom(string $local, string $atext): bool
+    {
+        return $local !== '' && Units::cover($local, '[' . $atext . ']++(?:\.(?=[' . $atext . ']))?');
+    }
+
+    private static function quotedString(string $local, string $qtext): bool
+    {
+        $quoted = strlen($local) >= 2 && str_starts_with($local, '"') && str_ends_with($local, '"');
+        $units = '[\x20\x21\x23-\x5B\x5D-\x7E' . $qtext . ']++|\\\\[\x20-\x7E]';
+        return $quoted && Units::cover(substr($local, offset: 1, length: -1), $units);
     }
 
     /** Returns whether an address literal such as `[127.0.0.1]` is valid, or null if the domain isn't one. */

@@ -7,20 +7,17 @@ namespace Eventjet\Json\Internal\Schema\Keyword;
 use Eventjet\Json\Internal\Schema\Annotations;
 use Eventjet\Json\Internal\Schema\Keyword;
 use Eventjet\Json\Internal\Schema\Run;
+use Eventjet\Json\Internal\Schema\SchemaRegex;
 use Override;
 
 use function is_string;
-use function preg_match;
 use function sprintf;
 
 /** @internal */
 final readonly class PatternKeyword implements Keyword
 {
-    /** @param non-empty-string $pcre */
     public function __construct(
-        private string $pcre,
-        private string $pattern,
-        private string $location,
+        private SchemaRegex $regex,
     ) {}
 
     #[Override]
@@ -34,15 +31,15 @@ final readonly class PatternKeyword implements Keyword
         if (!is_string($value)) {
             return true;
         }
-        $matches = preg_match($this->pcre, $value) === 1;
+        $matches = $this->regex->matches($value, $run);
         if ($matches) {
             return true;
         }
         return $run->fail(
             $instanceLocation,
             $keywordLocation . '/pattern',
-            $this->location,
-            sprintf('The value must match the pattern %s.', $this->pattern),
+            $this->regex->location,
+            sprintf('The value must match the pattern %s.', $this->regex->pattern),
         );
     }
 

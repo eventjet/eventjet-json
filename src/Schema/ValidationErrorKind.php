@@ -19,4 +19,10 @@ enum ValidationErrorKind
      * that isn't valid UTF-8, or levels nested more than 512 deep.
      */
     case UnsupportedValue;
+
+    /**
+     * PCRE gave up on a regex of the schema, for example at its backtrack limit, so the validator can't tell whether
+     * the value matches. `not` and the other applicators can't turn this into a match.
+     */
+    case RegexLimit;
 }

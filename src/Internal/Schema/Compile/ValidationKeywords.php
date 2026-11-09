@@ -44,8 +44,7 @@ final class ValidationKeywords
         }
         $pattern = $schema->string('pattern');
         if ($pattern !== null) {
-            $location = $schema->at('pattern');
-            $keywords[] = new PatternKeyword(KeywordValues::regex($pattern, $location), $pattern, $location);
+            $keywords[] = new PatternKeyword(KeywordValues::regex($pattern, $schema->at('pattern')));
         }
         $uniqueItems = KeywordValues::boolean($schema, 'uniqueItems');
         if ($uniqueItems === true) {

@@ -10,8 +10,9 @@ use Eventjet\Json\Internal\Schema\Format\Emails;
 use Eventjet\Json\Internal\Schema\Format\Hosts;
 use Eventjet\Json\Internal\Schema\Format\IdnHosts;
 use Eventjet\Json\Internal\Schema\Format\IpAddresses;
-use Eventjet\Json\Internal\Schema\Format\UriPattern;
-use Eventjet\Json\Internal\Schema\Format\Uris;
+use Eventjet\Json\Internal\Schema\Format\JsonPointers;
+use Eventjet\Json\Internal\Schema\Format\UriSyntax;
+use Eventjet\Json\Internal\Schema\Format\UriTemplates;
 
 use function preg_match;
 
@@ -41,9 +42,9 @@ final class Formats
             'ipv4' => IpAddresses::ipv4(...),
             'ipv6' => IpAddresses::ipv6(...),
             'uri', 'uri-reference', 'iri', 'iri-reference' => self::uri($format),
-            'uri-template' => Uris::uriTemplate(...),
-            'json-pointer' => Uris::jsonPointer(...),
-            'relative-json-pointer' => Uris::relativeJsonPointer(...),
+            'uri-template' => UriTemplates::uriTemplate(...),
+            'json-pointer' => JsonPointers::jsonPointer(...),
+            'relative-json-pointer' => JsonPointers::relativeJsonPointer(...),
             'regex' => static fn(string $value): bool => EcmaRegex::toPcre($value) !== null,
             'uuid' => self::uuid(...),
             default => null,
@@ -65,13 +66,15 @@ final class Formats
      */
     private static function uri(string $format): Closure
     {
-        $pattern = match ($format) {
-            'uri' => new UriPattern('', '')->absolute(),
-            'uri-reference' => new UriPattern('', '')->reference(),
-            'iri' => new UriPattern(UriPattern::UCSCHAR, UriPattern::IPRIVATE)->absolute(),
-            'iri-reference' => new UriPattern(UriPattern::UCSCHAR, UriPattern::IPRIVATE)->reference(),
+        return match ($format) {
+            'uri' => new UriSyntax(UriSyntax::URI_CHARACTERS, UriSyntax::URI_CHARACTERS)->absolute(...),
+            'uri-reference' => new UriSyntax(UriSyntax::URI_CHARACTERS, UriSyntax::URI_CHARACTERS)->reference(...),
+            'iri' => new UriSyntax(UriSyntax::IRI_CHARACTERS, UriSyntax::IRI_QUERY_CHARACTERS)->absolute(...),
+            'iri-reference' => new UriSyntax(
+                UriSyntax::IRI_CHARACTERS,
+                UriSyntax::IRI_QUERY_CHARACTERS,
+            )->reference(...),
         };
-        return static fn(string $value): bool => Uris::matches($value, $pattern);
     }
 
     private static function uuid(string $value): bool

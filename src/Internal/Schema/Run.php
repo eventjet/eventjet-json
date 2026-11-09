@@ -26,6 +26,9 @@ final class Run
     /** The last resource of the scope. */
     public Resource|null $innermost = null;
 
+    /** Why PCRE gave up on a regex of the schema, which leaves the result unknown, or null if it never did. */
+    public string|null $regexLimit = null;
+
     public function fail(
         string $instanceLocation,
         string $keywordLocation,

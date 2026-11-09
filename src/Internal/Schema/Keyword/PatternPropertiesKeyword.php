@@ -8,15 +8,14 @@ use Eventjet\Json\Internal\Schema\Annotations;
 use Eventjet\Json\Internal\Schema\Keyword;
 use Eventjet\Json\Internal\Schema\Node;
 use Eventjet\Json\Internal\Schema\Run;
+use Eventjet\Json\Internal\Schema\SchemaRegex;
 use Override;
 use stdClass;
-
-use function preg_match;
 
 /** @internal */
 final readonly class PatternPropertiesKeyword implements Keyword
 {
-    /** @param list<array{non-empty-string, string, Node}> $patterns The PCRE pattern, the original pattern, and the schema. */
+    /** @param list<array{SchemaRegex, Node}> $patterns The regex and the schema of each entry. */
     public function __construct(
         private array $patterns,
     ) {}
@@ -36,8 +35,8 @@ final readonly class PatternPropertiesKeyword implements Keyword
         /** @var mixed $member */
         foreach ((array) $value as $name => $member) {
             $name = (string) $name;
-            foreach ($this->patterns as [$pcre, $pattern, $schema]) {
-                $matches = preg_match($pcre, $name) === 1;
+            foreach ($this->patterns as [$regex, $schema]) {
+                $matches = $regex->matches($name, $run);
                 if (!$matches) {
                     continue;
                 }
@@ -45,7 +44,7 @@ final readonly class PatternPropertiesKeyword implements Keyword
                     $annotations->properties[$name] = true;
                 }
                 $ip = $run->path($instanceLocation, $name);
-                $kp = $run->path($keywordLocation, 'patternProperties', $pattern);
+                $kp = $run->path($keywordLocation, 'patternProperties', $regex->pattern);
                 $matches = $schema->evaluate($member, $run, $ip, $kp, null);
                 if ($matches) {
                     continue;

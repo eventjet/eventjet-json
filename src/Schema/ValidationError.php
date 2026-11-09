@@ -43,6 +43,12 @@ final class ValidationError extends RuntimeException
         return new self(ValidationErrorKind::UnsupportedValue, [], 'The value is not JSON: ' . $reason);
     }
 
+    /** @internal */
+    public static function regexLimit(string $reason): self
+    {
+        return new self(ValidationErrorKind::RegexLimit, [], 'Could not validate the value: ' . $reason);
+    }
+
     #[Override]
     public function __toString(): string
     {

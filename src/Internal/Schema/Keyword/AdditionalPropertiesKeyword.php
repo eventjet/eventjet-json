@@ -8,18 +8,18 @@ use Eventjet\Json\Internal\Schema\Annotations;
 use Eventjet\Json\Internal\Schema\Keyword;
 use Eventjet\Json\Internal\Schema\Node;
 use Eventjet\Json\Internal\Schema\Run;
+use Eventjet\Json\Internal\Schema\SchemaRegex;
 use Override;
 use stdClass;
 
 use function array_key_exists;
-use function preg_match;
 
 /** @internal */
 final readonly class AdditionalPropertiesKeyword implements Keyword
 {
     /**
      * @param array<string, true> $properties The members that `properties` covers.
-     * @param list<non-empty-string> $patterns The PCRE patterns of `patternProperties`.
+     * @param list<SchemaRegex> $patterns The regexes of `patternProperties`.
      */
     public function __construct(
         private Node $schema,
@@ -45,8 +45,8 @@ final readonly class AdditionalPropertiesKeyword implements Keyword
             if (array_key_exists($name, $this->properties)) {
                 continue;
             }
-            foreach ($this->patterns as $pcre) {
-                $matches = preg_match($pcre, $name) === 1;
+            foreach ($this->patterns as $regex) {
+                $matches = $regex->matches($name, $run);
                 if ($matches) {
                     continue 2;
                 }

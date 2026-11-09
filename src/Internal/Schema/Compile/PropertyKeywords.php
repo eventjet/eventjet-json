@@ -12,6 +12,7 @@ use Eventjet\Json\Internal\Schema\Keyword\PatternPropertiesKeyword;
 use Eventjet\Json\Internal\Schema\Keyword\PropertiesKeyword;
 use Eventjet\Json\Internal\Schema\Keyword\PropertyNamesKeyword;
 use Eventjet\Json\Internal\Schema\Node;
+use Eventjet\Json\Internal\Schema\SchemaRegex;
 use Eventjet\Json\Schema\SchemaError;
 
 /**
@@ -65,8 +66,8 @@ final class PropertyKeywords
     }
 
     /**
-     * @return list<array{non-empty-string, string, Node}>|null The PCRE pattern, the pattern and the subschema of each
-     *     entry, or null without `patternProperties`.
+     * @return list<array{SchemaRegex, Node}>|null The regex and the subschema of each entry, or null without
+     *     `patternProperties`.
      * @throws SchemaError
      */
     private static function patternProperties(Compiler $compiler, SchemaObject $schema): array|null
@@ -80,10 +81,8 @@ final class PropertyKeywords
         /** @var mixed $subschema */
         foreach ((array) $patternProperties as $pattern => $subschema) {
             $pattern = (string) $pattern;
-            $pcre = KeywordValues::regex($pattern, $location);
             $entries[] = [
-                $pcre,
-                $pattern,
+                KeywordValues::regex($pattern, $location),
                 $compiler->child($subschema, $schema->location, 'patternProperties', $pattern),
             ];
         }
@@ -92,7 +91,7 @@ final class PropertyKeywords
 
     /**
      * @param array<array-key, Node> $properties
-     * @param list<array{non-empty-string, string, Node}> $patterns
+     * @param list<array{SchemaRegex, Node}> $patterns
      * @throws SchemaError
      */
     private static function additionalProperties(
@@ -105,10 +104,10 @@ final class PropertyKeywords
         foreach ($properties as $name => $_) {
             $names[(string) $name] = true;
         }
-        $pcres = [];
-        foreach ($patterns as [$pcre]) {
-            $pcres[] = $pcre;
+        $regexes = [];
+        foreach ($patterns as [$regex]) {
+            $regexes[] = $regex;
         }
-        return new AdditionalPropertiesKeyword($schema->subschema($compiler, 'additionalProperties'), $names, $pcres);
+        return new AdditionalPropertiesKeyword($schema->subschema($compiler, 'additionalProperties'), $names, $regexes);
     }
 }

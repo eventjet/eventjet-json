@@ -7,6 +7,7 @@ namespace Eventjet\Json\Internal\Schema\Compile;
 use Eventjet\Json\Internal\Schema\Draft;
 use Eventjet\Json\Internal\Schema\EcmaRegex;
 use Eventjet\Json\Internal\Schema\JsonKey;
+use Eventjet\Json\Internal\Schema\SchemaRegex;
 use Eventjet\Json\Schema\SchemaError;
 
 use function array_is_list;
@@ -86,11 +87,8 @@ final class KeywordValues
         throw new SchemaError(sprintf('The keyword at %s must be a Boolean.', $schema->at($keyword)));
     }
 
-    /**
-     * @return non-empty-string
-     * @throws SchemaError
-     */
-    public static function regex(string $pattern, string $location): string
+    /** @throws SchemaError */
+    public static function regex(string $pattern, string $location): SchemaRegex
     {
         $pcre = EcmaRegex::toPcre($pattern);
         if ($pcre === null) {
@@ -106,6 +104,6 @@ final class KeywordValues
                 $pattern,
             ));
         }
-        return $pcre;
+        return new SchemaRegex($pcre, $pattern, $location);
     }
 }

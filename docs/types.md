@@ -543,6 +543,12 @@ $validator = Validator::compile($schema, loader: $loader, assertFormats: true);
   UTF-8, or more than 512 levels of nesting, returns a
   `ValidationError` of kind `UnsupportedValue`, and `isValid()` returns
   `false`.
+- If PCRE gives up on a regex of `pattern` or `patternProperties`, for
+  example at its backtrack limit or its JIT stack limit, the validator can't
+  tell whether the value matches. `validateValue()` then returns a
+  `ValidationError` of kind `RegexLimit` with PCRE's reason, even inside
+  `not` or `anyOf`, and `isValid()` returns `false`. The built-in formats
+  never hit PCRE's limits, whatever the length of the value.
 - Equality for `const`, `enum`, and `uniqueItems` is JSON Schema's: `1` equals
   `1.0`, and the order of object members doesn't matter.
 - `minLength` and `maxLength` count Unicode code points.

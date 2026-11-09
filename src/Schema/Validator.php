@@ -69,6 +69,9 @@ final readonly class Validator
         }
         $run = new Run();
         $valid = $this->root->evaluate($value, $run, '', '', null);
+        if ($run->regexLimit !== null) {
+            return ValidationError::regexLimit($run->regexLimit);
+        }
         if ($valid) {
             return null;
         }

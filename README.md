@@ -374,7 +374,9 @@ that lists every failure with where it is in the value, which keyword failed,
 and a message. `isValid()` returns whether the value is valid. Both read
 values the way `json_encode()` writes them, so `json_decode()` output, arrays,
 `stdClass`, `JsonSerializable` objects, and backed enums all work. A value
-that `json_encode()` can't write returns an `UnsupportedValue` error.
+that `json_encode()` can't write returns an `UnsupportedValue` error. If PCRE
+gives up on a `pattern` or `patternProperties` regex, for example at its
+backtrack limit, the result is a `RegexLimit` error.
 
 The validator passes every required and optional test of the official
 [JSON Schema Test Suite](https://github.com/json-schema-org/JSON-Schema-Test-Suite)

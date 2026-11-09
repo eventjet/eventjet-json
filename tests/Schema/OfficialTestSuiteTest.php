@@ -54,8 +54,11 @@ use const JSON_UNESCAPED_UNICODE;
 #[CoversClass(\Eventjet\Json\Internal\Schema\Format\IdnHosts::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\Format\IdnaContext::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\Format\IpAddresses::class)]
-#[CoversClass(\Eventjet\Json\Internal\Schema\Format\UriPattern::class)]
-#[CoversClass(\Eventjet\Json\Internal\Schema\Format\Uris::class)]
+#[CoversClass(\Eventjet\Json\Internal\Schema\Format\JsonPointers::class)]
+#[CoversClass(\Eventjet\Json\Internal\Schema\Format\Units::class)]
+#[CoversClass(\Eventjet\Json\Internal\Schema\Format\UriAuthority::class)]
+#[CoversClass(\Eventjet\Json\Internal\Schema\Format\UriSyntax::class)]
+#[CoversClass(\Eventjet\Json\Internal\Schema\Format\UriTemplates::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\Formats::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\JsonKey::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\Keyword\AdditionalPropertiesKeyword::class)]
@@ -109,6 +112,7 @@ use const JSON_UNESCAPED_UNICODE;
 #[CoversClass(\Eventjet\Json\Internal\Schema\Resource::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\Run::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\SchemaIndex::class)]
+#[CoversClass(\Eventjet\Json\Internal\Schema\SchemaRegex::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\SchemaTree::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\Subschemas::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\Uri::class)]
@@ -203,7 +207,8 @@ final class OfficialTestSuiteTest extends TestCase
 
     /**
      * Besides the validity, checks the laws that every failure obeys: see {@see KeywordLocationLaw},
-     * {@see ApplicatorFailureLaw}, {@see SchemaRewrites} and {@see ApplicatorWrapping}.
+     * {@see ApplicatorFailureLaw}, {@see SchemaRewrites} and {@see ApplicatorWrapping}. It also checks the laws for
+     * PCRE's limits: see {@see RegexLimitLaw} and {@see RepetitionLaw}.
      *
      * @param class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012> $class
      * @param array{assertFormats?: true} $options
@@ -239,6 +244,8 @@ final class OfficialTestSuiteTest extends TestCase
             KeywordLocationLaw::assertHolds($document, $failure);
             ApplicatorFailureLaw::assertHolds($document, $failure, $failures);
         }
+        RegexLimitLaw::assertHolds($schemaJson, $document, $validator, $value, $valid);
+        RepetitionLaw::assertHolds($document, $validator, $value, $error);
         self::assertRewritesKeepTheFailures($schemaJson, $class, $value, $options, $failures);
     }
 
