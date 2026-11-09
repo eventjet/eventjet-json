@@ -58,7 +58,7 @@ final class JsonSchema
             return new DecodeError(
                 DecodeErrorKind::InvalidJson,
                 'Invalid JSON: ' . $exception->getMessage(),
-                $exception,
+                previous: $exception,
             );
         }
         if (is_bool($data)) {
