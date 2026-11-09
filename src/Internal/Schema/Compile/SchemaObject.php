@@ -60,40 +60,40 @@ final readonly class SchemaObject
     }
 
     /**
-     * Returns the value of a keyword if it is a string.
+     * Returns the value of a keyword that must be a string, or null if it is missing.
      *
-     * @mutation-free
+     * @throws SchemaError If the value isn't a string.
      */
     public function string(string $keyword): string|null
     {
         /** @var mixed $value */
-        $value = $this->members[$keyword] ?? null;
-        return is_string($value) ? $value : null;
+        $value = $this->get($keyword);
+        return is_string($value) ? $value : $this->missing($keyword, 'a string');
     }
 
     /**
-     * Returns the value of a keyword if it is an array.
+     * Returns the value of a keyword that must be an array, or null if it is missing.
      *
      * @return array<array-key, mixed>|null
-     * @mutation-free
+     * @throws SchemaError If the value isn't an array.
      */
     public function array(string $keyword): array|null
     {
         /** @var mixed $value */
-        $value = $this->members[$keyword] ?? null;
-        return is_array($value) ? $value : null;
+        $value = $this->get($keyword);
+        return is_array($value) ? $value : $this->missing($keyword, 'an array');
     }
 
     /**
-     * Returns the value of a keyword if it is an object.
+     * Returns the value of a keyword that must be an object, or null if it is missing.
      *
-     * @mutation-free
+     * @throws SchemaError If the value isn't an object.
      */
     public function object(string $keyword): stdClass|null
     {
         /** @var mixed $value */
-        $value = $this->members[$keyword] ?? null;
-        return $value instanceof stdClass ? $value : null;
+        $value = $this->get($keyword);
+        return $value instanceof stdClass ? $value : $this->missing($keyword, 'an object');
     }
 
     /** Returns the absolute location of a keyword of the schema, for messages. */
@@ -131,5 +131,18 @@ final readonly class SchemaObject
             $nodes[] = $compiler->child($subschema, $this->location, $keyword, (string) $index);
         }
         return $nodes;
+    }
+
+    /**
+     * Returns null for a keyword whose value doesn't have the type that the caller reads.
+     *
+     * @throws SchemaError If the keyword is present.
+     */
+    private function missing(string $keyword, string $type): null
+    {
+        if ($this->has($keyword)) {
+            throw new SchemaError(sprintf('The keyword at %s must be %s.', $this->at($keyword), $type));
+        }
+        return null;
     }
 }

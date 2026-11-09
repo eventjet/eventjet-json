@@ -8,6 +8,7 @@ use ArrayObject;
 use Closure;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
+use Eventjet\Json\JsonValue;
 use Eventjet\Json\Schema\Draft201909;
 use Eventjet\Json\Schema\Draft202012;
 use Eventjet\Json\Schema\Draft4;
@@ -15,6 +16,7 @@ use Eventjet\Json\Schema\Draft6;
 use Eventjet\Json\Schema\Draft7;
 use Eventjet\Json\Schema\Type;
 use Eventjet\Json\Test\Acceptance\Fixtures\FailingSerializer;
+use InvalidArgumentException;
 
 use const INF;
 use const NAN;
@@ -52,6 +54,7 @@ final class ValidatorErrorCases
     /**
      * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{Draft4|Draft6|Draft7|Draft201909|Draft202012|bool, (Closure(string): mixed)|null, string, DecodeError|null}>
+     * @throws InvalidArgumentException
      */
     public static function schemaErrors(): iterable
     {
@@ -205,6 +208,24 @@ final class ValidatorErrorCases
             'The meta-schema https://example.com/b requires the unknown vocabulary https://example.com/vocab.',
             null,
         ];
+        foreach (self::wrongTypes() as $name => [$schema, $keyword, $expected]) {
+            yield $name => [$schema, null, 'The keyword at #/x/' . $keyword . ' must be ' . $expected . '.', null];
+        }
+        /** @var ArrayObject<array-key, bool> $formatAssertion */
+        $formatAssertion = new ArrayObject([
+            'https://json-schema.org/draft/2020-12/vocab/core' => true,
+            'https://json-schema.org/draft/2020-12/vocab/format-assertion' => true,
+        ]);
+        yield 'format that is not a string, where formats assert' => [
+            new Draft202012(
+                schema: 'https://example.com/meta',
+                ref: '#/x',
+                unknownKeywords: ['x' => new JsonValue((object) ['format' => 1])],
+            ),
+            static fn(): Draft202012 => new Draft202012(vocabulary: $formatAssertion),
+            'The keyword at #/x/format must be a string.',
+            null,
+        ];
         $decodeError = new DecodeError(DecodeErrorKind::InvalidJson, 'Invalid JSON: Syntax error');
         yield 'document the loader cannot decode' => [
             new Draft202012(ref: 'https://example.com/broken'),
@@ -212,6 +233,134 @@ final class ValidatorErrorCases
             'Could not load https://example.com/broken: Invalid JSON: Syntax error',
             $decodeError,
         ];
+    }
+
+    /**
+     * Keyword values of the wrong JSON type, with the keyword and the type it needs. Only a reference into an unknown
+     * keyword can reach them, because the draft classes type the keywords they know.
+     *
+     * @return iterable<string, array{Draft4|Draft7|Draft201909|Draft202012, string, string}>
+     * @throws InvalidArgumentException
+     */
+    private static function wrongTypes(): iterable
+    {
+        $object = (object) [];
+        yield 'required that is a string' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('required', 'a')),
+            'required',
+            'an array of strings',
+        ];
+        yield 'required that is an object' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('required', $object)),
+            'required',
+            'an array of strings',
+        ];
+        yield 'dependentRequired that is a string' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('dependentRequired', 'a')),
+            'dependentRequired',
+            'an object',
+        ];
+        yield 'enum that is an object' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('enum', $object)),
+            'enum',
+            'an array',
+        ];
+        yield 'pattern that is a number' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('pattern', 1)),
+            'pattern',
+            'a string',
+        ];
+        yield 'uniqueItems that is a string' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('uniqueItems', 'a')),
+            'uniqueItems',
+            'a Boolean',
+        ];
+        yield 'properties that is an array' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('properties', [])),
+            'properties',
+            'an object',
+        ];
+        yield 'patternProperties that is a string' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('patternProperties', 'a')),
+            'patternProperties',
+            'an object',
+        ];
+        yield 'dependentSchemas that is a string' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('dependentSchemas', 'a')),
+            'dependentSchemas',
+            'an object',
+        ];
+        yield '$ref that is a number' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('$ref', 1)),
+            '$ref',
+            'a string',
+        ];
+        yield '$dynamicRef that is a number' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('$dynamicRef', 1)),
+            '$dynamicRef',
+            'a string',
+        ];
+        yield '$recursiveRef that is a number' => [
+            new Draft201909(ref: '#/x', unknownKeywords: self::x('$recursiveRef', 1)),
+            '$recursiveRef',
+            'a string',
+        ];
+        yield 'multipleOf that is null' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('multipleOf', null)),
+            'multipleOf',
+            'a number greater than 0',
+        ];
+        yield 'maximum that is null' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('maximum', null)),
+            'maximum',
+            'a number',
+        ];
+        yield 'exclusiveMaximum that is a Boolean after Draft 4' => [
+            new Draft202012(ref: '#/x', unknownKeywords: self::x('exclusiveMaximum', true)),
+            'exclusiveMaximum',
+            'a number',
+        ];
+        yield 'dependencies that is a string' => [
+            new Draft7(ref: '#/x', unknownKeywords: self::x('dependencies', 'a')),
+            'dependencies',
+            'an object',
+        ];
+        yield 'contentEncoding that is a number' => [
+            new Draft7(ref: '#/x', unknownKeywords: self::x('contentEncoding', 1)),
+            'contentEncoding',
+            'a string',
+        ];
+        yield 'contentMediaType that is a number' => [
+            new Draft7(ref: '#/x', unknownKeywords: self::x('contentMediaType', 1)),
+            'contentMediaType',
+            'a string',
+        ];
+        yield '$ref that is a number before Draft 2019-09' => [
+            new Draft7(ref: '#/x', unknownKeywords: self::x('$ref', 1)),
+            '$ref',
+            'a string',
+        ];
+        yield 'exclusiveMinimum that is a string in Draft 4' => [
+            new Draft4(ref: '#/x', unknownKeywords: self::x('exclusiveMinimum', 'a')),
+            'exclusiveMinimum',
+            'a Boolean',
+        ];
+        yield 'minimum that is a Boolean in Draft 4' => [
+            new Draft4(ref: '#/x', unknownKeywords: self::x('minimum', true)),
+            'minimum',
+            'a number',
+        ];
+    }
+
+    /**
+     * Returns the unknown keyword `x`, which holds a subschema with one keyword.
+     *
+     * @return array<string, JsonValue>
+     * @throws InvalidArgumentException
+     */
+    private static function x(string $keyword, mixed $value): array
+    {
+        return ['x' => new JsonValue((object) [$keyword => $value])];
     }
 
     /**

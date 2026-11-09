@@ -564,6 +564,10 @@ to guess:
 - a keyword value that the spec forbids, such as a negative `minLength` or a
   `multipleOf` of 0 or less. From Draft 6 on, whole floats such as `2.0` are
   fine for counts.
+- a keyword value of the wrong JSON type, such as `"required": "name"`, for
+  every keyword that the validator reads. The draft classes type the
+  keywords they know, so only a `$ref` into an unknown keyword can reach
+  such a value.
 - a `$ref` loop that never moves into the value, such as `{"$ref": "#"}`
 - a format that needs the intl extension, with format checking on, but
   without the extension

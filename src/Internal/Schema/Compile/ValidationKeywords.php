@@ -47,7 +47,8 @@ final class ValidationKeywords
             $location = $schema->at('pattern');
             $keywords[] = new PatternKeyword(KeywordValues::regex($pattern, $location), $pattern, $location);
         }
-        if ($schema->get('uniqueItems') === true) {
+        $uniqueItems = KeywordValues::boolean($schema, 'uniqueItems');
+        if ($uniqueItems === true) {
             $keywords[] = new UniqueItemsKeyword($schema->at('uniqueItems'));
         }
         return [...$keywords, ...self::objectKeywords($schema)];
@@ -60,10 +61,12 @@ final class ValidationKeywords
     private static function objectKeywords(SchemaObject $schema): array
     {
         $keywords = [];
-        $required = $schema->array('required');
-        if ($required !== null && $required !== []) {
+        if ($schema->has('required')) {
             $location = $schema->at('required');
-            $keywords[] = new RequiredKeyword(KeywordValues::strings($required, $location), $location);
+            $required = KeywordValues::strings($schema->get('required'), $location);
+            if ($required !== []) {
+                $keywords[] = new RequiredKeyword($required, $location);
+            }
         }
         $dependentRequired = $schema->draft->atLeast(Draft::Draft201909) ? $schema->object('dependentRequired') : null;
         if ($dependentRequired !== null) {

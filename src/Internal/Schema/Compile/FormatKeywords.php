@@ -36,8 +36,8 @@ final class FormatKeywords
         if ($schema->draft !== Draft::Draft7) {
             return $keywords;
         }
-        $base64 = $schema->get('contentEncoding') === 'base64';
-        $json = $schema->get('contentMediaType') === 'application/json';
+        $base64 = $schema->string('contentEncoding') === 'base64';
+        $json = $schema->string('contentMediaType') === 'application/json';
         if ($base64 || $json) {
             $keywords[] = new ContentKeyword(
                 $base64,

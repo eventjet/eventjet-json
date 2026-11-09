@@ -12,6 +12,7 @@ use Eventjet\Json\Internal\Schema\Keyword\TypeKeyword;
 use Eventjet\Json\Schema\SchemaError;
 
 use function in_array;
+use function is_array;
 use function is_string;
 use function sprintf;
 
@@ -56,8 +57,10 @@ final class AnyTypeKeywords
     private static function types(SchemaObject $schema): array
     {
         $types = [];
+        /** @var mixed $value */
+        $value = $schema->get('type');
         /** @var mixed $type */
-        foreach ($schema->array('type') ?? [$schema->get('type')] as $type) {
+        foreach (is_array($value) ? $value : [$value] as $type) {
             if (!is_string($type) || !in_array($type, self::TYPES, strict: true)) {
                 throw new SchemaError(sprintf('The keyword at %s names an unknown type.', $schema->at('type')));
             }

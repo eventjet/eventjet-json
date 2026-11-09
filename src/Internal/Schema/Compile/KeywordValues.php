@@ -11,6 +11,7 @@ use Eventjet\Json\Schema\SchemaError;
 
 use function array_is_list;
 use function is_array;
+use function is_bool;
 use function is_float;
 use function is_int;
 use function is_string;
@@ -65,6 +66,24 @@ final class KeywordValues
             return $value;
         }
         throw new SchemaError(sprintf('The keyword at %s must be a non-negative integer.', $schema->at($keyword)));
+    }
+
+    /**
+     * Returns the Boolean that a keyword holds, or null if it is missing.
+     *
+     * @throws SchemaError
+     */
+    public static function boolean(SchemaObject $schema, string $keyword): bool|null
+    {
+        if (!$schema->has($keyword)) {
+            return null;
+        }
+        /** @var mixed $value */
+        $value = $schema->get($keyword);
+        if (is_bool($value)) {
+            return $value;
+        }
+        throw new SchemaError(sprintf('The keyword at %s must be a Boolean.', $schema->at($keyword)));
     }
 
     /**

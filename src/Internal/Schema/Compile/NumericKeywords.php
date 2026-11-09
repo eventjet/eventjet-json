@@ -10,7 +10,6 @@ use Eventjet\Json\Internal\Schema\Keyword\MultipleOfKeyword;
 use Eventjet\Json\Internal\Schema\Keyword\NumberLimitKeyword;
 use Eventjet\Json\Schema\SchemaError;
 
-use function is_bool;
 use function is_float;
 use function is_int;
 use function sprintf;
@@ -29,9 +28,9 @@ final class NumericKeywords
     public static function compile(SchemaObject $schema): array
     {
         $keywords = [];
-        /** @var mixed $divisor */
-        $divisor = $schema->get('multipleOf');
-        if ($divisor !== null) {
+        if ($schema->has('multipleOf')) {
+            /** @var mixed $divisor */
+            $divisor = $schema->get('multipleOf');
             if (!is_int($divisor) && !is_float($divisor) || $divisor <= 0) {
                 throw new SchemaError(sprintf(
                     'The keyword at %s must be a number greater than 0.',
@@ -57,7 +56,7 @@ final class NumericKeywords
     {
         $limit = self::number($schema, $name);
         if ($schema->draft === Draft::Draft4) {
-            $exclusive = $schema->get($exclusiveName) === true;
+            $exclusive = KeywordValues::boolean($schema, $exclusiveName) === true;
             return (
                 $limit === null
                     ? []
@@ -88,18 +87,17 @@ final class NumericKeywords
     }
 
     /**
-     * Returns the number that a keyword holds, or null if it is missing. A Boolean counts as missing, for the
-     * `exclusiveMaximum` and `exclusiveMinimum` of Draft 4.
+     * Returns the number that a keyword holds, or null if it is missing.
      *
      * @throws SchemaError
      */
     private static function number(SchemaObject $schema, string $keyword): int|float|null
     {
-        /** @var mixed $value */
-        $value = $schema->get($keyword);
-        if ($value === null || is_bool($value)) {
+        if (!$schema->has($keyword)) {
             return null;
         }
+        /** @var mixed $value */
+        $value = $schema->get($keyword);
         if (!is_int($value) && !is_float($value)) {
             throw new SchemaError(sprintf('The keyword at %s must be a number.', $schema->at($keyword)));
         }
