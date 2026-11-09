@@ -371,8 +371,8 @@ echo $validator->validateValue(['age' => 36]);      // (root): The member "name"
 
 `validateValue()` returns `null` for a valid value, or a `ValidationError`
 that lists every failure with where it is in the value, which keyword failed,
-and a message. `isValid()` stops at the first failure. Both read values the
-way `json_encode()` writes them, so `json_decode()` output, arrays,
+and a message. `isValid()` returns whether the value is valid. Both read
+values the way `json_encode()` writes them, so `json_decode()` output, arrays,
 `stdClass`, `JsonSerializable` objects, and backed enums all work. A value
 that `json_encode()` can't write returns an `UnsupportedValue` error.
 

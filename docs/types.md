@@ -534,8 +534,8 @@ $validator = Validator::compile($schema, loader: $loader, assertFormats: true);
   (the path through references), the `absoluteKeywordLocation` (a URI), and an
   English `message`, like the entries of the "basic" output format. Its
   message lists every failure, one per line.
-- `isValid($value)` returns a Boolean and stops at the first failure. It is
-  `true` exactly when `validateValue()` returns `null`.
+- `isValid($value)` returns a Boolean. It is `true` exactly when
+  `validateValue()` returns `null`.
 - Values are read the way `json_encode()` writes them: lists are arrays, other
   arrays and `stdClass` and `ArrayObject` are objects, `JsonSerializable`
   objects count as what `jsonSerialize()` returns, and backed enums as their
