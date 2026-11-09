@@ -10,6 +10,7 @@ use Eventjet\Json\Internal\Schema\Node;
 use Eventjet\Json\Internal\Schema\Run;
 use Override;
 
+use function array_slice;
 use function is_array;
 
 /** `items` with one schema, `additionalItems`, and `items` after `prefixItems`. @internal */
@@ -35,10 +36,7 @@ final readonly class ItemsKeyword implements Keyword
         $valid = true;
         $kp = $keywordLocation . '/' . $this->name;
         /** @var mixed $item */
-        foreach ($value as $index => $item) {
-            if ($index < $this->start) {
-                continue;
-            }
+        foreach (array_slice($value, $this->start, preserve_keys: true) as $index => $item) {
             $ip = $run->path($instanceLocation, $index);
             $matches = $this->schema->evaluate($item, $run, $ip, $kp, null);
             if ($matches) {
