@@ -11,11 +11,24 @@ use Eventjet\Json\Schema\Draft4;
 use Eventjet\Json\Schema\Draft6;
 use Eventjet\Json\Schema\Draft7;
 use Eventjet\Json\Schema\JsonSchema;
+use Eventjet\Json\Schema\ValidationError;
+use Eventjet\Json\Schema\ValidationFailure;
 use Eventjet\Json\Schema\Validator;
+use InvalidArgumentException;
+use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+
+use function json_decode;
+use function json_encode;
+use function sort;
+
+use const JSON_PRESERVE_ZERO_FRACTION;
+use const JSON_THROW_ON_ERROR;
+use const JSON_UNESCAPED_SLASHES;
+use const JSON_UNESCAPED_UNICODE;
 
 #[CoversClass(\Eventjet\Json\Internal\Schema\Anchors::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\Annotations::class)]
@@ -178,10 +191,26 @@ use PHPUnit\Framework\TestCase;
 final class OfficialTestSuiteTest extends TestCase
 {
     /**
+     * The compiled rewrites of the schema of the last case, by their document. The cases of a group share the schema,
+     * so this saves compiling the same rewrites for each of them.
+     *
+     * @var array<string, Validator>
+     */
+    private static array $validators = [];
+
+    /** @var array{string, string, array{assertFormats?: true}}|null The schema, class and options of the cache. */
+    private static array|null $validatorsFor = null;
+
+    /**
+     * Besides the validity, checks the laws that every failure obeys: see {@see KeywordLocationLaw},
+     * {@see ApplicatorFailureLaw}, {@see SchemaRewrites} and {@see ApplicatorWrapping}.
+     *
      * @param class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012> $class
      * @param array{assertFormats?: true} $options
      * @throws \PHPUnit\Framework\Exception
      * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
+     * @throws InvalidArgumentException
+     * @throws JsonException
      */
     #[DataProviderExternal(OfficialSuiteCases::class, 'cases')]
     #[DataProviderExternal(OfficialSuiteCases::class, 'regressions')]
@@ -202,5 +231,99 @@ final class OfficialTestSuiteTest extends TestCase
         $error = $validator->validateValue($value);
         static::assertSame($valid, $error === null, (string) $error);
         static::assertSame($valid, $validator->isValid($value));
+
+        $failures = $error->failures ?? [];
+        /** @var mixed $document */
+        $document = json_decode($schemaJson, flags: JSON_THROW_ON_ERROR);
+        foreach ($failures as $failure) {
+            KeywordLocationLaw::assertHolds($document, $failure);
+            ApplicatorFailureLaw::assertHolds($document, $failure, $failures);
+        }
+        self::assertRewritesKeepTheFailures($schemaJson, $class, $value, $options, $failures);
+    }
+
+    /**
+     * Reversing the parts of the schema whose order has no meaning, or wrapping the schema in an applicator, changes the
+     * failures only as expected.
+     *
+     * @param class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012> $class
+     * @param array{assertFormats?: true} $options
+     * @param list<ValidationFailure> $failures The failures of the value against the schema.
+     * @throws \PHPUnit\Framework\Exception
+     * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
+     * @throws JsonException
+     */
+    private static function assertRewritesKeepTheFailures(
+        string $schemaJson,
+        string $class,
+        mixed $value,
+        array $options,
+        array $failures,
+    ): void {
+        if (self::$validatorsFor !== [$schemaJson, $class, $options]) {
+            self::$validators = [];
+            self::$validatorsFor = [$schemaJson, $class, $options];
+        }
+        $reversed = self::encode(SchemaRewrites::reverse(json_decode($schemaJson, flags: JSON_THROW_ON_ERROR)));
+        $error = self::validate($reversed, $class, $value, $options);
+        static::assertSame(self::rows($failures), self::rows($error->failures ?? []), 'reversed');
+
+        foreach (ApplicatorWrappings::of($schemaJson, $value, $class) as $name => $wrapping) {
+            $error = self::validate(self::encode($wrapping->schema), $class, $wrapping->value, $options);
+            static::assertSame(self::rows($wrapping->failures($failures)), self::rows($error->failures ?? []), $name);
+        }
+    }
+
+    /**
+     * @param class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012> $class
+     * @param array{assertFormats?: true} $options
+     * @throws \PHPUnit\Framework\Exception
+     * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
+     */
+    private static function validate(
+        string $schemaJson,
+        string $class,
+        mixed $value,
+        array $options,
+    ): ValidationError|null {
+        $validator = self::$validators[$schemaJson] ?? null;
+        if ($validator === null) {
+            $loader = OfficialSuiteRemotes::loader($class);
+            $schema = JsonSchema::decode($schemaJson, $class, loader: $loader);
+            static::assertNotInstanceOf(DecodeError::class, $schema);
+            $validator = Validator::compile($schema, ...['loader' => $loader, ...$options]);
+            static::assertInstanceOf(Validator::class, $validator);
+            self::$validators[$schemaJson] = $validator;
+        }
+        return $validator->validateValue($value);
+    }
+
+    /** @throws JsonException */
+    private static function encode(mixed $json): string
+    {
+        return json_encode(
+            $json,
+            JSON_PRESERVE_ZERO_FRACTION | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR,
+        );
+    }
+
+    /**
+     * @param list<ValidationFailure> $failures
+     * @return list<string> The failures in a form that `assertSame` compares regardless of their order.
+     * @throws JsonException
+     */
+    private static function rows(array $failures): array
+    {
+        $rows = [];
+        foreach ($failures as $failure) {
+            $rows[] = self::encode([
+                $failure->instanceLocation,
+                $failure->keywordLocation,
+                $failure->absoluteKeywordLocation,
+                $failure->message,
+            ]);
+        }
+        sort($rows);
+        return $rows;
     }
 }
