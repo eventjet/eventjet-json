@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Node;
 
 use Eventjet\Json\DecodeError;
+use Eventjet\Json\Internal\Error\InvalidNumber;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\FieldTypeNameResolver;
 use JsonException;
@@ -49,8 +50,17 @@ final readonly class ScalarNode implements Node
         if (!$matches) {
             throw InvalidValue::typeMismatch($this->expected, $value);
         }
+        if ($this->name === 'float') {
+            if (is_int($value)) {
+                return (float) $value;
+            }
+            // A float is finite exactly when subtracting it from itself gives 0.0, which is cheaper than is_finite().
+            if (is_float($value) && ($value - $value) !== 0.0) {
+                throw InvalidNumber::nonFinite($value);
+            }
+        }
         /** @var array<array-key, mixed>|bool|float|int|object|string|null $value */
-        return $this->name === 'float' && is_int($value) ? (float) $value : $value;
+        return $value;
     }
 
     /**
@@ -88,6 +98,11 @@ final readonly class ScalarNode implements Node
         /** @var mixed $value */
         foreach ($values as $key => $value) {
             if (is_float($value)) {
+                // A float is finite exactly when subtracting it from itself gives 0.0, which is cheaper than
+                // is_finite().
+                if (($value - $value) !== 0.0) {
+                    throw InvalidNumber::nonFinite($value)->inItem($key);
+                }
                 continue;
             }
             if (!is_int($value)) {
