@@ -31,7 +31,7 @@ final class Hosts
             if (!$reserved) {
                 continue;
             }
-            $valid = preg_match('/^xn--/i', $label) === 1 && IdnHosts::hostname($label);
+            $valid = IdnHosts::hostname($label);
             if (!$valid) {
                 return false;
             }

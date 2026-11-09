@@ -6,16 +6,12 @@ namespace Eventjet\Json\Internal\Schema;
 
 use stdClass;
 
-use function floor;
+use function array_map;
+use function fmod;
 use function is_array;
-use function is_bool;
-use function is_finite;
 use function is_float;
-use function is_int;
-use function is_string;
 use function ksort;
-use function strlen;
-use function var_export;
+use function serialize;
 
 use const SORT_STRING;
 
@@ -32,7 +28,7 @@ final class JsonKey
     /** @mutation-free */
     public static function isIntegral(float $value): bool
     {
-        return is_finite($value) && floor($value) === $value;
+        return fmod($value, num2: 1.0) === 0.0;
     }
 
     /**
@@ -47,45 +43,29 @@ final class JsonKey
 
     public static function of(mixed $value): string
     {
-        if ($value === null) {
-            return 'n';
-        }
-        if (is_bool($value)) {
-            return $value ? 't' : 'f';
-        }
-        if (is_int($value)) {
-            return 'i' . $value;
-        }
-        if (is_float($value)) {
-            if (self::isIntegral($value) && self::fitsInt($value)) {
-                return 'i' . (int) $value;
-            }
-            return 'd' . var_export($value, return: true);
-        }
-        if (is_string($value)) {
-            return 's' . $value;
-        }
-        if (is_array($value)) {
-            $key = 'a[';
-            /** @var mixed $item */
-            foreach ($value as $item) {
-                $itemKey = self::of($item);
-                $key .= strlen($itemKey) . $itemKey;
-            }
-            return $key;
-        }
-        $members = [];
-        if ($value instanceof stdClass) {
-            /** @var mixed $member */
-            foreach ((array) $value as $name => $member) {
-                $members[$name] = self::of($member);
-            }
-        }
+        return serialize(self::canonical($value));
+    }
+
+    /** Turns integral floats into integers and sorts the members of objects, recursively. */
+    private static function canonical(mixed $value): mixed
+    {
+        return match (true) {
+            is_float($value) => self::canonicalNumber($value),
+            is_array($value) => array_map(self::canonical(...), $value),
+            $value instanceof stdClass => self::canonicalObject($value),
+            default => $value,
+        };
+    }
+
+    private static function canonicalNumber(float $value): int|float
+    {
+        return self::isIntegral($value) && self::fitsInt($value) ? (int) $value : $value;
+    }
+
+    private static function canonicalObject(stdClass $object): object
+    {
+        $members = array_map(self::canonical(...), (array) $object);
         ksort($members, SORT_STRING);
-        $key = 'o{';
-        foreach ($members as $name => $memberKey) {
-            $key .= strlen((string) $name) . ':' . $name . strlen($memberKey) . $memberKey;
-        }
-        return $key;
+        return (object) $members;
     }
 }

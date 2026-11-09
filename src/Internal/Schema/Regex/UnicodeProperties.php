@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Schema\Regex;
 
 use function in_array;
-use function preg_match;
 use function strpos;
 use function substr;
 
@@ -560,10 +559,6 @@ final class UnicodeProperties
     /** Returns the PCRE name of a property, or null if ECMA-262 doesn't know it. */
     public static function resolve(string $name): string|null
     {
-        $valid = preg_match('/^[A-Za-z0-9_]+(=[A-Za-z0-9_]+)?$/', $name) === 1;
-        if (!$valid) {
-            return null;
-        }
         $equals = strpos($name, needle: '=');
         if ($equals === false) {
             return self::LONE_NAMES[$name] ?? null;
@@ -578,7 +573,8 @@ final class UnicodeProperties
         }
         return match ($property) {
             'Script', 'sc' => 'sc:' . $value,
-            'Script_Extensions', 'scx' => 'scx:' . $value,
+            // PCRE2 matches a bare script name against Script_Extensions.
+            'Script_Extensions', 'scx' => $value,
             default => null,
         };
     }

@@ -21,9 +21,6 @@ final class Resource
 
     public Node|null $rootNode = null;
 
-    /** Whether the compiler has compiled the dynamic anchors and the root of this resource. */
-    public bool $prepared = false;
-
     public function __construct(
         public readonly string $uri,
         public readonly Draft $draft,

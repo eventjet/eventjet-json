@@ -61,8 +61,8 @@ final class ReferenceKeywords
     /** @throws SchemaError */
     private static function dynamicRef(Compiler $compiler, SchemaObject $schema, string $reference): Keyword
     {
-        [$target, $isDynamic, $fragment] = $compiler->resolve($reference, $schema->location);
-        if ($isDynamic && $fragment !== null) {
+        [$target, $fragment] = $compiler->resolve($reference, $schema->location);
+        if ($fragment !== null && $compiler->namesDynamicAnchor($target, $fragment)) {
             return new DynamicRefKeyword($target, $fragment);
         }
         return new RefKeyword('$dynamicRef', $target);

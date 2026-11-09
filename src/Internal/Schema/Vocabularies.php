@@ -46,13 +46,6 @@ final class Vocabularies
         if (!is_string($metaSchema) || $parent !== null && !$draft->atLeast(Draft::Draft201909)) {
             return $parent->vocabulary ?? Vocabulary::all($this->assertFormats);
         }
-        $official = Draft::ofMetaSchema($metaSchema);
-        if ($official !== null) {
-            if ($official !== $draft) {
-                throw self::draftMismatch($metaSchema, $official, $draft);
-            }
-            return Vocabulary::all($this->assertFormats);
-        }
         [$metaRoot, $metaDraft] = $this->metaSchema(Uri::withoutFragment($metaSchema));
         if ($metaDraft !== $draft) {
             throw self::draftMismatch($metaSchema, $metaDraft, $draft);

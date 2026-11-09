@@ -48,9 +48,6 @@ final readonly class CharacterClass
     private function item(): string|null
     {
         $start = $this->atom->read();
-        if ($start === null) {
-            return null;
-        }
         $next = $this->cursor->peek(offset: 1);
         $range = match ($next) {
             ']' => false,

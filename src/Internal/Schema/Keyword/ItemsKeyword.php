@@ -45,9 +45,6 @@ final readonly class ItemsKeyword implements Keyword
                 continue;
             }
             $valid = false;
-            if (!$run->collect) {
-                return false;
-            }
         }
         if ($annotations !== null) {
             $annotations->allItems = true;

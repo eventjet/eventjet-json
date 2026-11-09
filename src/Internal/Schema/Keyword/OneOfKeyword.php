@@ -38,16 +38,12 @@ final readonly class OneOfKeyword implements Keyword
                 continue;
             }
             $matches++;
-            if ($matches > 1 && !$run->collect) {
-                break;
-            }
+        }
+        if ($matches !== 0) {
+            $run->rollBack($mark);
         }
         if ($matches === 1) {
-            $run->rollBack($mark);
             return true;
-        }
-        if ($matches > 1) {
-            $run->rollBack($mark);
         }
         return $run->fail(
             $instanceLocation,

@@ -16,10 +16,11 @@ final class IdnaContext
 {
     private const string PVALID = '\p{Ll}\p{Lo}\p{Nd}\p{Lm}\p{Mn}\p{Mc}\-\x{00DF}\x{03C2}\x{06FD}\x{06FE}\x{0F0B}\x{3007}';
     private const string CONTEXTUAL = '\x{200C}\x{200D}\x{00B7}\x{0375}\x{05F3}\x{05F4}\x{30FB}';
+    private const string ALLOWED = self::PVALID . self::CONTEXTUAL;
 
     public static function allows(string $label): bool
     {
-        $permitted = preg_match('/^[' . self::PVALID . self::CONTEXTUAL . ']*$/uD', $label) === 1;
+        $permitted = preg_match('/^[' . self::ALLOWED . ']*$/uD', $label) === 1;
         $disallowed = preg_match('/[\x{0640}\x{07FA}\x{302E}\x{302F}\x{3031}-\x{3035}\x{303B}]/u', $label) === 1;
         if (!$permitted || $disallowed) {
             return false;

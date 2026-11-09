@@ -45,9 +45,7 @@ final class CodePoints
         $complement = [];
         $next = 0;
         foreach ($ranges as [$from, $to]) {
-            if ($from > $next) {
-                $complement[] = [$next, $from - 1];
-            }
+            $complement[] = [$next, $from - 1];
             $next = $to + 1;
         }
         $complement[] = [$next, 0x10_FFFF];
@@ -66,7 +64,8 @@ final class CodePoints
         if ($bytes === 1) {
             return $first;
         }
-        $codePoint = $first & (0xFF >> ($bytes + 1));
+        // Subtracts the length prefix (110, 1110 or 11110) from the lead byte.
+        $codePoint = $first - (0x100 - (1 << (8 - $bytes)));
         for ($i = 1; $i < $bytes; $i++) {
             $codePoint = ($codePoint << 6) | (ord($char[$i]) & 0x3F);
         }

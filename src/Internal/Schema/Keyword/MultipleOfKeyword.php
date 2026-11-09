@@ -10,6 +10,7 @@ use Eventjet\Json\Internal\Schema\Run;
 use Override;
 
 use function abs;
+use function fdiv;
 use function floor;
 use function fmod;
 use function is_finite;
@@ -57,7 +58,7 @@ final readonly class MultipleOfKeyword implements Keyword
         if (floor($value) === (float) $value && floor($this->divisor) === (float) $this->divisor) {
             return fmod((float) $value, (float) $this->divisor) === 0.0;
         }
-        $quotient = (float) $value / (float) $this->divisor;
+        $quotient = fdiv($value, $this->divisor);
         if (!is_finite($quotient)) {
             return fmod((float) $value, (float) $this->divisor) === 0.0;
         }

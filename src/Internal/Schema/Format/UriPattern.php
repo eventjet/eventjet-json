@@ -24,6 +24,10 @@ final readonly class UriPattern
     public const string IPRIVATE = '|[\x{E000}-\x{F8FF}]|[\x{F0000}-\x{FFFFD}]|[\x{100000}-\x{10FFFD}]';
     private const string UNRESERVED = 'A-Za-z0-9\-._\~';
     private const string SUB_DELIMS = '!$&\'()*+,;=';
+    private const string PCHAR = self::UNRESERVED . self::SUB_DELIMS . ':@';
+    private const string SEGMENT_NZ_NC = self::UNRESERVED . self::SUB_DELIMS . '@';
+    private const string USERINFO = self::UNRESERVED . self::SUB_DELIMS . ':';
+    private const string REG_NAME = self::UNRESERVED . self::SUB_DELIMS;
     private const string PCT = '%[0-9A-Fa-f]{2}';
 
     private string $pchar;
@@ -36,7 +40,7 @@ final readonly class UriPattern
         private string $ucschar,
         private string $private,
     ) {
-        $this->pchar = $this->unreserved(self::SUB_DELIMS . ':@');
+        $this->pchar = $this->character(self::PCHAR);
     }
 
     /** @return non-empty-string */
@@ -59,15 +63,15 @@ final readonly class UriPattern
 
     private function relativePart(): string
     {
-        $first = $this->unreserved(self::SUB_DELIMS . '@') . '+';
+        $first = $this->character(self::SEGMENT_NZ_NC) . '+';
         return '(?:' . $this->authorityAndPath() . '|' . $first . '(?:\/' . $this->pchar . '*)*)?';
     }
 
     /** The `//` authority path-abempty and the path-absolute alternatives. */
     private function authorityAndPath(): string
     {
-        $userinfo = $this->unreserved(self::SUB_DELIMS . ':') . '*';
-        $regName = $this->unreserved(self::SUB_DELIMS) . '*';
+        $userinfo = $this->character(self::USERINFO) . '*';
+        $regName = $this->character(self::REG_NAME) . '*';
         $authority = '(?:' . $userinfo . '@)?(?:\[(?<ip>[^\]]*)\]|' . $regName . ')(?::\d*)?';
         $pathAbempty = '(?:\/' . $this->pchar . '*)*';
         $pathAbsolute = '\/(?:' . $this->pchar . '+(?:\/' . $this->pchar . '*)*)?';
@@ -76,14 +80,14 @@ final readonly class UriPattern
 
     private function tail(): string
     {
-        $query = '(?:' . $this->pchar . '|[\/?]' . $this->private . ')*';
+        $query = '(?:[\/?]' . $this->private . '|' . $this->pchar . ')*';
         $fragment = '(?:' . $this->pchar . '|[\/?])*';
         return '(?:\?' . $query . ')?(?:#' . $fragment . ')?';
     }
 
-    /** An unreserved character, a percent-encoded octet, or one of the ASCII characters of a class body. */
-    private function unreserved(string $ascii): string
+    /** One of the ASCII characters of a class body, a percent-encoded octet, or a ucschar. */
+    private function character(string $ascii): string
     {
-        return '(?:[' . self::UNRESERVED . $ascii . ']|' . self::PCT . $this->ucschar . ')';
+        return '(?:[' . $ascii . ']|' . self::PCT . $this->ucschar . ')';
     }
 }

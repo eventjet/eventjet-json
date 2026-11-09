@@ -7,15 +7,11 @@ namespace Eventjet\Json\Internal\Schema;
 use Eventjet\Json\Internal\Schema\Compile\KeywordCompiler;
 use Eventjet\Json\Internal\Schema\Compile\ReferenceLoops;
 use Eventjet\Json\Internal\Schema\Compile\SchemaObject;
-use Eventjet\Json\Internal\Schema\Keyword\DynamicRefKeyword;
-use Eventjet\Json\Internal\Schema\Keyword\RecursiveRefKeyword;
-use Eventjet\Json\Internal\Schema\Keyword\UnevaluatedItemsKeyword;
-use Eventjet\Json\Internal\Schema\Keyword\UnevaluatedPropertiesKeyword;
 use Eventjet\Json\Schema\SchemaError;
 use SplObjectStorage;
 use stdClass;
 
-use function array_any;
+use function array_key_exists;
 use function is_bool;
 use function sprintf;
 
@@ -69,18 +65,6 @@ final class Compiler
         ReferenceLoops::check($this->compiled);
     }
 
-    /** Whether a schema uses `unevaluatedProperties` or `unevaluatedItems`, which need annotations. */
-    public function annotates(): bool
-    {
-        return $this->uses(UnevaluatedItemsKeyword::class, UnevaluatedPropertiesKeyword::class);
-    }
-
-    /** Whether a schema uses `$dynamicRef` or `$recursiveRef` dynamically, which needs the dynamic scope. */
-    public function dynamic(): bool
-    {
-        return $this->uses(DynamicRefKeyword::class, RecursiveRefKeyword::class);
-    }
-
     /** @throws SchemaError */
     public function child(mixed $schema, Location $parent, string ...$tokens): Node
     {
@@ -92,23 +76,29 @@ final class Compiler
     }
 
     /**
-     * @return array{Node, bool, string|null} The target, whether the URI names a `$dynamicAnchor`, and the fragment.
+     * @return array{Node, string|null} The target and the fragment.
      * @throws SchemaError
      */
     public function resolve(string $reference, Location $location): array
     {
         $uri = Uri::resolve($location->base, $reference);
-        [$schema, $targetLocation, $dynamic] = $this->registry->locate($uri);
-        return [$this->compile($schema, $targetLocation), $dynamic, Uri::split($uri)[1]];
+        [$schema, $targetLocation] = $this->registry->locate($uri);
+        return [$this->compile($schema, $targetLocation), Uri::split($uri)[1]];
+    }
+
+    /**
+     * Whether the resource of a target has a `$dynamicAnchor` with the given name.
+     *
+     * @mutation-free
+     */
+    public function namesDynamicAnchor(Node $target, string $name): bool
+    {
+        return array_key_exists($name, $this->registry->dynamicAnchors($target->resource));
     }
 
     /** @throws SchemaError */
     private function prepare(Resource $resource): void
     {
-        if ($resource->prepared) {
-            return;
-        }
-        $resource->prepared = true;
         foreach ($this->registry->dynamicAnchors($resource) as $name => $schema) {
             $location = $this->registry->location($schema);
             if ($location !== null) {
@@ -121,17 +111,5 @@ final class Compiler
                 $resource->rootNode = $this->compile($resource->root, $location);
             }
         }
-    }
-
-    /** @param class-string<Keyword> ...$classes */
-    private function uses(string ...$classes): bool
-    {
-        return array_any($this->compiled, static fn(Node $node): bool => array_any(
-            $node->keywords,
-            static fn(Keyword $keyword): bool => array_any(
-                $classes,
-                static fn(string $class): bool => $keyword instanceof $class,
-            ),
-        ));
     }
 }

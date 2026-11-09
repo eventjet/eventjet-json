@@ -45,9 +45,6 @@ final readonly class RequiredKeyword implements Keyword
                 $this->location,
                 sprintf('The member "%s" is required.', $name),
             );
-            if (!$run->collect) {
-                return false;
-            }
         }
         return $valid;
     }

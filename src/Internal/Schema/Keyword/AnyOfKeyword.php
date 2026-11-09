@@ -36,9 +36,6 @@ final readonly class AnyOfKeyword implements Keyword
                 continue;
             }
             $valid = true;
-            if ($annotations === null) {
-                break;
-            }
         }
         if ($valid) {
             $run->rollBack($mark);

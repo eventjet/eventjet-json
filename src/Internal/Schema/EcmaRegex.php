@@ -8,6 +8,7 @@ use Eventjet\Json\Internal\Schema\Regex\Cursor;
 use Eventjet\Json\Internal\Schema\Regex\Groups;
 use Eventjet\Json\Internal\Schema\Regex\Pattern;
 
+use function assert;
 use function preg_split;
 
 use const PREG_SPLIT_NO_EMPTY;
@@ -28,9 +29,7 @@ final class EcmaRegex
     public static function toPcre(string $regex): string|null
     {
         $chars = $regex === '' ? [] : preg_split('//u', $regex, limit: -1, flags: PREG_SPLIT_NO_EMPTY);
-        if ($chars === false) {
-            return null;
-        }
+        assert($chars !== false, description: 'Schemas and instances are valid UTF-8.');
         $cursor = new Cursor($chars);
         $groups = new Groups();
         $pcre = new Pattern($cursor, $groups)->disjunction();

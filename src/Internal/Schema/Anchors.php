@@ -16,7 +16,7 @@ use function is_string;
  */
 final class Anchors
 {
-    /** @var array<string, array{stdClass, Location, bool}> The subschema, its location, and whether it is dynamic. */
+    /** @var array<string, array{stdClass, Location}> The subschema and its location. */
     private array $anchors = [];
 
     /** @var SplObjectStorage<Resource, array<string, stdClass>> */
@@ -30,7 +30,7 @@ final class Anchors
     }
 
     /**
-     * @return array{stdClass, Location, bool}|null
+     * @return array{stdClass, Location}|null
      * @mutation-free
      */
     public function find(string $uri): array|null
@@ -38,7 +38,10 @@ final class Anchors
         return $this->anchors[$uri] ?? null;
     }
 
-    /** @return array<string, stdClass> The subschemas of the resource with a `$dynamicAnchor`, by anchor name. */
+    /**
+     * @return array<string, stdClass> The subschemas of the resource with a `$dynamicAnchor`, by anchor name.
+     * @mutation-free
+     */
     public function dynamic(Resource $resource): array
     {
         return $this->dynamic[$resource] ?? [];
@@ -51,7 +54,7 @@ final class Anchors
         if ($fragment === null || $fragment === '' || $location->resource->draft->atLeast(Draft::Draft201909)) {
             return;
         }
-        $this->anchors[$resolvedId] = [$schema, $location, false];
+        $this->anchors[$resolvedId] = [$schema, $location];
     }
 
     /** Adds the `$anchor` and `$dynamicAnchor` of a subschema. */
@@ -63,12 +66,12 @@ final class Anchors
         /** @var mixed $anchor */
         $anchor = $draft->atLeast(Draft::Draft201909) ? $members['$anchor'] ?? null : null;
         if (is_string($anchor)) {
-            $this->anchors[$location->base . '#' . $anchor] ??= [$schema, $location, false];
+            $this->anchors[$location->base . '#' . $anchor] = [$schema, $location];
         }
         /** @var mixed $dynamicAnchor */
         $dynamicAnchor = $draft === Draft::Draft202012 ? $members['$dynamicAnchor'] ?? null : null;
         if (is_string($dynamicAnchor)) {
-            $this->anchors[$location->base . '#' . $dynamicAnchor] = [$schema, $location, true];
+            $this->anchors[$location->base . '#' . $dynamicAnchor] = [$schema, $location];
             $dynamic = $this->dynamic[$resource] ?? [];
             $dynamic[$dynamicAnchor] = $schema;
             $this->dynamic[$resource] = $dynamic;

@@ -6,6 +6,7 @@ namespace Eventjet\Json\Internal\Schema\Format;
 
 use function checkdate;
 use function preg_match;
+use function sscanf;
 use function strcspn;
 use function substr;
 
@@ -22,26 +23,27 @@ final class Dates
         if (!$matches) {
             return false;
         }
-        $year = (int) substr($value, offset: 0, length: 4);
-        $month = (int) substr($value, offset: 5, length: 2);
-        $day = (int) substr($value, offset: 8, length: 2);
+        /** @var array{int, int, int} $calendar */
+        $calendar = sscanf($value, '%4d-%2d-%2d');
+        [$year, $month, $day] = $calendar;
         // checkdate() rejects the year 0, which RFC 3339 allows. Leap years repeat every 400 years.
         return checkdate($month, $day, $year + 400);
     }
 
     public static function time(string $value): bool
     {
-        $matches = preg_match('/^\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$/D', $value) === 1;
+        $m = [];
+        $matches = preg_match('/^\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|([+-])(\d{2}):(\d{2}))$/D', $value, $m) === 1;
         if (!$matches) {
             return false;
         }
-        $hour = (int) substr($value, offset: 0, length: 2);
-        $minute = (int) substr($value, offset: 3, length: 2);
-        $second = (int) substr($value, offset: 6, length: 2);
+        /** @var array{int, int, int} $clock */
+        $clock = sscanf($value, '%2d:%2d:%2d');
+        [$hour, $minute, $second] = $clock;
         if ($hour > 23 || $minute > 59 || $second > 60) {
             return false;
         }
-        $offset = self::offset($value);
+        $offset = self::offset($m[1] ?? '', $m[2] ?? '', $m[3] ?? '');
         if ($offset === null) {
             return false;
         }
@@ -68,18 +70,14 @@ final class Dates
         return preg_match('/^P(?:' . $date . '(?:' . $time . ')?|' . $time . '|\d+W)$/D', $value) === 1;
     }
 
-    /** Returns the offset in minutes of a time that matches the time pattern, or null if it is out of range. */
-    private static function offset(string $time): int|null
+    /** Returns the offset in minutes of a time, or null if it is out of range. The sign is empty for UTC. */
+    private static function offset(string $sign, string $hours, string $minutes): int|null
     {
-        $sign = substr($time, offset: -6, length: 1);
-        if ($sign !== '+' && $sign !== '-') {
-            return 0;
-        }
-        $hours = (int) substr($time, offset: -5, length: 2);
-        $minutes = (int) substr($time, offset: -2);
-        if ($hours > 23 || $minutes > 59) {
+        $h = (int) $hours;
+        $m = (int) $minutes;
+        if ($h > 23 || $m > 59) {
             return null;
         }
-        return ($sign === '+' ? 1 : -1) * (($hours * 60) + $minutes);
+        return ($sign === '+' ? 1 : -1) * (($h * 60) + $m);
     }
 }

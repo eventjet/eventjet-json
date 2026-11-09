@@ -19,6 +19,7 @@ final class Emails
 {
     private const string ATEXT = 'A-Za-z0-9!#$%&\'*+\/=?^_`{|}~\-';
     private const string NON_ASCII = '\x{80}-\x{10FFFF}';
+    private const string IDN_ATEXT = self::ATEXT . self::NON_ASCII;
 
     public static function email(string $value, Draft $draft): bool
     {
@@ -31,7 +32,7 @@ final class Emails
 
     public static function idnEmail(string $value): bool
     {
-        $domain = self::mailboxDomain($value, self::ATEXT . self::NON_ASCII, self::NON_ASCII);
+        $domain = self::mailboxDomain($value, self::IDN_ATEXT, self::NON_ASCII);
         if ($domain === null) {
             return false;
         }

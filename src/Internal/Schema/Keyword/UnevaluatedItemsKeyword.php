@@ -44,9 +44,6 @@ final readonly class UnevaluatedItemsKeyword implements Keyword
                 continue;
             }
             $valid = false;
-            if (!$run->collect) {
-                return false;
-            }
         }
         $annotations->allItems = true;
         return $valid;

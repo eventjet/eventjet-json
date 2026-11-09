@@ -34,9 +34,6 @@ final readonly class AllOfKeyword implements Keyword
                 continue;
             }
             $valid = false;
-            if (!$run->collect) {
-                return false;
-            }
         }
         return $valid;
     }

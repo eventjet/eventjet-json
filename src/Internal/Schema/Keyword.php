@@ -8,9 +8,10 @@ namespace Eventjet\Json\Internal\Schema;
 interface Keyword
 {
     /**
-     * @param string $instanceLocation A JSON Pointer to the value, if the run collects failures.
+     * @param string $instanceLocation A JSON Pointer to the value.
      * @param string $keywordLocation The keyword location of the schema that holds this keyword.
-     * @param Annotations|null $annotations What the schema evaluated of the value so far, if the run tracks it.
+     * @param Annotations|null $annotations What the schema evaluated of an array or object so far, or null if nothing
+     *     reads it.
      */
     public function check(
         mixed $value,

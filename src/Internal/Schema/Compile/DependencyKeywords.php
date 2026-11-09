@@ -28,10 +28,8 @@ final class DependencyKeywords
     public static function compile(Compiler $compiler, SchemaObject $schema): array
     {
         $keywords = [];
-        foreach (['dependencies', 'dependentSchemas'] as $name) {
-            if ($name === 'dependentSchemas' && !$schema->draft->atLeast(Draft::Draft201909)) {
-                continue;
-            }
+        $names = $schema->draft->atLeast(Draft::Draft201909) ? ['dependencies', 'dependentSchemas'] : ['dependencies'];
+        foreach ($names as $name) {
             $value = $schema->object($name);
             if ($value === null) {
                 continue;

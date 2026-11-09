@@ -59,9 +59,6 @@ final readonly class DependenciesKeyword implements Keyword
                         $this->location,
                         sprintf('The member "%s" is required when "%s" is present.', $required, $member),
                     );
-                    if (!$run->collect) {
-                        return false;
-                    }
                 }
                 continue;
             }
@@ -70,9 +67,6 @@ final readonly class DependenciesKeyword implements Keyword
                 continue;
             }
             $valid = false;
-            if (!$run->collect) {
-                return false;
-            }
         }
         return $valid;
     }

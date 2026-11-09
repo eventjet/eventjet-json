@@ -27,9 +27,7 @@ final readonly class IfKeyword implements Keyword
         string $keywordLocation,
         Annotations|null $annotations,
     ): bool {
-        $mark = $run->mark();
-        $matches = $this->if->evaluate($value, $run, $instanceLocation, $keywordLocation . '/if', $annotations);
-        $run->rollBack($mark);
+        $matches = $run->quietly($this->if, $value, $annotations);
         if ($matches) {
             return (
                 $this->then === null

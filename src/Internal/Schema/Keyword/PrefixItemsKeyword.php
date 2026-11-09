@@ -11,6 +11,7 @@ use Eventjet\Json\Internal\Schema\Run;
 use Override;
 
 use function is_array;
+use function max;
 
 /** `prefixItems`, and `items` with an array of schemas. @internal */
 final readonly class PrefixItemsKeyword implements Keyword
@@ -46,12 +47,9 @@ final readonly class PrefixItemsKeyword implements Keyword
                 continue;
             }
             $valid = false;
-            if (!$run->collect) {
-                return false;
-            }
         }
-        if ($annotations !== null && $count > $annotations->items) {
-            $annotations->items = $count;
+        if ($annotations !== null) {
+            $annotations->items = max($annotations->items, $count);
         }
         return $valid;
     }

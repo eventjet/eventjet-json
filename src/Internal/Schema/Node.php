@@ -33,9 +33,6 @@ final class Node
         string $keywordLocation,
         Annotations|null $parent,
     ): bool {
-        if ($this->constant === true) {
-            return true;
-        }
         if ($this->constant === false) {
             return $run->fail(
                 $instanceLocation,
@@ -44,10 +41,10 @@ final class Node
                 'No value is allowed here.',
             );
         }
-        $annotations = $run->annotate && ($value instanceof stdClass || is_array($value)) ? new Annotations() : null;
+        $annotations = $value instanceof stdClass || is_array($value) ? new Annotations() : null;
         $pushed = false;
         $outer = null;
-        if ($run->dynamic && $run->innermost !== $this->resource) {
+        if ($run->innermost !== $this->resource) {
             $outer = $run->innermost;
             $run->scope[] = $this->resource;
             $run->innermost = $this->resource;
@@ -60,9 +57,6 @@ final class Node
                 continue;
             }
             $valid = false;
-            if (!$run->collect) {
-                break;
-            }
         }
         if ($pushed) {
             array_pop($run->scope);

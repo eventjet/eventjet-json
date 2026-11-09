@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Schema\Regex;
 
+use function assert;
 use function hexdec;
+use function is_int;
 
 /**
  * Reads the code point of a `\u` escape, after the `u`.
@@ -23,11 +25,9 @@ final readonly class UnicodeEscape
             return $this->braced();
         }
         $high = $this->cursor->hex(length: 4);
-        if ($high === null) {
-            return null;
-        }
         $pair =
-            $high >= 0xD800
+            $high !== null
+            && $high >= 0xD800
             && $high <= 0xDBFF
             && $this->cursor->peek() === '\\'
             && $this->cursor->peek(offset: 1) === 'u';
@@ -38,11 +38,13 @@ final readonly class UnicodeEscape
     {
         $this->cursor->pos++;
         $hex = $this->cursor->span(Cursor::HEXADECIMAL);
-        if ($this->cursor->peek() !== '}' || $hex === '' || hexdec($hex) > 0x10_FFFF) {
+        $codePoint = hexdec($hex);
+        if ($this->cursor->peek() !== '}' || $hex === '' || $codePoint > 0x10_FFFF) {
             return null;
         }
         $this->cursor->pos++;
-        return (int) hexdec($hex);
+        assert(is_int($codePoint), description: 'Only numbers beyond PHP_INT_MAX are floats.');
+        return $codePoint;
     }
 
     /** Joins a high surrogate with the low surrogate of a following `\u` escape, or keeps it alone if there is none. */

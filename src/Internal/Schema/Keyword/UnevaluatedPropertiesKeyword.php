@@ -42,9 +42,6 @@ final readonly class UnevaluatedPropertiesKeyword implements Keyword
             $matches = $this->schema->evaluate($member, $run, $ip, $keywordLocation . '/unevaluatedProperties', null);
             if (!$matches) {
                 $valid = false;
-                if (!$run->collect) {
-                    return false;
-                }
             }
             $annotations->properties[$name] = true;
         }

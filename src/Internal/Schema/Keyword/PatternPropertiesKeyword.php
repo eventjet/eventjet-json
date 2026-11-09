@@ -51,9 +51,6 @@ final readonly class PatternPropertiesKeyword implements Keyword
                     continue;
                 }
                 $valid = false;
-                if (!$run->collect) {
-                    return false;
-                }
             }
         }
         return $valid;

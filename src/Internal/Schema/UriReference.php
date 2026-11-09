@@ -28,7 +28,7 @@ final readonly class UriReference
     {
         $m = [];
         preg_match(
-            '~^(?:([a-zA-Z][a-zA-Z0-9+.-]*):)?(?://([^/?#]*))?([^?#]*)(?:\\?([^#]*))?(?:#(.*))?~s',
+            '~^(?:([a-zA-Z][a-zA-Z0-9+.-]*):)?(?://([^/?#]*))?([^?#]*)(?:\\?([^#]*))?(?:#(.*))?~',
             $uri,
             $m,
             PREG_UNMATCHED_AS_NULL,
@@ -50,10 +50,7 @@ final readonly class UriReference
 
     public function toString(): string
     {
-        $uri = '';
-        if ($this->scheme !== null) {
-            $uri .= $this->scheme . ':';
-        }
+        $uri = $this->scheme === null ? '' : $this->scheme . ':';
         if ($this->authority !== null) {
             $uri .= '//' . $this->authority;
         }

@@ -46,14 +46,13 @@ final class ItemKeywords
     private static function prefixItems(Compiler $compiler, SchemaObject $schema): array
     {
         $keywords = [];
-        $prefix = 0;
+        $prefix = [];
         if ($schema->has('prefixItems')) {
-            $schemas = $schema->subschemas($compiler, 'prefixItems');
-            $prefix = count($schemas);
-            $keywords[] = new PrefixItemsKeyword('prefixItems', $schemas);
+            $prefix = $schema->subschemas($compiler, 'prefixItems');
+            $keywords[] = new PrefixItemsKeyword('prefixItems', $prefix);
         }
         if ($schema->has('items')) {
-            $keywords[] = new ItemsKeyword('items', $schema->subschema($compiler, 'items'), $prefix);
+            $keywords[] = new ItemsKeyword('items', $schema->subschema($compiler, 'items'), count($prefix));
         }
         return $keywords;
     }

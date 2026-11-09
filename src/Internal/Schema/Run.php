@@ -6,7 +6,7 @@ namespace Eventjet\Json\Internal\Schema;
 
 use Eventjet\Json\Schema\ValidationFailure;
 
-use function array_slice;
+use function array_splice;
 use function count;
 use function is_int;
 
@@ -26,53 +26,45 @@ final class Run
     /** The last resource of the scope. */
     public Resource|null $innermost = null;
 
-    public function __construct(
-        /** Whether to list every failure. Without, evaluation stops at the first one. */
-        public readonly bool $collect,
-        public readonly bool $annotate,
-        public readonly bool $dynamic,
-    ) {}
-
     public function fail(
         string $instanceLocation,
         string $keywordLocation,
         string $absoluteLocation,
         string $message,
     ): false {
-        if ($this->collect) {
-            $this->failures[] = new ValidationFailure($instanceLocation, $keywordLocation, $absoluteLocation, $message);
-        }
+        $this->failures[] = new ValidationFailure($instanceLocation, $keywordLocation, $absoluteLocation, $message);
         return false;
     }
 
     /** Drops the failures found since the given count, for subschemas whose failure doesn't fail their parent. */
     public function rollBack(int $count): void
     {
-        if (count($this->failures) > $count) {
-            $this->failures = array_slice($this->failures, offset: 0, length: $count);
-        }
+        array_splice($this->failures, $count);
     }
 
     /**
-     * Appends reference tokens to a JSON Pointer, if the run collects failures. Without, locations are never read, so
-     * this skips building them.
+     * Returns whether the value matches a subschema whose failures never count, such as the one of `not`. Because they
+     * are dropped, it builds no locations for them.
      */
+    public function quietly(Node $schema, mixed $value, Annotations|null $annotations): bool
+    {
+        $mark = $this->mark();
+        $matches = $schema->evaluate($value, $this, '', '', $annotations);
+        $this->rollBack($mark);
+        return $matches;
+    }
+
+    /** Appends reference tokens to a JSON Pointer. */
     public function path(string $pointer, string|int ...$tokens): string
-    {
-        return $this->collect ? self::append($pointer, $tokens) : '';
-    }
-
-    public function mark(): int
-    {
-        return count($this->failures);
-    }
-
-    /** @param array<array-key, string|int> $tokens */
-    private static function append(string $pointer, array $tokens): string
     {
         foreach ($tokens as $token) {
             $pointer .= '/' . (is_int($token) ? $token : Uri::escapePointerToken($token));
         }
         return $pointer;
+    }
+
+    public function mark(): int
+    {
+        return count($this->failures);
     }
 }

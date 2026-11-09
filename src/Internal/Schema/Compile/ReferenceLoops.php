@@ -39,7 +39,7 @@ final class ReferenceLoops
      */
     private static function visit(Node $node, SplObjectStorage $state): void
     {
-        $current = $state[$node] ?? 0;
+        $current = $state[$node] ?? null;
         if ($current === self::DONE) {
             return;
         }

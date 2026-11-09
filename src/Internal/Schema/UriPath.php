@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Schema;
 
-use function str_contains;
 use function str_starts_with;
 use function strlen;
 use function strpos;
@@ -29,9 +28,6 @@ final class UriPath
 
     public static function removeDotSegments(string $path): string
     {
-        if (!str_contains($path, needle: '.')) {
-            return $path;
-        }
         $output = '';
         while ($path !== '') {
             if (str_starts_with($path, '/../') || $path === '/..') {

@@ -30,8 +30,6 @@ final readonly class Validator
 {
     private function __construct(
         private Node $root,
-        private bool $annotates,
-        private bool $dynamic,
     ) {}
 
     /**
@@ -58,7 +56,7 @@ final readonly class Validator
         } catch (SchemaError $error) {
             return $error;
         }
-        return new self($root, $compiler->annotates(), $compiler->dynamic());
+        return new self($root);
     }
 
     /** Returns null if the value matches the schema, or why it doesn't. */
@@ -69,7 +67,7 @@ final readonly class Validator
         if ($value instanceof ValidationError) {
             return $value;
         }
-        $run = new Run(true, $this->annotates, $this->dynamic);
+        $run = new Run();
         $valid = $this->root->evaluate($value, $run, '', '', null);
         if ($valid) {
             return null;
@@ -78,15 +76,10 @@ final readonly class Validator
         return ValidationError::invalidValue($run->failures);
     }
 
-    /** Returns whether the value matches the schema, and stops at the first failure. */
+    /** Returns whether the value matches the schema. */
     public function isValid(mixed $value): bool
     {
-        /** @var mixed $value */
-        $value = self::normalize($value);
-        if ($value instanceof ValidationError) {
-            return false;
-        }
-        return $this->root->evaluate($value, new Run(false, $this->annotates, $this->dynamic), '', '', null);
+        return $this->validateValue($value) === null;
     }
 
     /** Reads a value the way json_encode() writes it. */

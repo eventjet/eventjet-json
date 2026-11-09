@@ -26,9 +26,7 @@ final readonly class NotKeyword implements Keyword
         string $keywordLocation,
         Annotations|null $annotations,
     ): bool {
-        $mark = $run->mark();
-        $matches = $this->schema->evaluate($value, $run, $instanceLocation, $keywordLocation . '/not', null);
-        $run->rollBack($mark);
+        $matches = $run->quietly($this->schema, $value, null);
         if (!$matches) {
             return true;
         }

@@ -53,9 +53,6 @@ final readonly class PropertiesKeyword implements Keyword
                 continue;
             }
             $valid = false;
-            if (!$run->collect) {
-                return false;
-            }
         }
         return $valid;
     }

@@ -60,15 +60,15 @@ final class Registry
         $canonical = $id !== null && !str_starts_with($id, '#') ? Uri::withoutFragment(Uri::resolve($uri, $id)) : $uri;
         $resource = new Resource($canonical, $draft, $this->vocabularies->ofDocument($root, $draft, $uri), $root);
         $this->resources[$canonical] = $resource;
-        $this->resources[$uri] ??= $resource;
+        $this->resources[$uri] = $resource;
         $this->index->document($root, $resource);
         return $resource;
     }
 
-    /** Adds the resource of a subschema with its own `$id`, unless a resource with the same URI is known. */
+    /** Adds the resource of a subschema with its own `$id`. */
     public function addResource(Resource $resource): void
     {
-        $this->resources[$resource->uri] ??= $resource;
+        $this->resources[$resource->uri] = $resource;
     }
 
     public function location(stdClass $schema): Location|null
@@ -81,7 +81,10 @@ final class Registry
         return $this->index->rootLocation($resource);
     }
 
-    /** @return array<string, stdClass> The subschemas of the resource with a `$dynamicAnchor`, by anchor name. */
+    /**
+     * @return array<string, stdClass> The subschemas of the resource with a `$dynamicAnchor`, by anchor name.
+     * @mutation-free
+     */
     public function dynamicAnchors(Resource $resource): array
     {
         return $this->index->dynamicAnchors($resource);
@@ -90,8 +93,7 @@ final class Registry
     /**
      * Finds the subschema that an absolute URI points to, loading its document if needed.
      *
-     * @return array{stdClass|bool, Location, bool} The subschema, its location, and whether the URI names a
-     *     `$dynamicAnchor`.
+     * @return array{stdClass|bool, Location} The subschema and its location.
      * @throws SchemaError
      */
     public function locate(string $uri): array
@@ -109,7 +111,7 @@ final class Registry
             $this->index,
             $uri,
         );
-        return [$schema, $location, false];
+        return [$schema, $location];
     }
 
     /** @throws SchemaError */
@@ -137,7 +139,7 @@ final class Registry
     }
 
     /**
-     * @return array{stdClass, Location, bool}
+     * @return array{stdClass, Location}
      * @throws SchemaError
      */
     private function anchor(string $uri, string $resourceUri): array

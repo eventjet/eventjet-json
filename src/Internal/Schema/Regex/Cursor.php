@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Schema\Regex;
 
 use function array_slice;
+use function assert;
 use function count;
 use function hexdec;
 use function implode;
+use function is_int;
 use function preg_match;
 use function str_contains;
 
@@ -81,7 +83,9 @@ final class Cursor
             $hex .= $char;
             $this->pos++;
         }
-        return (int) hexdec($hex);
+        $value = hexdec($hex);
+        assert(is_int($value), description: 'Four hex digits fit into an integer.');
+        return $value;
     }
 
     /** Reads up to and including the given code point, and returns what is before it, or null if it doesn't come. */

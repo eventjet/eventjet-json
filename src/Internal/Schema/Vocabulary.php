@@ -7,7 +7,6 @@ namespace Eventjet\Json\Internal\Schema;
 use Eventjet\Json\Schema\SchemaError;
 use stdClass;
 
-use function array_key_exists;
 use function in_array;
 use function sprintf;
 use function str_starts_with;
@@ -66,14 +65,14 @@ final readonly class Vocabulary
                 }
                 continue;
             }
-            $active[$name] = true;
+            $active[] = $name;
         }
-        $applicator = array_key_exists('applicator', $active);
+        $applicator = in_array('applicator', $active, strict: true);
         return new self(
             applicator: $applicator,
-            unevaluated: $draft === Draft::Draft202012 ? array_key_exists('unevaluated', $active) : $applicator,
-            validation: array_key_exists('validation', $active),
-            formatAssertion: $assertFormats || array_key_exists('format-assertion', $active),
+            unevaluated: $draft === Draft::Draft202012 ? in_array('unevaluated', $active, strict: true) : $applicator,
+            validation: in_array('validation', $active, strict: true),
+            formatAssertion: $assertFormats || in_array('format-assertion', $active, strict: true),
         );
     }
 }
