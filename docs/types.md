@@ -480,6 +480,22 @@ $data = json_decode($json);
 $schema = is_bool($data) ? $data : Json::decode($json, Draft202012::class);
 ```
 
+To change a schema, call `with()`. It takes the same named arguments as the
+constructor and returns a copy with new values for the keywords you pass. The
+other keywords keep their values, and `null` removes a keyword:
+
+```php
+$person = $schema->with(title: 'Person', description: null);
+```
+
+Each parameter of `with()` has the default `Keep::Current`, which you can also
+pass yourself, as in `$schema->with(title: $title ?? Keep::Current)`. The copy
+shares nested schemas and `ArrayObject` maps with the original. `readonly`
+doesn't stop changes to a map in place, so `$copy->properties['name'] = …`
+changes the original too.
+[ADR 0007](adr/0007-change-schemas-with-one-named-argument-with.md) explains
+why `with()` takes named arguments.
+
 When you build schemas in PHP, static analysis may infer a narrower map type
 than a parameter takes. For example, PHPStan reads `new ArrayObject(['name' =>
 new Draft202012()])` as `ArrayObject<string, Draft202012>` and rejects it for
