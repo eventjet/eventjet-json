@@ -41,7 +41,7 @@ final class Quantifier
             $cursor->pos++;
             $max = $cursor->span(Cursor::DECIMAL);
         }
-        if ($cursor->peek() !== '}' || $max !== '' && (int) $max < (int) $min) {
+        if ($cursor->peek() !== '}' || $max !== '' && $max < $min) {
             return null;
         }
         $cursor->pos++;
