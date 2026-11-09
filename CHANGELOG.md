@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1](https://github.com/eventjet/eventjet-json/compare/v1.3.0...v1.3.1) (2026-11-09)
+
+
+### Bug Fixes
+
+* Reject JSON numbers that overflow PHP floats ([#111](https://github.com/eventjet/eventjet-json/issues/111)) ([13f60c3](https://github.com/eventjet/eventjet-json/commit/13f60c39c678b87aa90b4bcf7bb1a1a21daff285))
+
+
+### Miscellaneous Chores
+
+* **deps-dev:** update phpstan/phpdoc-parser requirement from 2.4.0 to 2.4.1 in the development-tools group ([#122](https://github.com/eventjet/eventjet-json/issues/122)) ([150fed1](https://github.com/eventjet/eventjet-json/commit/150fed11b9f7388a6ccf997072d460da3d4a4055))
+
 ## [1.3.0](https://github.com/eventjet/eventjet-json/compare/v1.2.0...v1.3.0) (2026-11-05)
 
 
