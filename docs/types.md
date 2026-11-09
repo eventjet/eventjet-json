@@ -34,6 +34,10 @@ The round-trip contract also has these representation limits:
 - The source object must be encodable by PHP's `json_encode()`. Resources,
   non-finite floats, invalid UTF-8, and circular references are outside the
   supported input domain.
+- `-0.0` is outside the round-trip domain, see
+  [Numeric round trips](#numeric-round-trips).
+- Map keys starting with a null byte are outside the round-trip domain, see
+  [Collection declarations](#collection-declarations).
 - JSON does not retain PHP class identity. It can choose between multiple
   possible classes only through a discriminator member that every class
   declares; see [Discriminated unions](#discriminated-unions).
@@ -263,9 +267,20 @@ rejected instead of being rounded or coerced back to integers.
 
 Float fields use PHP's native floating-point precision. The default
 `json_encode()` and `json_decode()` behavior preserves finite values, including
-subnormal values and precision-sensitive decimals. JSON does not distinguish a
-whole-valued float such as `3.0` from the integer `3`; the declared field type
-restores the value to a PHP float during construction.
+subnormal values and precision-sensitive decimals, but not the sign of `-0.0`.
+JSON does not distinguish a whole-valued float such as `3.0` from the integer
+`3`; the declared field type restores the value to a PHP float during
+construction.
+
+PHP decodes a JSON number beyond the float range, such as `1e400`, as `INF` or
+`-INF`. `json_encode()` cannot write these values, so every `float` position,
+including lists, maps, tuples, and unions, rejects such a number with an
+`InvalidValue` error.
+
+The default `json_encode()` writes `-0.0` as `-0`, and JSON decoding reads that
+as the integer `0`. The decoder cannot recover the sign, so a `float` field
+receives `0.0`. With `JSON_PRESERVE_ZERO_FRACTION`, `json_encode()` writes
+`-0.0`, and the field keeps the sign.
 
 ## JSON objects and arrays
 
@@ -474,6 +489,22 @@ $schema = JsonSchema::decode($json, Draft202012::class, loader: $loader);
 - An unknown `$schema` without a loader, a loader that finds nothing, and a
   loop of meta-schemas return an `InvalidValue` error.
 
+To change a schema, call `with()`. It takes the same named arguments as the
+constructor and returns a copy with new values for the keywords you pass. The
+other keywords keep their values, and `null` removes a keyword:
+
+```php
+$person = $schema->with(title: 'Person', description: null);
+```
+
+Each parameter of `with()` has the default `Keep::Current`, which you can also
+pass yourself, as in `$schema->with(title: $title ?? Keep::Current)`. The copy
+shares nested schemas and `ArrayObject` maps with the original. `readonly`
+doesn't stop changes to a map in place, so `$copy->properties['name'] = …`
+changes the original too.
+[ADR 0007](adr/0007-change-schemas-with-one-named-argument-with.md) explains
+why `with()` takes named arguments.
+
 When you build schemas in PHP, static analysis may infer a narrower map type
 than a parameter takes. For example, PHPStan reads `new ArrayObject(['name' =>
 new Draft202012()])` as `ArrayObject<string, Draft202012>` and rejects it for
@@ -661,6 +692,11 @@ as `"01"` and `"-0"` stay strings. The round trip stays exact because
 `new ArrayObject([200 => 'OK'])` encodes as `{"200":"OK"}`. `non-empty-array`
 maps keep `string` keys, because `json_encode([0 => 'x'])` writes the list
 `["x"]`. `ArrayObject<int, T>` is unsupported.
+
+Map keys starting with a null byte are outside the round-trip domain.
+`json_encode()` omits them from an `ArrayObject`, as it does for object
+properties, and writes them as `\u0000` member names for a PHP array, which
+`json_decode()` rejects.
 
 Declare constructor collections with `@param` on the constructor. This complete
 example uses all four collection forms and restores map values as `Product`

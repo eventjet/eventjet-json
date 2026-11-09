@@ -35,9 +35,9 @@ final readonly class NullableNode implements Node
 
     /** @return array<array-key, mixed>|bool|float|int|object|string|null */
     #[Override]
-    public function decode(mixed $value, string $path): array|bool|float|int|object|string|null
+    public function decode(mixed $value): array|bool|float|int|object|string|null
     {
-        return $value === null ? null : $this->inner->decode($value, $path);
+        return $value === null ? null : $this->inner->decode($value);
     }
 
     #[Override]

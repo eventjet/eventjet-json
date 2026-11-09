@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases\Discriminated;
 
-use Eventjet\Json\Internal\FieldPath;
 use Eventjet\Json\Test\Acceptance\Fixtures\Discriminated\AndFilter;
 use Eventjet\Json\Test\Acceptance\Fixtures\Discriminated\Equals;
 use Eventjet\Json\Test\Acceptance\Fixtures\Discriminated\OrFilter;
@@ -36,7 +35,7 @@ final class FilterDocuments
         $and = $dice->chance(50);
         $class = $and ? AndFilter::class : OrFilter::class;
         $operands = [];
-        $operandsPath = FieldPath::field($path, 'operands');
+        $operandsPath = Document::memberPath($path, 'operands');
         for ($index = $dice->int(0, 3); $index > 0; --$index) {
             $operandPath = sprintf('%s[%d]', $operandsPath, count($operands));
             $operands[] = self::filter($document, $class, $operandPath, $depth + 1);

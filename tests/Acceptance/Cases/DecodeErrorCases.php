@@ -27,6 +27,7 @@ final class DecodeErrorCases
         yield from ConstructionErrorCases::errors();
         yield from FieldDeclarationErrorCases::errors();
         yield from ScalarValidationErrorCases::errors();
+        yield from NonFiniteNumberErrorCases::errors();
         yield from EnumsErrorCases::errors();
         yield from EnumRootErrorCases::errors();
         yield from TupleDeclarationErrorCases::errors();

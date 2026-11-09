@@ -5,7 +5,18 @@ declare(strict_types=1);
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
 use Eventjet\Json\Test\Acceptance\Fixtures\ScalarFields;
+use Eventjet\Json\Test\Acceptance\Fixtures\SignedFloat;
+use JsonException;
+use Random\Engine\Mt19937;
+use Random\Randomizer;
+use ReflectionException;
+use RuntimeException;
 
+use function json_encode;
+use function var_export;
+
+use const JSON_PRESERVE_ZERO_FRACTION;
+use const JSON_THROW_ON_ERROR;
 use const PHP_FLOAT_EPSILON;
 use const PHP_FLOAT_MAX;
 use const PHP_FLOAT_MIN;
@@ -17,8 +28,8 @@ final class NumericBoundaryRoundTripCases
 {
     /**
      * @return iterable<string, array{object}>
-     * @throws \ReflectionException
-     * @throws \RuntimeException
+     * @throws ReflectionException
+     * @throws RuntimeException
      */
     public static function objects(): iterable
     {
@@ -37,6 +48,46 @@ final class NumericBoundaryRoundTripCases
             'largest consecutive integer float' => 9_007_199_254_740_991.0,
         ] as $name => $value) {
             yield $name => [new ScalarFields('value', 0, $value, false)];
+        }
+        yield from self::randomFloats();
+    }
+
+    /**
+     * The default `json_encode()` writes `-0.0` as `-0`, which decodes as `0.0`. `JSON_PRESERVE_ZERO_FRACTION` keeps
+     * the sign.
+     *
+     * @return iterable<string, array{string, object}>
+     * @throws JsonException
+     */
+    public static function decoded(): iterable
+    {
+        foreach ([-0.0, 0.0] as $zero) {
+            $object = new SignedFloat($zero);
+            $json = json_encode($object, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+            yield 'zero fraction preserved: ' . $json => [$json, $object];
+        }
+        yield 'default encoding drops the sign of -0.0' => [
+            json_encode(new SignedFloat(-0.0), JSON_THROW_ON_ERROR),
+            new SignedFloat(0.0),
+        ];
+    }
+
+    /**
+     * Seeded random mantissas and binary exponents, from the subnormal range to the largest finite floats, with both
+     * signs. `-0.0` is outside the round-trip domain.
+     *
+     * @return iterable<string, array{object}>
+     */
+    private static function randomFloats(): iterable
+    {
+        $random = new Randomizer(new Mt19937(20_261_102));
+        for ($i = 0; $i < 32; $i++) {
+            $value = (1.0 + $random->nextFloat()) * (2.0 ** ((float) $random->getInt(-1_074, 1_023)));
+            foreach ([$value, -$value] as $signed) {
+                yield 'random finite float ' . var_export($signed, return: true) => [
+                    new ScalarFields('value', 0, $signed, false),
+                ];
+            }
         }
     }
 }

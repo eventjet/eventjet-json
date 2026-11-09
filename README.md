@@ -392,6 +392,13 @@ $name = $schema->properties['name'] ?? null; // Draft202012|bool|null
 echo json_encode($schema, JSON_THROW_ON_ERROR); // the same document
 ```
 
+The classes are readonly. To change a schema, call `with()` with the keywords
+to change as named arguments. It returns a copy, and `null` removes a keyword:
+
+```php
+$person = $schema->with(title: 'Person', description: null);
+```
+
 ## Decoding rules
 
 - JSON member names match constructor parameter or public property names by
