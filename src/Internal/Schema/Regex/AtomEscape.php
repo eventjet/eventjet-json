@@ -13,12 +13,16 @@ use function str_contains;
  */
 final readonly class AtomEscape
 {
+    private GroupName $name;
+
     public function __construct(
         private Cursor $cursor,
         private Groups $groups,
         private ClassEscape $classEscape,
         private CharacterEscape $characterEscape,
-    ) {}
+    ) {
+        $this->name = new GroupName($cursor);
+    }
 
     public function read(): string|null
     {
@@ -27,9 +31,7 @@ final readonly class AtomEscape
             return null;
         }
         if ($char !== '0' && str_contains(Cursor::DECIMAL, $char)) {
-            $number = (int) $this->cursor->span(Cursor::DECIMAL);
-            $this->groups->reference($number);
-            return '(?(' . $number . ')\g{' . $number . '})';
+            return $this->groups->reference((int) $this->cursor->span(Cursor::DECIMAL));
         }
         if ($char === 'k') {
             return $this->namedReference();
@@ -39,7 +41,11 @@ final readonly class AtomEscape
             return $class;
         }
         $codePoint = $this->characterEscape->read();
-        return $codePoint === null ? null : CodePoints::literal($codePoint);
+        if ($codePoint === null) {
+            return null;
+        }
+        // A lone surrogate can't occur in valid UTF-8, so nothing matches it.
+        return CodePoints::isSurrogate($codePoint) ? '(?!)' : CodePoints::literal($codePoint);
     }
 
     private function namedReference(): string|null
@@ -48,11 +54,7 @@ final readonly class AtomEscape
             return null;
         }
         $this->cursor->pos += 2;
-        $name = $this->cursor->groupName();
-        if ($name === null) {
-            return null;
-        }
-        $this->groups->referenceNamed($name);
-        return '(?(<' . $name . '>)\k<' . $name . '>)';
+        $name = $this->name->read();
+        return $name === null ? null : $this->groups->referenceNamed($name);
     }
 }

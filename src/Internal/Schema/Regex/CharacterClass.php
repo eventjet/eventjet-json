@@ -54,13 +54,13 @@ final readonly class CharacterClass
             default => $this->cursor->peek() === '-',
         };
         if (!$range) {
-            return is_int($start) ? CodePoints::literal($start) : $start;
+            return is_int($start) ? CodePoints::ranges(CodePoints::withoutSurrogates($start, $start)) : $start;
         }
         $this->cursor->pos++;
         $end = $this->atom->read();
         if (!is_int($start) || !is_int($end) || $start > $end) {
             return null;
         }
-        return CodePoints::literal($start) . '-' . CodePoints::literal($end);
+        return CodePoints::ranges(CodePoints::withoutSurrogates($start, $end));
     }
 }

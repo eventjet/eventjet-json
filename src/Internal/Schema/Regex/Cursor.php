@@ -10,7 +10,6 @@ use function count;
 use function hexdec;
 use function implode;
 use function is_int;
-use function preg_match;
 use function str_contains;
 
 /**
@@ -103,17 +102,5 @@ final class Cursor
             }
             $read .= $char;
         }
-    }
-
-    /** Reads a group name up to and including the closing `>`. */
-    public function groupName(): string|null
-    {
-        $name = $this->until('>');
-        if ($name === null) {
-            return null;
-        }
-        $valid =
-            preg_match('/^[\p{L}\p{Nl}$_][\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}$_\x{200C}\x{200D}]*$/uD', $name) === 1;
-        return $valid ? $name : null;
     }
 }

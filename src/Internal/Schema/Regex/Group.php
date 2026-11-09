@@ -11,11 +11,15 @@ namespace Eventjet\Json\Internal\Schema\Regex;
  */
 final readonly class Group
 {
+    private GroupName $name;
+
     public function __construct(
         private Pattern $pattern,
         private Cursor $cursor,
         private Groups $groups,
-    ) {}
+    ) {
+        $this->name = new GroupName($cursor);
+    }
 
     /** @mutation-free */
     public function atLookaround(): bool
@@ -45,9 +49,9 @@ final readonly class Group
         if ($kind === ':') {
             return $this->body('(?:');
         }
-        $name = $kind === '<' ? $this->cursor->groupName() : null;
-        $opened = $name !== null && $this->groups->openNamed($name);
-        return $opened ? $this->body('(?<' . $name . '>') : null;
+        $name = $kind === '<' ? $this->name->read() : null;
+        $pcreName = $name === null ? null : $this->groups->openNamed($name);
+        return $pcreName === null ? null : $this->body('(?<' . $pcreName . '>');
     }
 
     /** Reads the disjunction of a group after its opening, and the closing parenthesis. */

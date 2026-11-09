@@ -103,6 +103,7 @@ use const JSON_UNESCAPED_UNICODE;
 #[CoversClass(\Eventjet\Json\Internal\Schema\Regex\CodePoints::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\Regex\Cursor::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\Regex\Group::class)]
+#[CoversClass(\Eventjet\Json\Internal\Schema\Regex\GroupName::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\Regex\Groups::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\Regex\Pattern::class)]
 #[CoversClass(\Eventjet\Json\Internal\Schema\Regex\Quantifier::class)]

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eventjet\Json\Internal\Schema\Regex;
 
 use function dechex;
+use function max;
+use function min;
 use function ord;
 use function sprintf;
 use function strlen;
@@ -50,6 +52,30 @@ final class CodePoints
         }
         $complement[] = [$next, 0x10_FFFF];
         return $complement;
+    }
+
+    /** @pure */
+    public static function isSurrogate(int $codePoint): bool
+    {
+        return $codePoint >= 0xD800 && $codePoint <= 0xDFFF;
+    }
+
+    /**
+     * Returns the parts of the range that aren't surrogates, which can't occur in valid UTF-8.
+     *
+     * @return list<array{int, int}>
+     * @pure
+     */
+    public static function withoutSurrogates(int $from, int $to): array
+    {
+        $ranges = [];
+        if ($from < 0xD800) {
+            $ranges[] = [$from, min($to, 0xD7FF)];
+        }
+        if ($to > 0xDFFF) {
+            $ranges[] = [max($from, 0xE000), $to];
+        }
+        return $ranges;
     }
 
     /**

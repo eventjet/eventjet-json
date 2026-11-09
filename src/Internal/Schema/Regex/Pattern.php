@@ -24,7 +24,7 @@ final readonly class Pattern
 
     public function __construct(
         private Cursor $cursor,
-        Groups $groups,
+        private Groups $groups,
     ) {
         $classEscape = new ClassEscape($cursor);
         $characterEscape = new CharacterEscape($cursor);
@@ -87,11 +87,12 @@ final readonly class Pattern
         if ($this->group->atLookaround()) {
             return $this->group->lookaround();
         }
+        $groupsBefore = $this->groups->count();
         $atom = $this->atom->read();
         if ($atom === null) {
             return null;
         }
-        $quantifier = Quantifier::read($this->cursor);
+        $quantifier = Quantifier::read($this->cursor, $this->groups, $groupsBefore);
         return $quantifier === null ? null : $atom . $quantifier;
     }
 }
