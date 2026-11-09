@@ -82,17 +82,18 @@ final readonly class ClassDecoder
         $arguments = [];
         $assignments = [];
         foreach ($this->fields as $field) {
-            $name = $field->json;
-            if (!array_key_exists($name, $values)) {
+            if (!array_key_exists($field->json, $values)) {
                 continue;
             }
-            $value = $values[$name];
+            $value = $values[$field->json];
             // Values that already have the declared scalar type skip the node. The node checks and converts all others.
+            // Non-finite floats go to the node, which rejects them. A float is finite exactly when subtracting it from
+            // itself gives 0.0, which is cheaper than is_finite().
             $unchanged = $value === null
                 ? $field->nullable
                 : match ($field->scalar) {
                     'bool' => is_bool($value),
-                    'float' => is_float($value),
+                    'float' => is_float($value) && ($value - $value) === 0.0,
                     'int' => is_int($value),
                     'string' => is_string($value),
                     default => false,
@@ -101,7 +102,7 @@ final readonly class ClassDecoder
                 try {
                     $value = $field->node->decode($value);
                 } catch (DecodeError $error) {
-                    return $error->whileCreating($this->class, $name);
+                    return $error->whileCreating($this->class, $field->json);
                 }
             }
             if ($field->property === null) {

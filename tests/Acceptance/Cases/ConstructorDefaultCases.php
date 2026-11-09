@@ -9,9 +9,15 @@ use Eventjet\Json\Test\Acceptance\Fixtures\CollectionUnionDefaults;
 use Eventjet\Json\Test\Acceptance\Fixtures\DefaultedConstructorFields;
 use Eventjet\Json\Test\Acceptance\Fixtures\OmittedInitializedReadonlyPublicProperty;
 use Eventjet\Json\Test\Acceptance\Fixtures\OmittedPublicProperties;
+use Eventjet\Json\Test\Acceptance\Fixtures\StringCollectionValidationFields;
 use InvalidArgumentException;
+use JsonException;
 use ReflectionException;
 use RuntimeException;
+
+use function json_encode;
+
+use const JSON_THROW_ON_ERROR;
 
 /** @internal */
 final class ConstructorDefaultCases
@@ -19,6 +25,7 @@ final class ConstructorDefaultCases
     /**
      * @api Called by PHPUnit through DataProviderExternal.
      * @return iterable<string, array{string, object}>
+     * @throws JsonException
      * @throws ReflectionException
      * @throws RuntimeException
      * @throws InvalidArgumentException
@@ -26,6 +33,7 @@ final class ConstructorDefaultCases
     public static function objects(): iterable
     {
         yield from FieldMappingCases::decoded();
+        yield from NumericBoundaryRoundTripCases::decoded();
         yield from JsonValueCases::decoded();
         yield from SchemaCases::decoded();
         yield from OtherMembersCases::decoded();
@@ -37,6 +45,12 @@ final class ConstructorDefaultCases
         $emptyMap = new CollectionUnionDefaults('');
         $emptyMap->map = new ArrayObject();
         yield 'empty map collection union overrides property default' => ['{"value":"","map":{}}', $emptyMap];
+        yield 'json_encode() drops an ArrayObject key starting with a null byte' => [
+            json_encode(new StringCollectionValidationFields(objectMap: new ArrayObject([
+                "\0hidden" => 'ready',
+            ])), JSON_THROW_ON_ERROR),
+            new StringCollectionValidationFields(),
+        ];
 
         yield 'omitted optional members use constructor defaults' => [
             '{"required":"value"}',

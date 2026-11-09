@@ -24,6 +24,7 @@ use Eventjet\Json\Internal\Error\DecodeErrors;
 use Eventjet\Json\Internal\Error\InvalidDiscriminator;
 use Eventjet\Json\Internal\Error\InvalidFieldMapping;
 use Eventjet\Json\Internal\Error\InvalidInput;
+use Eventjet\Json\Internal\Error\InvalidNumber;
 use Eventjet\Json\Internal\Error\InvalidOtherMembers;
 use Eventjet\Json\Internal\Error\InvalidValue;
 use Eventjet\Json\Internal\Error\UnsupportedClass;
@@ -199,6 +200,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(AmbiguousUnion::class)]
 #[CoversClass(ConstructorFailure::class)]
 #[CoversClass(InvalidFieldMapping::class)]
+#[CoversClass(InvalidNumber::class)]
 #[CoversClass(InvalidValue::class)]
 #[CoversClass(UnsupportedCollection::class)]
 #[CoversClass(UnsupportedField::class)]
