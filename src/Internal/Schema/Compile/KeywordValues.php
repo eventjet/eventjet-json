@@ -6,10 +6,10 @@ namespace Eventjet\Json\Internal\Schema\Compile;
 
 use Eventjet\Json\Internal\Schema\Draft;
 use Eventjet\Json\Internal\Schema\EcmaRegex;
+use Eventjet\Json\Internal\Schema\JsonKey;
 use Eventjet\Json\Schema\SchemaError;
 
 use function array_is_list;
-use function floor;
 use function is_array;
 use function is_float;
 use function is_int;
@@ -61,7 +61,7 @@ final class KeywordValues
         if (is_int($value) && $value >= 0) {
             return $value;
         }
-        if ($schema->draft !== Draft::Draft4 && is_float($value) && floor($value) === $value && $value >= 0) {
+        if ($schema->draft !== Draft::Draft4 && is_float($value) && JsonKey::isIntegral($value) && $value >= 0) {
             return $value;
         }
         throw new SchemaError(sprintf('The keyword at %s must be a non-negative integer.', $schema->at($keyword)));
