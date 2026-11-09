@@ -86,10 +86,10 @@ final class ItemKeywords
     /** @throws SchemaError */
     private static function contains(Compiler $compiler, SchemaObject $schema): ContainsKeyword
     {
-        $min = 1;
+        $min = null;
         $max = null;
         if ($schema->draft->atLeast(Draft::Draft201909) && $schema->vocabulary->validation) {
-            $min = KeywordValues::count($schema, 'minContains') ?? 1;
+            $min = KeywordValues::count($schema, 'minContains');
             $max = KeywordValues::count($schema, 'maxContains');
         }
         return new ContainsKeyword(
@@ -97,7 +97,7 @@ final class ItemKeywords
             $min,
             $max,
             $schema->draft === Draft::Draft202012,
-            $schema->at('contains'),
+            $schema->location->absolute(),
         );
     }
 }

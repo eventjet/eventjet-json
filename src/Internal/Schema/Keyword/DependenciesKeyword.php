@@ -56,7 +56,7 @@ final readonly class DependenciesKeyword implements Keyword
                     $valid = $run->fail(
                         $instanceLocation,
                         $location,
-                        $this->location,
+                        $run->path($this->location, $member),
                         sprintf('The member "%s" is required when "%s" is present.', $required, $member),
                     );
                 }

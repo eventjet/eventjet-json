@@ -16,9 +16,13 @@ use function sprintf;
 /** `contains`, with `minContains` and `maxContains`. @internal */
 final readonly class ContainsKeyword implements Keyword
 {
+    /**
+     * @param int|float|null $min The value of `minContains`, or null if `contains` alone sets the minimum of 1.
+     * @param string $location The absolute location of the schema that has the keywords.
+     */
     public function __construct(
         private Node $schema,
-        private int|float $min,
+        private int|float|null $min,
         private int|float|null $max,
         private bool $annotates,
         private string $location,
@@ -35,13 +39,10 @@ final readonly class ContainsKeyword implements Keyword
         if (!is_array($value)) {
             return true;
         }
-        $mark = $run->mark();
         $matches = 0;
-        $kp = $keywordLocation . '/contains';
         /** @var mixed $item */
         foreach ($value as $index => $item) {
-            $ip = $run->path($instanceLocation, $index);
-            $match = $this->schema->evaluate($item, $run, $ip, $kp, null);
+            $match = $run->quietly($this->schema, $item, null);
             if (!$match) {
                 continue;
             }
@@ -50,24 +51,21 @@ final readonly class ContainsKeyword implements Keyword
                 $annotations->indices[$index] = true;
             }
         }
-        $run->rollBack($mark);
-        if ($matches < $this->min) {
+        $min = $this->min ?? 1;
+        if ($matches < $min) {
+            $keyword = $this->min === null ? 'contains' : 'minContains';
             return $run->fail(
                 $instanceLocation,
-                $kp,
-                $this->location,
-                sprintf(
-                    'At least %s items must match the "contains" schema, but %d do.',
-                    (string) $this->min,
-                    $matches,
-                ),
+                $keywordLocation . '/' . $keyword,
+                $this->location . '/' . $keyword,
+                sprintf('At least %s items must match the "contains" schema, but %d do.', (string) $min, $matches),
             );
         }
         if ($this->max !== null && $matches > $this->max) {
             return $run->fail(
                 $instanceLocation,
                 $keywordLocation . '/maxContains',
-                $this->location,
+                $this->location . '/maxContains',
                 sprintf('At most %s items may match the "contains" schema, but %d do.', (string) $this->max, $matches),
             );
         }
