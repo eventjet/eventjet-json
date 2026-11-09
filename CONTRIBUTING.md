@@ -39,6 +39,17 @@ write the PHP files again. CI fails if they don't match.
 docker compose exec php composer meta-schemas
 ```
 
+### ECMA-262 regexes
+
+`EcmaRegexTest` checks the translation of `pattern` regexes to PCRE against
+`tests/Unit/Schema/ecma-regexes.json`, which holds V8's verdicts on generated
+regexes. After you change the generator, write the file again with Node.js 24
+on the host, as the PHP container has no Node.js. CI fails if it doesn't match.
+
+```bash
+node .github/ci/ecma-regexes.mjs
+```
+
 ### PHPDoc parity
 
 The decoder reads doc comments like phpstan/phpdoc-parser 2.4.0 as PHPStan

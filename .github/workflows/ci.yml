@@ -46,6 +46,13 @@ jobs:
         run: |
           composer meta-schemas
           test -z "$(git status --porcelain -- resources/meta-schemas)"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Generated regex test data
+        run: |
+          node .github/ci/ecma-regexes.mjs
+          test -z "$(git status --porcelain -- tests/Unit/Schema/ecma-regexes.json)"
       - name: Formatting and Mago
         run: |
           composer cs-check
