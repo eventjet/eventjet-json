@@ -68,6 +68,7 @@
         ],
         "mago-analyze": "mago analyze",
         "mago-lint": "mago lint",
+        "meta-schemas": "php .github/ci/meta-schemas.php",
         "parity": [
             "Composer\\Config::disableProcessTimeout",
             "phpunit --testsuite=parity"

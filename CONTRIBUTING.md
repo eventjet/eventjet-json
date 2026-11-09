@@ -29,6 +29,16 @@ docker compose exec php composer check
 Keep formatting, dependency checks, static analysis, PHPUnit, and mutation
 testing passing as support grows. These are ongoing development requirements.
 
+### Meta-schemas
+
+The package loads the official JSON Schema meta-schemas from PHP files next to
+the JSON files in `resources/meta-schemas`. After you change a JSON file there,
+write the PHP files again. CI fails if they don't match.
+
+```bash
+docker compose exec php composer meta-schemas
+```
+
 ### PHPDoc parity
 
 The decoder reads doc comments like phpstan/phpdoc-parser 2.4.0 as PHPStan

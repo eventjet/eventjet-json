@@ -42,6 +42,10 @@ jobs:
         run: |
           composer validate --strict
           composer check-deps
+      - name: Generated meta-schemas
+        run: |
+          composer meta-schemas
+          test -z "$(git status --porcelain -- resources/meta-schemas)"
       - name: Formatting and Mago
         run: |
           composer cs-check
