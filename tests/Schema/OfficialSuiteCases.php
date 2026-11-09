@@ -54,9 +54,9 @@ final class OfficialSuiteCases
 
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{string, class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012>, mixed, bool, bool}>
-     *     The schema document, the class for documents without `$schema`, the value, whether it is valid, and whether
-     *     to assert formats.
+     * @return iterable<string, array{string, class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012>, mixed, bool, array{assertFormats?: true}}>
+     *     The schema document, the class for documents without `$schema`, the value, whether it is valid, and the
+     *     named arguments for compiling that differ from the defaults.
      * @throws JsonException
      * @throws RuntimeException
      */
@@ -71,7 +71,7 @@ final class OfficialSuiteCases
 
     /**
      * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{string, class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012>, mixed, bool, bool}>
+     * @return iterable<string, array{string, class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012>, mixed, bool, array{assertFormats?: true}}>
      *     The same as {@see self::cases()}.
      * @throws JsonException
      * @throws RuntimeException
@@ -82,7 +82,7 @@ final class OfficialSuiteCases
     }
 
     /**
-     * @return iterable<string, array{string, class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012>, mixed, bool, bool}>
+     * @return iterable<string, array{string, class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012>, mixed, bool, array{assertFormats?: true}}>
      * @throws JsonException
      * @throws RuntimeException
      */
@@ -97,7 +97,7 @@ final class OfficialSuiteCases
 
     /**
      * @param class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012> $class
-     * @return iterable<string, array{string, class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012>, mixed, bool, bool}>
+     * @return iterable<string, array{string, class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012>, mixed, bool, array{assertFormats?: true}}>
      * @throws JsonException
      * @throws RuntimeException
      */
@@ -105,7 +105,7 @@ final class OfficialSuiteCases
     {
         /** @var list<object{description: string, schema: mixed, tests: list<object{description: string, data: mixed, valid: bool}>}> $groups */
         $groups = json_decode(self::read($root . '/' . $file), flags: JSON_THROW_ON_ERROR);
-        $assertFormats = str_contains($file, '/optional/format/');
+        $options = str_contains($file, '/optional/format/') ? ['assertFormats' => true] : [];
         foreach ($groups as $group) {
             $schema = json_encode(
                 $group->schema,
@@ -113,7 +113,7 @@ final class OfficialSuiteCases
             );
             foreach ($group->tests as $test) {
                 $name = sprintf('%s%s: %s: %s', $prefix, $file, $group->description, $test->description);
-                yield $name => [$schema, $class, $test->data, $test->valid, $assertFormats];
+                yield $name => [$schema, $class, $test->data, $test->valid, $options];
             }
         }
     }

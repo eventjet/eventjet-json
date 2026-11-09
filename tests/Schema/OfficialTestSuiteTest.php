@@ -179,6 +179,7 @@ final class OfficialTestSuiteTest extends TestCase
 {
     /**
      * @param class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012> $class
+     * @param array{assertFormats?: true} $options
      * @throws \PHPUnit\Framework\Exception
      * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
      */
@@ -189,13 +190,13 @@ final class OfficialTestSuiteTest extends TestCase
         string $class,
         mixed $value,
         bool $valid,
-        bool $assertFormats,
+        array $options,
     ): void {
         $loader = OfficialSuiteRemotes::loader($class);
         $schema = JsonSchema::decode($schemaJson, $class, loader: $loader);
         static::assertNotInstanceOf(DecodeError::class, $schema);
 
-        $validator = Validator::compile($schema, loader: $loader, assertFormats: $assertFormats);
+        $validator = Validator::compile($schema, ...['loader' => $loader, ...$options]);
 
         static::assertInstanceOf(Validator::class, $validator);
         $error = $validator->validateValue($value);
