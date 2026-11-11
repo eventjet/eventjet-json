@@ -1,0 +1,15 @@
+[
+    {
+        "description": "a time-offset with the largest minute value",
+        "schema": {
+            "format": "time"
+        },
+        "tests": [
+            {
+                "description": "an offset of 59 minutes is valid",
+                "data": "12:00:00+00:59",
+                "valid": true
+            }
+        ]
+    }
+]

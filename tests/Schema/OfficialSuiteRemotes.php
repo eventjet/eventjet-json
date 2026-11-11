@@ -21,7 +21,8 @@ use function strpos;
 use function substr;
 
 /**
- * The remote documents of the official JSON Schema Test Suite, which its tests reference under http://localhost:1234/.
+ * The remote documents of the official JSON Schema Test Suite, which its tests reference under http://localhost:1234/,
+ * and those that the proposed cases add.
  *
  * @internal
  */
@@ -48,7 +49,9 @@ final class OfficialSuiteRemotes
             if (!str_starts_with($uri, self::REMOTE)) {
                 return null;
             }
-            $path = OfficialSuiteCases::SUITE . '/remotes/' . substr($uri, strlen(self::REMOTE));
+            $relative = '/remotes/' . substr($uri, strlen(self::REMOTE));
+            $inSuite = is_file(OfficialSuiteCases::SUITE . $relative);
+            $path = ($inSuite ? OfficialSuiteCases::SUITE : OfficialSuiteCases::PROPOSED) . $relative;
             $exists = is_file($path);
             $json = $exists ? file_get_contents($path) : false;
             if ($json === false) {

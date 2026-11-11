@@ -1,0 +1,16 @@
+[
+    {
+        "description": "a date followed by a line feed",
+        "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "format": "date"
+        },
+        "tests": [
+            {
+                "description": "a date followed by a line feed is invalid",
+                "data": "1963-06-19\n",
+                "valid": false
+            }
+        ]
+    }
+]

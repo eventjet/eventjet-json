@@ -220,6 +220,7 @@ final class OfficialTestSuiteTest extends TestCase
      */
     #[DataProviderExternal(OfficialSuiteCases::class, 'cases')]
     #[DataProviderExternal(OfficialSuiteCases::class, 'regressions')]
+    #[DataProviderExternal(OfficialSuiteCases::class, 'proposed')]
     public function testValidatorAgreesWithTheOfficialTestSuite(
         string $schemaJson,
         string $class,

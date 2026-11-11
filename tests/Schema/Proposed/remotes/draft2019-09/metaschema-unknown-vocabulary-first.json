@@ -1,0 +1,18 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "http://localhost:1234/draft2019-09/metaschema-unknown-vocabulary-first.json",
+    "$vocabulary": {
+        "http://localhost:1234/draft/2019-09/vocab/custom": false,
+        "https://json-schema.org/draft/2019-09/vocab/core": true,
+        "https://json-schema.org/draft/2019-09/vocab/validation": true
+    },
+    "$recursiveAnchor": true,
+    "allOf": [
+        {
+            "$ref": "https://json-schema.org/draft/2019-09/meta/core"
+        },
+        {
+            "$ref": "https://json-schema.org/draft/2019-09/meta/validation"
+        }
+    ]
+}

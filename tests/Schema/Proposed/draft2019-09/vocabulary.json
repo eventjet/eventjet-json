@@ -1,0 +1,21 @@
+[
+    {
+        "description": "ignore an unrecognized optional vocabulary listed before the known ones",
+        "schema": {
+            "$schema": "http://localhost:1234/draft2019-09/metaschema-unknown-vocabulary-first.json",
+            "type": "number"
+        },
+        "tests": [
+            {
+                "description": "string value",
+                "data": "foobar",
+                "valid": false
+            },
+            {
+                "description": "number value",
+                "data": 20,
+                "valid": true
+            }
+        ]
+    }
+]

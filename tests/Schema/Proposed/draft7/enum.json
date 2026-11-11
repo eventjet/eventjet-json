@@ -1,0 +1,24 @@
+[
+    {
+        "description": "enum alongside type",
+        "schema": {
+            "type": "integer",
+            "enum": [
+                1,
+                2
+            ]
+        },
+        "tests": [
+            {
+                "description": "a listed integer is valid",
+                "data": 1,
+                "valid": true
+            },
+            {
+                "description": "an unlisted integer is invalid",
+                "data": 3,
+                "valid": false
+            }
+        ]
+    }
+]

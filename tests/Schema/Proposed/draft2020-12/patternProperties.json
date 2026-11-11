@@ -1,0 +1,29 @@
+[
+    {
+        "description": "patternProperties with a numeric-looking pattern",
+        "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "patternProperties": {
+                "1": {
+                    "type": "string"
+                }
+            }
+        },
+        "tests": [
+            {
+                "description": "a matching name with a string value is valid",
+                "data": {
+                    "x1": "foo"
+                },
+                "valid": true
+            },
+            {
+                "description": "a matching name with a non-string value is invalid",
+                "data": {
+                    "x1": 1
+                },
+                "valid": false
+            }
+        ]
+    }
+]

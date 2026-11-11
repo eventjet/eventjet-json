@@ -1,0 +1,15 @@
+[
+    {
+        "description": "hostname length limit",
+        "schema": {
+            "format": "hostname"
+        },
+        "tests": [
+            {
+                "description": "a hostname of exactly 253 characters is valid",
+                "data": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                "valid": true
+            }
+        ]
+    }
+]
