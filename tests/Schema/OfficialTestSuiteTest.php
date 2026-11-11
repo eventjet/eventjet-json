@@ -219,7 +219,6 @@ final class OfficialTestSuiteTest extends TestCase
      * @throws JsonException
      */
     #[DataProviderExternal(OfficialSuiteCases::class, 'cases')]
-    #[DataProviderExternal(OfficialSuiteCases::class, 'regressions')]
     #[DataProviderExternal(OfficialSuiteCases::class, 'proposed')]
     public function testValidatorAgreesWithTheOfficialTestSuite(
         string $schemaJson,

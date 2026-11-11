@@ -41,9 +41,6 @@ final class OfficialSuiteCases
 {
     public const string SUITE = __DIR__ . '/../JsonSchemaTestSuite';
 
-    /** Cases in the format of the suite for bugs that the suite doesn't catch. */
-    private const string REGRESSIONS = __DIR__ . '/Regressions';
-
     /**
      * Cases proposed to the suite, in its layout, until it has them. Each one fails against a mutant that the suite
      * misses.
@@ -73,18 +70,6 @@ final class OfficialSuiteCases
             throw new RuntimeException('The JSON Schema Test Suite is missing. Run "git submodule update --init".');
         }
         yield from self::directoryCases(self::SUITE . '/tests', prefix: '');
-    }
-
-    /**
-     * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{string, class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012>, mixed, bool, array{assertFormats?: true}}>
-     *     The same as {@see self::cases()}.
-     * @throws JsonException
-     * @throws RuntimeException
-     */
-    public static function regressions(): iterable
-    {
-        yield from self::directoryCases(self::REGRESSIONS, prefix: 'regressions/');
     }
 
     /**

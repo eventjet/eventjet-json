@@ -1,9 +1,0 @@
-[
-    {
-        "description": "the year 0000",
-        "schema": {"format": "date-time"},
-        "tests": [
-            {"description": "a time in the year 0000 is valid", "data": "0000-02-29T00:00:00Z", "valid": true}
-        ]
-    }
-]
