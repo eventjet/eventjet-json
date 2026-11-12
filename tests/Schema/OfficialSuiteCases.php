@@ -19,7 +19,6 @@ use function file_get_contents;
 use function is_file;
 use function json_decode;
 use function sort;
-use function sprintf;
 use function str_ends_with;
 use function str_starts_with;
 use function strlen;
@@ -87,6 +86,7 @@ final class OfficialSuiteCases
     private static function directoryCases(string $root, string $prefix, OfficialSuiteRounding $rounding): iterable
     {
         $files = self::files($root);
+        $tests = new OfficialSuiteTests($prefix, $rounding);
         foreach (self::DRAFTS as $release => [$draft, $class]) {
             foreach ($files as $file) {
                 /** @var object{tests: list<object{description: string, compatibility?: string, tags?: list<string>, schema: mixed, externalSchemas?: mixed, tests: list<object{description: string, data: mixed, valid: bool}>}>} $contents */
@@ -96,18 +96,7 @@ final class OfficialSuiteCases
                     if (!$compatible) {
                         continue;
                     }
-                    $schema = OfficialSuiteSchema::ofCase($case, $class);
-                    foreach ($case->tests as $test) {
-                        $name = sprintf(
-                            '%s%s [%s]: %s: %s',
-                            $prefix,
-                            $file,
-                            $draft,
-                            $case->description,
-                            $test->description,
-                        );
-                        yield $name => [$schema, $test->data, $rounding->validity($file, $case, $test)];
-                    }
+                    yield from $tests->ofCase($case, $class, $file, $draft);
                 }
             }
         }

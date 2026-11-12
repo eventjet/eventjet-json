@@ -18,18 +18,15 @@ use function var_export;
 /** @internal */
 final readonly class MultipleOfKeyword implements Keyword
 {
-    /** The divisor as $rest * 2 ** $twos * 5 ** $fives * 10 ** $exponent, with a $rest that 2 and 5 don't divide. */
-    private int $rest;
-    private int $twos;
-    private int $fives;
+    /** The divisor as $mantissa * 10 ** $exponent. */
+    private int $mantissa;
     private int $exponent;
 
     public function __construct(
         private int|float $divisor,
         private string $location,
     ) {
-        [$mantissa, $this->exponent] = self::decimal($divisor);
-        [$this->rest, $this->twos, $this->fives] = self::factors($mantissa);
+        [$this->mantissa, $this->exponent] = self::decimal($divisor);
     }
 
     #[Override]
@@ -63,12 +60,29 @@ final readonly class MultipleOfKeyword implements Keyword
     private function isMultiple(int|float $value): bool
     {
         [$mantissa, $exponent] = self::decimal($value);
-        if ($mantissa === 0) {
-            return true;
-        }
-        [, $twos, $fives] = self::factors($mantissa);
+        $divisor = $this->mantissa;
         $shift = $exponent - $this->exponent;
-        return ($mantissa % $this->rest) === 0 && $this->twos <= ($twos + $shift) && $this->fives <= ($fives + $shift);
+        for ($i = $shift; $i < 0; $i++) {
+            if (($mantissa % 10) !== 0) {
+                return false;
+            }
+            /** @var int $quotient Dividing a multiple of 10 by 10 gives an int. */
+            $quotient = $mantissa / 10;
+            $mantissa = $quotient;
+        }
+        for ($i = $shift; $i > 0; $i--) {
+            if (($divisor % 2) === 0) {
+                /** @var int $quotient Dividing a multiple of 2 by 2 gives an int. */
+                $quotient = $divisor / 2;
+                $divisor = $quotient;
+            }
+            if (($divisor % 5) === 0) {
+                /** @var int $quotient Dividing a multiple of 5 by 5 gives an int. */
+                $quotient = $divisor / 5;
+                $divisor = $quotient;
+            }
+        }
+        return ($mantissa % $divisor) === 0;
     }
 
     /**
@@ -86,29 +100,6 @@ final readonly class MultipleOfKeyword implements Keyword
         $parts = sscanf(var_export($number, return: true), '%[-0-9].%[0-9]E%d');
         [$whole, $fraction, $power] = $parts;
         return [(int) ($whole . $fraction), ($power ?? 0) - strlen($fraction)];
-    }
-
-    /**
-     * Splits a number other than 0 into $rest * 2 ** $twos * 5 ** $fives, with a $rest that 2 and 5 don't divide.
-     *
-     * @return array{int, int, int}
-     * @mutation-free
-     */
-    private static function factors(int $number): array
-    {
-        $twos = 0;
-        while (($number % 2) === 0) {
-            $number >>= 1;
-            $twos++;
-        }
-        $fives = 0;
-        while (($number % 5) === 0) {
-            /** @var int $quotient Dividing a multiple of 5 by 5 gives an int. */
-            $quotient = $number / 5;
-            $number = $quotient;
-            $fives++;
-        }
-        return [$number, $twos, $fives];
     }
 
     #[Override]

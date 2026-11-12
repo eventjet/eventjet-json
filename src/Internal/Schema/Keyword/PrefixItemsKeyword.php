@@ -10,6 +10,7 @@ use Eventjet\Json\Internal\Schema\Node;
 use Eventjet\Json\Internal\Schema\Run;
 use Override;
 
+use function array_key_exists;
 use function is_array;
 use function max;
 
@@ -34,22 +35,19 @@ final readonly class PrefixItemsKeyword implements Keyword
             return true;
         }
         $valid = true;
-        $count = 0;
-        foreach ($this->schemas as $index => $schema) {
-            if (!\array_key_exists($index, $value)) {
-                break;
-            }
-            $count++;
+        $index = 0;
+        while (array_key_exists($index, $this->schemas) && array_key_exists($index, $value)) {
             $ip = $run->path($instanceLocation, $index);
             $kp = $run->path($keywordLocation, $this->name, $index);
-            $matches = $schema->evaluate($value[$index], $run, $ip, $kp, null);
+            $matches = $this->schemas[$index]->evaluate($value[$index], $run, $ip, $kp, null);
+            $index++;
             if ($matches) {
                 continue;
             }
             $valid = false;
         }
         if ($annotations !== null) {
-            $annotations->items = max($annotations->items, $count);
+            $annotations->items = max($annotations->items, $index);
         }
         return $valid;
     }

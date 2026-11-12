@@ -642,6 +642,80 @@
                     "valid": false
                 }
             ]
+        },
+        {
+            "description": "$ref to a JSON pointer next to an id with the root's URI and a fragment",
+            "compatibility": "=4",
+            "schema": {
+                "id": "http://example.com/root.json",
+                "properties": {
+                    "b": {
+                        "$ref": "#/definitions/b"
+                    }
+                },
+                "definitions": {
+                    "a": {
+                        "id": "http://example.com/root.json#foo",
+                        "type": "integer"
+                    },
+                    "b": {
+                        "type": "string"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "the pointer resolves against the root",
+                    "data": {
+                        "b": 1
+                    },
+                    "valid": false
+                },
+                {
+                    "description": "valid",
+                    "data": {
+                        "b": "x"
+                    },
+                    "valid": true
+                }
+            ]
+        },
+        {
+            "description": "$ref to a JSON pointer next to an $id with the root's URI and a fragment",
+            "compatibility": "6,<=7",
+            "schema": {
+                "$id": "http://example.com/root.json",
+                "properties": {
+                    "b": {
+                        "$ref": "#/definitions/b"
+                    }
+                },
+                "definitions": {
+                    "a": {
+                        "$id": "http://example.com/root.json#foo",
+                        "type": "integer"
+                    },
+                    "b": {
+                        "type": "string"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "the pointer resolves against the root",
+                    "data": {
+                        "b": 1
+                    },
+                    "valid": false
+                },
+                {
+                    "description": "valid",
+                    "data": {
+                        "b": "x"
+                    },
+                    "valid": true
+                }
+            ]
         }
     ]
 }

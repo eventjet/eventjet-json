@@ -73,6 +73,11 @@ final readonly class OfficialSuiteSchema
         return new self($json, $this->class, $this->options, $this->externalSchemas);
     }
 
+    public function withAssertedFormats(): self
+    {
+        return new self($this->json, $this->class, ['assertFormats' => true], $this->externalSchemas);
+    }
+
     /**
      * Returns a loader for the external schemas, which decodes documents without `$schema` into the class.
      *
