@@ -63,7 +63,9 @@ final class OfficialSuiteCases
         if (!$present) {
             throw new RuntimeException('The JSON Schema Test Suite is missing. Run "git submodule update --init".');
         }
-        yield from self::directoryCases(self::SUITE . '/validation/tests', prefix: '');
+        $rounding = new OfficialSuiteRounding();
+        yield from self::directoryCases(self::SUITE . '/validation/tests', prefix: '', rounding: $rounding);
+        $rounding->assertAllFound();
     }
 
     /**
@@ -74,7 +76,7 @@ final class OfficialSuiteCases
      */
     public static function proposed(): iterable
     {
-        yield from self::directoryCases(self::PROPOSED, prefix: 'proposed/');
+        yield from self::directoryCases(self::PROPOSED, prefix: 'proposed/', rounding: new OfficialSuiteRounding());
     }
 
     /**
@@ -82,7 +84,7 @@ final class OfficialSuiteCases
      * @throws JsonException
      * @throws RuntimeException
      */
-    private static function directoryCases(string $root, string $prefix): iterable
+    private static function directoryCases(string $root, string $prefix, OfficialSuiteRounding $rounding): iterable
     {
         $files = self::files($root);
         foreach (self::DRAFTS as $release => [$draft, $class]) {
@@ -104,7 +106,7 @@ final class OfficialSuiteCases
                             $case->description,
                             $test->description,
                         );
-                        yield $name => [$schema, $test->data, $test->valid];
+                        yield $name => [$schema, $test->data, $rounding->validity($file, $case, $test)];
                     }
                 }
             }

@@ -446,7 +446,9 @@ class.
 - **Numbers** are `int|float`. A JSON integer becomes an `int`, and a JSON
   number with a fraction or an exponent becomes a `float`. `json_encode()`
   writes a whole float such as `1.0` as `1`, which decodes as an `int`. JSON
-  Schema treats both as the same number.
+  Schema treats both as the same number. Digits beyond the precision of an
+  `int` or `float` are lost, in schemas and in validated values alike, so the
+  validator treats numbers that differ only there as equal.
 - **Names that start with `$`**, such as `$ref`, `$id`, and `$schema`, are
   mapped with `#[Field]`. The PHP property leaves out the `$`, as in
   `$schema->ref`. In Draft 4, the identifier keyword is `id`, without `$`.

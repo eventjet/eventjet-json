@@ -380,7 +380,8 @@ backtrack limit, the result is a `RegexLimit` error.
 
 The validator passes every required and optional test of the official
 [JSON Schema Test Suite](https://github.com/json-schema-org/JSON-Schema-Test-Suite)
-for these drafts. The library never fetches documents. To resolve references
+for these drafts, except the optional cases that compare numbers more precisely
+than PHP's `int` and `float` can hold them. The library never fetches documents. To resolve references
 to other documents, pass a loader; the official meta-schemas are built in.
 `format` is only an annotation unless you pass `assertFormats: true`. Schemas
 are trusted input: a hostile `pattern` can make PCRE backtrack for a long time.

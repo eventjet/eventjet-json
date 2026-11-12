@@ -12,7 +12,9 @@ back to plain objects first.
 ## Consequences
 
 - The validator supports Draft 4, Draft 6, Draft 7, Draft 2019-09, and Draft 2020-12, the drafts that have schema
-  classes, and passes every required and optional test of the official JSON Schema Test Suite. The suite is a Git
+  classes, and passes every required and optional test of the official JSON Schema Test Suite, except the optional
+  cases that need more precise numbers than PHP has (see [ADR 0012](0012-validate-numbers-as-php-represents-them.md)).
+  The suite is a Git
   submodule in `tests/JsonSchemaTestSuite`, pinned to a commit and updated by Dependabot, and
   `tests/Schema/OfficialTestSuiteTest.php` runs all of it.
 - The official meta-schemas ship in `resources/meta-schemas/`, with their BSD license notice.
