@@ -35,6 +35,16 @@
                     "description": "a line feed before the colon of the scheme is invalid",
                     "data": "http\n://example.com/",
                     "valid": false
+                },
+                {
+                    "description": "a URI with text before an IPvFuture literal is invalid",
+                    "data": "http://[xv1.a]/",
+                    "valid": false
+                },
+                {
+                    "description": "a URI with a line feed at the end of an IPvFuture literal is invalid",
+                    "data": "http://[v1.a\n]/",
+                    "valid": false
                 }
             ]
         }

@@ -334,6 +334,114 @@
                     "valid": false
                 }
             ]
+        },
+        {
+            "description": "$ref starting with a parent directory segment against a base path without a slash",
+            "compatibility": "2019,<=2020",
+            "comment": "RFC 3986 5.2.3 and 5.2.4: the merged path is the reference's path, and its leading \"../\" is removed",
+            "schema": {
+                "$id": "urn:example:root",
+                "$ref": "../example:other",
+                "$defs": {
+                    "target": {
+                        "$id": "urn:example:other",
+                        "type": "string"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "a string is valid",
+                    "data": "foo",
+                    "valid": true
+                },
+                {
+                    "description": "a non-string is invalid",
+                    "data": 1,
+                    "valid": false
+                }
+            ]
+        },
+        {
+            "description": "$ref starting with a current directory segment against a base path without a slash",
+            "compatibility": "2019,<=2020",
+            "comment": "RFC 3986 5.2.3 and 5.2.4: the merged path is the reference's path, and its leading \"./\" is removed",
+            "schema": {
+                "$id": "urn:example:root",
+                "$ref": "./example:other",
+                "$defs": {
+                    "target": {
+                        "$id": "urn:example:other",
+                        "type": "string"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "a string is valid",
+                    "data": "foo",
+                    "valid": true
+                },
+                {
+                    "description": "a non-string is invalid",
+                    "data": 1,
+                    "valid": false
+                }
+            ]
+        },
+        {
+            "description": "$ref to a current directory segment against a base path without a slash",
+            "compatibility": "2019,<=2020",
+            "comment": "RFC 3986 5.2.3 and 5.2.4: the merged path is \".\", which becomes empty",
+            "schema": {
+                "$id": "urn:example:root",
+                "$ref": ".",
+                "$defs": {
+                    "target": {
+                        "$id": "urn:",
+                        "type": "string"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "a string is valid",
+                    "data": "foo",
+                    "valid": true
+                },
+                {
+                    "description": "a non-string is invalid",
+                    "data": 1,
+                    "valid": false
+                }
+            ]
+        },
+        {
+            "description": "$ref to a parent directory segment against a base path without a slash",
+            "compatibility": "2019,<=2020",
+            "comment": "RFC 3986 5.2.3 and 5.2.4: the merged path is \"..\", which becomes empty",
+            "schema": {
+                "$id": "urn:example:root",
+                "$ref": "..",
+                "$defs": {
+                    "target": {
+                        "$id": "urn:",
+                        "type": "string"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "a string is valid",
+                    "data": "foo",
+                    "valid": true
+                },
+                {
+                    "description": "a non-string is invalid",
+                    "data": 1,
+                    "valid": false
+                }
+            ]
         }
     ]
 }
