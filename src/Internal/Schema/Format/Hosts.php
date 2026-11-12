@@ -27,8 +27,7 @@ final class Hosts
             if (!$valid) {
                 return false;
             }
-            $reserved = $draft->atLeast(Draft::Draft7) && preg_match('/^..--/', $label) === 1;
-            if (!$reserved) {
+            if (!$draft->atLeast(Draft::Draft7)) {
                 continue;
             }
             $valid = IdnHosts::hostname($label);

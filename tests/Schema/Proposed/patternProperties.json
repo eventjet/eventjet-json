@@ -25,6 +25,14 @@
                         "x1": 1
                     },
                     "valid": false
+                },
+                {
+                    "description": "an array is not an object, so its items are ignored",
+                    "data": [
+                        "foo",
+                        1
+                    ],
+                    "valid": true
                 }
             ]
         }

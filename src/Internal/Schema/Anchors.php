@@ -50,8 +50,7 @@ final class Anchors
     /** Adds the anchor that the fragment of an `$id` names, which only drafts before 2019-09 allow. */
     public function addId(string $resolvedId, stdClass $schema, Location $location): void
     {
-        $fragment = Uri::split($resolvedId)[1];
-        if ($fragment === null || $fragment === '' || $location->resource->draft->atLeast(Draft::Draft201909)) {
+        if ($location->resource->draft->atLeast(Draft::Draft201909)) {
             return;
         }
         $this->anchors[$resolvedId] = [$schema, $location];

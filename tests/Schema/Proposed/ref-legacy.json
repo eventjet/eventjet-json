@@ -544,6 +544,104 @@
                     "valid": false
                 }
             ]
+        },
+        {
+            "description": "$ref to identifiers that differ only before the query",
+            "compatibility": "=4",
+            "schema": {
+                "id": "http://example.com/root.json",
+                "properties": {
+                    "a": {
+                        "$ref": "a.json?v=1"
+                    },
+                    "b": {
+                        "$ref": "b.json?v=1"
+                    }
+                },
+                "definitions": {
+                    "a": {
+                        "id": "a.json?v=1",
+                        "type": "string"
+                    },
+                    "b": {
+                        "id": "b.json?v=1",
+                        "type": "integer"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "matches both",
+                    "data": {
+                        "a": "x",
+                        "b": 1
+                    },
+                    "valid": true
+                },
+                {
+                    "description": "mismatch for a",
+                    "data": {
+                        "a": 1
+                    },
+                    "valid": false
+                },
+                {
+                    "description": "mismatch for b",
+                    "data": {
+                        "b": "x"
+                    },
+                    "valid": false
+                }
+            ]
+        },
+        {
+            "description": "$ref to identifiers that differ only before the query",
+            "compatibility": "6,<=7",
+            "schema": {
+                "$id": "http://example.com/root.json",
+                "properties": {
+                    "a": {
+                        "$ref": "a.json?v=1"
+                    },
+                    "b": {
+                        "$ref": "b.json?v=1"
+                    }
+                },
+                "definitions": {
+                    "a": {
+                        "$id": "a.json?v=1",
+                        "type": "string"
+                    },
+                    "b": {
+                        "$id": "b.json?v=1",
+                        "type": "integer"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "matches both",
+                    "data": {
+                        "a": "x",
+                        "b": 1
+                    },
+                    "valid": true
+                },
+                {
+                    "description": "mismatch for a",
+                    "data": {
+                        "a": 1
+                    },
+                    "valid": false
+                },
+                {
+                    "description": "mismatch for b",
+                    "data": {
+                        "b": "x"
+                    },
+                    "valid": false
+                }
+            ]
         }
     ]
 }

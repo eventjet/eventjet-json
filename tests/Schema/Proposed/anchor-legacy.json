@@ -1,0 +1,30 @@
+{
+    "description": "anchor-legacy validation",
+    "tests": [
+        {
+            "description": "Location-independent identifier on the root of a remote schema",
+            "compatibility": "6,<=7",
+            "schema": {
+                "$ref": "http://localhost:1234/root-anchor.json#root"
+            },
+            "externalSchemas": {
+                "http://localhost:1234/root-anchor.json": {
+                    "$id": "#root",
+                    "type": "integer"
+                }
+            },
+            "tests": [
+                {
+                    "description": "an integer is valid",
+                    "data": 1,
+                    "valid": true
+                },
+                {
+                    "description": "a string is invalid",
+                    "data": "a",
+                    "valid": false
+                }
+            ]
+        }
+    ]
+}

@@ -262,6 +262,78 @@
                     "valid": false
                 }
             ]
+        },
+        {
+            "description": "$ref to identifiers that differ only before the query",
+            "compatibility": "2019,<=2020",
+            "schema": {
+                "$id": "http://example.com/root.json",
+                "properties": {
+                    "a": {
+                        "$ref": "a.json?v=1"
+                    },
+                    "b": {
+                        "$ref": "b.json?v=1"
+                    }
+                },
+                "$defs": {
+                    "a": {
+                        "$id": "a.json?v=1",
+                        "type": "string"
+                    },
+                    "b": {
+                        "$id": "b.json?v=1",
+                        "type": "integer"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "matches both",
+                    "data": {
+                        "a": "x",
+                        "b": 1
+                    },
+                    "valid": true
+                },
+                {
+                    "description": "mismatch for a",
+                    "data": {
+                        "a": 1
+                    },
+                    "valid": false
+                },
+                {
+                    "description": "mismatch for b",
+                    "data": {
+                        "b": "x"
+                    },
+                    "valid": false
+                }
+            ]
+        },
+        {
+            "description": "$ref to the format-assertion vocabulary meta-schema",
+            "compatibility": "=2020",
+            "schema": {
+                "$ref": "https://json-schema.org/draft/2020-12/meta/format-assertion"
+            },
+            "tests": [
+                {
+                    "description": "a string format is valid",
+                    "data": {
+                        "format": "ipv4"
+                    },
+                    "valid": true
+                },
+                {
+                    "description": "a non-string format is invalid",
+                    "data": {
+                        "format": 1
+                    },
+                    "valid": false
+                }
+            ]
         }
     ]
 }

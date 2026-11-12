@@ -1,0 +1,45 @@
+{
+    "description": "uniqueItems validation",
+    "tests": [
+        {
+            "description": "uniqueItems ignores non-arrays inside not",
+            "comment": "Non-arrays satisfy uniqueItems, so not rejects them",
+            "schema": {
+                "not": {
+                    "uniqueItems": true
+                }
+            },
+            "tests": [
+                {
+                    "description": "a string is invalid",
+                    "data": "foo",
+                    "valid": false
+                },
+                {
+                    "description": "an object is invalid",
+                    "data": {
+                        "a": 1,
+                        "b": 1
+                    },
+                    "valid": false
+                },
+                {
+                    "description": "an array with equal items is valid",
+                    "data": [
+                        1,
+                        1
+                    ],
+                    "valid": true
+                },
+                {
+                    "description": "an array with unique items is invalid",
+                    "data": [
+                        1,
+                        2
+                    ],
+                    "valid": false
+                }
+            ]
+        }
+    ]
+}
