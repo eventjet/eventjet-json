@@ -1,0 +1,40 @@
+{
+    "description": "patternProperties validation",
+    "tests": [
+        {
+            "description": "patternProperties with a numeric-looking pattern",
+            "compatibility": "4,<=2020",
+            "schema": {
+                "patternProperties": {
+                    "1": {
+                        "type": "string"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "a matching name with a string value is valid",
+                    "data": {
+                        "x1": "foo"
+                    },
+                    "valid": true
+                },
+                {
+                    "description": "a matching name with a non-string value is invalid",
+                    "data": {
+                        "x1": 1
+                    },
+                    "valid": false
+                },
+                {
+                    "description": "an array is not an object, so its items are ignored",
+                    "data": [
+                        "foo",
+                        1
+                    ],
+                    "valid": true
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,40 @@
+{
+    "description": "properties validation",
+    "tests": [
+        {
+            "description": "properties with a numeric-looking name",
+            "compatibility": "4,<=2020",
+            "schema": {
+                "properties": {
+                    "1": {
+                        "type": "string"
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "a string value is valid",
+                    "data": {
+                        "1": "foo"
+                    },
+                    "valid": true
+                },
+                {
+                    "description": "a non-string value is invalid",
+                    "data": {
+                        "1": 1
+                    },
+                    "valid": false
+                },
+                {
+                    "description": "an array is not an object, so its items are ignored",
+                    "data": [
+                        "foo",
+                        1
+                    ],
+                    "valid": true
+                }
+            ]
+        }
+    ]
+}

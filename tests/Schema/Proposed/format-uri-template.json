@@ -1,0 +1,37 @@
+{
+    "description": "uri-template validation",
+    "tests": [
+        {
+            "description": "URI template modifiers and literals after expressions",
+            "compatibility": "6,<=2020",
+            "tags": [
+                "format-assertion"
+            ],
+            "schema": {
+                "format": "uri-template"
+            },
+            "tests": [
+                {
+                    "description": "an explode modifier on a one-character variable name is valid",
+                    "data": "{x*}",
+                    "valid": true
+                },
+                {
+                    "description": "an invalid character right after an expression is invalid",
+                    "data": "{foo}<bar",
+                    "valid": false
+                },
+                {
+                    "description": "a prefix length followed by a line feed is invalid",
+                    "data": "{var:3\n}",
+                    "valid": false
+                },
+                {
+                    "description": "a variable name ending in a dot with a prefix modifier is invalid",
+                    "data": "{foo.:3}",
+                    "valid": false
+                }
+            ]
+        }
+    ]
+}

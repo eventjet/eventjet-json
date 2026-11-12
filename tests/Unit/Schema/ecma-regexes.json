@@ -1,0 +1,1805 @@
+[
+    ["^(?:(a)|b\\1)+$","unsupported"],
+    ["^(?:(a)|b)+\\1$","unsupported"],
+    ["^(?:(a)|(b))+\\1\\2$","unsupported"],
+    ["^(?:(?:(a)|b)c)*\\1$","unsupported"],
+    ["^(?:(a)?b)+\\1$","unsupported"],
+    ["^(?:((a)|b)(c))+\\2$","unsupported"],
+    ["^(?:(?<n>a)|b)+\\k<n>$","unsupported"],
+    ["^(?:(a)|b){2}\\1$","unsupported"],
+    ["^(?:(a)|b){1,2}?\\1$","unsupported"],
+    ["^(?:(a)|b)?\\1$",[["",true],["aa",true],["b",true],["bac",false],["\r:::",false],[",:bǅ1",false],["\u0000",false]]],
+    ["^\\p{Script=Thaana}$",[["ހ",true],["٣",false],["",false],["ih1tp",false],["=rrS",false]]],
+    ["^\\p{sc=Arabic}$",[["٣",true],["ހ",false],["",false],["9",false],[" =s \f",false]]],
+    ["^\\p{scx=Thaana}$",[["٣",true],["ހ",true],[" ",false],["sT",false],["cⅠs",false],[" cx￿",false]]],
+    ["",[["　 \n ",true],["  !",true],["中ſ91",true],["_-ß𐀀",true]]],
+    ["a",[["a",true],["aa",true],["aaΩ",true],["aaa",true],["Ж",false],["9",false],[">ß>",false],["",false]]],
+    ["^$",[["",true],["=ǅ<,",false],["　Ⅰa",false],["ß﻿",false],["cé ٣A",false]]],
+    ["$^",[["",true],["",false],["A",false],["\t/Ж -",false],["b",false]]],
+    ["\\",false],
+    ["a\\",false],
+    ["(",false],
+    [")",false],
+    ["[",false],
+    ["]",false],
+    ["{",false],
+    ["}",false],
+    ["a{",false],
+    ["a{1",false],
+    ["a{1,",false],
+    ["a{,1}",false],
+    ["a{1}{2}",false],
+    ["a{2,1}",false],
+    ["a{1,1}",[["a,1/",true],["1,a Z",true],["a",true],["1a𐀀ω",true],["c19 ",false],["𐀀Жİ1",false],[",\u0001,",false],["",false]]],
+    ["a{0}",[["0",true],["\n0٣00",true],["0ß",true],["aaa0",true]]],
+    ["a{0,0}",[["",true],["< 中0\t",true],[" ",true],[" İaa,",true]]],
+    ["a{01}",[["aaⅠ0",true],["aa",true],["1 a0",true],["01=aa",true],["𐀀",false],["=0_",false],["ſ",false],["000",false]]],
+    ["a{1,02}",[["aⅠ,,a",true],[" a",true],["aaaa0",true],["2a20",true],["Ⅰ2",false],["\u00001",false],["\r!0",false],["",false]]],
+    ["a{99999999999999999999}","unsupported"],
+    ["a{1,99999999999999999999}","unsupported"],
+    ["a{65535}",[["<a",false],["",false],[":3𝐀a3",false],["Ⅰ35a",false]]],
+    ["a{65536}","unsupported"],
+    ["a{0,65536}","unsupported"],
+    ["*",false],
+    ["+",false],
+    ["?",false],
+    ["a**",false],
+    ["a*?",[["aaa\n",true],["",true],[" a\faa",true],["aſa0",true]]],
+    ["a*??",false],
+    ["a+*",false],
+    ["|",[["ß-\u0001 ",true],["_Ⅰ9",true],[" 􏿿\f",true],["ǅω  　",true]]],
+    ["a||b",[["b-b",true],["bbaab",true],[" ba",true],["",true]]],
+    ["(|)",[["Ω",true],["/􏿿,",true],["",true],[",, ",true]]],
+    ["()",[["_ก /",true],["\u001a -𐀀",true],["",true],["\f　􏿿0!",true]]],
+    ["(?:)",[["퟿ก:",true],["::ก",true],["퟿",true],[":::\t",true]]],
+    ["(?)",false],
+    ["(?a)",false],
+    ["(?i:a)",false],
+    ["(?<)",false],
+    ["(?<>a)",false],
+    ["(?<a)",false],
+    ["(?<a>)",[[">",true],["><퟿aЖ",true],["><a<<",true],[">aaא>",true]]],
+    ["(?<a>a)(?<a>b)",false],
+    ["(?<a>a)|(?<a>b)",false],
+    ["(?<1a>a)",false],
+    ["(?<a-b>a)",false],
+    ["(?<\\u0061>a)",[["6􏿿1a>",true],["< a>a",true],["a1",true],["a",true],[">Ж",false],["0\r1",false],["",false],["0>6İ",false]]],
+    ["(?<\\u{61}>a)",[[">a>",true],["a6",true],["01a",true],["-Жa<",true],["",false],["< ",false],["<u-1ω",false],[">uא",false]]],
+    ["(?<a\\u0062>a)\\k<ab>",[["aaa<Ж",true],["a06aa",true],["aa>",true],["0baa",true],["2",false],["😀",false],["x",false],["9𝐀2﻿<",false]]],
+    ["\\k",false],
+    ["\\k<a>",false],
+    ["(?<a>x)\\k",false],
+    ["(?<a>x)\\k<a",false],
+    ["(?<a>x)\\k<b>",false],
+    ["\\k<a>(?<a>x)",[["x9",true],["<0,x",true],["x :𝐀中",true],["ωxa",true],["kk",false],["kא>",false],["ǅก>",false],["><<中 ",false]]],
+    ["(?<a>x)\\k<a>",[["a<xx<",true],["퟿axx<",true],["\f",false],["k",false],["<x",false],[">>ω>",false]]],
+    ["(a)\\1",[["٣\u001aaa",true],["aa11",true],["😀aa1",true],["1İ1aa",true],["",false],["a\u0001",false],["Z< ",false],["aωa",false]]],
+    ["\\1(a)",[["a 􏿿a1",true],["111aa",true],["aa1",true],["a٣a",true],["11\u0000\n",false],["",false],["\u000b11𐀀<",false],["1",false]]],
+    ["(a\\1)",[["a a",true],["a1",true],["אaaa\t",true],["aa",true],["",false],["𝐀א　",false],["1ǅω",false],["﻿",false]]],
+    ["(a)\\2",false],
+    ["\\1",false],
+    ["\\0",[["0ω",false],["a00",false],["0ßЖ",false],["􏿿😀İ",false]]],
+    ["\\00",false],
+    ["\\01",false],
+    ["\\08",false],
+    ["\\0a",[["0",false],[" ",false],["",false],["a0/",false]]],
+    ["\\8",false],
+    ["\\9",false],
+    ["(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)\\10",[["٣bjbΩ",false],["jd",false],["中",false],["",false]]],
+    ["(a)\\10",false],
+    ["\\a",false],
+    ["\\e",false],
+    ["\\z",false],
+    ["\\-",false],
+    ["\\ ",false],
+    ["\\\"",false],
+    ["\\/",[["- ω\u0000/",true],["xİ/=",true],["ß1𝐀/1",true],["<!/>\u000b",true],["﻿￿",false],["  \u000b\fx",false],["",false],["=　ω\u0001",false]]],
+    ["/",[["xcx/",true],["!/İ \u000b",true],["/",true],["",false],["　ωé中\r",false],[",a>,",false],[">a9>Ж",false]]],
+    ["\\]",[["/x\u0001a",false],[" ω ",false],["אa",false],[" ",false]]],
+    ["\\}",[["xİİ𐀀",false],["\u001a",false],["\u000b\u000bé1",false],["٣\f",false]]],
+    ["\\|",[["a",false],["ǅ/ſ ",false],["퟿",false],["cЖ1\t",false]]],
+    ["\\_",false],
+    ["\\é",false],
+    ["\\c",false],
+    ["\\cA",[["ccİ",false],["A",false],["ω",false],["AAAc",false]]],
+    ["\\cz",[["\u001ac0",true],["_c\u001aß",true],["\u001az",true],["czz\u001a-",true],["zccאc",false],["z1:c",false],["zAc",false],["",false]]],
+    ["\\c1",false],
+    ["\\c_",false],
+    ["[\\c]",false],
+    ["[\\c1]",false],
+    ["[\\c_]",false],
+    ["\\x",false],
+    ["\\x4",false],
+    ["\\x41",[["4A1中4",true],["-Ax",true],["xx41A",true],["􏿿x=𐀀",false],["14",false],["x1",false],["x41",false]]],
+    ["\\x4g",false],
+    ["\\xG1",false],
+    ["\\u",false],
+    ["\\u004",false],
+    ["\\u0041",[["1　A",true],["0ß0A",true],["0Ж\n﻿",false],["퟿x￿",false],["1٣0 ",false],["10 4 ",false]]],
+    ["\\u{",false],
+    ["\\u{}",false],
+    ["\\u{41}",[["uA",true],["A!",true],["u<u",false],[" ux ",false],["1u4 \t",false],["1x1",false]]],
+    ["\\u{0041}",[["A\u0000",true],["0=:10",false],["01　4\f",false],["4ǅ0",false],["1",false]]],
+    ["\\u{000000041}",[[" \u00000A0",true],[" 0￿",false],["\n",false],["01",false],["!4퟿40",false]]],
+    ["\\u{10FFFF}",[["􏿿",true],["FF􏿿0",true],["0",false],["1Fu:😀",false],["",false],["FFu,u",false]]],
+    ["\\u{110000}",false],
+    ["\\u{FFFFFFFFFFFFFFFFFFFF}",false],
+    ["\\u{41",false],
+    ["\\u{g}",false],
+    ["\\uD83D\\uDE00",[["😀ΩⅠ",true],[" 😀",true],["😀",true],["b",false],["",false],["𝐀0\u0000",false],["1u88E",false]]],
+    ["\\uD83D",[["93\u000b8",false],[" <",false],["𝐀DD٣",false],["3א",false]]],
+    ["\\uDE00",[["Zu",false],[",􏿿 ",false],["􏿿,EE0",false],["E",false]]],
+    ["\\uDE00\\uD83D",[["Ⅰ𝐀 ",false],["",false],["u",false],["Z=",false]]],
+    ["\\uD83D\\u0041",[["퟿\ta00",false],["􏿿uu𝐀",false],["",false],["1\u000b_!",false]]],
+    ["\\uD83D\\uDBFF",[["DßD",false],["D",false],["u",false],["￿",false]]],
+    ["\\uDBFF\\uDFFF",[["F 􏿿uu",true],["FFBu",false],["FuİDF",false],["FuZ𐀀",false],["",false]]],
+    ["\\uD800\\uDC00",[["ZC1𐀀",true],["",false],["0C",false],["u",false],["Cu0",false]]],
+    ["\\uD83D\\u{DE00}",[["uD0u",false],["uE",false],["u=",false],["Dxb3",false]]],
+    ["\\u{D83D}\\uDE00",[["",false],["",false],["u中E",false],["D",false]]],
+    ["\\uD83D\\uDE0",false],
+    ["\\uD83D\\",false],
+    ["\\uD83D\\u",false],
+    ["[\\uD83D\\uDE00]",[["D 😀 ",true],["ſ😀0cE",true],["uD 😀",true],["uЖ b0",false],["D",false],["",false],["3D0u",false]]],
+    ["[\\uD83D-\\uDE00]",[["03D9",false],["ǅ0ED😀",false],["<٣DE",false],["",false]]],
+    ["[\\uD800-\\uDFFF]",[[">0",false],["-",false],["𐀀DǅF",false],["000",false]]],
+    ["[^\\uD800-\\uDFFF]",[["uF8",true],["uF0",true],["aF",true],["D8-\t",true],["",false]]],
+    [".",[["İ>ſ1",true],[" \f=ß-",true],["ſ",true],["cé/ก",true],["",false]]],
+    ["[]",[["A 0ก",false],["ſ/￿",false],["Ωé-ß􏿿",false],["אc",false]]],
+    ["[^]",[["􏿿\n\u000b\r",true],["Ⅰ,/",true],["퟿",true],["9A ",true],["",false]]],
+    ["[\\]]",[["/\n",false],["　A",false],["ßa",false],["x_😀",false]]],
+    ["[]]",false],
+    ["[a-]",[["-𝐀a﻿-",true],["--aa-",true],["a٣baa",true],[" \n-a퟿",true],["",false],["Ⅰω𐀀 ",false],[" ก",false],["ß",false]]],
+    ["[-a]",[[" a-",true],["-",true],["ǅωΩaa",true],["ก-a-b",true],["",false],["ǅǅſ",false],["9",false],["　",false]]],
+    ["[a-z]",[["z",true],[" a﻿<",true],["𝐀a",true],["za-é",true],["",false],["--\r中",false],["é",false],["=中",false]]],
+    ["[z-a]",false],
+    ["[a-a]",[["a\u0000aaa",true],["-a,-😀",true],["aß-Ⅰ﻿",true],["a٣ ",true],["",false],["-",false],["- =\u0001-",false],["ω-",false]]],
+    ["[\\d-z]",false],
+    ["[a-\\d]",false],
+    ["[\\d-\\w]",false],
+    ["[--a]",[["a\n",true],["a---",true],["-　",true],["a\t",true],[" ",false],["",false],["c",false],[" Ⅰ",false]]],
+    ["[a--]",false],
+    ["[a-z-0]",[["a-a",true],["0-z-",true],["Жzz0-",true],["-zİ",true],["",false],["אΩω_",false],["ſ",false],["",false]]],
+    ["[\\b]",[["bǅbb",false],["\rb\t",false],["bbb",false],["ωbbbb",false]]],
+    ["\\b",[["b  c𝐀",true],["Zbbb ",true],["bb9",true],[":b퟿ba",true],["  ",false],[" ￿",false],["",false],["😀",false]]],
+    ["\\B",[["BBB",true],["=BB中",true],["",true],["אBBก",true],["B",false],["a",false],["x",false],["B-B",false]]],
+    ["[\\B]",false],
+    ["[\\-]",[["---",true],["-Z--",true],["---1￿",true],["-",true],["􏿿",false],["",false],[", ω",false],["9",false]]],
+    ["[\\^]",[["c_﻿",false],["Z\fⅠ",false],["퟿",false],["c9",false]]],
+    ["[^^]",[["ก",true],[" ω",true],["Z𝐀􏿿",true],["กß<  ",true],["",false]]],
+    ["[\\[]",[["é,א",false],[" ",false],["A中_Ⅰ٣",false],["￿ǅ",false]]],
+    ["[[]",[["A_b",false],["Ω",false],["Ⅰא ",false],["c ",false]]],
+    ["[\\p{L}]",[["ǅ",true],["ppLpL",true],["LL٣p",true],["LLa٣",true],["􏿿",false],["\u000b",false],["",false],["= ! 😀",false]]],
+    ["[^\\P{L}]",[["P",true],["ǅPL\u0000😀",true],[">PcPL",true],["PLP",true],["\u000b",false],["",false],["　",false],["Ⅰ￿﻿",false]]],
+    ["[\\p{L}-z]",false],
+    ["\\p",false],
+    ["\\p{",false],
+    ["\\p{L",false],
+    ["\\pL",false],
+    ["\\P",false],
+    ["[\\p]",false],
+    ["\\p{}",false],
+    ["\\p{L}",[["9,pǅL",true],["c\t😀Lp",true],["pİ퟿p",true],["Lp",true],[" ",false],["",false],["\u001a",false],[":",false]]],
+    ["\\P{L}",[["L𝐀\u000b",true],["ǅ< P",true],["﻿PPLP",true],["P_PL",true],["",false],["LLL中P",false],["L",false],["LP",false]]],
+    ["[\\s\\S]",[["SS　",true],["s Ss﻿",true],["Ss",true],["ss\u000bsc",true],["",false]]],
+    ["[^\\s\\S]",[["SsSS",false],["S𝐀",false],["\u000bSsSS",false],["",false]]],
+    ["[\\0]",[["0\u0000> ",true],["0אb0",false],["",false],["0>0",false],["\n0 ",false]]],
+    ["[\\00]",false],
+    ["[\\01]",false],
+    ["[\\8]",false],
+    ["[\\1]",false],
+    ["(a)[\\1]",false],
+    ["[\\k<a>]",false],
+    ["(?<a>x)[\\k<a>]",false],
+    ["[\\x]",false],
+    ["[\\u{110000}]",false],
+    ["(?=a)",[["a= ",true],["=a\n-",true],["=aa,",true],[" a=😀",true],["",false],["=",false],["==",false],[" =",false]]],
+    ["(?!a)",[["aa!𝐀",true],["ǅ\taa",true],["",true],["\u001a",true]]],
+    ["(?<=a)",[["A　=a=",true],["a==,",true],["􏿿<\na",true],["=\u001aſa",true],[" ",false],["",false],["=",false],["\u000b",false]]],
+    ["(?<!a)",[["!a😀",true],["𝐀 <<",true],["",true],["<!_",true]]],
+    ["(?=a)*",false],
+    ["(?=a)?",false],
+    ["(?!a){2}",false],
+    ["(?<=a)*",false],
+    ["(?<!a)+",false],
+    ["^*",false],
+    ["$+",false],
+    ["\\b*",false],
+    ["\\B?",false],
+    ["(?=",false],
+    ["(?<=a",false],
+    ["(?<=a|bc)d",[["=ad<",true],["퟿ ada",true],["ß\tad",true],["=\f",false],["￿bé￿",false],["",false],["b>-\t",false]]],
+    ["(?<!a|bc)d",[["c￿d",true],["baǅd",true],["b d",true],["\td",true],["a中",false],["0=!b",false],["😀a中",false],["0aa",false]]],
+    ["(?<=a{1,3})b",[["ab",true],["3",false],[" ",false],["b,a<ก",false],["😀",false]]],
+    ["(?<=(a))b\\1",[[" 1a<1",false],["ßΩbxa",false],["",false],["กb",false]]],
+    ["(?<=\\b)a",[["aa😀a<",true],["a\u001a",true],[" =<a\t",true],["a",true],["  𝐀=",false],["b中b<-",false],["=\u000b=ǅ",false],["=b",false]]],
+    ["(?<=^)a",[["aacก",true],["a<=\u001a",true],["a",true],["aω=< ",true],["=􏿿\r",false],["ǅ",false],["<aa",false],["<a",false]]],
+    ["(?<=a$)",[["==<a",true],["ǅ0<<a",true],["กſa<a",true],["=a",true],["",false],["<",false],["><",false],["<\r",false]]],
+    ["(?=(a))\\1",[["11a",true],["a1= 0",true],["aa=",true],["a",true],["",false],[" 1éǅ",false],["==",false],["\n=",false]]],
+    ["(?!(a))\\1",[["a1a/ ",true],["aΩ",true],["a1ǅ",true],["!",true]]],
+    ["(?:(a)|b)+",[["b😀\tİ",true],["b",true],["ababא",true],["a:_",true],[":_",false],["::",false],[":",false],["",false]]],
+    ["(?:(a)|b\\1)+","unsupported"],
+    ["(?:(a)|b)\\1",[["b",true],["\u000b1b",true],["b_b1",true],[":ba",true],["ก٣a",false],["",false],["ſ1:a",false],["-a",false]]],
+    ["(a)|\\1b",[["a퟿b1",true],["ab",true],["b0b",true],["baⅠ",true],["",false],["　",false],["11Z ퟿",false],["中 　İ𐀀",false]]],
+    ["(a*)*",[["",true],["aaa",true],[" ",true],["a",true]]],
+    ["(a*)+b",[["ab",true],["\u001ab",true],["ab b",true],[" bbΩb",true],["aaa",false],["",false],["\n𝐀a",false],["a",false]]],
+    ["(?:a|ab)(?:c|bcd)",[["\u000bac",true],["aacab",true],["ZacΩก",true],[":￿",false],["::dc",false],["a",false],["bdb9",false]]],
+    ["(a|ab)(c|bcd)(d*)",[["ac",true],["bac",true],["d ac/",true],["a!中ac",true],["b",false],["퟿𐀀",false],["中",false],["b ",false]]],
+    ["(.*?)a",[["<aa",true],["aⅠ,a",true],["éa",true],["a",true],["",false],[" ",false],["\rA",false],["　",false]]],
+    ["(?:a?)*?b",[["baa:b",true],[":ba:a",true],[":ba:",true],[":A:b",true],["a:a: ",false],["aİaaa",false],["￿",false],["",false]]],
+    ["a.c",[["a<c",true],["acc 😀",true],["a,caa",true],["accc",true],["",false],["ca　",false],["\n0",false],["ccc",false]]],
+    ["^.$",[["\u0001",true],["￿",true],["1",true],["\u0000",true],["٣_　\n𐀀",false],["_￿",false],["Ω\n",false],["ß😀\t",false]]],
+    ["\\s",[["s Ж",true],["9\nss",true],["\u000b9",true],["s ss",true],["s",false],["-a",false],["",false],["sés",false]]],
+    ["\\S",[["ΩS",true],["SSS ",true],["SS",true],["SS﻿",true],["",false],[" ",false],[" ",false]]],
+    ["\\d",[[" 0﻿x",true],["😀1\u0001dß",true],["19d􏿿",true],["d9",true],["\u001a",false],["d😀א",false],["\u0001ddd",false],[">d￿-d",false]]],
+    ["\\D",[["D\n",true],[":D",true],["xDDǅ",true],["D\u000bD　",true],["",false],["9",false]]],
+    ["\\w",[["Aw,",true],["ww1\u000bw",true],["ww",true],["w",true],["",false],["𝐀",false],["\r",false],[" ",false]]],
+    ["\\W",[["𝐀WWW",true],["٣W\ta",true],["ΩW ω ",true],["中W\u0000W",true],["",false],["WW",false],["W",false],["WWWx",false]]],
+    ["[\\w-]",[["-é\fa-",true],["--w",true],["--cw",true],["-",true],["",false],["\r ſ",false],["中﻿",false],["Ω",false]]],
+    ["[\\w-a]",false],
+    ["[a-\\w]",false],
+    ["\\ud83d\\ude00",[["de😀",true],["u😀80",true],["0 😀d",true],["",false],["e0",false],["u1",false],["u0",false]]],
+    ["[😀-😁]",[["😁ß😀",true],["😁",true],["0😀-",true],["😀",true],["",false],["-",false],[" -",false],[" ",false]]],
+    ["[😁-😀]",false],
+    ["😀*",[["1",true],["",true],["😀😀😀😀",true],["x",true]]],
+    ["^😀{2}$",[["😀😀",true],["😀😀中😀",false],["",false],["😀😀กß2",false],["😀😀222",false]]],
+    ["é+",[["é􏿿é/a",true],["é= é",true],["éé",true],["_ǅé",true],["𝐀",false],["Z﻿ ",false],["",false],["_ ",false]]],
+    ["(?<\\u00e9>a)\\k<é>",[["0ǅaaω",true],["eéaa>",true],["00",false],["",false],["Ⅰ>ſ0",false],["é<e퟿<",false]]],
+    ["(?<\\u4e2d>a)\\k<中>",[[" k",false],[" ",false],[">",false],["k İd",false]]],
+    ["(?<\\u{1d400}>a)\\k<𝐀>",[[">4>􏿿",false],["ß>\u000b0",false],["1𝐀14",false],["0>𝐀א",false]]],
+    ["(?<\\ud835\\udc00>a)\\k<𝐀>",[["",false],["𝐀>uu",false],["<0￿",false],["<é<a",false]]],
+    ["(?<\\u{7f}>a)",false],
+    ["(?<\\u{80}>a)",false],
+    ["(?<\\u{7ff}>a)",false],
+    ["(?<\\u{800}>a)",[["0a",true],["a<",true],["a",true],["<0aกu",true],["",false],["0\n\n9",false],["<é<0\u0001",false],["0u\u0001ǅ",false]]],
+    ["(?<\\u{ffff}>a)",false],
+    ["(?<\\u{10000}>a)",[["0aua0",true],["a\u000100 ",true],["ก0a0א",true],["0a0>1",true],["",false],["\f😀İ0",false],["ก\u000b:",false],["u1u",false]]],
+    ["(?<\\u{e9}\\u{e9}>a)\\k<éé>",[["",false],["k٣9Ω9",false],[">e<",false],["\t",false]]],
+    ["(?<a\\uD835>a)",false],
+    ["(?<a\\x41>a)",false],
+    ["(?<a\\>a)",false],
+    ["(?<a\\u>a)",false],
+    ["(?<a\\u{110000}>a)",false],
+    ["(?<$\\u{24}>a)\\k<$$>",[["4aa<ſ",true],["aa",true],["",false],["\u001a 4<",false],["<",false],["u4><",false]]],
+    ["(?<_>a)\\k<\\u005f>",[["אf",false],["\r",false],["",false],["ſf",false]]],
+    ["(?<a>a)+\\k<a>","unsupported"],
+    ["(?<a>a)?\\k<a>",[["􏿿a<ak",true],[" <",true],["bא><א",true],["",true]]],
+    ["(?:(?<a>a)b)*\\k<a>","unsupported"],
+    ["(a){2}\\1","unsupported"],
+    ["(a){1}\\1",[["_aaa",true],["aa1",true],["aaa1﻿",true],["aaaa",true],["",false],["11a1\f",false],[" 1aก",false],["_1 1Z",false]]],
+    ["(a){0,1}\\1",[[",ſ",true],["1İ",true],["",true],[" ",true]]],
+    ["(a){1,}\\1","unsupported"],
+    ["(a)*?\\1","unsupported"],
+    ["(?:(a))?\\1",[["1:",true],["",true],["ß ",true],["1::a",true]]],
+    ["(?:(?:(a))?)+\\1","unsupported"],
+    ["(?:(a)|b)+(c)\\2",[["bcc",true],["b",false],["Ж ",false],[":b  a",false],["",false]]],
+    ["((a)|b)\\2",[["xaa",true],["b2ſ",true],["a𐀀b",true],["aba2😀",true],["=",false],["\t\u0000ǅ a",false],["!a2/",false],["",false]]],
+    ["(?=(a))+",false],
+    ["(?:\\1(a))+","unsupported"],
+    ["[(](a)+\\1","unsupported"],
+    ["\\((a))+\\1",false],
+    ["(?<au>x)\\k<au>",[[">\u001axx>",true],["\rxxก>",true],["<퟿a<k",false],["k>a<",false],["x>aa",false],["xa<_u",false]]],
+    ["(?<a\\u>x)",false],
+    ["(?<a\\x41>x)",false],
+    ["(?<a>x)\\kxa>",false],
+    ["\\pXL}",false],
+    ["[\\pXL}]",false],
+    ["\\uD800",[["ſ0",false],["0",false],["88uu0",false],["\r ",false]]],
+    ["\\uDFFF",[["F-DuF",false],["FxF<",false],["F",false],["F\u001a>:",false]]],
+    ["[\\uD800]",[["D0",false],["x\f ",false],["08\n",false],["8000",false]]],
+    ["[\\uDFFF]",[[">FD\u0000F",false],["",false],["uuAD",false],["F",false]]],
+    ["(?<a\n>x)",false],
+    ["[\\",false],
+    ["a[\\",false],
+    ["\\p{Script=Latin}+",[["Sa",true],["!tLr",true],["Lcp",true],["rp",true],["",false],["ก:",false],["￿",false],["\u001a",false]]],
+    ["\\p{Lu}\\p{Ll}*",[["pL",true],["L",true],["ก\rL",true],["  pL ",true],["ß",false],[" ſ\t\t",false],["",false],["u",false]]],
+    ["\\P{Any}",[["퟿c>y",false],["",false],["nyA",false],["AAP",false]]],
+    ["\\p{Any}",[["AİA",true],["yA",true],["İn\r_",true],["nΩ",true],["",false]]],
+    ["\\p{Assigned}",[["d",true],["esi",true],["nAſs ",true],["9e<:n",true],["",false],["􏿿",false],["￿",false]]],
+    ["\\P{Assigned}",[["￿\r",true],["P\u0001 s퟿",true],["iΩ9퟿n",true],["􏿿eiก",true],["iP",false],["",false],["A",false],["\u0001A😀",false]]],
+    ["\\p{ASCII}",[["SA﻿<",true],["SſA",true],["𝐀pSpA",true],["_A",true],["",false],["",false],["٣𐀀",false],["Ⅰ",false]]],
+    ["\\p{L}\\P{L}",[["LLLL0",true],["L￿ p",true],["LⅠ x",true],["P0",true],["",false],["LLL",false],["ppLL",false],["=",false]]],
+    ["[\\p{Nd}a]",[["aada",true],["a",true],["ⅠⅠaω",true],["aaN\r",true],["ddpp\u0001",false],["p",false],["",false],["d:déN",false]]],
+    ["\\p{Script_Extensions=Latin}",[["\nnא\u000bt",true],["pi",true],[" :on",true],["nⅠn",true],["_,:",false],["",false],["_",false],["٣",false]]],
+    ["\\p{scx=Hani}",[["中=a",true],["中\u0001﻿i\u000b",true],["中c𐀀ix",true],["x",false],["",false],["c퟿ n😀",false],["٣=א=",false]]],
+    ["\\p{sc=Hani}",[["　==",false],["s AH",false],["=és",false],["",false]]],
+    ["a￿{2,3}?\\B|",[["",true],[",3\u000b2￿",true],["3",true],[",Bω",true]]],
+    ["Ж􏿿",[["Ж􏿿􏿿",true],["中􏿿กЖ􏿿",true],["Ж􏿿￿",true],["Ж􏿿a𐀀",true],["A,􏿿",false],["!Ж",false],["􏿿\u000b",false],["Ж𐀀 ",false]]],
+    ["[𐀀\\cA]?",[[" 𐀀𐀀c",true],["\t",true],["cc 𐀀",true],["𐀀",true]]],
+    ["[^*]\\B",[["B \u001a",true],["BBB",true],["cΩ",true],["ßЖ",true],["B",false],["Z",false],["",false],["x",false]]],
+    ["():.{0,2}　)",false],
+    ["[^\\P{Script=Hebrew}|],{2}𝐀=",[["/ 𝐀",false],["٣ w\u0000",false],["e==\u001a",false],[", Sw",false]]],
+    ["􏿿{1,}?𐀀{1,}?(?:)\\P{sc=Zinh}",[["􏿿𐀀,ω,",true],["s􏿿",false],[" a  ﻿",false],["𐀀i",false],["ſ,",false]]],
+    ["[-].",[["--, -",true],["-->A\f",true],[" ----",true],["=---中",true],["　",false],["-",false],["",false],["b\t_",false]]],
+    ["[\\}-!^\\P{Lowercase_Letter=Lu}]{1,}(?:){1,}(?<Ω>é)(?<é>){0}?",false],
+    ["={0}.+İ(?:)?|:{2} (?<!𝐀{0,2}((퟿{2}?){2}?|a^)|.{2}\\S{1,3})",[["𝐀İ",true],["!İ,<",true],["  =İ𝐀",true],[",2İ𝐀:",true],["",false],["ωωΩ ſ",false],["  2",false],["\u0000 1_!",false]]],
+    ["^(?<a>}(?:)*(\\S{0})){0}?",false],
+    ["|[ $𐀀]{1,}\\29",false],
+    ["٣\\kx1>𝐀$",false],
+    ["((?<x1>)\\}{2})",[["!ſZ>",false],[">>21<",false],["<1",false],[" x",false]]],
+    ["中[\\b\\--😀\\uDBFF\\uDFFF]{0,2}",[["中B-אF",true],["u D中>",true],["中2F-",true],["FF中",true],["ZFBaA",false],["F\u0000",false],[" ",false],["",false]]],
+    ["(?:)céx|(?<a>a*?\\x41|\\k<a>?.)\\d{0}?(?:[ \\u002C]{1,}?Ω)é{0,2}",[["\u00010퟿k,",false],["Ⅰ>>u ",false],["0 a\t",false],["a0>0",false]]],
+    ["\\u0041\\B^ ",[["\n044=",false],["00",false],["",false],[" u a",false]]],
+    ["|[^\\/-\\b] \\v(?!)",false],
+    ["\\$中*",[["中😀!　",false],["中中中😀",false],["𐀀中中中",false],["0中",false]]],
+    ["aΩ\\n {0}?|(?:){0,2}c𐀀(?:)",[["",false],[":",false],["0",false],["aa",false]]],
+    ["$((|.)(?:\\3)|(?<b>))　",[[":　ω中3",false],["<é",false],[" ",false],["b:",false]]],
+    ["[^]\\}{0,2}?",[["0 _",true],[",02 ",true],["2",true],["\fZ,é",true],["",false]]],
+    ["[x-\\?]?(?:א|ß((A\\4| 􏿿))+)(?:(?<é> [,]| ))+",false],
+    ["Ω{0}c{0}[\\cJ-/]c",[["-c",true],["-กc-c",true],["cc/c",true],["c--c",true],["􏿿 0",false],["0",false],["",false],["א",false]]],
+    ["(?:İ{0})(?<Ω>﻿{0}?|éa{1,})ǅ(?<a>\\k<x1>{0,2}.|[\\D-=]9{0,2})|([^𐀀.9].)",false],
+    [">?",[[">>>>",true],["x>>>",true],["> ",true],["𝐀>𝐀>>",true]]],
+    ["[ω-\\x41ก][￿-\\u{2160}]!ก",false],
+    [" ?\\u0000😀 {0}| ()??(?<é>Ж|\\u002Fİ{0}?)*?",[[" İ<",true],["𝐀  ",true],["00 :<",true],["0é ",true],["",false],["F/Ж",false],["0",false],[">",false]]],
+    ["[א-\\-].{2}",false],
+    ["\\u0041?￿[]",[["=4",false],["0",false],["b é",false],["",false]]],
+    ["x",[["xxxx",true],["xéx",true],["xxxx퟿",true],["xx",true],["",false],["􏿿",false],["😀 ﻿",false],[" ",false]]],
+    ["\\]𐀀\\P{Pd}",[["Pd",false],["P",false],["dP ￿P",false],["a﻿𐀀",false]]],
+    ["(?:\\b￿?){0,2}(?<Ω>b=)ω",[["中=",false],["b:ก:2",false],["c",false],["ſb",false]]],
+    [" (?<x1> 𝐀)퟿(?:|)+",[["",false],["𝐀퟿😀𐀀",false],[" x",false],["1>",false]]],
+    ["\\^cZ?",[["c",false],["Z",false],["cc Z",false],[" אc",false]]],
+    [" ??.{1,}א.",[["אאא,",true],["A1\u001aאé",true],["1אאא",true],["bאⅠא ",true],["",false],["9=",false],["1\u000b11",false],["א,1",false]]],
+    [" +|.|(?<a>(?<x1>é|[\\x41]{0}))",[["İA<",true],["!",true],["Ω>>\u000b4",true],["x ",true]]],
+    [">\\k<a>|(?:)()",false],
+    ["$(\\u{2C}{0}\\u{078}|\\D{2,3}?\\x41??)(?<=!{2}[^\\.-\\P{In_Greek}ก\\b-9]{1,3})",false],
+    ["İ(?<b>٣)",[["ßİ٣𝐀",true],["\rİ٣ ",true],["-",false],["٣a٣İ",false],["bΩb>",false],["",false]]],
+    ["(?<!)_",[["_",false],["9_",false],["!__",false],["",false]]],
+    ["(?=.))\\([^ \\x41\\[-:]?",false],
+    ["(?<é>)|$(?<![^]\\w)",[["<w￿<",true],["< w<",true],["-﻿",true],["ก\u0001<",true]]],
+    ["　(?<Ω>)>",[["　>>Ω",true],["　x<Ωé",false],["",false],["c>",false],["> ",false]]],
+    ["[\\v  -\\-]{0}(?<é>0{0}|)",false],
+    ["\\B\\S\\u0041{1,}?|(.{2,3})((?:|[\\{א-\\|][]?)\\4){2}?",false],
+    ["(?<x1>^.)\\p{}\\P{sc=Cyrillic}{0}?(?:(?:)|){0}",false],
+    [">",[["　Ω>> ",true],[">>>",true],["Ж>>",true],[">",true],["",false],["א",false],["ω9",false],[" ",false]]],
+    ["(?<é>|(?<a>(\\b){1,}? ?){0}),*|[\\x41\\-]_. ",[["_ Ж",true],[" >,1/",true],["\ré>　0",true],["￿中",true]]],
+    ["[0-Ω$^]",[["Ω",true],["Ω00\u0001>",true],["ΩΩ",true],["Ω00é0",true],["",false],["-\t",false],["　",false],["א",false]]],
+    ["[](\\B){2,3}_{2}[𝐀]+",[["",false],["B𝐀𝐀中,",false],[", B",false],["22,ก",false]]],
+    ["A{0}?Ω\\d*(?!􏿿)",[["Ω",true],["\rAΩ:Ω",true],[" Ω",true],["Ω>dΩ􏿿",true],["\nA!퟿",false],[" c",false],["﻿",false],["ω0!􏿿",false]]],
+    ["!\\S{0}?(?:Ω{2,3}?ſ| ω)?<?",[["!,:",true],["!",true],[" 𐀀!",true],["3ſω!",true],["ωΩ",false],["٣ ",false],["ω",false],[" <",false]]],
+    ["[]$",[["",false],["\u001a<c",false],["א!x\n ",false],["￿",false]]],
+    [",?(?<é>)",[["",true],["</>< ",true],["_,é,",true],[">é<,é",true]]],
+    ["ǅ.",[["İǅ𐀀ǅ",true],["ǅ\u000b",true],["ǅǅǅǅ ",true],["ǅǅωǅǅ",true],["",false],["ǅ\rǅ",false],["ǅ",false],["٣",false]]],
+    ["<",[["<<",true],["< b",true],["𝐀<א<",true],["<<<",true],["　",false],["",false],["\f",false],["9",false]]],
+    ["ǅ{0}?(?:){2}?￿|\\s\\u?{5A}",false],
+    ["[😀-\\^Ж{]+(?<$>กǅ{1,})",false],
+    [" \\uD800\\uDC00A",[["0",false],["0ⅠA9\f",false],["-",false],["8Du",false]]],
+    ["ſ[\\P{Nd}.]",[["ſİ",true],["ſA􏿿dd",true],["\fſⅠ",true],["ſN",true],["\u0001>d",false],["d",false],["",false],["éd",false]]],
+    ["(\\u0041).{1,}𐀀",[["𐀀\u001au𐀀",false],["𐀀\n𝐀",false],["\u000b",false],["",false]]],
+    ["\\u0041+ (?:)(　)",[[",-",false],["𝐀",false],["　10",false],["",false]]],
+    ["(?=(?<a>Ж\\uDE00)\\d)1??b(?: )",[["d1E",false],["da",false],["ED",false],["Ω",false]]],
+    ["א0𐀀 ",[["",false],["é",false],["א 0",false],["𐀀𐀀,\u001a ",false]]],
+    ["[]{2} \\x41.|",[[" 1!/",true],["> 4 ",true],["-AกZ4",true],["42a2",true]]],
+    ["((([]Z){2}[^א-Ωx-\\uD800\\uDC00]{0})*[])(?!𝐀{2}?((?:)))",false],
+    ["😀 {2,3}",[["1𐀀1 ",false],["Ω,İ\r3",false],["א😀",false],[" 3,2ω",false]]],
+    ["\\+.\\B",[["",false],[" BB  ",false],["BBBB",false],["B ퟿\u001aB",false]]],
+    [" *?éZ",[["ZZéZ\t",true],["กéZ ￿",true],["éxéZ",true],["  éZZ",true],["",false],["\u000béſ  ",false],["é",false],[" ",false]]],
+    ["ǅ",[["ǅǅxǅ\u0001",true],["éǅǅ",true],["ǅǅǅſ",true],["ǅ",true],["",false],[" ",false],["\u0001퟿",false],["0Ⅰ",false]]],
+    ["x1{0,2}[<-\\p{Assigned}](?<_n> ?){2,3}",false],
+    ["_Ж",[["__ЖЖЖ",true],["é___Ж",true],["c_Жก",true],["_Ж",true],["Ж_",false],["ЖЖ\u001aЖ",false],["",false],["中",false]]],
+    ["(𝐀1)+?(?<a>0*).{2}?Ж{1,}?",[["",false],[" ",false],["a",false],["2",false]]],
+    [" 𐀀|$\\0",[["0 𐀀",true],[" 𐀀ω ",true],[" 𐀀𐀀 ",true],[" 𐀀𐀀0𐀀",true],[" 0",false],[" \n 𐀀",false],["\r b",false],["𐀀𐀀0",false]]],
+    [" {2}?",[["   ",true],[" ω:  ",true],["  : ",true],["2\n  ",true],["-22a ",false],["2 ",false],["ßx2",false],["b 2",false]]],
+    ["é",[["ééééé",true],["中􏿿é",true],["é\u001a ßé",true],["éЖ",true],["",false],["\u000b😀>,",false],["\n",false],["x퟿",false]]],
+    ["\\u0041􏿿|",[["4",true],["10Ω ",true],["",true],["􏿿ub0",true]]],
+    [",(?:_)Ж",[["\f,,9\r",false],["_:",false],[",",false],["",false]]],
+    ["1[0\\b ]",[["a10\nb",true],["b0b10",true],["İ\n 10",true],["010 ",true],["",false],["0b0",false],["1א1b",false],["İ1b",false]]],
+    ["\\(\\1{2}",false],
+    ["[][]{2}cω",[["c2",false],["2ωωc",false],["Ⅰc1 ",false],["c",false]]],
+    ["[\\uDE00-A|\\b\\u0041]\\u{10FFFF}{0}[^],",false],
+    ["(?<!(>|))\\d=|　.(?<=)|)",false],
+    ["ǅ\\P{gc=Lu}{1,} (?!)",[["ǅP  ",false],[" 𝐀",false],["ω",false],["😀=P ",false]]],
+    ["(?<))",false],
+    [">+.[\\b-\\W\\-]|(?!$) {1,}(|=א)",false],
+    ["(:﻿?)|",[[":﻿",true],[" ก:=:",true],["x- ",true],["",true]]],
+    ["1\\b\\?(?<a>)",[["Ж1　 ",false],["　>",false],["",false],[" 1>",false]]],
+    ["ſ",[["ſſ",true],["ſſſ\u001a",true],["ſ!ſſ",true],["1ſ ",true],["",false],["c",false],[" ",false],["-",false]]],
+    ["[](?<b>^\\u{061})\\b(?:)",[["<\u0001>\f",false],["</:",false],["06b",false],["_b0éЖ",false]]],
+    ["a +ǅ{0}?",[["aa ",true],["aa a",true],["00a -",true],["ǅ,a 0",true],["0",false],["a09ǅ",false],["\u0000 Z",false],["a",false]]],
+    ["_",[["ก_\u0000",true],["__b__",true],["_c_ ",true],["____",true],["",false],["ǅ",false],["٣\fſ\u0001",false],["A ",false]]],
+    ["< {0,2}$\\xE9",[[",E",false],["Ⅰ   𝐀",false],[", ",false],["ω􏿿2",false]]],
+    ["(?<a>)1$$",[["1a1",true],["1",true],["1\u0001aa1",true],["cİ<a1",true],["<",false],["",false],["/>1􏿿<",false],["\u000b<a1퟿",false]]],
+    [":??􏿿{0,2}[\\u0416]+?",[["中20Ж",true],[",Ж a",true],["􏿿\n Ж",true],["Ж",true],["u42",false],["𝐀\u000b",false],["6",false],["ß",false]]],
+    ["[ .] (9||1{0,2}){1,}",[[" 中٣,",false],["99,>",false],["",false],[" ,_\u000b",false]]],
+    ["={2}9?[](<\\x01|()[^\\--\\D\\P{Script=Latin}]??)",false],
+    ["é{2,3}c{2}?\\0\\[*|(?<Ω>Ж)??\\P{sc=Han}(?! {1,})A|𝐀|􏿿{1,}(?<b>(?<a>\\B) )^<",[["bé𝐀,٣",true],[" 𝐀ſ, ",true],["Ω<3sA",true],["H𝐀",true],["Pn􏿿!a",false],["3c",false],["/_",false],["Ж1<  ",false]]],
+    ["(?=)$|(?<b>\\u0041)?(?<a>[^])?(?: {0}?􏿿)",[["c> \n",true],["=<:> ",true],["4u0",true],["",true]]],
+    ["퟿+?\\p{}^[\\cz]??|(?<!(?:[^\\w-\\u{DF}]??\\x41){1,3}()?)|ǅ\\2{1,}?(?:[ก-\\?\\d]+?)",false],
+    ["Ⅰ$",[["ⅠⅠ-ⅠⅠ",true],["𝐀􏿿Ⅰ",true],["ⅠⅠⅠ",true],["Ⅰ",true],["中",false],["",false],["Ⅰ,ⅠⅠa",false],["􏿿",false]]],
+    ["[\\u{130}>\\--𝐀] (?:)|(?!(?:[Z].{2,3})?)",[["  Ж𐀀",true],["-1!",false],[" \u001a,2",false],["􏿿-c",false],[">-",false]]],
+    ["?:|)\\s𝐀",false],
+    ["!{1,}$[][^\\w\\0c]{2,3}?",[[",!20",false],["0!",false],["a￿",false],["-3é!",false]]],
+    ["[퟿ß\\-][: ]",[["c- ",true],["퟿:",true],["퟿- ß😀",true],["-퟿:",true],["𝐀",false],[":\u000b",false],[" ",false],["퟿ -",false]]],
+    ["!(?<a> A{2})\\x41{1,}>{2}?",[[">𐀀,Ⅰ",false],["1𝐀41",false],["\rA1\f",false],["aZ2",false]]],
+    ["\\P{L&}$",false],
+    [" (?<a>|)",[[" \n Z ",true],["x> 😀 ",true],["  aa￿",true],["> >>",true],[" 𐀀\r",false],["aa>> ",false],[">é>>:",false],["",false]]],
+    ["|.😀(?:)Ⅰ{2,3}",[["",true],[",2",true],["𝐀",true],["\u000b:ⅠİⅠ",true]]],
+    ["|\\S",[["S",true],[" S　S",true],["𝐀中😀",true],["",true]]],
+    ["(?<_n> {1,}ω{0}?)?א+?(.)",[["9א_",true],[" 􏿿ωא,",true],["éωא￿_",true],["𐀀א中0",true],[":",false],[" x",false],["1",false],["_1",false]]],
+    ["\\cm ^",[["x ",false],["c ",false],["m",false],["",false]]],
+    ["א{2,3}^?￿c{2}?",false],
+    ["[^ \\b]{2,3}?>",[["2>>ſ",true],["2b>ſ",true],["😀>>",true],["b א>2",true],["b",false],["bc א",false],[" ",false],[" ",false]]],
+    ["𝐀(?<$>$\\x3E-)￿{2,3}",[[">2>",false],["3-İ",false],[",",false],[">",false]]],
+    ["a(?<b>\\uDBFF\\uDFFF){2,3}?.:",[["uFxx",false],[":,:ǅ",false],["",false],["\n",false]]],
+    ["[^\\x41-$\\s]*a*[ſ-\\W_\\w]+?\\P{Block=Basic_Latin}",false],
+    ["|　[\\vⅠ*]{0,2}[Z-:\\W-ǅ].",false],
+    ["^ก(\\cm\\*)",[["﻿mก٣:",false],["😀_c m",false],["ก\u0001",false],["ก　m\u0000ก",false]]],
+    ["é|",[["é",true],["٣éx \t",true],["กωéé",true],["é/éé",true]]],
+    ["(?<_n>\\}{0,2}(?:){1,}?)[^\\w- $-\\b]+[]{0,2}?[<]",false],
+    ["٣=\\d?.",[["٣==dd",true],["٣٣=9",true],["٣=٣",true],["<d",false],["=",false],["􏿿٣􏿿中",false],["d==",false]]],
+    ["ǅ(\\P{Nl})",[["ǅlP",true],["Ω\u0000ǅ/",true],["😀ǅ ￿",true],["ǅǅ",true],["\r",false],["lNЖPP",false],["",false],["P-,",false]]],
+    ["<+[\\n𐀀]{0,2}_1",[["_𐀀",false],["",false],["1<2",false],["010٣2",false]]],
+    ["1?|[\\u1680-\\u0041\\/-\\u017F](?<=)[]|($􏿿{0,2}?)((|(?: {2}?.)\\u0041??)c{0})<*",false],
+    ["Ⅰ*İ(?<=)|(?:(?))",false],
+    ["a(?! )",[[" a!b",true],["aa1a",true],["a-ก!!",true],["baΩaa",true],["\u000b",false],["/  !!",false],["!",false],["",false]]],
+    ["Ж*? {1,}?\\k<b><",false],
+    ["^b((?<a>1\\u003E)|){0}?",[["bİ\n0",true],["b\f0E0",true],["b0b",true],["3😀\u001a9",false],["=1\rb",false],["\t",false],["13E0u",false]]],
+    ["𝐀? A\\u0663|",[["6\f6Ω",true],["6u",true],["ก6",true],["3א𝐀",true]]],
+    ["﻿|(Z\\||)ω{0,2}(?:|[^ß\\-=-(])*(?<!ก )",false],
+    ["(?<!_(?:(?:){1,3}ſ){2})| *?(?<=(?:\\{?)(?=(?: {1,3}))",false],
+    ["　(?<>(?:x{2,3}?￿)??\\B)",false],
+    ["􏿿{0}\\p{Nl}+(?:\\W)9",[["Wǅ9N",false],["00􏿿Wİ",false],["",false],["W:>",false]]],
+    ["[^ſ\\[-\\D>-^]😀.\\b",false],
+    ["(?<=.\\s)[^\\-\\x62](>)",[["\u0001􏿿>\u0000<",false],["xc٣=>",false],["<26 ",false],["",false]]],
+    [".{2}1 >{2,3}",[["a13\f2",false],["=3=",false],[",1  ",false],[" é 30",false]]],
+    [" ",[[" ",true],["   ",true],["  ",true],["ß  İ ",true],["",false],["Ω",false],[" c",false],["/",false]]],
+    ["?<$> (?:)*)",false],
+    ["\\BA(?<=)",[["<\nAA",true],["é\u001a\rAA",true],["<AAB",true],["B1A<",true],["",false],["B/>",false],["<<",false],["B=A",false]]],
+    ["\\u{130}{0,2},+|(?:[])",[["😀,",true],["2,20",true],[" ",true],[" ,01u",true],["",false],["c1İ",false],["=ก",false],[" 13",false]]],
+    ["(?: ||)􏿿^",[["􏿿􏿿 ",false],["_",false],["é",false],["",false]]],
+    ["[^\\D-\\cz\\u{39}-\\p{sc=Han}ſ-\\x61]+?(?<!)﻿",false],
+    ["!? [^1-\\uDE00\\u0041-Ωx]{0,2}[\\-\\p{Any}]",[[" -- -",true],[" u0",true],["",false],["xE-",false],[" ",false],["u<u",false]]],
+    [" [\\u{03A}-\\-\\uD800\\uDC00\\p{LC}]",false],
+    ["𝐀(?= |)((?!א\\B)(?!$))?",[["𝐀=\u0000_Ⅰ",true],["𝐀",true],["ſ𝐀",true],["B𝐀",true],["Z= /א",false],["!",false],["!אא",false],["B𐀀",false]]],
+    ["(?<Ω>)[^ -ǅ}\\w]*?א",[[",אéǅ-",true],[" אǅ",true],["אא>_ǅ",true],[" ǅ-אA",true],["<-",false],["a",false],["",false],["->",false]]],
+    ["(){1,}\\u{020}[ſ*\\\\- ]{1,}?",[["u",false],["1, ,0",false],["",false],["\t1",false]]],
+    ["(?!(){2}\\3) ||٣",false],
+    ["\\n(?!(?:))(?<=>{0,2} {0,2})|ǅ\\B {0}[\\[-\\bſ]{1,}|",false],
+    [".中.*|퟿{0,2}0 {2,3}|[^|-\\-].",false],
+    ["(?=(?:|.{0,2})\\u003C)(?=)İ*(?<!\\p{LC})",[["=<=Ж3",true],["\n٣<",true],[":<Ⅰ",true],["<é2İ0",true],["",false],["=u30=",false],["!\u000b1􏿿\r",false],["x",false]]],
+    ["٣(?!\\W>)(?:Ω0{0}?)",[["٣0٣Ω ",true],[":a中",false],["Ω",false],["W!٣٣!",false],["٣",false]]],
+    ["\\cz􏿿+?א{2,3}(𐀀)",[["\u0001אc",false],["Ⅰ,א",false],["3c1א",false],["İ􏿿,\u001a",false]]],
+    ["(?:\\w)+?(?<$>(?<b>Ⅰ\\s{1,})*\\b)(?<a>[^\\x41-()中]{1,}?[\\u0041\\- ]){1,}　?",false],
+    [" {2}.*\\b|",[["",true],["a2",true],["b ",true],["  ",true]]],
+    ["(?<=\\u{5F}{0,2})\\D(?:[]{2}?)",[["\u0001<D0",false],["",false],["uuF",false],["2𐀀2",false]]],
+    ["ω! {0}(?<é> .{0,2})",[[" 0",false],["😀\r",false],["Ⅰ,",false],[" 2\u0001>",false]]],
+    ["￿\\P{C}+?ſ{0,2}?",[[",￿ß",true],["￿ <P",true],["ǅ￿Ωx_",true],["￿0ſ",true],["Ⅰ=٣ſ",false],["",false],["Ω􏿿\f20",false],["￿퟿",false]]],
+    ["[􏿿-\\-Ω]|　{1,}?\\u00DFΩ*[]",false],
+    ["😀(?<=[].??)",[[" 😀=",false],["<",false],["",false],["<=😀 ",false]]],
+    [" {2,3}?^",[["😀 3",false],["2",false],["",false],[",Ω3",false]]],
+    [" ",[["   ",true],[" ",true],["    :",true],["   Ж ",true],["",false],["中𐀀",false],["9=",false],["﻿İ",false]]],
+    ["\\s(?<!1[א-a \\cJ])\\B\\b",false],
+    ["[0]{0,2}?(\\p{Foo}??)*Ж|\\s{1,}?[\\P{Script=Latn }\\b- ]",false],
+    ["Ж{2,3}",[["ЖЖ,Ж2",true],["ЖЖก2",true],["Ж/ЖЖ\r",true],["",false],["3Ж0 ",false],["32",false],[",2Z!\u000b",false]]],
+    ["\\u{D7FF}< {0}",[[" 0uFก",false],["D1",false],["퟿D",false],["<,",false]]],
+    [".(?:$({0,2}?|[^ ]{0}? )",false],
+    ["[<-א!/]{2}?((?:\\u0041\\cm)*?\\1?) *?|",[[" ",true],[" \t ",true],["!c",true],["ω ",true]]],
+    ["퟿(?:İ+ {2})[^\\/-\\u0041]()|.",[["4=14ſ",true],[" 0",true],["0\t",true],["ก",true],["",false]]],
+    ["ſ:\\P{sc=Han}",[["Жſ",false],["sß\u0000ſ",false],["nx﻿:=",false],["a",false]]],
+    ["[\\^-/]|\\cJ.\\P{sc=Thai}{2,3}(?<!( {2}(?:\\[1)))",false],
+    ["  |\\s.^",[[">   ",true],["  \u001a 1",true],["    s",true],[" \u001as  ",true],[" s 𝐀",false],["﻿s  ",false],["",false],["\u000b  s ",false]]],
+    [".{2,3}(A*)+?(?<!)Ж",[["-<Aß",false],["",false],["9A,\u0000",false],[",Жא,!",false]]],
+    ["é{1,}? {0}?(?:)1",[["é11",true],["1é1é",true],["",false],["é",false],[" é01,",false],["𐀀  ",false]]],
+    ["(?<b>0)\\uD800\\uDC00",[["0ω8_>",false],["",false],["u",false],[",0 <",false]]],
+    ["[\\b\\x39ß-\\p{Script=Hebrew}]Ж?𝐀{1,}.",false],
+    ["[^0- ]{2,3}^| <(?:(?<b>[^]|(ſא)($)) {0})b{1,}",false],
+    ["[\\b\\-^]\\k<x$>",false],
+    ["^",[["",true],["0=x􏿿",true],[" c!ω",true],["\f>-",true]]],
+    ["|0{0,2}(?:|￿).*?\\P{gc=Decimal_Number}",[["\tcZ",true],["",true],[" D",true],["N中",true]]],
+    ["中Ж",[["ЖЖ中Ж",true],["中Ж中",true],["中中中ЖЖ",true],["Ж中Жก\u001a",true],["中",false],["",false],["\f",false],["ω",false]]],
+    ["\\1\\b￿{0,2}",false],
+    ["? ",false],
+    ["[Ⅰ-￿\\p{General_Category=Letter} ]𝐀{2}x{0,2}$",[["2",false],["\u000bⅠ퟿t",false],["e-\f",false],["",false]]],
+    ["(?<!\\,||)",false],
+    [" [^ſ]",[["ſ: c",true],[" ſ  ",true],["  􏿿",true],["  ſ ",true],["",false],["ſЖ/",false],["/ſ",false],["0é",false]]],
+    ["c",[["cccc",true],["cc\t\u001a",true],["cc\rc",true],["c",true],["Ω",false],["9",false],["",false],[",",false]]],
+    ["﻿",[["﻿﻿",true],["﻿﻿﻿﻿",true],["٣﻿﻿",true],["﻿﻿=",true],["",false],["Ω9 ",false],["é",false],[":",false]]],
+    ["􏿿(\\x3D+)",[["",false],["　\t􏿿",false],["x3אD",false],["x İDx",false]]],
+    ["\\D(?:!{2}?.{0})",[["D!!",true],["=!!:",true],["D:!!",true],["02D:",false],["é:D",false],["2ω:Ж-",false],["",false]]],
+    ["[](?:.{0,2}){2,3}ß\\B",[["3𝐀",false],["",false],[",:ſ",false],["\nBB",false]]],
+    ["[\\-=-\\s]c[\\x41-\\u0041𐀀]",false],
+    ["[\\^ω]u0041[\\-]",[["1 =",false],["",false],["\u001aω1 ",false],["/",false]]],
+    ["|(?<b>\\u{10FFFF}{1,}\\f)\\k<a>{0,2}?<{0,2}|\\u{31}{1,}",false],
+    ["ω|[]?",[[",x",true],["\u0000ω",true],["ωωωǅ\f",true],["ωωωאA",true]]],
+    ["[^\\]\\P{ASCII=Yes}\\u{1D400}]{0}[퟿]9{1,}",false],
+    [" 　^(?<![^é-𝐀\\*\\u{1F600}])[",false],
+    ["b",[["\fbbİb",true],[" bb b",true],["xאbb",true],["bbbb",true],[":",false],["",false],["1",false],["",false]]],
+    ["٣:\\ba{1,}",[[">11:b",false],["b=",false],["::,",false],["",false]]],
+    ["(?:[]{2,3})\\1:",false],
+    ["\\b ",[["b b",true],[" b ß ",true],[" b ",true],["b ω",true],["!b=",false],["bbbb",false],[" ",false],["\r",false]]],
+    ["\\2\\u0041?",false],
+    ["(?:|)^﻿{0}(?<b>){1,}",[["<<,﻿",true],[",b",true],["1",true],["\r:!11",true]]],
+    ["ω(?:${0}|)İ(?<_n>\\t{2,3})||",[["􏿿",true],[">İ>:n",true],[">>2t﻿",true],[":",true]]],
+    ["　\\P{Pd}",[["\nω　P",true],["　　",true],["PP　!",true],["9P　 ",true],["",false],[">",false],["P",false],["d",false]]],
+    ["(?:|\\b|){2}?$[^]*|[\\--\\-\\D}]*\\r{2}(Z)(?<!^)",[["\u001a/",true],[",퟿!2-",true],["",true],["",true]]],
+    ["(?!\\cJ)[ \\b\\x3C]ßǅ",[[" !!Jſ",false],["!C!",false],["x",false],["",false]]],
+    ["[\\[\\-\\<u{FFFF}]*?[^]\\S",false],
+    ["b+[]0}",false],
+    ["(?=)[^\\r-\\b\\v]\\uDE00|(?<!ǅ(?:)?)中{2,3}?\\2(\\3*",false],
+    ["!￿*[^c-\\w\\u002D]{2}",false],
+    ["\\s|\\1(?<a>)(([])<){0,2}\\b",[[",b<s",true],[">>,<\r",true],[">ſs",true],["<\t2א2",true],["￿",false],["ω",false],["<",false],["퟿",false]]],
+    [" ",[[" ퟿ ",true],["\u0000  ",true],["    \r",true],["Ж=  ",true],["xſ　􏿿",false],["0",false],["ก ",false],["",false]]],
+    ["[|]",[["\u0000  \u000b",false],["􏿿99/ ",false],[" 中",false],["-b\n,",false]]],
+    ["B|a=",[["==B=B",true],[",B",true],["ǅB ",true],["B9  ",true],["=a",false],["",false],["=",false],["x=א=Ж",false]]],
+    ["(?:﻿中*){2}ǅ{2} |=",[["􏿿x>=",true],["中=",true],["\f =",true],["中=,",true],["﻿",false],[":>",false],["ǅ􏿿/",false],[",ǅ",false]]],
+    ["<*[퟿]ß+|\\u003D(?:[\\)-\\-\\.Ж]{1,}+{2}?|(?![)-\\u2000\\u002C-\\D])(?:){0}?|(?<_n>א))?((?:\\B ){2}|\\w)|$(|\\B\\w{2})+|",false],
+    ["(?<b>(?=.| \\p{Zs}|中+?\\cA))*\\x78",[["x<8",true],["a\nx",true],["x中7",true],["éxZb,",true],["sก",false],["",false],["8　b",false],["=",false]]],
+    ["Ж+?𐀀٣\\w{0,2}?",[["ſ",false],["Ж𐀀",false],["22Ω\rЖ",false],["w𐀀",false]]],
+    ["(?:(|)(\\.{1,}){2})<{1,}?\\u0130{0}ก",[[" 21",false],["11",false],["1 x\ré",false],[" 􏿿0𐀀",false]]],
+    ["Ж{0,2}\\P{Z}\\uD800\\uDC00+",[["\u001aİ𐀀é",true],["\r𐀀İ",true],["Pu",false],["0D",false],["",false],["u0İ",false]]],
+    ["(])Z{1,}\\bЖ",false],
+    ["א<{0,2}|(?<a>(?<_n><{1,}?\\[)￿)+\\1","unsupported"],
+    ["\\S[<]😀",[["S<😀c<",true],["S\t<",false],["S",false],["",false],["İ",false]]],
+    ["(?=. )",[[" == ",true],["\u000b= ,",true],["  ",true],["􏿿 ",true],["אéa",false],["==\r=",false],["𝐀=퟿,=",false],["=",false]]],
+    ["[^é-\\u0041][^]",false],
+    ["(?:(?=|(?:)()|aß|)\\b|(?:ǅ)<￿^(?:)",false],
+    ["\\S*\\v?\\0+",[["￿\u0000ß00",true],["𝐀\u0000",true],["\u0000v\t",true],["v\u000100",false],["Sv0v0",false],["vS\f",false],["\u0001!",false]]],
+    [" {0,2}\\S.$",[["S ß0S",true],["2! ",true],["S　",true],["22",true],[" ퟿",false],[",",false],["0é ",false],[", ",false]]],
+    ["(?<=\\d?|)",[["0:d",true],["ddd<<",true],["\t=<",true],["<dd",true]]],
+    ["ſ{1,}?ß\\w-/ω\\s]+",false],
+    ["\\b\\P{sc=Foo}*",false],
+    [".[$$]",[["=😀",false],["ǅ ﻿,中",false],["퟿-",false],["1",false]]],
+    ["Z",[[",\u0001Z ",true],["ZZ\u000bZ",true],["Z",true],["٣Z_Zß",true],["",false],["\n",false],["😀\u000b",false],[":\t",false]]],
+    ["Ж{0,2}\\cJ٣Ⅰ|",[["",true],["İ,",true],["J",true],["﻿ ",true]]],
+    [".[]{2}[^]1{2,3}",[[",,",false],["",false],["21",false],["1!2",false]]],
+    ["\\b(?:)(?<Ω>(?:(?<$>)+(?:[]\\P{LC}|[\\fΩω]){2,3})*(?:ǅ*? ))|b٣(?!. )(^)",[["ⅠCǅ  ",true],["0P >",true],[",1  ",true],["b :",true],["\u0000Ωf  ",false],["  /!",false],["\nǅ>P>",false],["b\n Cf",false]]],
+    ["[^\\b\\wſ-1]",false],
+    ["퟿ก{0}?ß|",[["퟿=กß",true],["",true],["퟿ -￿a",true],["cกſ",true]]],
+    ["\\B\\u205F\\u01C5(?<!)",[["2",false],[" ",false],["2xſ",false],["퟿ u ",false]]],
+    ["中\\P{Cf}ß[￿𐀀|-\\u{41}]{1,}",false],
+    ["c,{0,2}",[[", ,c",true],[",,c, ",true],["0c2c,",true],["c",true],[",2",false],[",,",false],[",0",false],[" İ",false]]],
+    ["|(?<a>){0,2}\\k<b>\\b",false],
+    ["\\u{FFFF}[ก퟿](?:)",[["퟿:F",false],["F:￿FF",false],["Ж",false],["中",false]]],
+    ["[\\b-\\u0021/9][中-􏿿]()?",[["􏿿\tA",true],[" \u001a􏿿0",true],["\u001a􏿿0中",true],["-\nİ",false],["-u",false],[",",false],["1x\u000101",false]]],
+    ["[ω\\]\\d-Ω]+_([^]*?\\p{scx=Hani})??\\w",false],
+    ["\\2\\B\\p{>P}\\B",false],
+    ["x[]|",[["א-",true],["\u0000x",true],["􏿿xxx",true],["￿Ω",true]]],
+    ["9.\\b[^\\cm\\0\\<u03C9]",false],
+    ["[\\P{sc=Zinh}\\d-﻿]{1,}^_",false],
+    ["Ж>(?<b>)",[["><Ж> ",true],[">Ж>ß𐀀",true],["\fbЖЖ>",true],["Ж>>>>",true],["Ж<Жb:",false],["><<>ſ",false],[" 中Ж",false],["<>>",false]]],
+    ["(?=(?]))\\[(?<a>A)",false],
+    ["()(?:\\D)+?|",[["/::",true],["",true],["  　",true],["D😀",true]]],
+    ["!{]2,3}?ก(.\\k<x1>+)",false],
+    ["ǅ{0,2}\\d(?!{2,3)",false],
+    ["[ Z][^]{2,3}􏿿Ⅰ{1,}",[["\u001a,",false],[",ZAЖ",false],[",=b1",false],["ǅZ﻿=3",false]]],
+    ["1c +",[["1c 1\n",true],["1c cc",true],["c",false],["cc",false],["Z\u001a",false],["Ж1c1",false]]],
+    ["^|1",[["1􏿿􏿿א",true],["11",true],["ǅ1111",true],["1Ⅰ",true]]],
+    ["é\\S[]",[["Aééé　",false],["SSééS",false],["﻿SéS",false],["S",false]]],
+    ["　\\w\\Bǅ|b,\\u0041",[[" ",false],["Ⅰ00﻿",false],["A-B0=",false],["ก0Ω",false]]],
+    [".{2}",[["22",true],["22<2",true],["2b",true],["22􏿿\f2",true],["",false],["Ж 2",false],["2",false],["\r",false]]],
+    ["ſ??",[[" >ſ",true],[" ſſ=",true],["ſ!ſ",true],["é",true]]],
+    ["(?= (?:(=)+?=))中(?<x1>[ 　😀]{2,3} )",[["/",false],["　>😀= ",false],[":xⅠ :",false],["",false]]],
+    ["中{0,2}(?<é>).|[\\D][\\0}]$",[["A中10b",true],["א<\té>",true],[" >",true],[">=>D",true],["",false]]],
+    ["[A-x\\--\\<D]",false],
+    ["[^\\]{1,}$[]{1,}?",[[", \u001a",true],["11,\tω",true],["İ",true],["c,11",true],["",false],[",",false],[",1,",false],[",1",false]]],
+    ["\\D*?.{1,}?[^ ]",[["DD",true],["b\t",true],["1,",true],[",  ",true],[" ,éD ",false],["",false],["",false],["1",false]]],
+    [".((?:􏿿*?٣)\\k<x1>)",false],
+    ["[]{1,}𐀀",[["",false],["𐀀",false],["𐀀￿,,",false],["1٣1,א",false]]],
+    ["[]א[a-\\p{ID_Start}\\p{gc=ecimal_Number}𐀀]",false],
+    ["0[\\-] *",[["Ж0-=\r",true],["0-!",true],["0\fx0-",true],["0- ",true],["é0",false],["--𝐀",false],["   ",false],["\r",false]]],
+    ["(?<x1><)|",[["",true],["x￿-1",true],["﻿",true],["￿<>İ",true]]],
+    ["[\\$->{-,][]*([]+)??",false],
+    ["(?<=|[{-𝐀c>-\\S]{0,2})|\\u05D0*?[^]",false],
+    ["}((?<a>){1,})0(?<a>)|=(?<é>^())",false],
+    [".bⅠ{0,2}?ก{0}",[["٣b",true],["ß:b　2",true],["b,0b",true],["0b",true],["",false],["  Ⅰ",false],["2,İ",false],["0א",false]]],
+    ["￿c(?:(?<!.))+?=",[["c=\u0000İ\t",false],["<\u001a!<",false],["!",false],["Ω<!<",false]]],
+    ["(^|[]{0}){2}",[["0",true],["222",true],["",true],["20",true]]],
+    ["(<:Z)$[]",[["\t<İ",false],["",false],[" :<Z:",false],[" :aé-",false]]],
+    ["\\x2F((?<a>))Ⅰ(?:|ω){0,2}",[["",false],["Ⅰω2,",false],["b",false],[":ก",false]]],
+    ["ก",[["𝐀:ก\u001a",true],["กกก ก",true],["􏿿:กกก",true],["中ก😀กก",true],["",false],["ß",false],["𝐀",false],["!",false]]],
+    ["\\u{1F600}\\W",[["",false],["中:",false],["10",false],["٣",false]]],
+    ["=",[["==1\t=",true],["٣ ==",true],["===",true],["-===",true],["Ж",false],["",false],["😀ǅ퟿",false],["﻿",false]]],
+    [".\\^{2,3}(?<é>)(x?|Ⅰ)+",[[">Ⅰ",false],["",false],["Ⅰ=\u001aéé",false],["x",false]]],
+    ["(={2}?|$([:))\\1",false],
+    ["[-\\w|]{1,}\\cm|",[["-",true],["m퟿",true],[",\u0000",true],["mw",true]]],
+    ["()$",[["b",true],[":_\n",true],["   א",true],["א",true]]],
+    ["([^-İ ]{1,})",[[",",true],[" 1,1",true],["aǅ-",true],[",-￿",true],["",false],["İ-",false],["İ",false],[" ",false]]],
+    ["(?:){2}?,(){0}",[["0,",true],[",0",true],[",A20",true],[",,",true],[" 𐀀0￿",false],["𝐀2: ",false],[" 0:",false],["\f2",false]]],
+    ["[\\d]{1,}\\B\\([^.א-中]",[[">dd",false],["אא! ",false],["Z/א",false],["/中",false]]],
+    ["[1\\uD800\\uDC00-\\[]\\b (.)",false],
+    ["[\\--:\\p{Script=}]?|^\\Dé{0} ",false],
+    ["\\B\\cA?()",[[" cกc",true],["A_A",true],[" A ",true],["",true],["A",false],["B:B",false],["B",false],["c",false]]],
+    [".*[^]+?(){1,}?.{0}",[["01Ω",true],["0　 ",true],["0Z1,",true],[" 1A",true],["",false]]],
+    ["\\<",false],
+    ["(? Ж)\\B",false],
+    ["[: 𝐀]*𐀀ſ{0}$",[["𐀀𐀀",true],["0𐀀",true],["\u0000𐀀",true],["!𐀀",true],["0",false],["𝐀ſ:Ж",false],[",>Z09",false],["﻿",false]]],
+    ["[ \\b-𝐀\\x3C]",[["/AC",true],[",bCC",true],[" x",true],["ωא ",true],["",false]]],
+    ["(?<![^\\b\\b\\p{Pd}]{2}?.{2})[]",[["pb2",false],["!2bd<",false],["",false],["",false]]],
+    ["1\\)\\u{09}",[["9u 9ǅ",false],["9\u001a9",false],["",false],["01 ",false]]],
+    ["\\w[]ǅ\\x61",[["ǅwx ",false],["\u00001x",false],["",false],["w 1",false]]],
+    [".(\\u0041)",[["400A0",true],["10Aİ",true],["\u001aAx0",true],["9　A",true],["ß",false],["4!u٣",false],["4u",false],["0",false]]],
+    ["$(|\\P{Zs}){0,2}$()",[["9ZZZx",true],["ZΩ",true],["",true],["20",true]]],
+    ["\\v?|",[["vvvvv",true],["",true],["b vก",true],["vv ",true]]],
+    ["x{1,}[𐀀] ",[[" ſ",false],["Ж",false],["\u0000א 11",false],[" xx",false]]],
+    ["(?:x\\u{FFF}{0,2}){2}",[["Fxx:",true],[",F2\r0",false],["",false],[" ǅ Fu",false],["0 ",false]]],
+    ["[^￿-\\b\\?-\\p{Ll}][]\\d+?",false],
+    ["(?<a>\\x41?\\s|A)+?",[["As",true],["\f-ǅ9",false],["s=",false],["a",false],["a1",false]]],
+    ["\\P{Script=Latin}?﻿<",[["-ai",false],["0tก",false],["﻿S<﻿c",false],["p=",false]]],
+    [" 0(?<!<)",[[" 0",true],[" 0 ",true],["< 0",true],["Ω﻿ 0!",true],[" <0\u00010",false],["",false],[" <ω",false],["!<<￿",false]]],
+    ["　{0,2}?c\\^ก",[["􏿿　0c",false],["　c￿0",false],["א",false],["c",false]]],
+    ["[^ \\x21)]{1,}[\\w\\+\\P{Lo}]",[["ωL",true],["Z,",true],["Ao",true],["P  L",true],["",false],[",",false],["  ",false],["w",false]]],
+    ["\\p{gc=Lu}İ{2,3}א(?=\\u0041{0})|\\k<b>(?:([^]*Ⅰ|ω{0})א){2,3}?",false],
+    ["(?:)??(?<$>\\3_)1(?:)",false],
+    ["[^\\u0041(]{0,2}[ -\\*]",false],
+    ["[퟿\\\\\\f]?c퟿",[["c퟿",true],["c퟿f>",true],["bc퟿􏿿",true],["0c퟿f",true],["퟿f퟿c",false],["c٣\f𐀀",false],["􏿿",false],["中<퟿",false]]],
+    ["|\\B(?<Ω>)*?",[["B>\f\u0001",true],["",true],["Ω </",true],["Ω",true]]],
+    ["(?<a>)||\\B|",[["中",true],["aa\tİ",true],["aa<>!",true],["<",true]]],
+    ["(?=Ω\\uDE00|)<)0}",false],
+    [".0(?<=|.c)￿{0}",[["0ſ0 􏿿",true],["<c0",true],["<0",true],["￿0",true],["x=",false],["￿\f",false],["=￿=",false],["",false]]],
+    ["Ω{0,2}",[["Ωก",true],[",,A= ",true],["",true],["0Ω",true]]],
+    ["b{2}",[["bbb",true],["bb2b2",true],["ก2bb2",true],["1bb",true],["22",false],["b𐀀2",false],["b_ǅ ",false],["2b",false]]],
+    ["\\u0078{0}?",[["u0Ж",true],["0￿",true],["c0 07",true],["",true]]],
+    ["ก*[^]+$(-:(?<=ß.?)){0,2}?",[["\u000bא",true],["=<",true],["ß 0",true],["2!",true],["",false]]],
+    ["(?![^Z-\\b.-\\cz￿](?:\\p{letter}{0,2}))Ω[\\t-\\cm ퟿]",false],
+    ["\\r",[["\r rr",true],["",false],["rr r",false],["rr",false],["r\u001ar",false]]],
+    ["$((?:\\x31??(?:||a{2,3}?))\\u{62}){2}?",[["",false],["2",false],["2ก3",false],[":bİ",false]]],
+    ["　[^-}]$",[["　ก",true],["　-　א",true],["--　　　",true],["b　\u000b　　",true],["",false],["\u0001\t　-",false],["　",false],["-　",false]]],
+    ["กé((?<$>0\\s)?)",[[",xกé",true],["﻿s",false],["s<é\rs",false],["0\t<",false],["0s",false]]],
+    ["\\t{1,}?|ß{0,}\\|({0})??",[["0ω1,\u0000",false],[" 0\r",false],["𝐀",false],[" ,1",false]]],
+    ["(\\u202F){1,}\\x41{0,2}",[[" ",true],[" 2u",true],["F\u0001퟿",false],[",ß\n,",false],["中",false],["u",false]]],
+    ["ω",[["ωωω\u0000",true],["ωωω",true],["ωZ",true],["ωωω ω",true],["",false],["9\u0001",false],["a",false],["ก",false]]],
+    ["中{2,3}",[["2中中中",true],["中中,0Z",true],["2中中2ǅ",true],["ก中中􏿿א",true],["3Ⅰ",false],["",false],["2",false],["3ω",false]]],
+    [" ?",[["￿　  ",true],["  ",true],["中: ",true],["",true]]],
+    ["\\}{0,2}\\S",[["ΩSS",true],[",_",true],["א",true],["0S200",true],["",false],[" ",false]]],
+    ["(?<=(())|é)",[["é",true],["==\u0001=<",true],["é\u000bb",true],["a=bé<",true]]],
+    [":{2,3}()\\B$|(?<Ω> )+?[]",[["<\r:",false],["<3<",false],[":\t",false],["𝐀😀퟿<",false]]],
+    ["_(?<b>|[\\P{Uppercase}]{0,2}|){0,2}(?<=(?!))",[["\u0000　\u0000",false],["",false],["pſ",false],["pΩ0 ",false]]],
+    ["$[😀]<+",[["𝐀<",false],["<:",false],["<",false],["",false]]],
+    ["(?<a>ก)(?:){0}? \\P{Nl}|(){1,}?",[["b",true],["0\u0001 <",true],["N:กP",true],["a中",true],[" <İP",false],["\u001a ",false],[" _ſ",false],["1N",false]]],
+    ["\\p{Any}﻿\\b[]{0}?",[["y﻿0",true],["\u000b﻿y𐀀",true],["Ω﻿pn:",true],["pp﻿A",true],["\npA ",false],["/ ⅠA",false],["y!",false],["",false]]],
+    ["(?(<a>()(?:\\4\\p{Lm}))$",false],
+    ["(?=)",[["==\u0000",true],["",true],[" =ZⅠⅠ",true],["==ſ==",true]]],
+    ["^𝐀{0,2}",[["0-22𝐀",true],[",a22",true],["2Ωc/",true],["",true]]],
+    ["(?<_n>){1,}|.[^\\{𐀀-\\P{sc=Cyrillic}\\0]{1,}?(>{1,}|\\u03C9()) ",false],
+    ["$|c{0,2}(?:<{>,2})+?",false],
+    ["|?!)",false],
+    [" *",[["     ",true],["􏿿",true],["",true],["-  :",true]]],
+    ["(?<a>(?<a>:\\*)|(?=(?<a>c\\2)?+))",false],
+    ["ก1,}?",false],
+    ["*ß-\\cz٣\\cA](?:) [ \\p{Script=}-0\\x41]",false],
+    ["􏿿{1,}",[["􏿿11􏿿\u001a",true],["\f\t\u0001􏿿",true],[" 􏿿􏿿_",true],["􏿿1,",true],[", ſ1",false],["1,",false],["퟿ ",false],[":1𝐀",false]]],
+    ["ß{1,}\\([ωb-\\uD[BFF\\uDFFF]|(?<=\\s)ก􏿿||",false],
+    ["(?<a>(?:)[^\\)|-\\p{Uppercase}﻿-\\P{Z}]|)￿{1,}\\B(?<=)",false],
+    [" .{1,}?[^\\u{20}-\\-￿\\D](퟿)",[["-,",false],[",u",false],[" bD",false],["",false]]],
+    ["A(?:(?:| \\u0041)*)",[["A",true],["4A1 1",true],["ǅ0A:",true],["  A",true],["0",false],["4\r _4",false],["0<0กb",false],["1  ,<",false]]],
+    ["(?![\\.\\uDE00-\\S].?|)(?<!((?:𐀀Ⅰ)|􏿿))",false],
+    ["(?<Ω>)^[\\-.\\uDE00-\\u0041]",false],
+    ["9<",[["<٣9<<",true],["\n99<9",true],["<9<9",true],["<　9<",true],["99",false],["<9ß",false],["<<99",false],["ω",false]]],
+    ["(?<b>)b\\.|\\|[\\uDE00-\\u00A0]{0,2}?",false],
+    [".(?:\\b\\1){2}😀+|\\w?()*Ж","unsupported"],
+    ["| {0}\\k<x1>\\u0041*?[]+?",false],
+    ["ก{0}?﻿{0,2}",[["0ก>2　",true],["א02,2",true],["﻿",true],[" ,",true]]],
+    ["(?=[^􏿿-\\P{Script=Latn }]+[_ ]|(?: ))\\2é*",false],
+    ["[^]{2}.{2,3}?\\W*",[["22 2>",true],[" a\u000b,W",true],["3,32",true],["\r2,3",true],["",false],["W",false],["W33",false],["2",false]]],
+    ["􏿿𐀀٣|c*﻿|[^]_? ?.",[["-___􏿿",true],[" \r ﻿",true],["𐀀_",true],["_٣😀𐀀﻿",true],["􏿿",false],["",false],[" ",false],["٣",false]]],
+    ["(?:(?<>| ){0}\\u{2160})\\S{2}",false],
+    ["()]?:.(?=))𝐀\\B",false],
+    ["!?\\uD83D{1,}א(?<$>[^\\[\\S\\u{05A}]){1,}?",[["D",false],[",a1!",false],["8　",false],["8",false]]],
+    ["中*İ*[ก]{2,3}?(?:.||\\x31,)",[["กก",true],["<",false],["!,",false],["A",false],["c中 ",false]]],
+    ["[]{2,3}(?:)",[[",é,2",false],[" 0ω3",false],["::",false],[",",false]]],
+    ["[*?\\-\\cm]",[["-",true],["- -",true],[":m-",true],["𐀀-m\u0000-",true],["",false],["m\t",false],["😀ſcm",false],["mc",false]]],
+    ["^|[^ ſ].𐀀(?:=)",[["=𐀀= c",true],["\u000b :　:",true],[" ! :=",true],["ſ𐀀ſ",true]]],
+    ["\\P{Z}",[[" ZZ",true],[" \r<﻿",true],["PPP",true],["￿﻿PZ",true],["",false],[" ",false]]],
+    ["\\u002F+? ",[[" u0\u0000Ⅰ",false],["0 F2",false],[" 2",false],["  ,",false]]],
+    ["\\-u{02F}\\b\\s\\k<x1>?",false],
+    ["[^\\b􏿿 -\\x41]_.{0}? |[^]{1,}?1{2}",false],
+    ["😀{0}(?={)",false],
+    ["(?=|)",[["!ǅ ",true],["=,=",true],["==",true],[" \u0000",true]]],
+    ["b^",[["bbbb",false],["bb  ",false],["\u0000﻿   ",false],["b:",false]]],
+    ["[\\$-\\W][]+",false],
+    ["(\\B){0,2}\\cm{2,3}[^ω-\\-\\P{Z}]{0,2}",false],
+    ["Ω\\1{1,}(?<x1>Ax||𝐀{0,2}|é(?<é>9??(| .))+|){1,}􏿿|[1\\*]+|< |^(?:1{2,3}[\\u0041])(?:﻿{2}?[])[ǅ-\\cJ0\\b]",false],
+    ["((?:|.[\\w\\b-\\s𐀀-\\b]))+?|",false],
+    ["(?:)$𝐀{2}?\\|\\b",[["_𐀀:𝐀b",false],["2𝐀2:",false],["a",false],["𝐀\fb𝐀ǅ",false]]],
+    [".(*<$>)",false],
+    ["\\cJ{2,3}𐀀{2}.",[["33/퟿,",false],[":",false],["　c𐀀J,",false],["c",false]]],
+    ["\\p{Pd}İ",[["d　ß",false],["p",false],["𐀀d>A",false],["\np",false]]],
+    ["|\\u0001\\x21\\uDBFF\\uDFFF:{1,}",[["ΩF2u_",true],["0",true],["0u　 D",true],["B1",true]]],
+    ["$.(?<!(?:){1,3}(?<=[\\D]?Ⅰ))c",[["3\n中ǅ",false],["D3\u0000",false],["3=<",false],["İ=",false]]],
+    ["😀.{1,}[",false],
+    [",|[\\-\\u005F-\\bЖ]c{1,}.{0}?İ*?",false],
+    ["((?:.퟿){0,2}(?:)*?)+?",[["a",true],[",😀",true],[" ::",true],["",true]]],
+    ["()+,\\p{t}",false],
+    [".[^İ]Ⅰ[\\u0030\\--\\u0041]{0}",[["=4Ⅰ-",true],["א0Ⅰİ",true],["00Ⅰ0",true],["--",false],["00ß",false],["",false],["ß1İ1İ",false]]],
+    ["(?<x1>.{2,3}|[,- }-\\u0041ก][\\p{sc=Lu}1])(?:)(\\k<a>9)|",false],
+    ["\\B:{1,}?[^]{2,}?",[[":￿😀,",true],["",false],["1-,",false],["\u001a1",false],["İ0B,",false]]],
+    ["((?:)+?*) 􏿿",false],
+    ["\\B\\cA",[["ccⅠBA",false],["",false],["٣ ",false],["B",false]]],
+    ["٣ -2}?𝐀b",false],
+    [" *",[["",true],[" /  ",true],["퟿  , ",true],["  ",true]]],
+    ["中?(?<=\\p{Block=Basic_Latin})",false],
+    [" {1,}|9￿",[["9, ",true],["￿Ω   ",true],["￿ \u001a, ",true],[" 9",true],["1",false],["1<",false],["",false],[",1￿퟿,",false]]],
+    ["\\u{10FFFF}((?=)A{2})",[[" 0",false],["",false],["FFF",false],["1b0",false]]],
+    [" !?",[["! \u001a ",true],["   : ",true],["! !",true],["  😀　 ",true],["Z:",false],["퟿",false],["Ω!",false],["",false]]],
+    ["中(?:(?<é>){2,3}ſ){0,2}|={2}Ⅰ",[[" 中ǅ>2",true],["中",true],["9中",true],["中:0Ⅰ3",true],["ω>2",false],[",,",false],["3",false],["ſ",false]]],
+    [" 􏿿\\u0C9",false],
+    [".*?\\p{scx=Latin}",[["אǅcⅠa",true],["=L",true],["p",true],["ttp ",true],["",false],["א",false],["\u0000\f　",false],["0",false]]],
+    [" (c){0,2}",[[" 092c",true],["c ￿",true],["　0 /b",true],["2 ,c ",true],["😀Ж_",false],[" ,",false],["",false],[" 00",false]]],
+    ["9{01}",[["90",true],["90٣",true],["1009￿",true],["𝐀901",true],["000😀",false],["0",false],["11",false],["1",false]]],
+    ["(|٣+(b|﻿={1,}|)){1,}(?<_n>){2}",[["a:Ω,",true],["￿1",true],["b_",true],["1",true]]],
+    [" ω {2}?(?<b>ω\\u{62}{0})",[["  2ǅ",false],["",false],["b<٣Жu",false],["א>İZא",false]]],
+    ["a*?[\\u3000-\\n{\\D]{0,2}(?:)",false],
+    ["[^İ-a]􏿿\\S()",false],
+    ["\\1(?!)ก",false],
+    ["𝐀$",[["𝐀9𝐀𝐀",true],["𝐀𝐀𝐀𝐀",true],["𝐀𝐀𝐀",true],["𝐀=𝐀𝐀",true],["\u0001𝐀Z",false],["\u00001",false],["𝐀𝐀 _",false],["-𝐀𝐀𝐀1",false]]],
+    ["[^x-1]!\\cm(?<=[\\{-\\v])",false],
+    ["(?=Ⅰ)(?<b>(?<=[^])𝐀){2,3}.c",[["bⅠ",false],[">İc",false],["2𝐀ก",false],[" Ⅰ𝐀Ωb",false]]],
+    ["[\\-]Ж|",[["Жa",true],[" A=",true],["--ЖЖ ",true],["",true]]],
+    ["(?<=)^\\n𝐀*|(?:\\S[Ω]{0}?)(٣).",[[":0٣=<",true],["\n0",true],[":٣𝐀",true],["S٣9<n",true],["ZSΩΩ>",false],["٣",false],["<",false],["Ж:n",false]]],
+    ["()9.+?￿",[["9￿￿￿",true],["9א￿9￿",true],["99￿9",true],[" 9!￿",true],["9",false],["ſ",false],["￿",false],["",false]]],
+    ["﻿{0,2}(b",false],
+    ["[](?<a> ).[^>]||\\P{scx=Latin}|\\b퟿\\u0041{0,2}",[["=",true],["ub0<",true],["\u000b𝐀=",true],["s!a ",true]]],
+    [" (?:[\\u0030 -\\b])<*",false],
+    ["\\B[^^](?=)[^,-İ\\D]+",[["",false],["İ,",false],["￿ İİ",false],["=\u0001B0",false]]],
+    ["(?:)*\\){0,2}?[\\--\\u0041]{2}?,",[["0-,",true],["242",false],["-0",false],[",:2ß",false],["",false]]],
+    ["[}　b-$]Ⅰ*\\Wǅ",false],
+    ["[Ж\\S ]",[["S!SaЖ",true],[" S𝐀",true],[" S中א",true],["SS",true],["",false]]],
+    ["ω??(?:é)(?!\\x41\\\\)",[["bé😀",true],["\fЖ:/é",true],["Ⅰωא1é",true],["!=9é",true],["1cωא",false],[" \f 41",false],["410",false],["bx中",false]]],
+    ["9 ]).",false],
+    ["[^\\?]1",[["111",true],["11",true],["𝐀Ω111",true],["Жb\u000b11",true],["1",false],["",false],["=",false],["Ⅰ",false]]],
+    ["😀*>",[[",>> ",true],[">/ >",true],["Z😀>",true],["> >ก",true],["😀",false],["x",false],["😀a😀",false],["",false]]],
+    ["^.(?<b>)",[["éb",true],["<<><",true],[">>>>",true],["b",true],["",false],["\n<ω<Ⅰ",false],["\r-",false],["\n<",false]]],
+    ["(?=)(İ\\uDBFF\\uDFFF|퟿{0}?.)9*(\\s[])|(?<!)(?<!(|)|[א]|)(?<Ω>) ",[["u",false],["",false],["𝐀<",false],["< <Ω",false]]],
+    ["ſ\\D",[["ǅſ𝐀",true],["ſω",true],["DſD",true],["ſ/ \nſ",true],[",퟿=􏿿",false],["A퟿DDſ",false],["\u0001D",false],["￿D ",false]]],
+    ["İ",[["--Aİİ",true],["İİ İ",true],["İİİ",true],["İİİ-",true],["_",false],[",é",false],["中",false],["",false]]],
+    ["ǅ{0,2}(?<!(?:\\d(\\p{LC}))).?.|[^\\uDE00]{0}?Z{0}(?:[)\\-(]+ ){1,}?[\\u{DF}]",[[" 1",true],["2",true],["Ω",true],["=0",true],["",false],[" ",false]]],
+    ["ก+?\\uD83D",[["Dกu8",false],["8_D3D",false],["0D\u0000bก",false],["",false]]],
+    ["٣\\p{sc=Cyrillic}{0}?",[["l٣",true],["　!=p٣",true],[":c٣i\u0000",true],["é﻿0é٣",true],["c/",false],["iy",false],["rxp",false],["",false]]],
+    ["A*中𝐀\\2?",false],
+    [".((){1,}(?<=|\\P{Foo}| {0,2}?))[\\+]{1,}?",false],
+    ["\\b(\\cA[\\u{21}-9]{2}?)  |\\u0000(c﻿{1,})?$ ",[["0",false],["!c-0ǅ",false],["0 ǅAc",false],["2ca",false]]],
+    ["ǅ\\u0041??",[["<-4ǅǅ",true],[" ǅu40",true],["ǅ",true],["04u4ǅ",true],["c1u",false],["10",false],["u4\u0000",false],["0",false]]],
+    ["([<$>)(?<!)b(?:)",false],
+    ["!*中",[["中<!!",true],["中￿!\u0000中",true],["ſא!中中",true],["Ⅰ￿!中!",true],[" !",false],["א!!:٣",false],["Ω!א=!",false],["",false]]],
+    ["\\s[\\(\\x41$]*?. {}|",false],
+    ["[]+\\B\\b[",false],
+    ["(){[,}|(?<!)|\\w\\k<x1>{2,3}",false],
+    ["(?:￿^)+?",[["￿ İ:",false],[":￿:￿",false],[":",false],[" :\r",false]]],
+    ["\\t(?:.((?<a>[^ſſ-\\u0041𝐀] ){1,}?\\*))",false],
+    [">Zß",[[">Z>Zß",true],["Z𐀀Z>>",false],["> ßé>",false],["",false],["Zא:",false]]],
+    ["(?<$>\\P{ASCII=Yes}\\2{1,})*_\\P{Pd}{0}",false],
+    ["|א{0,2}[^]",[[",",true],["2",true],["𝐀א,",true],[",א0,",true]]],
+    ["[\\0-\\w퟿-\\x61]",false],
+    ["b{2,3}﻿[\\--\\b\\S{]ß",false],
+    ["(?<_n>(?<b>|\\p{P}){2,3}(| .{0}?|\\d{1,}|..??)|^\\])b.퟿|$\\S ?|_{0,2}?　|(?<a>)\\k<a>+[\\uDBFF\\uDFFF　-é]",false],
+    ["ß",[["٣ßß",true],["ß",true],["ßßßß=",true],["Ⅰßé\u0001ß",true],["　",false],["٣ ",false],["٣ǅ",false],["_",false]]],
+    [" ",[[" ",true],["﻿  ",true],["  ",true],["  \n",true],["",false],["a",false],["-0",false],["ſ\t",false]]],
+    ["\\W{)0}.9",false],
+    ["(?=$)𝐀{0}?$",[["𝐀中􏿿=",false],["==",false],["0𝐀𝐀=",false],["0b",false]]],
+    ["(?]<$>퟿?\\x41+)[]",false],
+    ["[^]([$](?:\\))){2,3}",[[",3",false],[" x22",false],["　3é",false],["2",false]]],
+    ["(?:[c-\\w\\uDE00]*)中a{1,{}^|(?:)",false],
+    ["\\1{1,}[^\\*-\\u002D]",false],
+    [" $0",[[" c-",false],["￿  ",false],["  0 ",false],["b0\f 9",false]]],
+    ["(\\d)(?<!.{1,3}?).{1,1",false],
+    ["(?=_)",[["_=_",true],["_",true],["=__퟿",true],["_=\u001a=_",true],["=",false],["",false],["= = ",false],["- ",false]]],
+    ["(_\\P{Lo})　{1,}𐀀",[[",b￿𐀀L",false],["b퟿",false],[",_",false],["<A_0_",false]]],
+    ["é.a",[["éaax",true],["é\u000bé9a",true],["écaaa",true],["aéaa",true],["",false],["􏿿x　a\u0001",false],["\u000ba/",false],["ก",false]]],
+    ["(?<$> {2,3}(?<b>(0{1,}[\\- \\b--])\\cJ)){1,}?.",[["10\n\u0001",false],["ca",false],[",A",false],["",false]]],
+    ["(){2,3}\\u0039\\uDE00|=(?=)",[["=",true],["ก=2u",true],["\t=3=",true],[",=0D",true],["中Z0u0",false],[" 9<",false],["",false],[" cé3E",false]]],
+    ["\\u2000\\b {0,2}",[[" 2u",true],["0: ",false],["ub0",false],["\u00012 2\n",false],["",false]]],
+    ["ω{1,}?",[[",ω",true],["Ωω",true],["ω1",true],[",1ω, ",true],[" Ωก1 ",false],[",\t0ß",false],["b0",false],[",, ",false]]],
+    ["(?<=Z_|)\\u{00D}",[["\r",true],["<0\ru",true],["D\r\u0001",true],["",false],["0c",false],["éZ ",false],["D__İ0",false]]],
+    ["(?:(?!(?<$>)){2,3}?[)\\b]\\x41",false],
+    ["\\cA|(?=)(?=(?=([(ß])*?\\f))",[["\u0001c=c",true],["\u0001",true],["\u0001=Af=",true],["=A=cc",false],["",false],["￿ =ß",false],["c===c",false]]],
+    ["Ⅰ",[["Ⅰ",true],["Ⅰ\tⅠ",true],["ЖⅠⅠ\u0000",true],["\u001aⅠ",true],["ก￿",false],["",false],["",false],[":﻿",false]]],
+    ["א",[["אאא",true],["אאאא",true],["b!אc",true],["א אאא",true],["",false],[":",false],["x\n ",false],["\t",false]]],
+    ["[^\\}]{2}^",[["22",false],[" ",false],[">22",false],["",false]]],
+    ["(?<$> {0})(?=(,{2,3}\\B]))\\x62",false],
+    ["[\\u0041\\f]*?",[["0",true],["/>u0",true],["1\u0001ffⅠ",true],["10กfc",true]]],
+    ["\\P{Alphabetic}{0}()*(中)*",[["0",true],["Ailc",true],["lb",true],["i",true]]],
+    ["\\B\\2\\u002C",false],
+    ["(?:A)|\\cA",[["cA:\t",true],["::A:",true],["cกAA",true],["Ac",true],[": :",false],["_<",false],[" Ⅰc:",false],["",false]]],
+    ["[]\\u{1680}\\)",[["6",false],["81818",false],["u\u0001",false],["1😀",false]]],
+    ["\\u{30}1",[[" 01  ",true],["İ1u01",true],["1",false],["ก3\r",false],["uu31",false],["1 Ω1c",false]]],
+    ["٣(?!()??\\b)",[["٣!\r",true],["0٣\u0001",true],["٣!b!b",true],["𐀀!٣",true],["Ω!",false],["c\rb",false],["א",false],["b ٣b",false]]],
+    ["\\d{2,3}?\\d(?:\\k<a>[\\uDE00中]){2}(?=.(?!\\uDBFF\\uDFFF{1,}[$\\p{ASCII=Yes}]{1,}||\\P{M}{0} ))",false],
+    ["()é..",[["éé ",true],["éééé",true],["éé٣　é",true],["ééé",true],["é",false],["é\u0000\réé",false],["0éé",false],["ก",false]]],
+    ["![(]*",[["!",true],["!　!c",true],["٣!",true],["!!",true],["",false],["A_",false],["　",false],["￿\t",false]]],
+    ["[􏿿-\\uD83D][^\\u0001 -\\u000B]0",false],
+    ["(?=)(.){0}İ()+",[["<0İ=İ",true],["İ0﻿İ",true],["=𝐀İ=￿",true],["b0İ",true],["",false],["0=",false],["=0=",false],["=",false]]],
+    ["$",[["Ж ",true],["_",true],["\t ",true],[" \u001a",true]]],
+    ["Z$[\\s]",[["",false],["Z/Z",false],["csZ",false],["Z ",false]]],
+    ["\\B\\p{scx=Hani}?(c:)*ß{2}",[[" n",false],[":Baß ",false],["ié\t2ß",false],["x",false]]],
+    ["$[]*\\1{0,2}\\2??",false],
+    ["(?<Ω>\\p{Assigned})\\P{gc=Latin}|^\\u0041|",false],
+    ["1\\P{Mn}",[["ǅ퟿11-",true],["1Mn",true],["﻿1　n",true],[" P19n",true],[" ",false],["　M=c=",false],["Mé􏿿P",false],["PMM",false]]],
+    ["\\1[\\]",false],
+    ["(?:$0)(?<!(?<=()|_))\\v",[[" _",false],["<=ǅ",false],[":/",false],["<! ",false]]],
+    ["(?:{)*",false],
+    ["\\x5F\\S",[["S_x",true],["aS!",false],["-é􏿿Ⅰ ",false],["S",false],["5Sſ>F",false]]],
+    ["\\p{scx=Latin}\\D{2}?(?<!\\]{2}.{1,3})|[𝐀]{0,2}[^]{0,2}|😀?ω|0_",[["٣😀\f/",true],["c,",true],["ßt<",true],["Dİ",true]]],
+    ["\\uD83D\\u{205F}\\b(?!)",[["0F,𐀀",false],["!𝐀u5",false],["￿b",false],["8853",false]]],
+    ["\\B(?: {0,2}?\\s??)(?<b>>(?:(?:ſ{2}?\\x41)))𐀀|\\s{0,2}?(?<a>.{2}(?<=)|)中",[["中ßx \r",true],["กé=中>",true],["/s中中ſ",true],["0中>4ก",true],[" ",false],["",false],["2",false],[" <x:x",false]]],
+    ["\\u{3C9}\\W*1<",[["ǅ\u0000中",false],["",false],["1éωß",false],["𝐀CCu",false]]],
+    ["|.*\\cA{0,2}\\|",[["c",true],["2",true],[",,2b2",true],["2,",true]]],
+    ["(?<=^)",[["= ω<\t",true],["😀0<",true],["<<=<ก",true],["<==<<",true]]],
+    [" Z{1,}?",[[" Z",true],["1Z Z",true],["\f Z",true],[" ZЖǅ1",true],[",\fZ",false],["1",false],[" 0Z!",false],["0",false]]],
+    ["(?:c{0}א{0}){0,2}?(?<=x)(?:Ⅰǅ{2,3}|￿{2})*",[["ßΩxא",true],["Axω　",true],[",:x:<",true],[" ￿xⅠ\f",true],["",false],["א𝐀c",false],["ß0c<",false],["ǅ1\fǅก",false]]],
+    ["(😀 {0,2}){1,}9(?:)",[[":😀9😀",true],["xİ😀9 ",true],["",false],["0 :90",false],[" 1,",false],["99𝐀,",false]]],
+    ["((?=))+?b{2}?[\\p{}-0\\x39=]",false],
+    ["\\cm{0}?(?<!9)1{1,}",[["1c\n\u000b",true],["1􏿿91￿",true],["111<1",true],["19é>\u001a",true],["",false],["!",false],["< >!",false],["İ",false]]],
+    ["\\u0041{0}[^\\u0041-.\\u{17F},]+A",false],
+    ["\\u{3000}[^\\-\\x2D]|Ⅰ{2}(^|)A$",[["　22Ⅰ",true],["　Z",true],["A2𝐀\u001ax",false],["\u00010Ж",false],["\n",false],["2",false]]],
+    ["\\b(|){0}\\u{2029}{2}٣||　{2}[\\u001A](?:).|(?:){2,3}[\\W](?<=^|(퟿|[\\--퟿]|)[\\x39-\\W\\-\\u{1D400}-\\?])| (퟿){2}?[^]",false],
+    ["{(?<!)",false],
+    ["( |\\cA|)[^\\{\\u0041-􏿿]{1,}?  ",[["-!  ",true],["",false],["0 0 ",false],["﻿",false],["\t1􏿿  ",false]]],
+    ["[^]{2}\\]d",[["22",false],["2d",false],["d_ 9　",false],["222　2",false]]],
+    ["\\D[}-￿􏿿- ][^<-\\P{Script=}][\\[=-é]",false],
+    [">İ{0,2}[\\uD83D-\\p{IsGreek}]?|(?:1((?:􏿿|){1,}[\\]　]))ก{1,}(?<!(?=|)[^]|[\\{-אω-\\-])|\\2",false],
+    ["{0,2}﻿　|(?<!\\u00|9{2}|)\\b(?:　){2}",false],
+    ["[]?(?<!(𝐀{0,2}|$\\d){2})",[["b2İAd",false],[",<",false],["",false],[",𝐀<",false]]],
+    [".(?=.)|Ⅰ",[["ⅠⅠⅠ>Ⅰ",true],["Ⅰ=",true],["Ⅰ",true],["　=Ⅰ Ⅰ",true],["𐀀",false],["\f",false],["",false],["=",false]]],
+    ["\\0*?(=.+?)",[["",false],["😀",false],["ǅ",false],["",false]]],
+    ["_(|)[]￿",[["\u0000A_\u000b",false],["￿-￿￿",false],["A",false],["_",false]]],
+    ["(?<=\\cA?)􏿿(?<a>|中*Z\\)א|[İ]\\t",false],
+    ["[\\b-{]*?\\k<a>+?",false],
+    ["ω{2}(?<!|).*",[["ω<ωb",false],["\r",false],["ω>",false],["퟿",false]]],
+    ["a{2,3}^(?:|[٣-￿]((?:.?)$|中{1,}﻿{0})){1,}\\{",[["ǅ3",false],[":﻿",false],["﻿ a1￿",false],["9",false]]],
+    ["\\k<b>a",false],
+    ["(?=.*)",[["==",true],["-==:",true],["",true],["ก_",true]]],
+    ["(){2}()ß{1,}?",[["éß",true],["ß1",true],["\fß",true],["22ß12",true],["",false],["<",false],["2,",false],["22",false]]],
+    [" \\t(.+|)",[["",false],["t-\u000bω",false],["t  ",false],["< ",false]]],
+    ["1\\2",false],
+    ["\\B\\|\\Sc{2}",[["SB",false],["_",false],["c",false],["/SBc٣",false]]],
+    ["\\wǅ(0|)",[["wǅ",true],["0ǅ",true],["wǅ￿",true],["00ǅǅx",true],["w",false],["ǅw=w",false],["",false],["w00",false]]],
+    ["\\Bc.(!|𝐀$|)",[["Bc٣c",true],["Жcc😀B",true],["cc:B ",true],["aBcBǅ",true],["x!B",false],["Bſ!\n ",false],["𝐀",false],[" ٣𝐀",false]]],
+    [".\\b",[["bc",true],["\u0000bbx",true],["𐀀bb ",true],["bbbb\t",true],["א",false],["ß",false],["",false],[">! ",false]]],
+    ["\\P{}{2}?",false],
+    [" \\u{1F600}",[["10\n",false],["ω101",false],["F",false],["1ß01",false]]],
+    ["\\s,",[["﻿,,\u0000",true],[",s",false],["",false],[",,",false],["\n<,",false]]],
+    ["[1\\s0]+",[["s中\t",true],["\u000010",true],["010 ",true],["1ก1",true],["",false],["sΩs",false],["😀",false],[",",false]]],
+    ["[]א_*(?:)|((?:))(?<=)",[["___:<",true],["==",true],["אא",true],["א=אω",true]]],
+    ["(??:[\\S]𝐀|)",false],
+    ["\\cm",[["\rmΩ ",true],["c٣\rmm",true],[", ",false],["",false],["mc",false],["\u000bİm",false]]],
+    ["Ω{0,2}?\\b",[["10",true],["b퟿𝐀9",true],[",2ЖΩǅ",true],["200",true],["",false],["Ω,",false],["ſ٣Ω퟿",false],["<,",false]]],
+    ["😀+|>",[["ß>>",true],["😀-İ😀Ⅰ",true],[">>😀",true],[" >>>>",true],["",false],["Zω\u0000 ",false],["a",false],["<퟿",false]]],
+    ["< \\u0041[\\D-　]\\k<b>{0}|a\\B([a􏿿-\\+\\uD800\\uDC00])",false],
+    ["\\2{2,3}?>[]||[]􏿿*\\2[\\0 _-b]{2}?",false],
+    ["퟿[\\d\\d-{]{2}?[^]{1,}",false],
+    ["1\\x00",[["",false],["0",false],["xx",false],["0中",false]]],
+    ["[ -﻿]{0}?[Ж\\b\\s]+",[["\n\t",true],["﻿",true],["-﻿",true],["0ω ",true],["中",false],["",false],["b",false],[">",false]]],
+    ["[\\x41﻿]+?(?<=中{1,3}(?<= \\B)|(?:)|[\\^-\\uDBFF\\uDFFF]{0,2}()?)﻿??",[["é﻿﻿ ",true],["﻿F",true],["-﻿",true],["a﻿",true],[" 4ω ",false],[" ",false],["中",false],["u􏿿ΩB",false]]],
+    ["(?: ) (?: +^)",[["𐀀",false],["ſ:",false],[" ",false],["",false]]],
+    ["|$",[["< ",true],["0\f",true],["- Ⅰ",true],["",true]]],
+    ["(|)((?<!<{2}))+?",[["ǅ <",true],["\f",true],["2:<<0",true],["",true]]],
+    ["\\u{031}!",[["😀1!3u",true],["1!A",true],["\u000b1!😀",true],[":u",false],["3!1",false],["=Ж퟿3",false],["",false]]],
+    ["(?<=é\\P{Any}|(?:(b??[😀=-=x-\\u0041]{0,2}?)??){0,2}?Ω|.?|)(?<!$((?:􏿿)?){0,2})\\4İ",false],
+    [" \\uD800\\uDC00 [\\w퟿-,1]+",false],
+    ["\\x01ω",[["x",false],[">ZA0",false],["x90ω",false],[" Ω1𐀀0",false]]],
+    ["\\x41{0}(?:\\r)\\u00A0A",[["4\u001a00𐀀",false],["a0\nax",false],["0",false],["",false]]],
+    ["ก??[^\\vω\\uD800\\uDC00]",[["0퟿İ0",true],["\u00018 9D",true],["٣-000",true],["0 0",true],["",false],["ω",false],["𐀀",false]]],
+    ["\\x41{1,}(>)",[["A>Ω􏿿",true],["\tbω￿1",false],["x",false],[",4x",false],["ß4x,",false]]],
+    ["\\1\\b(?=é)()",[["1é=",true],["1cé1",true],["1éb=",true],["א>1bé",true],[" ",false],["é퟿1",false],["😀bbß",false],["",false]]],
+    ["İ*?\\u{E01}Ω|(?<a>.{1,})\\s{0,2}\\2",false],
+    ["|ſ  +*?0{0}",false],
+    [".+",[[" é0",true],[" c",true],["\nZ ",true],["中0",true],["",false],[" ",false],["\n",false]]],
+    ["([\\P{Script=Latn }﻿\\x41-{]*?ß)*\\b",false],
+    ["(?:|)*\\p{sc=Zinh}??[]",[["0x\nſ\u0000",false],["",false],[" 𝐀",false],["i ",false]]],
+    [" |b *?[\\P{White_pace}𐀀)]??퟿",false],
+    ["[\\cz_𐀀]|(<){0}_(?<$>([^\\d]){2}\\b)",[["2_0>",true],["_",true],["א𐀀d22",true],["0b _x",true],["c>x9",false],["1",false],["ω0",false],["<",false]]],
+    ["[\\P{Lu]$<",false],
+    ["|$\\v{2,3}?(?! |ω{0,2}\\2|\\[||[\\P{Any}x\\-](?:a{0,2}?))( ){0}",false],
+    [" .((?:[é-\\)\\u017F-\\b0-\\+]ǅ|){2,3}[]??)\\w",false],
+    ["(?=.)\\u{663}",[["6٣",true],["6",false],["",false],["ω 36",false],[" 6İ퟿",false]]],
+    ["\\2",false],
+    ["bⅠ(?:ก)",[["b:",false],[" ω::𝐀",false],["bſb:Ⅰ",false],["ⅠⅠ",false]]],
+    ["￿{",false],
+    ["\\u{E000}\\B\\uDE00{0,2}",[["uAu",true],["2",false],["u0",false],["E0E",false],["E ",false]]],
+    ["[]{>,}\\v{2}(?<x1>\\1ſ)x|Ж",false],
+    ["[uDBFF\\uDFFF\\uDE00\\n]{0,2}",[["D",true],["EF",true],["DF İ",true],["",true]]],
+    ["[^\\{-￿ß]\\b|\\/(?=(|){2})(?:)\\x}DF",false],
+    ["\\u{FEFF}",[["﻿cE",true],["FE\ru ",false],["",false],["uFu",false],["0F￿",false]]],
+    ["(?<!A{2}?):{2}(?<x1>[])",[["",false],["<",false],["<\f2\r2",false],["A",false]]],
+    ["-",[["--",true],["-",true],["-ⅠЖ",true],["א-Ⅰ中,",true],["x: x",false],["Z",false],["ǅ",false],["𐀀",false]]],
+    ["[_,]{2,3}﻿ก{0,2}",[["33",false],["323,",false],["",false],["-3,",false]]],
+    [" [\\P{M}-\\b]ß|",false],
+    ["[\\u0041$)-\\-]",[["-00",true],["0-",true],["AⅠ-0",true],[" -",true],["😀",false],["0\u0001b",false],["0\n0",false],["\u0001",false]]],
+    ["[^\\b-\\u{10FFFF}Ⅰ-\\u{FFFF}􏿿]+?𐀀+?b",[["",false],["FF-ǅ",false],["b",false],[" 𐀀\u001aF",false]]],
+    ["(?=𝐀\\b)￿9",[["=٣91",false],["9=b\u001a﻿",false],["=￿ =",false],["",false]]],
+    ["􏿿",[["􏿿􏿿0",true],["􏿿􏿿퟿",true],[" 􏿿􏿿😀􏿿",true],[",􏿿",true],["",false],["Ж Z",false],[" ",false],["\f",false]]],
+    ["ω{2}?0𐀀?(?<$> *<)",[[" 0",false],[" >2",false],["!\r𐀀􏿿\u001a",false],[" ",false]]],
+    [" Z{?,3}",false],
+    [".}($ω+)",false],
+    [",{2,3}$b\\.",[["\u0001",false],["",false],["b",false],["3\u0000b",false]]],
+    ["??",false],
+    ["(?:)?<",[[" : <",true],[":<﻿",true],["<<<",true],["A<",true],["ก",false],["﻿",false],["Ж :",false],["ก ퟿﻿",false]]],
+    ["ß{0}(?:\\B)(?:){1,}",[["\u0000:ß1",true],["1\n!,",true],[":,ßß",true],["::,,",true],["0",false],["B",false],["1",false]]],
+    ["$(?<x1>[\\u0041-\\cm\\-]){2}?|\\D?ω|(?<:A{0})(ß)",false],
+    ["[\\W-\\P{Alphabetic}\\cA\\-]:",false],
+    [" \\cA*",[["AA c ",true],["AA ",true],["A\n ٣ ",true],["0 \u001a ",true],[" ",false],["",false],["ǅ-",false],["𐀀",false]]],
+    [" (){1,}?",[["﻿ ",true],["  😀",true],[" 1ω1",true],["1  1",true],["Z",false],["Ⅰ",false],["1x,",false],["1",false]]],
+    [".,{1,} ",[[" ,,, ",true],[" , ,",true],["1",false],["\u001a",false],["",false],["1 ",false]]],
+    ["(?<!)",[["<<",false],["",false],["  !",false],["<<\f/Ω",false]]],
+    ["|(?:.)??(?:(?<=　{1,3})\\+)|(?:\\x41ก)",[["9   ",true],["﻿/\u000b",true],["\f:\u0001",true],[" 😀",true]]],
+    ["[^]{0,2}[\\p{General_Category=Letter}-\\-\\(-\\uDE00]{1,}?",false],
+    ["\\u{0A}|٣ {0,2}? ",[[" ٣ ",true],["/\nA0",true],["٣09𐀀2",false],["𝐀0 ",false],["aA ",false],[" ",false]]],
+    ["[^]{0}",[["\t0",true],["00\f",true],[" ￿/",true],["0",true]]],
+    ["| {0}(?:[^][]){1,}((?!(?:9)\\b)|^[])",[["",true],["1b",true],["/\u000b1 ",true],[",",true]]],
+    ["|[$]{0}\\p{sc=Zinh}{0,2}c",[["Ⅰ0hs",true],["9-=!",true],["!퟿n",true],["cZ",true]]],
+    ["\\){1,}?",[[",",false],[",  ",false],[",,,\u0000,",false],["",false]]],
+    ["bé{2,3}?=\\p{IsGreek}",false],
+    ["$.?",[["",true],[" ",true],["\t",true],["\u000bЖ Ω𝐀",true]]],
+    ["(?:[Ω\\W\\b]){0}|　(?=)",[["",true],["İb=,",true],["Ⅰ",true],["　=0Ω=",true]]],
+    ["(?: ){0}",[[" 0𝐀9",true],["> ",true],[":",true],["\u000b",true]]],
+    ["| ￿",[["￿ ",true],["￿",true],["",true],[":Ω",true]]],
+    ["\\k<x1>.{0,2}　{2,3}?",false],
+    ["[c\\b]􏿿{2,3}?",[["c􏿿􏿿٣,",true],["c􏿿",false],["",false],["ω2cc3",false],["􏿿\u000b2Ω􏿿",false]]],
+    ["א{2}",[["אאé\u0001",true],["אא2",true],["א\f/אא",true],["אא2אא",true],[" <2",false],["א",false],["א2",false],["222",false]]],
+    ["(?<b>[\\p{IsGreek}] )[\\u0041\\--\\D^]*(?<Ω>)(?=)",false],
+    [" Ⅰ*",[["   ",true],["Ⅰ Ω",true],["Ⅰω  Ⅰ",true],[" ",true],["",false],["ⅠⅠ",false],["Ⅰ",false],["Ⅰ>ก中",false]]],
+    ["İ[^|]:",[[":İ::",true],["İİİ:İ",true],[":İİ:",true],["Ⅰ1İİ:",true],[":퟿İ",false],["\u001a ::",false],["",false],["1::_中",false]]],
+    ["\\+.(￿)+\\B",[["",false],["\n",false],["￿￿\t",false],["￿B￿İ",false]]],
+    ["(?=). *?",[["Z=_ =",true],["  ",true],["􏿿 Ⅰx",true],["=  אb",true],["",false],["\r",false]]],
+    ["[]𐀀 ",[["",false],["=",false],[" ",false],["𐀀 9 𐀀",false]]],
+    ["(?<=\\P{Zs}(?:| ))",[["ω=　",true],[":ก􏿿",true],["٣",true],["Pſ> ",true],["",false],[" ",false],[" ",false],[" ",false]]],
+    [".{1,}",[[",ω,",true],["İ",true],[" 1,Ⅰ,",true],[",",true],["",false],[" ",false]]],
+    ["[ ]|[1-Ⅰ ][]c{0,2}|((?=[^]{2,3}))",[["cß",true],["c -ǅ",true],["　-Ⅰ 　",true],[",=",true],["3",false],["-",false],["",false],["a",false]]],
+    [" \\B1{0,2}?",[["Ωé ",true],["1A, ",true],[" 2\u0001 ",true],[" ",true],["􏿿,",false],["İB",false],["",false],["😀c,",false]]],
+    ["(?<_n>\\k}<b>).\\p{sc=Thai} ",false],
+    ["٣_{2}",[["٣__2",true],["٣__",true],[" ٣x2",false],["٣",false],["___2",false],["2 _",false]]],
+    ["\\P{Script{}",false],
+    [" ω",[["\fאω ω",true],[" ωω",true],["  ω ",true],[" ω_",true],[" ßǅωω",false],["\r",false],[" \r  ſ",false],["<",false]]],
+    ["(?<x1>(_)){2}.(?:ß\\1){2,3} *","unsupported"],
+    ["(?!b$()",false],
+    ["[<-\\uD83D\\u0041-c ][\\--:\\uD800\\uDC00-\\-}]\\xE9()",false],
+    ["(?:| + ){0,2}?$[ß]{2,3}",[["Ⅰ0",false],[",0",false],[", 2  ",false],["",false]]],
+    ["\\1[中-\\[\\p{General_Category=Letter} -\\uD83D]{2}",false],
+    ["𝐀{2,3}-\\B_{0,2}|[^\\uD83D -Ⅰ￿]{0,2}\\D{1,}",[["퟿ D",true],[",",true],["-",true],["\tD",true],["",false],["2",false],["10",false],["0",false]]],
+    ["(?:￿{2,3} ){2}?\\{,",[["￿:, ",false],["ǅ￿￿",false],[" 1",false],["  \r2",false]]],
+    ["[](?<=[\\uDBFF\\uDFFF-𝐀]{0,2},|[\\]-1א][])　{0}?\\/",false],
+    ["(?:)a{0,2}א?|Ω.+",[["",true],["\u0000",true],["ǅ2ǅ",true],["0",true]]],
+    ["(?<a>\\cz){0}?Z*",[["",true],["<cz0z",true],["中",true],["<<0",true]]],
+    ["[^\\u0041\\p{In_Greek}-\\u0063\\x0C-　]{1,}.𝐀]0",false],
+    ["[*]{1,}(?: {2}\\uD83\\{0,2}?)((?:﻿){0})",false],
+    ["|x|٣_+?.{2}?[\\/\\u0041-\\uDE00]{2,3}",[["",true],["4ED ",true],[" ",true],["İ3",true]]],
+    ["(){1,}([^\\S -_])+(?:\\p{Co}??) |(\\k<a>)😀(?=(?<Ω>:\\P{In_Greek}) {0,2})\\uD800\\uDC00",false],
+    ["(?<$>\\u{2000}\\u0030|(?<!!{2}(􏿿{0,2})|^)(?<!$))[^]|\\u0041",[["😀<",true],[">2<0\u0000",true],["0\u0001中\u0000",true],["u!￿",true],["\f",false],["0",false],["",false],["1",false]]],
+    ["  {0}(){1,}",[[" ￿﻿",true],[",,٣ ",true],[" ",true],[", ",true],["1",false],["",false],[" ,/,0",false],["!",false]]],
+    [".{0,2}$\\D\\uDBFF\\uDFFF{2,3}?",[["0",false],["F=ß",false],["3\u0001İD",false],[" ",false]]],
+    ["x\\p{ID_Start}x{1,}.{0,2}",[[",x\u0000ID",false],["1",false],[" I_Dp",false],["p,",false]]],
+    ["[\\b-\\x2D\\u{39}😀-中]",false],
+    ["Ω[𐀀]|()\\uDE00*😀٣",[["Ω😀٣D",true],["",false],["EΩ",false],["𐀀",false],["x",false]]],
+    ["1٣*",[["1٣",true],["1٣b",true],["11٣٣/",true],["٣ก1",true],["=٣",false],["٣Z",false],["c",false],["",false]]],
+    [" ퟿[\\P{ID_Sta{rt}- ]{1,}",false],
+    ["|(?:.?(?:\\b|\\b))\\p{Script=Common}",[["ab:p ",true],["1😀",true],[":boS\t",true],["c= ",true]]],
+    ["Ж{0,2}1{2}?(?:中[])[]{2,3}?|",[["Z",true],["",true],[",,",true],["2",true]]],
+    ["\\S+ Aก",[["𝐀AกS",false],["ก ",false],["bAA",false],[" A٣S",false]]],
+    ["\\1[^\\u{416}\\b-\\d](?<a> ?ſ|\\cA(?:\\3$))[]|()",false],
+    ["\\2[^][\\u{09}]",false],
+    ["^,([\\b ])=",[["İ",false],["==,= ",false],["x",false],["",false]]],
+    ["𐀀*?.|[ß-\\b_\\D]中{0}?Ж\\u{202F}+",false],
+    ["İb[^]{2,3}",[["İb,İ",true],["b!İ0",false],["2",false],[",İbb",false],["3",false]]],
+    ["[^ \\u003C]\\p{Uppercase} {0,2}?(?:.+)",[["rⅠΩ02",true],["-Us",true],["AⅠ\u000bp",true],["p0rZ𝐀",true],["",false],["ua",false],[" ",false],[" 中ǅ",false]]],
+    ["ǅ.İ?",[["İǅǅǅǅ",true],["ǅİ",true],["ǅǅ",true],["ǅ\u0000",true],[" İİ퟿\f",false],["ǅ",false],["",false],["\u0000",false]]],
+    ["(?<b>(?:)(?=\\v{2,3}\\P{L&})){0}(?<_n>(?:\\}\\B)|<(?:[\\b-$\\u{1A}\\(-\\S]+?)){0,2}|b",false],
+    ["9{1,}?b[^😀-\\-]",false],
+    [">*? [\\wก-\\x41\\b]",false],
+    ["ß*\\](?<!)|c(?:||(?<!x{1,3})[|-\\]-\\b-\\b])*",false],
+    ["]B.",false],
+    ["(?!﻿??)[\\(]??(?<a>\\u{62}{0}?|)?",[["",false],[" u",false],["\ra,02",false],["u",false]]],
+    ["　*?.[^}]",[["　　　0　",true],["　　Ж　",true],["　　-　　",true],[">א　",true],["",false],["9",false],["　",false],["﻿",false]]],
+    ["\\]𐀀|(?!(?:.)|Ⅰ{0}?)Z",[["𐀀0　",false],["𐀀𐀀﻿0!",false],["",false],["Ⅰ",false]]],
+    ["<　[]{2,3}?(?<$>\\2|)",false],
+    ["ǅ\\u{5F}{0,2}",[[",,ǅЖ",true],["\u001aǅ,",true],["2 ퟿ǅ",true],["ωǅİ\t",true],["中25u,",false],["5,5u",false],["2",false],["𐀀5\r,",false]]],
+    ["􏿿?*",false],
+    ["٣ \\c|퟿",false],
+    [".ω|",[["",true],["ωω",true],["_ωω",true],["ω",true]]],
+    ["(?<a>(?:))﻿?א",[["퟿x<א",true],["٣:אaİ",true],["א",true],[" אא\r😀",true],["<😀﻿a",false],["",false],["a퟿ǅa",false],["\fa<﻿",false]]],
+    ["(?<=)(($){1,}|).{0,2}",[["😀é2=",true],["2x,A",true],["= b",true],["ǅ=A1",true]]],
+    ["ſ{1,}(?<a>\\u0041{2,3}(?= {2}|(?:٣Ж)\\P{P}))[ ]",[["3ω﻿P",false],["1",false],["٣",false],[" ",false]]],
+    ["(?:)﻿.[]",[["",false],[":﻿:",false],["0",false],["!\r:",false]]],
+    ["(?<Ω>\\1\\u00A0)\\b 😀",[["0",false],["Ω 90",false],[" <<",false],["11A0 ",false]]],
+    ["!(?:\\p{Lt}[ǅ\\cJ]{2,3})(?<a>\\cm{0}?[\\cJ]){0} ",[["0א",false],[",Jß",false],[" ,",false],["c퟿!",false]]],
+    ["Ⅰ􏿿\\P{Foo}|𐀀{2,3}",false],
+    ["(?=中+?((　\\|+){0}?)).\\B",[["中　Ж中",true],["=　﻿中中",true],["=ǅ中",true],["B😀中",true],["c\f\n",false],["￿0=0",false],["",false],["0　==0",false]]],
+    ["ſ?,{2,3}",[["A,,-ſ",true],[",,32Z",true],["22\t,,",true],[",,3,2",true],["",false],["33a",false],["𝐀,",false],[",",false]]],
+    ["[$-\\cz\\p{Block=Basic_Latin}-*]?\\[",false],
+    ["[^]{2,3}",[["2\u000b,",true],["3!<,",true],["٣, ",true],[",>,",true],["　",false],["9",false],[" ",false],["",false]]],
+    ["ſ{2}?\\2",false],
+    ["[^\\s-\\W]{1+,}퟿??0{2}",false],
+    ["|.+.",[[",￿ ",true],["",true],["9",true],["b\t\u0001,",true]]],
+    ["é?[\\p{Lm}](?!\\x0A(?:))(?<=\\u205F|\\}Ж)",[["0 x02",false],[" ",false],["ß٣",false],[" :9",false]]],
+    ["(?<é> {0}[c\\-_])(?:(?=ก?))",[["\f>0_",true],[">_\ra",true],[">é- _",true],["_𝐀a0",true],["<",false],["Ⅰ!",false],["",false],["0\f:",false]]],
+    ["Aa* +",[["A  ",true],["A AA",true],["A ",true],["\rA  a",true],["",false],["aaA",false],[" ก İA",false],["􏿿AaAǅ",false]]],
+    [".{0}?﻿(.()){0}?",[["0﻿😀",true],["Z﻿",true],["0﻿",true],["﻿",true],[" ก0",false],["x00",false],["000",false],["00",false]]],
+    ["[😀-.􏿿-Ω\\u0039]{0}(?<=)[^]",false],
+    ["A{0}ก[^ω\\D\\)]",[["ก0A",true],["﻿cก0ก",true],["İAก0",true],["\tωก0",true],["􏿿ß٣A",false],["A",false],["ω0٣A",false],["ω",false]]],
+    ["\\P{C}??中|[^é].中^",[["中P",true],["中ωP\r",true],["=中 \u0001 ",true],["中",true],["ß",false],["\u000bΩ",false],["C9Z",false],["ßω é",false]]],
+    ["!{0}(?![\\--\\b]>)(?!ก",false],
+    ["! ",[["! 𝐀",true],["! ſ",true],["\u0001! ",true],["!!! ",true],["￿\u0001",false],["中",false],[" İ!",false],["!\u000b ",false]]],
+    [".(?<Ω>ǅ)$|[]{0,2}?(){0}(?<a>9)",[["9:",true],["cǅǅǅ9",true],[">9a",true],["9>",true],[">a中",false],["> ſ𐀀",false],[" \tab",false],[">",false]]],
+    ["1",[["1111",true],["\u0001𐀀1",true],["1111x",true],[" 𐀀111",true],["",false],["a",false],["￿",false],["ǅⅠ",false]]],
+    ["[^\\cz\\p{ASCII=Yes}] *|(?!\\W(?<$>))9+?",false],
+    ["٣{2,3}?c",[["",false],["322c",false],["é",false],[",",false]]],
+    [" {2}?[\\P{Uppercase}-𐀀]{2,3}",false],
+    ["\\c[\\uDE00-\\uDBFF\\uDFFFß- \\--\\)]",false],
+    ["Ⅰ(?<=\\u{FEFF})(?:).{0}",[["u",false],["F= F",false],["FF0﻿:",false],["<﻿u=<",false]]],
+    [".İ{2}[\\f]",[["",false],[">",false],["İא",false],["2İİ",false]]],
+    ["\\uDBFF\\uDFFF[\\b\\b-\\S]?",false],
+    ["ß{1,}[\\r\\cm]{0}$(?<!|﻿??Z)",[[",　𝐀",false],["cZ!<<",false],["r <,",false],["\u0001Ω!r􏿿",false]]],
+    [":[\\?\\P{L}-\\uD83D]{0,2}1?(?<=Ж{1,3})|\\s^",false],
+    ["[\\v-ω/]*",[["",true],["ǅvωv ",true],["퟿bωω\r",true],["😀",true]]],
+    ["(?:[ -\\-\\--\\u0041])(?.|[\\b])(?:)é{1,}",false],
+    [",",[[",,",true],[",,ſİ",true],[",,,,",true],["\f,",true],["",false],[" ",false],["\u000b",false],[" a",false]]],
+    ["(|)??(?:(?=ก)\\n{1,})?　",[[":==　",true],["\u001a　",true],["　né",true],[":　ก:א",true],["Ω",false],["",false],["\n:n1ſ",false],["n",false]]],
+    ["cß",[["cccßx",true],["cß",true],["cßǅ",true],["\n􏿿cß",true],["ß",false],[" cЖßc",false],["ß𐀀",false],["ß,",false]]],
+    ["א*(?:)İ￿",[["אİİ￿",true],["İ￿ſé:",true],["￿א￿İ￿",true],["İ￿",true],["İ",false],["𝐀￿",false],[" ￿א",false],["",false]]],
+    ["c (?<_n>)*?(\\2{2,3}){0,2}?","unsupported"],
+    ["(?:$)",[["\u001a: ",true],["",true],["::::",true],[":9:",true]]],
+    ["\\B?]",false],
+    ["=??",[["",true],["===",true],["=",true],["퟿==",true]]],
+    ["(\\p{Co}(){0})\\t{0,2}|$|",[[",𐀀pA",true],["<01",true],["",true],["t\f",true]]],
+    ["={0}",[["=>00=",true],["é \u0000ſ",true],["=0=",true],["",true]]],
+    [" ?ß{0}?\\2\\x30+",false],
+    ["(){2}?",[["2ǅ22",true],["",true],[" 2",true],["<222",true]]],
+    ["=9+??￿{1,}",false],
+    ["(?<=.Z{0,2})|??\\r(?<=(?:){0,2}(א{1,3}?ก)|)",[["\u000b<r:",true],["00",true],["0,",true],[":",true],["",false],[" ",false]]],
+    ["bA",[["\u000bω bA",true],[" bAb",true],["bA/",true],["bAA",true],["A9ßb",false],["b",false],["Ab",false],["٣Aé\t􏿿",false]]],
+    [" ￿(?<=0{1,3})]k<a>{1,}",false],
+    ["\\B(?: (?=.　{2}|[]{2}?)){0,2}|\\p{Script=Latin}",[["",true],["ǅa",true],["Ж",true],["2ſ\t",true],["2",false],["9",false]]],
+    ["İ,",[[",İ, İ",true],["　İ,İA",true],["İ,İİİ",true],["İİ,,",true],[", ,İ",false],["İ",false],["!",false],["􏿿",false]]],
+    ["(?:)Z{)}? ",false],
+    ["\\u{5A}|ſ\\.{0}(?:)",[["uſé",true],[":Zcc",true],["AſA",true],["ſ",true],["\tA>",false],["\n",false],["",false],["0",false]]],
+    ["\\uDBFF\\uDFFF[\\b]aß|(=(?![^Z-﻿]\\b))ſ|",[["กu",true],["",true],["u/ß𝐀",true],["=!﻿퟿ ",true]]],
+    ["𝐀b",[["0b𝐀b٣",true],["𝐀b",true],["𝐀bb𝐀b",true],["bb𝐀b𝐀",true],["\rbb𝐀",false],["𝐀",false],["\r𝐀",false],["b𝐀",false]]],
+    ["𝐀(?<!(?:)\\d})()|(?<é>)Ж[א-Ж\\?Ⅰ]{0}￿?|..",false],
+    ["(?:\\P{Nl})\\x2F\\b?|a+",[["baF",true],["אa\n",true],["al",true],["a\f",true],[":",false],["",false],["",false],["Ω٣lN",false]]],
+    ["! {1,}?((?<a>))",[[",! ",true],["a>",false],["",false],[">><>",false],["\f",false]]],
+    ["\\1{1,}𐀀{2}ß{23}?٣+?",false],
+    ["(?!)|[^]}\\cA",false],
+    ["",[["\u0000\na",true],["퟿c",true],[" 0 ",true],["ǅ﻿ſ",true],["",false],["😀　",false],["　",false],["\r",false]]],
+    ["\\w+[ก -￿1][^0a--Ω -😀][^$-\\r]?",false],
+    ["(?:(?:){2,3}?)0} ",false],
+    ["(^[])",[["Ω퟿　",false],["/x",false],["𝐀",false],["",false]]],
+    ["\\u0041{1,}?(?:|א)+?",[["A10",true],["A",true],["",false],["1,>:",false],["!c\r4 ",false],["0:",false]]],
+    ["(?<=\\v)A{1,}Ω{0}",[["",false],[" ",false],[" v0\u001a",false],["\n1/",false]]],
+    ["(?:}\\W*?(?:))*",false],
+    ["Z+\\P{Cs}\\t(=\\B){2}?|\\2[]{1,}",false],
+    ["()?{2}?\\u0041",false],
+    ["[]\\u0041[] ",[["",false],[",﻿ก01",false],[" \f4u􏿿",false],["\u001a",false]]],
+    ["\\b<$|(?<=)(?=\\S)|[_-ก\\cA]+?(?:Ж(?:(?:)|(?<b>)[\\(!]))",[[":A",true],["\u0000: ",true],["ßbcA",true],["S",true],["",false],["\u000b",false]]],
+    [":[]*",[[":",true],["􏿿::",true],[" :퟿:",true],[":x",true],["Ω",false],["",false],["-",false],[",",false]]],
+    ["(?<=􏿿\\??)\\uD835\\uDC00",[["D5\u0001\n﻿",false],["א-Cu",false],["￿b",false],["￿C8",false]]],
+    ["(\\x41)",[["11A",true],["",false],["4𐀀1xx",false],["4",false],["4\u0000x1a",false]]],
+    ["(?<!)[][^>-\\cJ\\b\\u01C5]￿",false],
+    ["(?:(?<$>(?:􏿿\\b)))",[["􏿿b",true],["><􏿿b",true],["b:9􏿿b",true],["b􏿿b",true],["􏿿>𝐀",false],["<",false],["􏿿ß\n:<",false],[":ⅠxЖ",false]]],
+    [".􏿿{1,}\\/{0,2}",[["􏿿2􏿿1٣",true],["22,􏿿",true],["0􏿿\tA,",true],["中􏿿ß,􏿿",true],["",false],["=a0 Ω",false],[", \t,,",false],[",",false]]],
+    ["[--\\u0041\\uDBFF\\uDFFF-\\p{sc=Thai}]{0,2}.{0}",false],
+    ["0x|﻿",[["x0﻿x",true],["0﻿ 0﻿",true],["﻿﻿x",true],["😀﻿0x",true],["",false],["_x中İ",false],["a000",false],["00",false]]],
+    ["[^\\b\\P{S}\\p{Alphabetic}-😀]+?(?:[\\uD800\\uDC00\\uD800\\uDC00])",false],
+    ["ω?\\W*\\B",[["W\u0001\u000b",true],["B BB-",true],["ω中:ǅB",true],["bé",true],["B",false],["W",false],["c",false]]],
+    ["א$　",[["אא　\tא",false],["",false],["9　א",false],["　א",false]]],
+    [".[\\p{ID_Start}\\p{sc=Zinh}-\\-\\b-A]{0,2}İ\\1{2,3}?",false],
+    ["Ω?퟿+",[["퟿/😀กЖ",true],["퟿퟿\r",true],["￿퟿퟿Ω",true],[":퟿!퟿",true],["Ω𝐀",false],["ΩΩ",false],["",false],[" \r",false]]],
+    ["2﻿",[["22\u000b2﻿",true],["ω\t2﻿﻿",true],["2﻿22",true],["﻿2﻿ 2",true],["2_﻿Ω/",false],["A",false],["",false],["22",false]]],
+    ["(?:) (??<!|)^",false],
+    ["(?:)\\W{2}",[[":W퟿אW",true],["::2",true],["W:2􏿿\u0001",true],[":　",true],["2W2",false],["\u000b2",false],[" ",false],["",false]]],
+    ["\\P{Cf}|[﻿-\\+](?<$>)[^]??a",false],
+    ["Ж{1,}\\W",[["ſЖЖ_1",true],["WЖЖ ",true],["1ЖЖ",true],[",1,Ж\n",true],[", Ж",false],["",false],["\u001a",false],[",\n퟿Ⅰ,",false]]],
+    ["(?:((?<é>{2}?))[])+((?:\\b.{0,2}))",false],
+    ["\\D\\u{30}",[["uß0􏿿",true],["u003",true],["𝐀3中D0",true],["D03",true],["Du\f",false],["0",false],["\f Dก3",false],["ZD-",false]]],
+    [".\\?[]",[["ß",false],["  ﻿",false],["ſé",false],["ǅ\rſΩ0",false]]],
+    [" ^((?:\\p{General_Category=Letter})1\\k<x1>)",false],
+    ["Ⅰ 𐀀İ|\\uDBFF\\uDFF}F\\P{Lm}$",false],
+    ["٣{0,?2}",false],
+    ["b\\p{}{2,3}||.{1,}(?<=[\\s\\cJ->٣](.(?:[][^𝐀.\\cA]{2}|ก^))?).",false],
+    [".\\S+",[["SS",true],["\tx-",true],["SSSS",true],["SSS-S",true],["",false],["S",false],["א",false],["￿",false]]],
+    ["\\B\\\\{2,3}",[["Ω,",false],[" 3😀3",false],["<,中3",false],["",false]]],
+    ["ก\\f,?$",[["",false],[" ωſกx",false],["a\f0,f",false],["f",false]]],
+    [".{2,3}",[[",, 3ω",true],[":>\r,",true],["2\f\u0001\u001a",true],["\u000b32",true],["ก",false],["",false],["　",false],["3",false]]],
+    ["|.(?:퟿{0,2}?){01?.?[^\\-]",false],
+    ["\\b[\\- ](?<x1>0(?:\\b){2,3})",[["\r\u000b3<,",false],["0b",false],[" <,𐀀b",false],["b<",false]]],
+    ["﻿[^Ⅰ](?:)",[["Ⅰ﻿:",true],[":﻿﻿::",true],[" Ⅰ﻿﻿Ⅰ",true],["﻿﻿:",true],["\u000b",false],["퟿:﻿",false],[":􏿿퟿",false],["﻿",false]]],
+    ["(){2}[^<-\\P{Lm}\\cmא] ",false],
+    ["\\{0}.??",false],
+    ["..{2}|ZA|\\f{0,2}_{2,3}[)-\\c[m/][^ -:!\\cz]",false],
+    ["　*>{0,2}\\n",[["\n",true],["　\n0",true],["",false],["!>",false],["　,>ω>",false],["0a0x",false]]],
+    ["(Ω)(?<![\\b\\b\\/-\\u0041]{2}İ)(?<a>([^\\b-\\/\\w\\uDBFF\\uDFFF-\\P{Lt}](Ω{0,2}\\P{sc=Greek}{2,3})|[\\--\\u0063퟿](?:x[\\cA\\u0130]))=|[^ --\\n﻿](?:Ж+?\\b))+?",false],
+    [".{2}?|\\2{0}Ж\\u0041?[ \\x41]?|(?:中[\\cz\\n-aЖ]{0})",false],
+    ["\\k<x1>( |\\S(?<é>\\uDE000)|(?<=$)\\w)",false],
+    ["ß(A{2}?\\2>+?)",false],
+    ["?ǅİ",false],
+    ["ω{0}\\p{P}\\u0041",[["10",false],["0ก",false],["﻿",false],["uЖ0p0",false]]],
+    ["(?:\\2{1,})*?|",false],
+    ["𝐀+((?=)){2}(?<x1>){1,}1|\\k<b> {0,2}\\uDBFF\\uDFFF{0}?",false],
+    ["(?:\\u0041{0})(?:(?<=􏿿??)|)|\\)*ß{2}",[["\u0000😀=",true],["002",true],["",true],["ǅ/:ſ中",true]]],
+    ["[􏿿]{2}(?<!)א*[\\cz-x\\P{Cs}a]?",[["א٣",false],["",false],["\u001a",false],["<-ǅ  ",false]]],
+    ["|\\B\\u{3E}\\k<a>|(?:>)\\]{2}é{0,2}?(?: ^)",false],
+    ["<$\\1[\\cz􏿿](?!.{0})",false],
+    ["(?!Z)",[["ZZ",true],["ZZa!",true],["𐀀Z ZZ",true],["",true]]],
+    ["x+?.",[["xxx",true],["xxA",true],["xxxxω",true],["xx",true],["􏿿",false],["",false],["x",false],["-bx",false]]],
+    ["([ -\\Wb\\^]{0,2}(?:A){2})(?<!\\u0041[\\u0041\\+])٣()",false],
+    ["(?<$>){0,2}?",[["<20ß2",true],["2",true],["",true],["-1,中2",true]]],
+    ["|[\\-\\*]ก+?\\f{0,2}[ſ-\\0\\p{LC}]{2,3}?",false],
+    ["﻿0}",false],
+    ["=(=[^\\-])Z?.|",[["==/",true],["Ж<==𝐀",true],["ZZ<ZZ",true],["0 Z",true]]],
+    [".　{1,}?(?=\\1.{2})\\P{Script}*?|",false],
+    ["Ж",[["Ж",true],["Ж　Ж ퟿",true],["ЖЖ",true],["Жx",true],["",false],["b",false],["\u000b",false],["ก<ω",false]]],
+    ["ſſ?\\*(){0}?",[["ſſ0ſ=",false],["　ſ< ſ",false],["",false],["ſſ",false]]],
+    ["b(?!(?:(?<b>A{2}=){0}[^\\--\\P{M}　-￿]))",false],
+    ["=\\^\\1",false],
+    ["^|[]",[[" ",true],["=",true],[":",true],["\u000b",true]]],
+    ["Ⅰ*[^ -﻿]?",[[" Ⅰ",true],["",true],["Ⅰ﻿",true],["Ⅰ",true]]],
+    ["|[\\uD800\\uDC00]{0}Z[^*-\\0\\x41-\\u0041\\t]ǅ",false],
+    ["　c",[["　c c",true],["c　　c9",true],["　c　　c",true],["　c😀",true],["c　,",false],["c　<c　",false],["c",false],[" 　　>",false]]],
+    ["(?:$|.)??$",[["::::Ω",true],["::::",true],[":: ",true],[":",true]]],
+    ["(?<_n>){0,2}b*\\b(?:)",[["ω::0",true],["0",true],["2:<",true],["ſb>\r\u000b",true],["\f",false],["",false],["Ⅰ\f",false],[">",false]]],
+    ["(?:(?:(?<Ω>.)+){2}|[\\-]{2,3}){1,}(?<=.)^\\*",[["-:􏿿,3",false],["",false],["1:-:>",false],["1",false]]],
+    ["_[^]",[["__",true],["_>__",true],["ก_ \u001a",true],["____",true],["",false],["\u001a",false],[" ",false],["_",false]]],
+    ["(?:\\^202F[^\\+]|)|",[[":F2 F",true],["",true],["1:",true],["22 2",true]]],
+    ["\\u0031",[["1",true],["31",true],["!u01",true],["Ω 01",true],["u　　",false],[":0000",false],["=",false],["",false]]],
+    [">ก|.9?􏿿(\\1)",[[">,ก􏿿<",true],["9􏿿9",true],[">􏿿",true],[">ก9𐀀",true],["",false],["11",false],["=",false],[" ",false]]],
+    ["\\v+\\u002C\\uDE00",[["￿20",false],["0Cu\u0000",false],["0Dω0",false],["0",false]]],
+    ["퟿.[\\[\\x41-😀\\cA]",[["퟿😀",true],["퟿٣A",true],["퟿x😀1퟿",true],["퟿😀😀4",true],["A퟿1",false],["ǅ1Ax\u0001",false],[" 1\u0001=",false],["A😀A\u000bc",false]]],
+    ["[^\\W􏿿]\\B(?:|中){1,}:",[["𝐀W:",false],["ß9:",false],["B中:,􏿿",false],["1􏿿W",false]]],
+    ["<[^{]\\d\\2|\\B(😀)",false],
+    ["<+[^b][^\\uD800\\uDC00-\\b\\u0041-\\b]x",false],
+    ["_\\({1,}?\\u0416{1,}",[[",,Ж4u",false],["1",false],["\u000b",false],[" 1",false]]],
+    ["\\k<x1>{1,}Z|:[^\\u{1D400}]",false],
+    [".?$(?:[\\S\\-])",[["S\u001a",false],["-😀:",false],["﻿S: :",false],["c-ß",false]]],
+    ["[\\s-0\\-]{0,2}􏿿\\uD800\\uDC00(?:𝐀([]))",false],
+    ["\\}İ{2,3}?",[["Z3א3􏿿",false],["3",false],[",",false],["3𐀀𝐀b",false]]],
+    ["\\u{1A}(?<!\\p{Nd})",[["\u001aNpdЖ",true],["ANⅠ",false],["1\u000b!Ⅰ",false],["1",false],[" 0𝐀Z",false]]],
+    ["Ω[^](?<_n>)|\\/(?<=)9+ |퟿+c{2}?",[[" Ω<",true],["Ωc\t 9",true],["Ω9",true],["2éЖΩ9",true],["<􏿿ß",false],[">",false],["> __",false],["",false]]],
+    ["$( )=",[["Ω -",false],["",false],[" \t퟿ ",false],["א==",false]]],
+    ["|ก{0,2}﻿+?א((?:.[^b퟿]{2,3}?))",[["0",true],["",true],[" ﻿",true],["2,퟿2",true]]],
+    ["()\\1😀",[[" 😀1😀",true],["😀x1ǅ",true],["11😀😀",true],["😀٣",true],["א111",false],["",false],["1 ſ11",false],["11",false]]],
+    ["=0[𝐀]\\u{1C5}||\\uE000",[["00İ",true],["u",true],["",true],["é",true]]],
+    ["\\p{Lt}*(?<Ω>:\\x2C??)\\P{letter}]",false],
+    ["_퟿",[["퟿א_퟿_",true],["!_퟿퟿",true],["_퟿",true],["_퟿퟿퟿_",true],["c_",false],["_￿",false],["_",false],["퟿퟿__",false]]],
+    [" ",[["\u001a\t ",true],["  𐀀",true],[" ,b",true],["_ß  \n",true],["\r",false],["￿",false],["",false],[" \n中",false]]],
+    ["\\u01|5=﻿*?[|]",false],
+    ["|.-",[["----",true],["\n",true],["-c-ǅ",true],["--٣",true]]],
+    ["x\\k$<b>?c\\B",false],
+    ["\\p{Lowercase_Le]ter=Lu}(){2}",false],
+    ["=\\\\|\\uDE00{0,2}.{2}?|1(?<=\\B)İ{1,}?[^--!-,]| (?:\\B)ก{1,}|[Ж-\\-\\W\\u003E]\\u{E01}\\B |",false],
+    ["(?:(.\\k<x1>*)){1,}?",false],
+    ["[^]{2}?",[["2!",true],["292　İ",true],["2﻿222",true],["2\u001a2",true],["\u0000",false],["",false],["2",false],["\f",false]]],
+    ["􏿿.*?",[["􏿿",true],["􏿿􏿿􏿿",true],["􏿿􏿿􏿿0􏿿",true],["􏿿٣_􏿿",true],["",false],["1",false],["𐀀",false],["\u001a  Ⅰ",false]]],
+    ["[^\\-x]]?=>)",false],
+    ["(?!\\u0041|é[]{0}|([]+\\d??){0}?| )(\\v{0})^",[["d אa",false],["0A0=\f",false],["",false],["0😀00\t",false]]],
+    ["1(?:)??",[["1/:",true],["1Ω",true],["א1:1",true],["1",true],["",false],[":",false],["𝐀: :",false],[":::",false]]],
+    ["([!-\\S].)|(?!)[^\\S$A-\\-](?!|<)(?=  )",false],
+    ["(?:) é{2,3}|[\\[|\\cJ]?",[[" !J3é",true],["2c",true],["J ",true],["é",true]]],
+    ["x\\s{2}?",[["2\f2 2",false],["cⅠ",false],["ss=",false],["s2",false]]],
+    ["\\d*?中\\w[^ω]??",[["中wwdd",true],["中wω",true],[" 中w",true],["d中dd",true],["d",false],["",false],["ww",false],["中ω xé",false]]],
+    ["\\p{Cc}|[^\\P{}](?:)Ω",false],
+    [":[]c",[["cc: ",false],["_b",false],[":\fc:",false],["א:",false]]],
+    ["(?<=﻿{0,2})",[["﻿",true],[" ",true],["2﻿<",true],[",=",true]]],
+    ["|(?<$>((?<_n>\\uD83Dé){2,3}?\\s)*){2}",[["",true],["D2<9",true],["\r",true],[",<<",true]]],
+    ["\\B(?:(?:\\b﻿))𝐀",[["B",false],["𝐀B::",false],["",false],["퟿b",false]]],
+    ["\\cma_Ω",[["cm𐀀",false],["A",false],["Ωac",false],["c!c",false]]],
+    ["\\2*(?<!\\u003E{0,2}\\P{L}[)[Ω-\\d\\D-\\-](?:(?<Ω>𝐀{0,2}\\\\)􏿿){1,}",false],
+    ["(?<Ω>)\\u000AA>{2,3}|\\3",false],
+    ["𝐀{0,2}.+\\)0E01(?:)*?",[["E",false],["\n\u0001\u0001",false],["b0",false],["𝐀𝐀0:",false]]],
+    ["[　-\\b,-￿Ⅰ]?.*(?<Ω>\\$)",false],
+    ["!{0,2}? (?<b>)",[["!9,, ",true],[" 0b2=",true],[" >2!",true],["<!0 ",true],["א<,0",false],[" ",false],[",bb",false],[",",false]]],
+    ["|^﻿",[["",true],["﻿﻿﻿\u0001",true],["b﻿0﻿",true],["﻿<",true]]],
+    ["[^]?",[["",true],["=9A",true],["_Ω",true],["İ",true]]],
+    ["𝐀A.􏿿",[["ſ",false],["",false],["Aא􏿿ſ",false],["𝐀𝐀",false]]],
+    ["<,_",[["<_<>,",false],[",>",false],["",false],["",false]]],
+    ["中?",[["中中,𐀀",true],["中",true],["中中中Z",true],["\u001a 中",true]]],
+    [" {0> ",false],
+    ["(?:\\cA.|(^]ǅ))[\\b][^ ].",false],
+    ["\\r{0,2}?",[["2",true],["",true],["r2r",true],["",true]]],
+    ["\\u0041.(?!\\x41{0,2}a)",[["0",false],["\fu",false],["1",false],["0﻿Ж 1",false]]],
+    [" \\B(?:[\\b-\\\\]ß|\\{){2}?[٣]{0,2}?",[[" :",false],["0:20",false],[",9",false],["",false]]],
+    ["| ",[["   ",true],["",true],[" Z",true],[" \rǅ ￿",true]]],
+    ["x\\r0",[["x٣퟿a",false],["00",false],["rⅠİ",false],["0",false]]],
+    ["|[\\?-\\-]𝐀(?!Ω*ω{2})",false],
+    ["(?:(?<a>9{2})0?|!{0,2}(){2})\\x00{2}",[["-",false],["0!Ωx",false],[",2",false],["ß<2ก",false]]],
+    ["x(?!b{2}?)",[["xxx",true],["!!bxx",true],["x,2_",true],["xa2",true],["b",false],["9bΩb",false],["",false],["2bb\rc",false]]],
+    ["[^]?(?<=)٣\\u005A|",[["<￿x<=",true],["0u",true],["",true],["00٣0",true]]],
+    ["퟿",[["퟿ \u001a\r퟿",true],["퟿퟿",true],["퟿a",true],[" ퟿퟿\n",true],["",false],["1",false],["\r",false],["𐀀",false]]],
+    ["(?:)+",[["ก::::",true],["a",true],["/퟿:",true],[" :\u000b𐀀",true]]],
+    ["Ω|[퟿ ]*?(?<b>)",[["b",true],[">0퟿א",true],["𐀀Ω  ",true],["",true]]],
+    ["é{0} 中",[[" 中0ſ",true],["  中",true],[" 中中",true],[" 中0",true],["0 éé0",false],["中é",false],[" ",false],["ก",false]]],
+    ["[𐀀٣] (\\d{0}?){2}",[["٣ İ",true],["𐀀 00",true],["d𐀀 a_",true],["Ⅰ𐀀  ",true],["200 2",false],["/",false],["ſ   ",false],["a﻿",false]]],
+    ["(?:[𝐀-1\\bß-\\p{sc=Cyrillic}](?:\\b ?){2}){0}٣",false],
+    ["(?:){2,3}?=(?=\\p{White_Space})",[["= _",true],["Z_ ",false],["t",false],["\r2,9",false],["Wc:",false]]],
+    ["{(?=  {0,2})\\s",false],
+    ["￿",[[",𝐀￿￿",true],["ω￿",true],["￿￿￿",true],["￿/￿￿￿",true],["b",false],["",false],[":",false],["",false]]],
+    ["[\\b-\\?\\uD800\\uDC00\\d-\\P{ID_Start}]{2,3}? \\1",false],
+    ["$ſ\\p{}(?<_n>)",false],
+    ["[ǅ]",[["ǅǅ",true],["İǅǅ",true],["ǅb",true],["ǅǅǅǅ",true],["",false],["İ",false],[">",false],["Жß\t",false]]],
+    ["1{1,}|[ω　][9ΩΩ-\\b]{0}",false],
+    [" {0,2}.Zİ+]",false],
+    ["Ⅰ{0,2}(?<b>xⅠ{2,3}|(?<x1>)|c{0,2}\\uDBFF\\uDFFF,).*? ",[[" 12",true],["Ⅰ ",true],["ω 2",true],["u/ >x",true],[" 2Bb",false],["> c",false],[">DF3",false],[",0",false]]],
+    ["_p{sc=Foo}{0,2}中 ",false],
+    ["(\\r{0}٣+?)(=?[0-\\b\\b-\\b$])[\\s\\P{S} ]",false],
+    ["[ก-\\p{I(_Greek}]Ⅰ퟿",false],
+    ["+a",false],
+    ["(?<=a|é>|)(?<a>)*.",[["a>,=",true],["İก\u001a>\u0001",true],[" \u0000<",true],["٣a:=",true],["",false],["\r",false],["\n",false]]],
+    ["[]{2,3}?\\B",[["32,",false],["BBİ-x",false],["",false],["<2\fB=",false]]],
+    ["(?:中\\P{IsGreek}{0}|| (?<x1>[])|(?:))",false],
+    ["0+\\Wſ\\v{0}",[["ſ0ſſ",true],["0WΩ中",false],["0Wſſ𝐀",false],["000v ",false],["ſ0é0",false]]],
+    [".b{0,2}^$-9\\--\\-]",false],
+    ["\\cz?\\w(?:\\b|a|(?:[^Zİ-\\D\\p{sc=Cyrillic}])(?:　)){0}[^\\P{Co}-\\-\\s-\\{]",false],
+    ["=[]Ж\\c",false],
+    ["ab(){0,2}|(?<x1>|(?<a> )[]*){0,2}",[["10>a􏿿",true],[" Z",true],["",true],["a0",true]]],
+    [" ",[[" ",true],["   ",true],["Ⅰ ",true],[" Жb",true],["",false],["Ω퟿\t ",false],["Ωx",false],["￿",false]]],
+    ["^|((\\uDBFF\\uDFFF?퟿)){1,}",[[",B",true],["u",true],["퟿B퟿",true],["F",true]]],
+    ["\\r*",[["rr0\u000b",true],["",true],["r中",true],["rrcrr",true]]],
+    ["\\v+?\\P{}{2,3}?",false],
+    ["(?:){2} ",[[" a",true],["x٣ ,",true],[": :21",true],["\r 0 ",true],["2",false],[":2",false],["",false],["<-א:",false]]],
+    ["(?<Ω>.{2,3}?)(){0,2}^\\b",[[" ",false],["<Ω 2<",false],["",false],["ß,",false]]],
+    ["Ж-(?<=.é{2}?)c",[["",false],[" ",false],[" -c=中",false],["cЖЖ",false]]],
+    ["𐀀\\x41(?:)",[["44:𐀀𐀀",false],["1",false],["14,￿x",false],["ß4𐀀>",false]]],
+    ["(?<$>){2}?..",[["Ⅰx>2<",true],["<<",true],["<",true],[">￿> ",true],["\f",false],[">",false],["Ω",false],["\u0001",false]]],
+    ["[^\\w-ǅ]x\\.{2}?[\\uDBFF\\uDFFF]{1,}?",false],
+    ["[].",[[" A\t𐀀",false],[" ",false],["ǅ􏿿\u001a\t ",false],["",false]]],
+    ["c\\w*￿|(?:|$[]+){0,2}?\\u000D\\u001+퟿",false],
+    ["𝐀(?<a>|.*(?=(:>)|)){0,2}?",[["𝐀　 ก﻿",true],["𝐀𝐀2,",true],["퟿𝐀=<a",true],["𝐀",true],["=",false],["",false],[":",false],["a",false]]],
+    ["\\s{2,3}ſ(?!|(?<=\\B)|(?:.)A퟿])\\}",false],
+    ["<\\w\\x31+_{2}|",[["c😀𐀀x1",true],["Ω　x3w",true],["<1٣_",true],["2Zx<",true]]],
+    ["_(?:(?:[^\\-]))?",[["_c٣",true],[":-_:\u0001",true],["_:",true],["-_ก_",true],["",false],["-:",false],["中",false],["9:::",false]]],
+    [":\\2(?:)\\d",false],
+    ["퟿.>{1,}A0}|\\d\\}*.?",false],
+    ["b []{0,2}",[[" 0,b ",true],[" b2b ",true],["b ",true],["b 0\f",true],[" İ00 ",false],[" 2 ",false],[",",false],["",false]]],
+    ["(?<= ({2}?)😀+?\\3(?<x1>!{0})",false],
+    ["[]{1,}|é+? [^_-\\._é]*(?<é>)",false],
+    ["|||\\1\\2{2}9",false],
+    ["9?()",[["9𝐀",true],[" 99Ω",true],["99",true],["9",true]]],
+    ["[](?<!|Ω{0,2}[^\\?-0]{0,2}?)",false],
+    ["\\B<{0}?\\b",[["bb𐀀0x",false],["ǅ",false],["B٣",false],["B_0=\n",false]]],
+    ["中",[["中中中0",true],["中中􏿿",true],["﻿ 中",true],["中中中中",true],["",false],["􏿿 ",false],[" ",false],["　  ",false]]],
+    ["..\\B.",[["BBBB",true],["BBBB",true],["BAßBB",true],["BBBb",true],["😀",false],["x\u000b",false],["",false],[":\r",false]]],
+    [".[^\\u{1F600}\\P{S}](?<_n>)Ω| [^!-a\\s--]{0,2}?(?:[]{0,2})",false],
+    ["(?:((?<_n>$){0})(?!([ -ωa\\x1A-}]A| )(b){0}?))\\B",false],
+    [":{2}\\P{sc=Thai}{2}? +(?=)",[["2i ٣ ",false],["2",false],["\u001a中i",false],["==",false]]],
+    ["$$(퟿>) ",[["퟿ ",false],[",😀>",false],["",false],["\u0001퟿",false]]],
+    ["\\s.",[["s ss ",true],["s﻿sss",true],["s\u000bss",true],["\n s",true],["",false],["ssss",false],["s",false],[">",false]]],
+    ["[\\u0041]|\\uDE00{2}?(?<a>){2}?İ+?",[["A0İ2\u0000",true],["\tA0é",true],["",false],["1-א",false],["￿-22",false],["u20<0",false]]],
+    ["　?\\u0063[",false],
+    [",(?<b>)",[[",b,",true],["ω,,b,",true],[",𐀀",true],[",b>\nb",true],["",false],["<b-Ⅰ",false],[">",false],["\u000b",false]]],
+    ["\\xE9*!{1,}[^ \\b-\\0İ-\\t][😀]|.퟿(?<é>){1,}",false],
+    ["(=ω9).\\s",[["s",false],["",false],[" ퟿s=",false],["9=ωss",false]]],
+    ["[^\\uD83D\\p{L&}\\r-\\-]?\\x62[퟿-א\\u{10FFFF}-\\-]$",false],
+    ["(?<! )|(?:[^\\uDBFF\\uDFFF中] )(){0}",[["_﻿",true],["F􏿿 <0",true],["u",true],["F!F0",true]]],
+    ["1\\2.{2}|\\1 ",false],
+    [".()^",[[" >A",false],[" ſ",false],["𝐀",false],["",false]]],
+    ["(?=0{0}😀{1,})(?<!\\w)א?.",[["\u001a😀퟿<",true],["א<אא😀",true],["11>😀<",true],["😀",true],["Aא",false],["w",false],["-1",false],["w0!,!",false]]],
+    ["\\uDBFF\\uDFFF\\t(中𝐀)",[["B　D中",false],[" FFu",false],["uu퟿",false],["B=ǅⅠF",false]]],
+    ["[\\u0041\\P{Lowercase_Letter=Lu}](?<)Ω",false],
+    ["[\\u{1A}-\\u4E2D]{2}\\u00DF*.",[["D2􏿿4",true],[":ω　",true],["F0𝐀2",true],["A0-u",true],["İ",false],["",false],["İ퟿D𝐀",false],["c",false]]],
+    [".{2,3}\\B ",[["İ  ,",true],["B😀 ",true],[",= ,ω",true],["_B , ",true],["\nB",false],[" x𝐀3",false],["é/a",false],["\u00012:",false]]],
+    [" \\k<a>{0}[\\b]ǅ{0}",false],
+    ["İ|+[A-ß\\b{0}",false],
+    ["􏿿{1,}?=😀",[["😀=,1􏿿",false],["퟿1􏿿",false],["Ж􏿿😀=ǅ",false],["",false]]],
+    ["􏿿*?!(?<b>)",[["中! ",true],["\t!",true],["􏿿!>",true],["<!􏿿",true],["",false],["<􏿿<",false],["_😀>",false],["<􏿿\t𝐀􏿿",false]]],
+    [".{1,}\\2ǅ{,}?(?:(?!$ {2}))+",false],
+    ["\\b\\B",[["b_bbb",false],["b",false],["B ",false],["bb٣c",false]]],
+    ["x{1,}",[[",11 x",true],["A퟿xx1",true],["中xZ0",true],[" 1,x,",true],["1",false],["",false],[",,11",false],["11",false]]],
+    ["?　",false],
+    ["𐀀{1,}_{0,2}?()+",[["/𐀀1,0",true],["ω =ſ𐀀",true],["1_\rǅ𐀀",true],[",𐀀Ж x",true],["İZx_",false],["_,",false],["ก ",false],["",false]]],
+    ["[\\cJ]||",[["J",true],["Jc퟿cก",true],["cJJJ",true],["Jc",true]]],
+    ["Ⅰ[\\])﻿-ßω]|\\x2D A {0}",false],
+    ["\\k<x1>(?![^\\cm-\\P{P}]Z) (?:)|9* =Ж{1,}|||.{2,3}[\\uD83D-<]{2}",false],
+    ["\\x41[􏿿\\p{Lo}\\t-{]\\W*[ \\p{gc=Lu}-\\\\]{2}",false],
+    ["]d{2}",false],
+    ["\\u0041\\|*|c <((?:\\u003E|_)b{1,}){2}?",[["ω3A:1",true],["_:",false],["0c<0",false],["0",false],[" ",false]]],
+    ["[^]ωé",[["ω퟿ωωé",true],["_ωé",true],["ω/ωéก",true],["ωωé",true],["é",false],["a",false],["",false],["!Ωé￿ ",false]]],
+    [" \\r",[[" \r0r",true],["r r r",false],["",false],[" rr  ",false],[" א <_",false]]],
+    [".(?!(|^\\uDE00)|!0{2}|)٣(?<x1>)",[["2!Eu",false],["ก>!D￿",false],["퟿",false],[">=!",false]]],
+    ["(?:{)Ω(?<a>(?=\\D{1,})\\uD800\\uDC00+?)+?|",false],
+    ["٣*?(?:){2,3}é\\\\{0,2}?",[[" é ,",true],["é 中",true],[" é:",true],[",3é",true],["/03:\u0000",false],["2:",false],[" a,",false],["",false]]],
+    ["((?<b>)x)|",[[",<x",true],["< ",true],["",true],["bxß/",true]]],
+    ["\\u003}9|٣{2,3}^Ж+",false],
+    ["a\\u{17F)}_{1,}\\P{Lt}{0,2}",false],
+    ["a*[\\t \\w-\\w]{1,} |(?:)[\\-\\S]()(?! )",false],
+    ["٣?.",[["٣",true],[" ",true],[" ٣٣",true],["٣٣",true],["",false]]],
+    ["1{2,3} {1,}^|([א-Ⅰ]\\x41)ſ(?<=\\p{scx=Latin}{2}\\u00E9)(?:\\|{0,2}|){2,3}",[["",false],["Ж:",false],["\n\t",false],[",\u001aא",false]]],
+    ["(?<b>\\k<x>{2})",false],
+    ["([\\cm\\|])(?:$.)[] ",[["m ",false],[":",false],["m0\f",false],["c",false]]],
+    ["ſ?(?:(?<Ω>ǅ+)(a){0,2})",[["Ωǅ<ſ",true],["_אſ0ǅ",true],["2ǅ",true],["ǅ",true],["😀􏿿 ",false],["",false],[", a>ſ",false],["2\u000b",false]]],
+    ["\\$(😀{1,}){2,3}ſ",[["3ſ",false],["א",false],["Ω,퟿ ",false],["😀",false]]],
+    ["\\P{Lt}{0,2}?",[["é٣1,L",true],["PⅠL中P",true],["AⅠ0",true],["2",true]]],
+    [".| ",[["  ",true],["ก ",true],["퟿   ",true],["    ",true],["",false]]],
+    ["(Ω",false],
+    ["𐀀😀.?a",[["𐀀😀ax𐀀",true],["!𐀀😀😀a",true],["𐀀",false],[":𐀀\u000b!ก",false],["aaa",false],["𐀀 😀a",false]]],
+    [".\\+?",[[" 😀ก",true],["a\t퟿﻿\t",true],["𝐀\n>ǅ\r",true],[">",true],["\n\n",false],["",false],["\r",false],[" ",false]]],
+    ["ß[^] +?",[["ßß ",true],["ß= ",true],["ß  ",true],["ßß x ",true],["",false],["ß ",false],[" !<ß",false],["   ",false]]],
+    ["\\{[\\uDE00-ß]{1,}.",false],
+    ["\\u202{1,}",false],
+    ["\\k<a>$(?: Ω|(){2}?|Ω)??(?<Ω>)",false],
+    ["b{2,3}?c+",[["ſİ😀,",false],["א2　퟿:",false],["",false],["c",false]]],
+    ["?||0|\\\\Ω",false],
+    ["Z{0}.ǅ| {2,3}(?<!)|(?<=^\\b) {2}",[["2ǅ/b",true],[" <=ǅ<",true],[":ǅ",true],["ω٣ſǅ",true],["<=",false],["<Z",false],["0\n",false],["1=",false]]],
+    ["﻿[Ж\\}- \\-]{2} (\\1){1,}|\\s{2,3}.?(?<!)|","unsupported"],
+    ["$.:(?=中)",[["􏿿",false],["",false],["　中",false],["中:中:",false]]],
+    [" (?<é>퟿)[]||\\uDE00(?<$>(ω|){0}?)",[["ω",true],["",true],["!",true],["EDé",true]]],
+    ["[^\\s\\n\\+- ]",[["\u0000-n",true],["ſ Ω",true],["s:=! ",true],[" \u0001",true],[" és",false],["s",false],[" -> ",false],["s-- -",false]]],
+    ["^c*[/-c\\u0E01](){2}",[["cc 1",true],["1-",true],["00Eω",true],["0u,2",true],["",false],["-퟿c1",false],[" 10",false],[" c0",false]]],
+    [" (?:(?:)){2}?",[[" :",true],["2:  ",true],["2  :",true],[": ",true],["::",false],[" :",false],["::2😀",false],[":",false]]],
+    ["(?<=) {1,}?(?:)",[[" 1=　",true],["𐀀 é  ",true],[", >Ω:",true],["=  Z:",true],[",<中",false],[",",false],["=,:1,",false],["= ",false]]],
+    ["A+?",[["AAx",true],["AAA\r\n",true],["A",true],["Aſ",true],["",false],["א",false],["\n٣",false],["b",false]]],
+    ["[- Ж]ǅ:)",false],
+    ["[^\\p{Zl}\\p{Lowercase_Letter=Lu}}-\\u{041}]",false],
+    ["\\}x00\\B",[[" B0",false],["xx",false],["0>𐀀",false],["",false]]],
+    ["Ж(?:\\P{Assigned}|(?:))\\x41x*",[["Ag　",false],["\u000b",false],["di",false],[":xs",false]]],
+    ["[\\W]{2}-(\\cm(?!)|){2}?",[["İ -2A",true],["Жſ-mc",true],["2￿",false],["c퟿",false],["2-!\n",false],["-xİW",false]]],
+    ["[\\u{10FFFF}]Z\\u0416\\b",[["FAFb",false],["0",false],["FFF_",false],["b",false]]],
+    ["||\\u{202F}(?=(?<!(|퟿)?||)\\}).",[["퟿<=0x",true],["",true],["2\tЖ u",true],["<",true]]],
+    ["$\\bǅ{?,}?",false],
+    ["(😀?_",false],
+    [" =1{0,2}[]{0,2}",[[",",false],["\u001a1/ǅ",false],["=𐀀0",false],["\r",false]]],
+    ["(?<x1>|>\\P{scx=Latin})|(?<=)c+\\b(?:)",[["x \u0001",true],["",true],["bİb>=",true],["Aſ=",true]]],
+    ["﻿{0,2}?\\u{2D}(?<_n>)(?:)?|[^Ω􏿿-ſ]*",false],
+    ["\\B1",[[",B1",true],["11\n𝐀",true],["B1B",true],["111😀1",true],["",false],["Ω",false],["1",false],["1\t😀BB",false]]],
+    ["b[퟿]",[["b퟿",true],["ⅠЖb퟿b",true],["b퟿Ⅰb",true],["b퟿b",true],["",false],["퟿퟿　",false],[">𝐀",false],["퟿b",false]]],
+    ["(:)",[[": ::",true],[":::",true],["::1",true],["> ::",true],["/ω",false],["b",false],["",false],["",false]]],
+    ["(?<é>(?:|) {2,3})\\|\\s{0,2}",[["😀\f< ",false],["s2",false],["<>",false],["Ω",false]]],
+    ["　é",[["aǅ 　é",true],["　é!é",true],["é　é",true],["\r　é\t　",true],["ก éé<",false],["é",false],["éé　",false],["　 éא",false]]],
+    ["(?<a>\\3)[][^Ω-\\u{0DF}\\p{White_Space}﻿]*(?<_n>\\2|)",false],
+    ["[].(?<=(?:,[\\P{gc=Lu}b-\\x78])|(?=\\d??ω)(?:){0,2}?|[]|)\\u{FFFF}",[[":ud=b",false],["= gx",false],[",中",false],["bc0é",false]]],
+    ["(?=).[퟿]{0}",[["中ß ",true],["퟿",true],["퟿,",true],["😀0\r==",true],["",false],[" ",false]]],
+    ["x[),\\s]{1,} {2,3}(?:𝐀)|Ж　|\\(𝐀",[["\fx",false],["",false],["Жİ　 ",false],["\nЖ퟿ก,",false]]],
+    ["[\\p{ScriptLatn }\\(-\\t] \\1",false],
+    ["[?: |[]+)a",false],
+    ["\\2{0,2}[^][\\w-\\u0<041\\cm-\\\\\\|]￿",false],
+    ["Z(?:)(?:1(?<é>中{2,3}))é|_{0}c[^ ]",[["c c>",true],["c,, 𐀀",true],["acb,é",true],["c>,",true],[">",false],["  c",false],["Ⅰ>  𝐀",false],["",false]]],
+    ["Ⅰ\\u{03A}\\u0041?",[["3",false],["03",false],["ω",false],["",false]]],
+    ["ſ[\\cA-￿]Ⅰ\\u{10000}",[["_0ZⅠ",false],["ſ0 ſ0",false],["",false],["ſ-b -",false]]],
+    ["\\.*(?<b>){0}(?![]|)",[["b",false],["\u001ab퟿ c",false],["<>",false],[">b>",false]]],
+    ["[^\\p{Nd}-𝐀b😀-\\(b]*?\\B(?<x1>\\b)+.",false],
+    ["^(?){2}Ω",false],
+    ["\\b\\D?",[["D b:Ⅰ",true],["中Z  ",true],["bDD<D",true],["b1",true],["\t",false],["𐀀",false],["",false],[",",false]]],
+    ["$.,",[[",,,",false],["",false],[",,\u0001",false],[" ,￿ ",false]]],
+    ["\\uDBFF\\uDFFF|[\\p{IsGreek}\\\\-9]{0}\\1",false],
+    ["|$\\p{Script_Extensions=Greek}(?: *){2,3}|.",[["",true],["ΩxG",true],[" Eאa",true],["kes",true]]],
+    ["| {0}Ж",[["=/ ",true],["퟿",true],["　  Ж",true],["0퟿c  ",true]]],
+    ["(?<Ω>){1,}?[]x:",[["<x",false],["x1xx",false],["",false],["Ω!\n>",false]]],
+    ["𐀀+?",[["𐀀",true],["𐀀\u000b",true],["Ⅰ𐀀𐀀",true],["퟿𐀀",true],["",false],["Z",false],["Z﻿ ",false],["𝐀\r",false]]],
+    ["([^,-\\p{ASCII=Yes}]{2}?(?<=𝐀)",false],
+    ["(?:\\u{020})*?\\x63{0,2} |![^]{0,2}?[^\\u2028\\wſ]",[["w!2😀",true],["9\u000b ",true],[" _",true],["w ſ\u00013",true],["ſ\r2!8",false],["ſ03,",false],["/\u000b2",false],["",false]]],
+    ["[^\\cz.􏿿-\\uD800\\uDC00]??[\\uFFFF{\\u205F]\\v[^]",false],
+    ["[\\-\\S-İ\\u{D7FF}-!]\\S{2,3}_{0}?[中-\\-\\b-\\uD800\\uDC001]?",false],
+    ["ω{0}(?:|.{2}?:*)",[["ωßω2",true],["",true],["-𐀀",true],["ω٣ωſ",true]]],
+    [".??",[["< ",true],["􏿿/",true],["/",true],["0ſ😀􏿿",true]]],
+    ["ß(?=) ퟿",[["=퟿ ",false],["퟿ก= ",false],["",false],["퟿ßß =",false]]],
+    ["|(?:\\u0041(?<$>𝐀)?){0}|_{2,3}?",[["𝐀01_",true],["",true],["3>23",true],["1/1\u0001:",true]]],
+    ["(?!(?<a>|Ж[^é-\\s])(?:A){1,})(?<$> {1,}){0}(?:(?<x1>Ж[ } -\\[])(?<=\\B|(b^).{1,3}?)).{2,3}",false],
+    ["(?:\\s퟿+?)😀{0}ǅ􏿿",[["s_😀",false],[":",false],["😀 <",false],["0",false]]],
+    [" +[9a ]\\w+{0}",false],
+    ["ǅ\\uDE}0{1,}(?<x1>\\u0041א{2,3})",false],
+    ["ſ\\ ",false],
+    ["[^],",[[",>,=0",true],[",=,,",true],["\fω,\t,",true],[",,😀ßİ",true],[",😀",false],["",false],["\n",false],[",",false]]],
+    ["٣{0}??",false],
+    ["א{2}Z+",[["אאZ",true],["2AZก9",false],["Ⅰ",false],["",false],["0￿Z",false]]],
+    ["x[(]?[ -ǅ￿\\-]{0}?[^ \\u2160-\\}\\--\\b]?",false],
+    ["(?<!)[=ω-٣\\.]א[ -^\\^,- ]",false],
+    ["(?:.{2}?.|x(?<=)){0,2}.*(?<x1>9{2,3}é){0}٣{2,3}",[["٣x1٣x",false],["中\r:",false],["3>",false],["א00",false]]],
+    ["\\u0030",[["u030 ",true],["0 30",true],["00",true],["=0𝐀33",true],["u",false],[",　u",false],["ǅ",false],["",false]]],
+    ["(?<Ω>[^]A)",[[" ><AA",true],["Ω퟿AAΩ",true],["ΩΩ:A",true],["ZA",true],["",false],[">a",false],["\n<:",false],["A",false]]],
+    ["\\k<x1>{0,2}",false],
+    ["|﻿א\\cz",[["אzא中",true],["",true],["zc",true],["z",true]]],
+    ["[]<*?((?<a>,))(?![^ \\u0041-.]{2})|(?<!a{2})(?<_n>|){0}ก\\n",false],
+    [",{2}1*?(?><b>(?:　{0}())\\2){1,}\\k<x1>|\\)",false],
+    [":\\u0041{0}[^￿-\\^))-\\-]?b|\\]ſ\\B|",false],
+    ["(|\\3{1,}?<+?)(?:|c{0}?){0}?",false],
+    [" (?:א{0,2}é)..*",[[" é\u0001𐀀,",true],["=éé,,",false],["0􏿿",false],[":! א,",false],["ééé﻿_",false]]],
+    ["(?<=|) *?",[["1\u001a",true],[" ",true],["",true],["/  ",true]]],
+    ["(?<é>.\\d)*?Z{2,3}",[["3\u000bZZ9",true],["ZZǅéé",true],["d ",false],["",false],["אda3é",false],["Ⅰ٣0",false]]],
+    ["(|((?:^)?)😀)\\S{2}",[["x:ω:S",true],[":2:2",true],["22:",true],["SbS٣",true],["é\r",false],[">",false],["😀 b",false],["",false]]],
+    ["\\B{]\\D{2}(?!|😀{0})",false],
+    ["c{2}> {0}",[["0292İ",false],["\u0000x922",false],["",false],[" 2 ",false]]],
+    [".0{0}?|. ?\\w",[["a0\r",true],["0!0",true],["0",true],["0w0aw",true],["",false]]],
+    ["\\k<a>(?:\\u0041{2,3}?)((\\P{Script=Latn }[\\s ]|ω.)*퟿){1,}ß",false],
+    [" .{0,2}",[["20 ß",true],["中﻿ 22",true],[" <",true],[" ",true],["a\u000b",false],["0",false],["0!0",false],["00",false]]],
+    ["　{0}[^ǅ-\\P{sc=Greek}]",false],
+    ["(.)*",[["\fω=　İ",true],[" ",true],["= a",true],["\fc/b٣",true]]],
+    [":{0}?{2}😀{2}",[["",false],["2",false],[":",false],[">_0:",false]]],
+    ["٣*",[["",true],[">_𐀀Ж",true],["ſ٣٣",true],["/٣",true]]],
+    ["(..$){2,3}\\b　",[["İ3_\u001a2",false],["",false],["b",false],[" 2",false]]],
+    ["￿*\\B|\\2?(?:[^_-]Ω){0,2}.1*",false],
+    ["\\w((ſ))\\c*",false],
+    ["Ⅰ(?<Ω>).",[[">>ⅠⅠ>",true],["_𐀀<ⅠΩ",true],["ΩⅠΩ",true],[">ⅠⅠ٣<",true],["",false],[",Ω",false],[">>",false],["<>",false]]],
+    ["\\k<a>􏿿﻿{0)?[]",false],
+    ["..ก{2,3} {2,3}?",[["2,,,,",false],[" 2\u0001",false],[",",false],["3ก,",false]]],
+    ["\\2 {2,3}(?:[9]{2}?)+",false],
+    ["(?a>)<",false],
+    ["􏿿\\|\\u0041\\x1A{0,2}",[["😀- ",false],["\u00001u=",false],["ΩЖ\u00019",false],["1",false]]],
+    ["𝐀\\P{sc=Lu}0}",false],
+    ["(?:.\\$)",[["Ω:::",false],["",false],[":: : ",false],["::::",false]]],
+    ["[ -\\DA}]?>bก*?",false],
+    ["(?=).*\\B\\B",[["　",true],["",true],["= ",true],["\u001a",true],["B",false],["BéAกB",false],["Bİ9",false],["A",false]]],
+    ["\\u{61}(?<!((){0,2}x{2}?) ).|",[["x ",true],[" x1",true],["",true],[" \u000b ",true]]],
+    ["Z|",[["　ZZ",true],["אЖZZ",true],["ⅠZZZ",true],["ZZ:ZZ",true]]],
+    ["\\W(?<a>|^$)İ",[["İİ İⅠ",true],["İİ",true],[">İ>a",true],["İWא<İ",true],["",false],[" ",false],["=a\u0001W<",false],[">WΩ",false]]],
+    ["\\/?(?!)(^?<a>[^]*?)*?\\uD83D",false],
+    ["\\w{0}x",[["ſZwxx",true],["0ωx",true],["xx ",true],["w0xſ",true],["00Z",false],["\fw",false],["\u0001w",false],["0ww",false]]],
+    ["\\P{Script=Common} |\\b\\u002D{0,2}[Ω-* -ß]",false],
+    ["Ж[^中-,]{1,}?:",false],
+    ["9:)",false],
+    ["(?:){1,}?\\P{Script=Hebrew}\\u03A9|[İ\\b^]{2}",[["",false],[",<=r",false],[" ie>b",false],["9",false]]],
+    ["[ǅ\\\\-{>][　-\\x41 ]",false],
+    ["퟿| {0,2}?\\|",[["퟿퟿",true],["퟿ ",true],["퟿,퟿,,",true],[",퟿",true],["",false],["222",false],[" ,",false],["\u0001\n 0Ⅰ",false]]],
+    ["\\x5A[].?|.{0}?. \\uDE00",[[":",false],["E",false],["Ⅰ0\n",false],["￿DDD0",false]]],
+    [" \\bΩ|(?<!\\s?[^]|퟿x)(?<_n>)",[["< Ω b",true],["",true],["퟿\r  b",true],[" >\n ",true]]],
+    ["\\w(?:􏿿+) Z",[["İ",false],["/א_ w",false],["􏿿 İ Z",false],["ZZZw",false]]],
+    ["(?:\\p{ASCII=Yes})+Ⅰ",false],
+    [" {1,}\\u{17F}",[["",false],[" F ",false],["1:\n",false],[",",false]]],
+    ["\\Dก|(?<!([^\\-)\\w-!]{0,2}?)?(?<=Ω|.)||٣é)Ⅰ[\\b]?(퟿|(?![^\\-{-ſa])(?<é>\\b(<x1>ſǅ+)){0})",false],
+    ["(?:[\\uD7FF\\/\\u0041-9]\\v|)[]",false],
+    ["\\P{Uppercase}[ \\uD800\\uDC00 ]ก|",[["\u000b80",true],["",true],["กeu",true],["!0ǅ",true]]],
+    ["(?:[^￿]\\B){2}?:){2,3}()|",false],
+    ["\\bc [^]",[[" c c",true],["ǅc İ ",true],["c b",true],["c bc",true],["bbb",false],[",b￿\tß",false],["  b!",false],["",false]]],
+    ["(?:)[^]",[["-:",true],["İ::",true],["\u001a:",true],[":::",true],["",false]]],
+    ["\\S*_{2,3}\\",false],
+    ["(?!\\s)(?<=\\/?Ⅰ{2})[\\t]{2,3}?",[["3=2\u000b",false],[",",false],["!<92",false],["<s2",false]]],
+    ["|.[^* ](?:|\\k<b>)??(?:[^\\x00].{0,2})*",false],
+    ["<(?!\\S\\B|\\x62{2,3}?ǅ)",[["<",true],["99<3",true],["2𝐀<\u000bS",true],["\nǅ1中<",true],["é",false],[",,",false],["2",false],["",false]]],
+    ["a{{1,}.,{0,2}?,+|",false],
+    ["(?:é[]|ก)??(?<Ω>.)ſ{2,3}?",[["<ſſ3",true],[",",false],["\n>30",false],["<<2",false],[">2กİא",false]]],
+    ["[\\cJ]$\\D",[["D",false],["_1",false],["J>",false],["JJb",false]]],
+    ["\\uDE00 +.\\v",[["",false],["vvvİ",false],["0",false],["D <中퟿",false]]],
+    ["<􏿿",[["<Ж1<􏿿",true],["<􏿿\n",true],["<􏿿",true],["<􏿿􏿿İ􏿿",true],["😀<<a",false],["<<א",false],["<Z<0",false],["﻿",false]]],
+    ["<!{0}|\\x41=[\\czก-.]*",false],
+    ["퟿(?<$>)?",[["ǅ퟿퟿",true],["A<퟿퟿",true],["é><ſ퟿",true],["<퟿",true],[">",false],["\r",false],[">>>>",false],[">\u001aß>",false]]],
+    ["{0,2}?Z?_\\u{663}",false],
+    [".\\(\\P{P}+",[["İP-P",false],["𐀀P<ωP",false],["",false],["P\t P",false]]],
+    ["|ก{02}ω|",[["2 0ก>",true],["2/\f",true],["ก9",true],["ſωกก0",true]]],
+    ["(?:\\uDBFF\\uDFFF+?)(\\1)*|\\/\\p{Script}กЖ|[\\b-􏿿\\cm ]*?",false],
+    ["é(?:A)",[["éAéé",true],["_éA",true],["AéAA:",true],["éA Жé",true],[":",false],["A𐀀é",false],[" ſ",false],[":",false]]],
+    ["!􏿿ω",[[" ퟿!!!",false],["􏿿﻿!",false],["",false],["􏿿ω",false]]],
+    ["|.{0}İ\\*(0)",[["İ :0İ",true],["Жİ_İ",true],["",true],["9",true]]],
+    ["[^\\v]?ſ\\k<x1>{0}$|\\P{LC}",false],
+    ["^ {2}ω|!(|([\\?-\\S]))??\\$(?<= )",false],
+    ["ก+?(?:﻿){2}􏿿{2}?",[[" 2",false],["-2:￿",false],["",false],[":ก﻿𐀀é",false]]],
+    ["[^\\r- ]{2}?\\u0041??[\\p{Any}]{2,3}?|(?:(?:()+[^])?)\\w$",[["􏿿wyy3",true],["p",true],["yA",true],[" wwp",true],["= א",false],[":",false],["wǅ",false],[" 2 ",false]]],
+    ["(){1,}?",[["",true],[" ,1",true],["11􏿿,",true],["11c\t",true]]],
+    ["([^}\\r﻿]) ",[["　1  Ж",true],["  ",true],["﻿! ﻿-",true],[",r ",true],["﻿﻿rr",false],["r/",false],["﻿﻿r😀 ",false],["﻿ ٣﻿٣",false]]],
+    ["(.)",[["􏿿 ",true],["0 😀\u0001_",true],[" x",true],["  􏿿􏿿Ж",true],["",false],[" ",false]]],
+    ["(?<=)",[["<",true],["\f",true],["<٣<",true],["9ω<",true],["<",false],["<<",false],["=<",false],["=<<  ",false]]],
+    ["$﻿{1,}([\\{\\P{Foo}-中])[>]?|[](?<=𐀀?)ก",false],
+    ["|.\\u{E000}(?<a>)",[["a",true],["퟿, =",true],["0E>0E",true],["",true]]],
+    ["￿,{0}(?! +? |()|)",[["A",false],["> _",false],["\u001a",false],["_c0 ",false]]],
+    ["|.??ǅ(?:){1,} {1,}",[["",true],["1",true],[",,-",true],["\u000b\f1,,",true]]],
+    ["[ -/\\s-\\$!)]",false],
+    ["(?<!()})",false],
+    ["(.(\\<B)){2}􏿿",false],
+    ["(?:􏿿[c-.\\x0A-\\u0041 ]{1,}?)",false],
+    ["(?!!)(?: |(?:￿){1,}|){0}א{0,2}",[["א,:",true],["!<0!,",true],[":",true],["",true]]],
+    ["\\b(?=)",[["A",true],["=bb　",true],["b",true],["😀0b=",true],["",false],[" ǅ",false],["<\u000b",false],["=",false]]],
+    ["()a.{2,3}",[["กaa3",true],[",3a　2",true],["אa𝐀2a",true],["aaZא",true],["",false],["a",false],[",,",false],["ǅ",false]]],
+    [",￿",[["cx,￿,",true],["￿,￿,,",true],[",,￿￿￿",true],["￿,￿",true],["",false],["𐀀",false],["￿,",false],[",,,",false]]],
+    ["([/\\b-\\D]10,2}.*)\\B",false],
+    ["(?!(﻿[^ก-)퟿-\\D\\uD800\\uDC00- ])*|(?:1{2,3}))[\\uD83D],{1,}?",false],
+    [" {2,3}[\\W]\\Sa",[["Ⅰ",false],["Sa,",false],["Ж",false],[" ⅠW,0",false]]],
+    ["|ǅ(?:)(?<Ω>\\uD800\\uDC00(?<_n>0)){0,2}\\u{0DF}",[["Ⅰ𝐀éΩ",true],[" ",true],["<0中\u0000😀",true],["D0>Ω",true]]],
+    ["(?<=\\b)[^\\u005A-\\$]*^|",false],
+    [".{1,}　",[["1ω　",true],["c　İ",true],[" 11　",true],["﻿>1Ⅰ　",true],[",,1",false],[" 　",false],["b9٣ ,",false],["b,",false]]],
+    ["c中(?=|9)(?:|.(?:\\u{E01}){0,2}|￿\\$)",[["",false],["￿c1ſ",false],[",\u001a\u00010",false],["2<E",false]]],
+    [":+",[[":﻿:::",true],["::",true],["::",true],["::Ωא\t",true],["",false],[" ",false],[" \t",false],[" ",false]]],
+    ["\\]+􏿿(?<=||)\\d",[["􏿿<<<",false],["",false],["􏿿dd1􏿿",false],["d",false]]],
+    [">[]x{2}",[["Жxxx",false],[" 222x",false],["_퟿>2",false],["\t>",false]]],
+    ["ω{2}b",[["!ſωbω",false],["\u001a2a",false],["",false],[" b",false]]],
+    ["[1-\\b}A- ]>?.(?:[\\P{Zl}:- $]-0}[\\p{In_Greek}-𝐀])",false],
+    ["\\uDE00\\|\\?(?:\\uD83??ω){1,}|￿{2,3}\\2{0}[\\u03C9\\S{]",false],
+    ["(?<=)\\cm\\2{2}||\\({0,2}　{2}0{0}",false],
+    [". +éx",[["A éxx",true],[" \u0001éx",false],["éxא x",false],[" ",false],["  xx😀",false]]],
+    ["􏿿{2}.*?([^])Z{2}",[[" ",false],[": Z􏿿",false],["/א2􏿿􏿿",false],["",false]]],
+    ["(?<Ω>)\\P{gc=Latin}[^\\bß]*?(?:Z)",false],
+    ["[\\u005A-퟿İⅠ](?<_n>){0,2}.*|+|[^\\-Ω]{2,3}|",false],
+    ["((?:\\b\\p{sc=Greek}?)\\uDBFF\\uDFFF+){1,} \\S| ",[[" =",true],[" c",true],[" ",true],["\n: ",false],["/u",false],["",false],["٣",false]]],
+    ["($)?",[["1\u0000 =",true],["",true],["İ",true],["0A0\u0000",true]]],
+    ["\\s|",[["\u0000ss",true],["sss",true],["ss﻿Ⅰs",true],["퟿ssss",true]]],
+    ["bß.[$]",[["",false],["ßb",false],["  ",false],["ßßbb",false]]],
+    ["퟿.^",[["",false],["퟿",false],["ǅ\u0000\r",false],["퟿퟿퟿퟿",false]]],
+    ["٣. ",[["٣  ",true],["٣　 ",true],[" ٣  ٣",true],["٣ǅ ٣",true],["",false],[" ",false],["\u000b ",false],["a",false]]],
+    ["( 0)\\s|",[["\u001aés",true],["0",true],[" ﻿",true],["s  ",true]]],
+    ["\\u0041 (?<_n>ω{2,3}?)",[["1nA",false],["0",false],["",false],[" 44",false]]],
+    ["\\u3000",[["",false],["/ ",false],["00",false],["ſ",false]]],
+    ["\\u{3C}(?<!)\\x41{2}?",[["<C",false],["x\tC<",false],["A-0𝐀",false],["4ǅ1𝐀\u0000",false]]],
+    ["ω\\b {0,2}?",[["0ω0 ",true],[" /ωb",true],[",ωb 2",true],["ω0😀2b",true],[",\t2 ",false],["",false],["ω!_",false],["0Z",false]]],
+    ["(?:)+(?:c.)a|",[[":a:",true],[":😀",true],["9",true],["",true]]],
+    [" ,{0}?ΩA",[["ΩA0",false],["0\u001a",false],["0A \u0000",false],[",=  ",false]]],
+    [".{0}?(?!)<,+",[[" 0!,￿",false],["￿￿00",false],["Ⅰ!-c",false],["1İ",false]]],
+    [".𐀀(?:[\\D]é)[^]*?",[["Ж𐀀İé",true],["𐀀:𝐀\n𐀀",false],["_é😀D",false],["DD𐀀:",false],["D",false]]],
+    ["()\\w",[["ww",true],["Ж cωw",true],["0w",true],["﻿wwwΩ",true],["",false],["\f:",false],[":",false],["𐀀",false]]],
+    ["[]^(?:)?ǅ-Ⅰ]",false],
+    [".a{0}?",[["İ0",true],["0a0a0",true],["00 \u0000",true],["  \u00010:",true],["",false],[" ",false]]],
+    ["Z{0}?(?:$(?<=\\u1680{0,2}-?)| {2,3} ){0,2}.\\p{P}{1,}?",[["Z,",true],["210_",true],["𐀀,<ω",true],["Z0=,　",true],["𐀀0Ж3",false],[",􏿿",false],["",false],["2",false]]],
+    ["(?!􏿿𝐀)9(?<a>\\uD83D+(?<!))+",[["-􏿿c",false],["u",false],["<,",false],["",false]]],
+    ["\\cJ?!{2,3}?[ß]{0}?(?<_n>𝐀){2}",[["J!\u000b,𝐀",false],["",false],["2",false],[">\u0000",false]]],
+    ["c{2,3}",[["3cc 2",true],["Ⅰ3cc",true],["cc2",true],["\u0001",false],["",false],["2",false],["9c ",false]]],
+    ["\\b\\x41*?|| {2,3}?[\\uD800\\1DC00- /]{0}x|",false],
+    ["\\k<b>{0}\\B(?:<)Ж+",false],
+    [" ",[[" ",true],["  <  ",true],["a  ",true],["Ж   \f",true],["",false],[" ",false],["A",false],["İé􏿿",false]]],
+    ["[\\b-￿]{2}?(>?<x1>　){2,3}?[\\W-<][]",false],
+    ["(?<=)",[["",true],["9 ===",true],["A<٣",true],["=",true]]],
+    ["\\f>.{0}(\\v9{01}?){0}",[["00Ж",false],["v9>",false],["00>0",false],["",false]]],
+    ["(?<= ).{0,2}[}\\x41-퟿]",[[" 0x퟿1",true],["0 x/",true],["4<퟿ ퟿",true],["ก<ก",false],["022>",false],["!x4ก",false],["é-",false]]],
+    ["1{0,2}[^\\--Z]{1,}? []",[["-",false],["ſ0!-",false],["Z01,",false],["0ǅ- 𝐀",false]]],
+    ["_\\b\\k<x1>|",false],
+    ["!+?[\\D-\\-\\x41].{2}(0)",false],
+    ["Ж.{,2}􏿿_",false],
+    ["_|\\}??([](?<!\\u017F)){2}((?:<\\n)|\\xE9{2}א{2,3}|(?<b>$\\u00A0)?)",[["_:u0　",true],["_,0Z",true],["_b<A",true],["u  u_",true],["\u000b𐀀b1",false],["u\u0001",false],["",false],["\u000b2,!",false]]],
+    ["𝐀٣\\P{ID_Start}[Ⅰ]{0}?",[["0𝐀ก",false],["=0",false],["Saa",false],[":",false]]],
+    ["[\\x2Fİİ- ]\\uD83D\\bé",[["2İ- \r",false],[":İ",false],["Fİ",false],["İ𝐀Aİ",false]]],
+    ["(?:){0}",[["0",true],["Ω0",true],["90ß",true],["::",true]]],
+    ["(?:){2,3}?￿",[["א,2￿",true],[",3,￿",true],[":3Ⅰ0￿",true],["　￿_中:",true],["",false],[":,:1,",false],["=2 ,",false],["23 :",false]]],
+    ["|^\\uD800\\uDC00?(?=(?:\\W0)􏿿)\\u{20}{2,3}|x{0}?[\\{]ß]",false],
+    ["[\\b\\u{1D400}-\\-ω-:]",false],
+    ["0<Ω{0}?",[["0<Ω,",true],["Ω0<￿",true],["x00<x",true],["0<<<",true],["<Ω<",false],["퟿",false],["",false],["b1",false]]],
+    ["(?!((?:))$)ω[,-\\uD800\\uDC00\\w ]{2,3}",[["Cω =",true],["ωDw0<",true],["/ω-x:",true],["-ωw0",true],["",false],["8 0",false],[":",false],["w0-:",false]]],
+    ["(a((?<x1>$)){1,}",false],
+    ["　",[["　",true],["Zก　",true],["　　\f= ",true],["　　 　",true],["Z😀",false],["𝐀",false],["",false],["\r﻿",false]]],
+    ["􏿿+,{2,3}?",[["",false],["ǅ2",false],["32,",false],["3,",false]]],
+    ["(?:\\x41||a?)(\\B)٣|",[["",true],["中x:x",true],[":\n ",true],["א4:41",true]]],
+    ["(?=.　+)",[["　 　",true],["=　",true],["٣　=",true],["=  　=",true],["אא\r𝐀",false],["😀",false],["􏿿",false],["　0",false]]],
+    ["^()(?!𝐀(中$))*",false],
+    [" (?<_n>􏿿.)^",[["İ􏿿  ",false],["􏿿 >퟿<",false],[" > 􏿿_",false],["",false]]],
+    ["[\\D- 9]{0}?\\p{Pd}中 ",false],
+    ["(b)(𐀀*9)?\\b",[[" b𐀀",true],["b",true],["b\nZ𐀀",true],["\u0000bß",true],["",false],["𐀀",false],["😀!\u0000",false],[" ",false]]],
+    ["ω? {0}^1{0,2}|",[["1 ",true],["",true],["2ßก",true],["ω22 1",true]]],
+    ["\\b[^{\\}]?\\u{D7FF}",[["F!\tb",false],["F",false],["D",false],["กu0u",false]]],
+    ["[\\S$--]Ⅰ\\${0,2}",[["Ⅰ--Ⅰ",true],[",--SⅠ",true],["\u0000S0Ⅰ",true],["0,ⅠⅠ",true],["",false],[",S-",false],["ſ-￿",false],["2-\u0000",false]]],
+    ["[^Ж]+[^-\\b_-\\uDE00\\--ω]{1,}[a]",[["0,a",true],["Db",false],["_0!-",false],["-a\u000b",false],["---DЖ",false]]],
+    [">^",[["",false],[" ",false],[">>,",false],[">>",false]]],
+    ["|é{2} \\2{2,3}İ",false],
+    ["(?<=$) |　(?:)*?\\cm|Ω+()ǅ",[["Ωǅ<",true],["Ωǅſ!",true],["=ǅΩǅ",true],["Ⅰ 　א􏿿",false],["cǅ",false],["ǅcΩ􏿿m",false],["_c=Ω",false]]],
+    ["() {1,}(?<!)",[["",false],[",1",false],[",",false],[",!",false]]],
+    ["(?:\\.)(?<=) *",[["퟿<  _",false],[":=Жא",false],["=\r",false],[" x ",false]]],
+    ["٣(?<x1퟿*)<{2}?",false],
+    ["^1",[["11",true],["1𐀀",true],["11\u00011c",true],["1",true],["　11",false],[">1éx",false],["￿11\u001a",false],["퟿",false]]],
+    ["(?<é>|\\w(?:[9éΩ-|\\cz]|))",false],
+    [" ||(\\b)_",[["_",true],[" __b",true],["",true],["ſ ٣ b",true]]],
+    ["(?:😀{2}?(?:\\bⅠ{2}?|(^٣)[\\u{DF}-\\-]))(?<!|b\\b)\\cA{1,}?",false],
+    ["\\u0041(?<=)",[["0A4=",true],["éuu>A",true],["04\rAΩ",true],["0=A\u000b",true],["",false],["0",false],["u\u0000<퟿",false],["\fZ=04",false]]],
+    ["[]{1,}퟿\\1^",false],
+    ["\\uDBFF\\uDFFFΩ",[["1DuDſ",false],["",false],["F",false],["Du0,",false]]],
+    ["(?=\\({2,3}?)",[[" ",false],[",　-2 ",false],["c,3",false],["Ⅰ=٣=,",false]]],
+    ["٣??(?<$>(?:(?<é>$Z)={0})){1,}(?<x1>.{1,}?\\d{1,})",[["=0a 1",false],["!>1",false],[",é",false],["",false]]],
+    ["[^ǅ=,\\p{N}𝐀]{0,2}?",[["𐀀Ж",true],["px",true],[" ǅ٣",true],[",2,2",true]]],
+    [".? ",[["   ٣",true],["   ",true],["﻿ ",true],["    ω",true],["1",false],["",false],["中􏿿",false],["0😀",false]]],
+    ["　ω{2}",[["　ωω",true],["　　ωω",true],["2!ωω\u001a",false],["",false],["　　　ω　",false],["\n 　!ω",false]]],
+    [".x",[["xxß9",true],["􏿿xx",true],["x>xx\u000b",true],["xx",true],["😀ก\n",false],["xω",false],["xA",false],["x",false]]],
+    ["(?:\\x41{1,}?)[]{0,2}?(?:\\b *)",[["2A!",true],["4",false],["",false],["ω1Z",false],[":",false]]],
+    ["[](?:)+\\P{}.",false],
+    ["(?!((?:\\B)|{0}?ǅ)",false],
+    ["\\s{1,}()ǅ",[["\nǅ﻿",true],["￿b ǅ",true],["1\nǅ",true],["\u000bǅ",true],[",,",false],["􏿿1ǅ",false],["ßs",false],["s1",false]]],
+    ["٣{1,}𐀀.{1,}?\\x41",[[" ก114",false],["٣,1𐀀",false],["Ax",false],["ωx",false]]],
+    ["(\\k<a>(?:$[𐀀\\(Ж-　]){2,3})[\\--(]*ſ{1,}?",false],
+    ["(?:(^)||)\\P{Lu}{2,3}?\\u{0C}_|\\u0041,{2,3}\\(*",[["",false],["1",false],[",C,,",false],["Ж\r C",false]]],
+    ["c(?<$>퟿).[\\b]",[[">>𝐀",false],["bc\f퟿b",false],["/<",false],["c",false]]],
+    ["1[\\p{letter}𝐀$]İ",false],
+    ["􏿿\\S*[]",[["􏿿\f􏿿",false],["S",false],["􏿿􏿿\u000b",false],["ǅ𝐀􏿿",false]]],
+    ["(?:.?)+[^\\cz--]{0,2}?.Ж",[["-0:Ж,",true],["2Ж퟿",true],["-Ж::c",true],["2::Ж",true],["-",false],[" ->\u0000",false],["zz",false],["",false]]],
+    ["ω((.􏿿?{0})b??\\B",false],
+    [">{0}?[﻿-\\cJ\\u0041](){2}?[ -é]",false],
+    ["$\\f{2,3}",[["<3,3",false],["",false],[",",false],["\r,3퟿f",false]]],
+    ["[A-x]=^\\P{Letter}",[[" ",false],["",false],["t\u0000!=",false],["r At",false]]],
+    ["(|)[ǅ ]{2}=",[["  ",false],[" ",false],["",false],["2𐀀=",false]]],
+    ["[^]|(?<b>\\D7FF中)?(?: Ж)￿?.",[["Dſ",true],["\fЖ:",true],["\u000b =",true],["bΩF",true],["",false]]],
+    ["(?:)\\1[]{2,3}",false],
+    ["(?!|Ⅰ)(?<,=)",false],
+    ["|(?!(){2}\\B)(?:Ж{2}?||\\3{1,}　){0,2}\\b",false],
+    ["(?=[^--中\\(-\\s\\b- ](?:٣*)*)>\\u0041",false],
+    ["(?{)\\n*ǅ\\x2C",false],
+    ["(?<!)(?:)^",[["!=<",false],["",false],[" :-",false],["!",false]]],
+    ["\\bb)",false],
+    [" ?(?:(?!ß(!)+)[]|\\P{L}{2,3})(?<=\\p{ASCII=Yes}{2}\\r)|\\.􏿿{0}\\p{Lo}|é{0,2}?",false],
+    ["(?<!\\uD7FF.) ",[[" F!",true],["D:中7 ",true],["uF 7D",true],["F! FD",true],["F",false],["",false],["FF7",false],["u<",false]]],
+    ["ǅ{1,}?",[["1ǅǅ",true],["𝐀ǅ1/",true],[",,ǅ",true],["1ǅ1􏿿1",true],["",false],[",1,",false],["ſ,￿",false],["\fⅠ1",false]]],
+    ["𐀀\\uDBFF\\uDFFF(İ??\\cz)|",[["",true],["İuu",true],[" c ",true],["B",true]]],
+    ["^(?:\\uDBFF\\uDFF{2,3}א)|",false],
+    ["()(?:\\s)[]{0,2}|",[[":",true],["ωés",true],["s,",true],["2İ::0",true]]],
+    ["^[\\s\\u{4E2D}-\\S﻿] ",false],
+    ["(?=(?:[^𐀀$\\t-\\u{2029}]){2,3}[^\\uFEFF\\u{2160}]+?)|$",[["F 2",true],["2u2t",true],["𐀀=",true],["Ⅰ2",true]]],
+    ["|>{2}א.",[["ZAא2",true],[" /אא􏿿",true],["><ß>1",true],[">",true]]],
+    ["\\2[^\\u{05F}--]_(?:[]*?|𐀀é|\\19)*?||ſ{1,}",false],
+    ["9(?:٣*(?!(?<Ω>中9){2})|){1,}?(?-)\\B",false],
+    ["[ſ-!\\u0E01-􏿿:][^\\uDBFF\\uDFFF*-\\-\\cm]é퟿",false],
+    [". {2,3}?",[["<  2",true],["   c",true],[" ,",false],[", ",false],[" Жa,!",false],["",false]]],
+    ["𐀀[\\f-\\b/\\x0D]{0}?",false],
+    [" +?| 　 \\p{M}",[[" ",true],["　1p  ",true],["MM ",true],["! ap",true],[" ٣ ",false],[" ",false],["",false],["cMMp",false]]],
+    ["[𝐀-\\d中](?>|c)\\b",false],
+    ["(?=.{2}c{2,3})[ ٣\\D]??",[["é2,D,",false],[" ",false],["3Ж﻿",false],["<c==",false]]],
+    ["-[]Ж{1,}",[["ω,Ⅰ",false],[",\t1-",false],["Ж=",false],["-",false]]],
+    ["[^]:+\\b\\p{C}",[["bpCC",false],["pbc:/",false],[":C9",false],["p::",false]]],
+    ["Ж\\uD800\\uDC00﻿{1,}\\1",false],
+    [".(\\u0041(?:))\\uFEFF(?<_n>){0}",[["",false],["=aF:",false],["F𐀀",false],["Fß",false]]],
+    ["xZZ?|.\\cJ",[["xZZ",true],["cJJ",false],["",false],["Z\u001aJ",false],["􏿿:-c",false]]],
+    ["é{2}.٣[ß\\cJ\\[]{0}",[[" éé2٣",true],["",false],["٣c٣éc",false],["_c",false],["٣　",false]]],
+    [".(?:(?<a>){2,3},))",false],
+    ["(?<Ω>)퟿é(?!(?!))",[["퟿퟿é",true],["Zx!:",false],["퟿<Ω",false],["A\u0000",false],["퟿ ",false]]],
+    [".(",false],
+    [".(?<b>\\p{scx=Latin}(?:| {0,2}?))",[["xǅc\t",true],["pb<אi",true],["􏿿L",true],["b2s",true],["<0",false],["\t",false],[",",false],["",false]]],
+    ["(?<x1>x{2})",[[",x<xx",true],["xx ",true],["<xx0퟿",true],["xx",true],["𐀀",false],["<",false],["ǅ2",false],["<><\na",false]]],
+    ["[]{0,2}𝐀{0,2}",[["",true],["Ⅰ",true],["퟿00",true],["22 ﻿",true]]],
+    ["\\d9\\u0^041",false],
+    [" (?<_n>\\k<a>*|\\W(?:\\1{0}){2})",false],
+    ["|ß|()\\B|\\p{Pd}?!{2,3}\\uDBFF\\uDFFF{0,2}(?:😀)?",[["a😀/😀",true],["",true],["u",true],[":0u",true]]],
+    ["ก{0}?|(?<_n>)\\2Ж\\^",false],
+    [" =<",[["<<=<1",false],["> ",false],["",false],["  =\r ",false]]],
+    [" 😀﻿{2,3},",[[",",false],["Ж3,ก ",false],[" \f3,",false],["3Ж-😀\n",false]]],
+    ["(?!)",[["!",false],["ſ !퟿!",false],["　!>!",false],["İ\f!é,",false]]],
+    ["(?<![ 𝐀-\\u005F])",false],
+    ["\\P{Lt}[\\uDBFF\\uDFFF-\\}\\x63]+?(?^<a>A?){2,3}ǅ{1,}?",false],
+    ["𐀀((퟿{2}?)[\\u00DF-\\-)- \\u0041]){0,2}",false],
+    ["\\BΩ{0}() ",[["0  0Ω",true],[" ΩΩ",true],[" ",true],["B٣ 1٣",true],["😀A",false],["Ωa0 ",false],["B",false],["B\u000b퟿Ω",false]]],
+    ["[^￿\\x2F]{0,2}ß|\\u{63}",[["ßxF",true],["ß0Ж,",true],["u6ß",true],["ß􏿿Z",true],["\u0001￿￿￿3",false],["\u001a06F",false],["Fא￿",false],["Fu\t",false]]],
+    ["$b{0}",[["bb",true],["0 ß ",true],["0b",true],["0-0b",true]]],
+    ["a(?:)(\\]^u0041)",[["a4﻿",false],["00",false],[":٣:x",false],["",false]]],
+    ["\\({2}ǅ𝐀9{1,}?|(?!||\\cA{2,3}?(?<=c{2}$)).{2,3}?ſ[{\\P{}-0]",false],
+    ["(?!)(?:([Ⅰ-􏿿a$]\\b)?[]+)||[]ω",[["İ0ωb",true],["!",true],[":\u0000 ",true],["￿b Ⅰ:",true]]],
+    ["Ω",[["éΩא",true],["ΩΩbΩΩ",true],["ЖΩ Ω",true],["Ω",true],["",false],["!_",false],[" ",false],["x ",false]]],
+    ["+ก{0,[2}",false],
+    ["\\u0041+",[[" A0",true],["A0",true],["u1😀",false],["1",false],["퟿uu4é",false],["",false]]],
+    ["=?\\b[\\.]",[["b",false],["\u001ab1",false],["",false],["=bb\t:",false]]],
+    ["(){2,3}😀(?<_n>|[^ ][^\\b\\u{5A}\\s-\\P{gc=Lu}]|)",false],
+    ["中\\b^[b]{2}| {0,2}?(?<=\\D0)ß",[[" ,bb<",false],["א",false],["=x",false],["bß",false]]],
+    ["(?<=(?<!:{1,3}9)9?)^\\p{White_Space}",[["\u000bh𐀀=",true],["  9,\u0000",true],[" ",true],["\u000bS<😀S",true],["",false],[":bp3",false],[":",false],["ht﻿:",false]]],
+    ["(\\1+?)|,{1,}Ω",[["1,",true],[",1",true],[" 11",true],["1\rǅΩ",true]]],
+    ["퟿{0,2}?",[["  ퟿,2",true],["é",true],["",true],["Ж,20",true]]],
+    [".*\\)[](　{0,2}$){0,2}?",[["",false],["c2,0",false],["1",false],[",,,: ",false]]],
+    ["b.{2,3(}",false],
+    ["é﻿ſก",[["é﻿ſก",true],[" Ж0﻿ก",false],["é ﻿",false],["﻿0Ⅰé",false],["กé\t",false]]],
+    ["😀ß\\.",[["😀ß😀😀😀",false],["İ!ß",false],["x",false],["ßß😀﻿𐀀",false]]],
+    ["(){2,3}퟿٣?(?=((?: <{1,})ก).)| (\\5)",false],
+    [".b",[["Ⅰb",true],["bb",true],["bbb",true],[" b bb",true],["b",false],["",false],["ba\n ",false],["b😀",false]]],
+    ["中((()😀|\\B)|[\\u0041\\x41-　]?(?:){2,3})(?<Ω>)+\\b",[["中uא0!",true],["BİB中0",true],["",false],[" ",false],["3",false],["4中é/-",false]]],
+    ["<İ{0}",[["0<<<<",true],["0<<x<",true],["0<<",true],["İ<",true],["İ\f𝐀",false],[" ",false],["Ж﻿ ",false],[">\r",false]]],
+    ["ſⅠ",[["ⅠſⅠ",true],["\u000bſſſⅠ",true],["ſⅠ",true],["ſⅠⅠſ",true],["ſ﻿\u0001",false],["",false],["ⅠxⅠbⅠ",false],[":ſſ",false]]],
+    ["\\B>*0{0}",[["",true],[">>\u00010",true],["000:",true],["0A>",true],["0",false],["B>0",false],["B",false],["Z",false]]],
+    ["ω>?A>",[["",false],["Ω>",false],["A",false],["ωω",false]]],
+    ["[*]0?x",[["",false],["x",false],[">x",false],["Z_",false]]],
+    ["[\\]][x\\-]{2,3}\\b\\s{0}?",[["",false],[", ",false],["b𐀀𐀀",false],["-bé00",false]]],
+    ["[0a][\\P{Zl}-😀]|((?!\\0)())Z(\\1|\\W(?<![^] )|)",false],
+    ["(?:|)٣{0,2}[^]",[[":,",true],["٣/",true],["00",true],["0Ⅰ\u0000",true],["",false]]],
+    [" ^[^\\S-\\W A](?<x1>\\u0041){1,}",false],
+    ["_\\1",false],
+    ["[][)^　]{1,}",[[",_1,",false],["1﻿　　",false],["\f",false],[" ",false]]],
+    ["(?<!:)|􏿿|()?!",[["􏿿=:\r",true],["Ω:ſ ",true],[" 中<:",true],["<<_\nİ",true]]],
+    ["　\\{",[["中　\t　　",false],["",false],["ſ　",false],["　 　￿",false]]],
+    ["𐀀+(cΩ|)(?:)\\P{Nd}",[["𐀀 𐀀",true],["𐀀d:",true],["𐀀a٣c",true],[" 𐀀𐀀dd",true],[":",false],["dd",false],["d:\nd:",false],["",false]]],
+    ["( {2,3}?)\\u4E2D((?<!(?:\\b)??[^\\b]):){1,}?(?:){2}|\\x41\\1",[["A,Dxſ",true],["A2\u001a",true],["\f",false],["﻿x:1é",false],[" 2<ſΩ",false],["4\t!2:",false]]],
+    ["[\\W\\x3C-\\f\\cA]{0}",false],
+    ["}\\u{1F600}*",false],
+    ["|[\\.x-b]([<-ก　\\u003C-א]+\\u{062}){1,}",false],
+    ["^|",[["😀\rΩ𐀀c",true],["中 ",true],["ก ",true],[" ",true]]],
+    ["\\P{Cf}*9𝐀中",[["",false],["中İ",false],["9f𝐀PC",false],["𝐀 ﻿,",false]]],
+    ["(?:x){0,2}(?<é>)?\\3{1,}(?!)",false],
+    ["ß {1,}[]",[["￿",false],["\u0001",false],["",false],["﻿,א",false]]],
+    ["\\k<a>.{2}.\\p{M}",false],
+    ["𐀀*<",[["𐀀<=",true],["𐀀ก𐀀<<",true],["<𐀀\f𐀀",true],["𐀀<\u000b𐀀Z",true],["  ",false],["Z\né ",false],["",false],["𐀀ſ_",false]]],
+    ["\\k<>\\2",false],
+    ["\\u{202F}{0,2}_{1,}(?!٣{2})",[["0٣_",true],["u𝐀_",true],["٣_0c_",true],["cu_!中",true],["02 02",false],["22,2",false],["0,",false],["0",false]]],
+    ["(?=􏿿|)\\p{Script=Latn }+?",false],
+    [">.{0,2}?(?<Ω>\\k<x1>9{2,3})",false],
+    ["𐀀{0}[中]{2,3}(?:([/-ß\\w])((ก|ω)𝐀| ))(?:))",false],
+    ["٣{2,3}?A()",[["A",false],["ก٣Z",false],[",",false],["A,",false]]],
+    ["[\\P{Script=Latin}]??\\B",[["Sa",true],["Pr!B",true],["r:\t𐀀",true],["中t =",true],["a",false],["p",false],["c",false],["r",false]]],
+    ["|.\\B[ -\\uDBFF\\uDFFF]{0}",[["F",true],["aF",true],["",true],["0BZ",true]]],
+    ["(?:\\1((Z)))+?","unsupported"],
+    ["\\u0041퟿<{0,2}",[[" 2",false],["<",false],[":<􏿿\n,",false],["",false]]],
+    [".{2}(?:[\\d]?)",[["_2",true],[" :2:",true],["::d-2",true],[":2:\t:",true],[":",false],["d",false],["",false],[": ",false]]],
+    ["[\\P{Any}]𝐀 \\w",[["𝐀 é\u0001",false],["",false],["A!",false],["wP𝐀\f",false]]],
+    ["1(?:\\B)+?(?:((𝐀{2,3}?)?\\4?)\\1{2}|)\\uD800\\uDC00",false],
+    ["|[ \\$𝐀] {2}?[\\D\\uDE00][^]",[["E0 \u001a\u0000",true],["2D2D😀",true],["𝐀\f",true],["퟿\rE",true]]],
+    ["Ⅰ\\w{1,}(?:\\cm\\?{1,}?|[^\\x41--\\-])[^b.-ก\\.-\\W]",false],
+    ["(?= [{2,3}?İ{0})",false],
+    ["[]a+?",[["é\u000b\f",false],["﻿a",false],["a",false],[" 　a",false]]],
+    ["\\2{0,2}",false],
+    ["Ⅰ{0}",[["0𝐀Ⅰ0",true],["퟿א ",true],["􏿿0\u0001Ⅰ",true],["",true]]],
+    ["\\w{1,}",[[",1,1,",true],["91",true],["cא",true],["1٣ ",true],["",false],["/\u001a",false],["ω,   ",false],[",",false]]],
+    [" {2}",[["  ",true],["  \n ",true],["￿   ",true],["  2b",true],["ſ\u0001c ",false],["\f",false],["",false],[" 2　 ",false]]],
+    [" [\\cJ.*",false],
+    ["(\\p{scx=Latin}Z{0})?\\)",[["ⅠZ中",false],["Ⅰ=n ",false],["L=",false],["",false]]],
+    ["(?<$>){0,2}[].(?<_n>.{2,3}?)",[["/c\t",false],["0",false],[" ",false],["> ",false]]],
+    ["(?1x1>\\cA{2}?.{0,2}?){2}?.(\\b=)",false],
+    [" {2}(?<a>[])􏿿",[["<<><2",false],[" \ta\n",false],["􏿿 A퟿﻿",false],["!ǅ𝐀>",false]]],
+    ["𐀀1*(?<!)(((?<é>)*)",false],
+    ["(?:Ω\\0|\\k<a>٣?)",false],
+    ["\\uD835\\uDC00😀(),",[["",false],["ก",false],["0 \f,",false],["a퟿u",false]]],
+    ["\\u{2C}?[^\\u{03E}\\cm]*$|c  ",[["cm",true],["  20😀",true],["a",true],["2  3",true]]],
+    ["[{]",[["Z=Ⅰ",false],[":",false],["ax\u001aⅠ中",false],["x𐀀　",false]]],
+    ["A*(?:(?:<\\x3C??))\\-J{0,2}",false],
+    [".[ω-\\u{17F}/- 😀].10}?|(?:)",false],
+    ["[^0\\d-￿](?:א)",false],
+    ["(?<b>[]|.|ß{0}|\\/|){0,2}",[["2:,0",true],["",true],["İ0ǅ\u000b",true],["<,0A",true]]],
+    ["[א-\\s<\\0]?\\uDE00$",false],
+    [" 1",[["1 1",true],[" 1!1",true],["􏿿 11 ",true],["111 1",true],["1  ",false],["1",false],["  ",false],["",false]]],
+    ["(?<!c |)$\\u{2C}",[["!",false],["C\n ",false],["c",false],["中uกc ",false]]],
+    ["$^İ1+",[["İก\rb",false],["1İİİ",false],["İ1Жǅİ",false],["",false]]],
+    ["[][]{1,}?((?:|)𐀀*|_)",[["ก_𐀀 _",false],[":,_",false],[" _1𐀀_",false],[",,:\u0001𐀀",false]]],
+    ["\\u041.^[^]+",false],
+    ["(?:[c]{0,2}(?<!|_{0,2}([$]{2}!{0,2}))|[^Ⅰ\\s-\\-\\b](){0}| ??.{0,2})(?:퟿א{1,}||􏿿)",false],
+    ["[-\\D].+.{1,}|[^\\w-!-\\u0041]",false],
+    ["﻿+.!?? {2,3}|\\w(?<x1>\\D)b(?:aω){0}?|ß: \\w",[["",false],["﻿w< <",false],[" \u001a￿",false],[":!:",false]]],
+    ["([]? )|٣||{0}[]\\b.",false],
+    [" ก(Ⅰ){2} {0}",[[" ",false],["Ⅰ",false],["xก퟿",false],["ก x ",false]]],
+    [" [^\\v-\\r\\\\-\\b\\{](?:İ\\b)",false],
+    ["[א-/{]*?[\\x63]+.,",false],
+    ["　\\d",[["　A𐀀d",false],[":d",false],["dd　",false],["dZd　",false]]],
+    ["\\p{C}(?<Ω>İ.)^",[[">",false],["p\u001a",false],["😀C",false],["pp",false]]],
+    ["\\k<b>[\\-\\v\\u{E000}]{0}?",false],
+    ["(?<b>(?<x1>)|9)={0,2}[^]",[[">,İ2",true],["ω9ǅ11",true],["﻿<",true],[":<<",true],["",false]]],
+    ["[^é]?İ{2}?",[["İİ ",true],["İİ",true],["İééİİ",true],["İİ2é",true],["İ\r12",false],["İé2A2",false],["Z2éİ\u001a",false],["éİ",false]]],
+    [" *ſ{0,2}1{2,3}",[["2111:",true],["2",false],[" 222ſ",false],["",false],["3א",false]]],
+    ["[ \\--\\\\\\u{41}]+_((?=)(?:ß\\uD800\\uDC00${2}){0}?)(?:[]A|)",false],
+    ["[\\P{General_Category=Letter}?﻿",false],
+    ["(|)+\\P{Ll}(?)",false],
+    ["퟿[\\x5F\\b]{0}?.{1}[a-中]",[["FZ퟿﻿b",true],["x퟿bb",true],["x퟿中b﻿",true],["𝐀\u001a퟿ x",true],["!",false],["퟿-￿x0",false],["Ω",false],["b:ab-",false]]],
+    ["٣(?:(?!))?\\r(?: \\0?)",[["  ٣",false],[":￿",false],["",false],["0:　　",false]]],
+    ["(?:){2,3}\\cz?|퟿.\\2((.){2}?)|.(?<=ก)\\b","unsupported"],
+    ["|(?<x1>|$|)\\$.(|\\B[\\p{Pd}]|(?= [􏿿]|\\b)(?<$>.){2,3})",[["x>d>􏿿",true],["2",true],[">",true],["😀>1",true]]],
+    [",{2}",[["2,,,,",true],["Ж,,2",true],[",,<é,",true],["\u00002,,",true],[",22Ⅰ,",false],[",\nก,",false],["",false],["a2",false]]],
+    ["　{1,}<",[["<　<b",true],["<　<",true],["　<<",true],["\u001a<",false],[" \f<",false],["<􏿿 　",false],["",false]]],
+    ["b é{2(}",false],
+    ["b{0}?| [][\\b-\\-]{2,3}",[["bZ-",true],["ſb_-3",true],["",true],["\u0000b",true]]],
+    [">ก?",[["ก>>",true],[">!",true],["ก1>Жก",true],["ก ,>",true],["Жก",false],["",false],["\u000bก",false],["𐀀Z0",false]]],
+    ["ω{0}?",[["\rωω ",true],["",true],["ω0\r",true],["ω00",true]]],
+    ["[][𝐀-\\d]*é{0,2+} ?",false],
+    ["\\u066{0}?",false],
+    ["(?:Ax),[^] ",[["퟿x",false],[" ",false],[":A,",false],[",x",false]]],
+    ["[\\S>-\\+][B𝐀",false],
+    ["(?:)|^c(?<a>\\SA{1,})|!(?<x1> )",[["",true],[":!,x",true],["Жxx  ",true],["1",true]]],
+    ["(?=)\\D?? {0}?",[["😀D٣ ",true],["",true],[" 0\u0001D",true],["D",true]]],
+    ["|\\v[b-.].{0,2}(?<x1>)",false],
+    ["Z{1,}(?:)",[["中ZZ",true],["Zǅ1",true],["Z1,=1",true],["Z1:Z!",true],["11 1,",false],[",",false],[":=",false],[":a\nx",false]]],
+    ["[Ж𐀀]",[["Ж",true],["ЖЖЖ",true],["ЖЖ",true],["𐀀",true],["",false],["a",false],["􏿿\n中",false],[" ",false]]],
+    ["0",[["0 ",true],["00",true],["0",true],["0ß=",true],["",false],["\u0000",false],["a!",false],["\f",false]]],
+    ["b9\\n",[["b9\nb9",true],["<nnn",false],["ß 9😀n",false],["9𝐀n",false],["ba9",false]]],
+    ["| (?<=\\x41.{0,2})𝐀 {2}",[["",true],["\f,2",true],["2 21,",true],["=𝐀,",true]]],
+    ["\\s{0}>ก|_ſ ",[[">ก",true],["中İ",false],["_ก ſ",false],["x>é ก",false],["𐀀😀ก",false]]],
+    [":{1,}Ⅰ",[[":Ⅰ",true],["𝐀Ⅰ:Ⅰ",true],["\t:Ⅰ,0",true],["Ⅰ",false],[":b: ",false],["",false],[":- 1,",false]]],
+    ["([\\u0041])(?!ſ(?!)|﻿\\x5F{1$})[^/b-\\u0041Ⅰ](?:ǅ(?<x1>){0})",false],
+    ["|\\w[\\+]{0,2}?",[["\t0",true],["1",true],["0w2 ,",true],["w2w0",true]]],
+    [" |[-\\b=]ǅ",[["Ω  Z-",true],["ǅ- ",true],["İก =",true],[" =-",true],["_\u0000٣\u001a",false],["ébb",false],["",false],["-",false]]],
+    ["!",[["!!",true],["A!1!",true],["! 9!",true],["!",true],[" ",false],["",false],["Z￿",false],[" <",false]]],
+    ["[\\x39-\\[b|-$]=\\x41",false],
+    [" ?[^\\D]{0,2}[]",[["D􏿿, ",false],["x􏿿 ",false],[" ",false],[",אZ ",false]]],
+    ["|(?:[\\S-\\b\\uDE00-\\P{letter}\\x41]*(?:)|￿^)\\uD83D\\vx?|\\b()\\x41[^\\u{202F}-\\w\\D]{1,}",false],
+    ["ſ(?:א)^",[[":::אא",false],["אA",false],[">ſ",false],["א,ſא",false]]],
+    ["[ \\w]{1,}𐀀Z{0}(?:){0,2}",[["2𐀀 ",true],["0𐀀:0",true],["Z1𐀀",true],[" 𐀀􏿿",true],["0é,",false],[" ",false],["😀:>1",false],["9",false]]],
+    ["(ω{0,2}[<-:]{2,3})𐀀ǅ",false],
+    ["](?<b>|\\B ),(?:)",false],
+    [".中.*?|",[["中😀",true],["😀中c中",true],[",",true],["中￿",true],["",false],["9",false],["😀",false],["中c",false]]],
+    ["\\P{ASCII}(?<$>😀{2})",[["\f￿",false],["",false],["ß",false],["I<",false]]],
+    ["(?<a>){2}?(?:)+\\S?",[["<!:￿",true],["S",true],["S　𐀀0a",true],["a",true]]],
+    [" {1,}^,\\P{P}{1,}?",[["P",false],["1,￿1x",false],["",false],["x ",false]]],
+    ["[^$ ]{0,2}?\\u{416}",[[">Ж",true],["u ,xЖ",true],["Ж",true],["4\r21Ж",true],["u2",false],[":41𝐀",false],["46,",false],["4",false]]],
+    ["\\1x",false],
+    ["|c(?:)　{},3}",false],
+    ["(?<!^[c_-.|])",false],
+    ["\\-　\\cm",false],
+    ["(?:.:).",[[":::",true],["\u001a:c: ",true],["퟿:!:>",true],["Ⅰ:: :",true],["9",false],["aé\r:_",false],[":",false],["",false]]],
+    ["(?<=} |􏿿{1,3}\\t)!{0,2}?\\r",false],
+    ["\\u0041+?|.:{0}",[["14\n:u",true],["!044 ",true],[" \u000b u",true],["Aǅu",true],["\r",false],["",false],[" ",false]]],
+    ["([*][\\w])\\k<>ß{2,3}1{0}",false],
+    ["\\?|(0|퟿{2}?)",[["ก 00",true],["209𝐀𝐀",true],["00=0",true],["퟿0퟿/ ",true],["퟿",false],["",false],[" ",false],["2",false]]],
+    ["[ ]?(?![\\W-\\- ] {2})ǅ",false],
+    ["\\B^",[["éB\u001a\u0001B",true],["\n",true],["\u0000=B",true],[" BBB",true],["BBBB",false],["_B　ω",false],["B!B",false],["BBBB\u001a",false]]],
+    ["(?<=x[])Ω{0} ",[["𐀀0中<=",false],["0<=0 ",false],["/ ",false],[" <",false]]],
+    ["(ω)",[[" ωé",true],["ω",true],["ωωωא",true],["a9ω",true],["",false],["😀",false],["1 \tİ",false],["　ǅ",false]]],
+    ["((|||)?){2}?>[ǅ-\\r]*",false],
+    ["(?=|).",[["x===",true],["A==",true],["٣==",true],["=====",true],["",false]]],
+    ["(?<x1>_){2}?ß{2,3}[]",[["1",false],["31",false],["<1 ٣,",false],["_2c1􏿿",false]]],
+    ["(?=[{\\s]|)",[["s",true],["",true],["== ",true],["sss",true]]],
+    [",{2}\\b",[["2𐀀,,b",true],["b,,2",true],["b2bb",false],[",",false],[" ,",false],["",false]]],
+    ["(?<_n>){2,3}(b )|　\\4",false],
+    ["[]{0,2}[]",[[",00,",false],["",false],["א ",false],[",02\t",false]]],
+    ["(?:)^|! [!\\p{P}-中]\\S",false],
+    ["ω\\x41{0}(?<=\\u{00A}([\\b﻿](?: {1,3}_)|){1,3}?)",[["3,",false],["<4x0",false],["3:Ωω=",false],["=b01x",false]]],
+    ["[^\\D\\P{Script=Common}\\b](?:)^0",[["",false],[" cr",false],["oP ",false],["0pr",false]]],
+    ["((c(?<\\é>)*).)\\s*",false],
+    ["😀{1,}(?:[$Ж-\\u{2028}])",[["😀Ж😀1,",true],["1",false],["Ж,,8:",false],["a2- 2",false],["Ж-􏿿 ",false]]],
+    ["中{1,}?(?<$>)￿{2}?\\u202F",[["",false],["\u0001",false],["a",false],["中中\r",false]]],
+    [" \\b",[["   b ",true],["\u000b b",true],["  Z  ",true],[" b ",true],["bſΩbω",false],["  ",false],["",false],["b ",false]]],
+    ["Ⅰ{2}?\\P{sc=Zinh}*",[["ⅠⅠ=P𐀀",true],["Z",false],["𝐀csh",false],["P",false],[" ",false]]],
+    ["ก{0}",[["ก ก0",true],["A ก00",true],["İſกก",true],[" กก",true]]],
+    [" Ⅰ",[["Ⅰ\né Ⅰ",true],[" Ⅰ٣ ",true],[" Ⅰ",true],["Ⅰ<\r Ⅰ",true],["",false],["😀𝐀   ",false],["ⅠⅠ ",false],["Ⅰ",false]]],
+    [" (?>$>0( {1,})??)+^a",false],
+    ["\\2{0}",false],
+    [" |[^:]İ\\uDE00",[["ωa\u000b ",true],["𐀀 ",true],["E ",true],["İ𝐀 ",true],["",false],["b:D9",false],["İ",false],["\fİ𝐀ǅ",false]]],
+    ["[](ǅ)",[["",false],[">",false],["ǅǅǅ",false],["􏿿9ǅZ",false]]],
+    [" B",[["bx B=",true],[" B  א",true],["  B",true],["B B ",true],["",false],[" < ",false],["BB < ",false],[" ",false]]],
+    ["[^}\\uD83]]b(\\B)",false],
+    [".{1,}?",[["1 b",true],["\r1\u000b",true],["1, >é",true],[",",true],["",false]]],
+    ["|(?!)\\cA{0,2}$\\uD83D",[["ué",true],["",true],["\u0001-0",true],["中uA",true]]],
+    ["()(.|[ -\\p{Letter}x]?(?:|(b?\\B)??(\\u{10FFFF}))){2,3}((){2}Ⅰ)",false],
+    [">{2}?1?\\x41>??",[[">ß 4",false],["4A\u000b>",false],["ЖⅠ",false],["1",false]]],
+    ["(?:(?:){0,2}){0,2}[﻿-}c]|\\s {2,3}?)",false],
+    ["[ ]{1,}?\\D[]",[["😀    ",false],[",,,DD",false],[", ",false],["𐀀 <DD",false]]]
+]

@@ -42,6 +42,17 @@ jobs:
         run: |
           composer validate --strict
           composer check-deps
+      - name: Generated meta-schemas
+        run: |
+          composer meta-schemas
+          test -z "$(git status --porcelain -- resources/meta-schemas)"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Generated regex test data
+        run: |
+          node .github/ci/ecma-regexes.mjs
+          test -z "$(git status --porcelain -- tests/Unit/Schema/ecma-regexes.json)"
       - name: Formatting and Mago
         run: |
           composer cs-check
@@ -63,6 +74,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          submodules: true
       - uses: ./.github/actions/setup-php
         with:
           php-version: ${{ matrix.php }}
@@ -102,6 +114,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          submodules: true
       - uses: ./.github/actions/setup-php
         with:
           coverage: pcov
