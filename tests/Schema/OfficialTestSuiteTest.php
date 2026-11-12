@@ -203,7 +203,10 @@ final class OfficialTestSuiteTest extends TestCase
      */
     private static array $validators = [];
 
-    /** @var array{string, string, array{assertFormats?: true}}|null The schema, class and options of the cache. */
+    /**
+     * @var array{string, string, array{assertFormats?: true}, array<array-key, string>}|null The schema, class, options
+     *     and external schemas of the cache.
+     */
     private static array|null $validatorsFor = null;
 
     /**
@@ -211,8 +214,6 @@ final class OfficialTestSuiteTest extends TestCase
      * {@see ApplicatorFailureLaw}, {@see SchemaRewrites} and {@see ApplicatorWrapping}. It also checks the laws for
      * PCRE's limits: see {@see RegexLimitLaw} and {@see RepetitionLaw}.
      *
-     * @param class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012> $class
-     * @param array{assertFormats?: true} $options
      * @throws \PHPUnit\Framework\Exception
      * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
      * @throws InvalidArgumentException
@@ -221,89 +222,82 @@ final class OfficialTestSuiteTest extends TestCase
     #[DataProviderExternal(OfficialSuiteCases::class, 'cases')]
     #[DataProviderExternal(OfficialSuiteCases::class, 'proposed')]
     public function testValidatorAgreesWithTheOfficialTestSuite(
-        string $schemaJson,
-        string $class,
+        OfficialSuiteSchema $schema,
         mixed $value,
         bool $valid,
-        array $options,
     ): void {
-        $loader = OfficialSuiteRemotes::loader($class);
-        $schema = JsonSchema::decode($schemaJson, $class, loader: $loader);
-        static::assertNotInstanceOf(DecodeError::class, $schema);
-
-        $validator = Validator::compile($schema, ...['loader' => $loader, ...$options]);
-
-        static::assertInstanceOf(Validator::class, $validator);
+        $validator = self::compile($schema);
         $error = $validator->validateValue($value);
         static::assertSame($valid, $error === null, (string) $error);
         static::assertSame($valid, $validator->isValid($value));
 
         $failures = $error->failures ?? [];
         /** @var mixed $document */
-        $document = json_decode($schemaJson, flags: JSON_THROW_ON_ERROR);
+        $document = json_decode($schema->json, flags: JSON_THROW_ON_ERROR);
         foreach ($failures as $failure) {
             KeywordLocationLaw::assertHolds($document, $failure);
             ApplicatorFailureLaw::assertHolds($document, $failure, $failures);
         }
-        RegexLimitLaw::assertHolds($schemaJson, $document, $validator, $value, $valid);
+        RegexLimitLaw::assertHolds($schema->json, $document, $validator, $value, $valid);
         RepetitionLaw::assertHolds($document, $validator, $value, $error);
-        self::assertRewritesKeepTheFailures($schemaJson, $class, $value, $options, $failures);
+        self::assertRewritesKeepTheFailures($schema, $value, $failures);
     }
 
     /**
      * Reversing the parts of the schema whose order has no meaning, or wrapping the schema in an applicator, changes the
      * failures only as expected.
      *
-     * @param class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012> $class
-     * @param array{assertFormats?: true} $options
      * @param list<ValidationFailure> $failures The failures of the value against the schema.
      * @throws \PHPUnit\Framework\Exception
      * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
      * @throws JsonException
      */
     private static function assertRewritesKeepTheFailures(
-        string $schemaJson,
-        string $class,
+        OfficialSuiteSchema $schema,
         mixed $value,
-        array $options,
         array $failures,
     ): void {
-        if (self::$validatorsFor !== [$schemaJson, $class, $options]) {
+        $cacheKey = [$schema->json, $schema->class, $schema->options, $schema->externalSchemas];
+        if (self::$validatorsFor !== $cacheKey) {
             self::$validators = [];
-            self::$validatorsFor = [$schemaJson, $class, $options];
+            self::$validatorsFor = $cacheKey;
         }
-        $reversed = self::encode(SchemaRewrites::reverse(json_decode($schemaJson, flags: JSON_THROW_ON_ERROR)));
-        $error = self::validate($reversed, $class, $value, $options);
+        $reversed = self::encode(SchemaRewrites::reverse(json_decode($schema->json, flags: JSON_THROW_ON_ERROR)));
+        $error = self::validate($schema->withJson($reversed), $value);
         static::assertSame(self::rows($failures), self::rows($error->failures ?? []), 'reversed');
 
-        foreach (ApplicatorWrappings::of($schemaJson, $value, $class) as $name => $wrapping) {
-            $error = self::validate(self::encode($wrapping->schema), $class, $wrapping->value, $options);
+        foreach (ApplicatorWrappings::of($schema->json, $value, $schema->class) as $name => $wrapping) {
+            $error = self::validate($schema->withJson(self::encode($wrapping->schema)), $wrapping->value);
             static::assertSame(self::rows($wrapping->failures($failures)), self::rows($error->failures ?? []), $name);
         }
     }
 
     /**
-     * @param class-string<Draft4|Draft6|Draft7|Draft201909|Draft202012> $class
-     * @param array{assertFormats?: true} $options
      * @throws \PHPUnit\Framework\Exception
      * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
      */
-    private static function validate(
-        string $schemaJson,
-        string $class,
-        mixed $value,
-        array $options,
-    ): ValidationError|null {
-        $validator = self::$validators[$schemaJson] ?? null;
+    private static function validate(OfficialSuiteSchema $schema, mixed $value): ValidationError|null
+    {
+        $validator = self::$validators[$schema->json] ?? null;
         if ($validator === null) {
-            $loader = OfficialSuiteRemotes::loader($class);
-            $schema = JsonSchema::decode($schemaJson, $class, loader: $loader);
-            static::assertNotInstanceOf(DecodeError::class, $schema);
-            $validator = Validator::compile($schema, ...['loader' => $loader, ...$options]);
-            static::assertInstanceOf(Validator::class, $validator);
-            self::$validators[$schemaJson] = $validator;
+            $validator = self::compile($schema);
+            self::$validators[$schema->json] = $validator;
         }
         return $validator->validateValue($value);
+    }
+
+    /**
+     * @throws \PHPUnit\Framework\Exception
+     * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
+     */
+    private static function compile(OfficialSuiteSchema $schema): Validator
+    {
+        $loader = $schema->loader();
+        $document = JsonSchema::decode($schema->json, $schema->class, loader: $loader);
+        static::assertNotInstanceOf(DecodeError::class, $document);
+        $validator = Validator::compile($document, ...['loader' => $loader, ...$schema->options]);
+        static::assertInstanceOf(Validator::class, $validator);
+        return $validator;
     }
 
     /** @throws JsonException */

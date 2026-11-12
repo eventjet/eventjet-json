@@ -1,0 +1,22 @@
+{
+    "description": "date validation",
+    "tests": [
+        {
+            "description": "a date followed by a line feed",
+            "compatibility": "7,<=2020",
+            "tags": [
+                "format-assertion"
+            ],
+            "schema": {
+                "format": "date"
+            },
+            "tests": [
+                {
+                    "description": "a date followed by a line feed is invalid",
+                    "data": "1963-06-19\n",
+                    "valid": false
+                }
+            ]
+        }
+    ]
+}
