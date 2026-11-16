@@ -71,6 +71,10 @@ foreach ($expected as $category => $names) {
         }
     }
     $counts = array_fill_keys($names, $category === 'errors' ? 1 : 2);
+    if ($category === 'documents') {
+        // Compiling and validating a schema is measured cold, and compiling, validating, and isValid() warm.
+        $counts += array_fill_keys(Eventjet\Json\Benchmark\SchemaWorkloads::names(), 4);
+    }
     ksort($actual);
     ksort($counts);
     if ($actual !== $counts) {

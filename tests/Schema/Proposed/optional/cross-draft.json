@@ -1,0 +1,39 @@
+{
+    "description": "optional/cross-draft",
+    "tests": [
+        {
+            "description": "$recursiveRef in a 2019-09 schema ignores $recursiveAnchor in a draft 7 schema",
+            "compatibility": "=7",
+            "schema": {
+                "$recursiveAnchor": true,
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "http://localhost:1234/draft2019-09/recursiveRef-tree.json"
+                    }
+                ]
+            },
+            "externalSchemas": {
+                "http://localhost:1234/draft2019-09/recursiveRef-tree.json": {
+                    "$schema": "https://json-schema.org/draft/2019-09/schema",
+                    "$id": "http://localhost:1234/draft2019-09/recursiveRef-tree.json",
+                    "$recursiveAnchor": true,
+                    "properties": {
+                        "foo": {
+                            "$recursiveRef": "#"
+                        }
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "a non-object value is valid for the 2019-09 schema",
+                    "data": {
+                        "foo": 1
+                    },
+                    "valid": true
+                }
+            ]
+        }
+    ]
+}

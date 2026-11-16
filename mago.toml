@@ -14,6 +14,10 @@ preset = "default"
 integrations = ["phpunit"]
 minimum-fail-level = "note"
 
+# The law lowers PCRE's limits for one validation, which only ini_set() can do at runtime.
+[linter.rules]
+no-ini-set = { exclude = ["tests/Schema/RegexLimitLaw.php"] }
+
 [analyzer]
 allow-side-effects-in-conditions = false
 analyze-dead-code = true

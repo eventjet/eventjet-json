@@ -1,0 +1,28 @@
+{
+    "description": "propertyNames validation",
+    "tests": [
+        {
+            "description": "propertyNames with boolean schema false ignores arrays",
+            "compatibility": "6",
+            "schema": {
+                "propertyNames": false
+            },
+            "tests": [
+                {
+                    "description": "a non-empty array is valid",
+                    "data": [
+                        "foo"
+                    ],
+                    "valid": true
+                },
+                {
+                    "description": "a non-empty object is invalid",
+                    "data": {
+                        "foo": 1
+                    },
+                    "valid": false
+                }
+            ]
+        }
+    ]
+}

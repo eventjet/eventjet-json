@@ -1,0 +1,22 @@
+{
+    "description": "hostname validation",
+    "tests": [
+        {
+            "description": "hostname length limit",
+            "compatibility": "4,<=2020",
+            "tags": [
+                "format-assertion"
+            ],
+            "schema": {
+                "format": "hostname"
+            },
+            "tests": [
+                {
+                    "description": "a hostname of exactly 253 characters is valid",
+                    "data": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                    "valid": true
+                }
+            ]
+        }
+    ]
+}

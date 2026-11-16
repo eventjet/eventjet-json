@@ -12,6 +12,14 @@ LOCAL_UID="$(id -u)" LOCAL_GID="$(id -g)" docker compose up --build --detach
 docker compose exec php composer install
 ```
 
+The official JSON Schema Test Suite is a Git submodule in
+`tests/JsonSchemaTestSuite`. Clone with `--recurse-submodules`, or fetch it
+afterwards:
+
+```bash
+git submodule update --init
+```
+
 Run the complete quality suite inside the container:
 
 ```bash
@@ -20,6 +28,27 @@ docker compose exec php composer check
 
 Keep formatting, dependency checks, static analysis, PHPUnit, and mutation
 testing passing as support grows. These are ongoing development requirements.
+
+### Meta-schemas
+
+The package loads the official JSON Schema meta-schemas from PHP files next to
+the JSON files in `resources/meta-schemas`. After you change a JSON file there,
+write the PHP files again. CI fails if they don't match.
+
+```bash
+docker compose exec php composer meta-schemas
+```
+
+### ECMA-262 regexes
+
+`EcmaRegexTest` checks the translation of `pattern` regexes to PCRE against
+`tests/Unit/Schema/ecma-regexes.json`, which holds V8's verdicts on generated
+regexes. After you change the generator, write the file again with Node.js 24
+on the host, as the PHP container has no Node.js. CI fails if it doesn't match.
+
+```bash
+node .github/ci/ecma-regexes.mjs
+```
 
 ### PHPDoc parity
 

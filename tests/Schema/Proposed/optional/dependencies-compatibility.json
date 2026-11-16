@@ -1,0 +1,50 @@
+{
+    "description": "optional dependencies-compatibility validation",
+    "tests": [
+        {
+            "description": "dependencies alongside dependentSchemas",
+            "compatibility": "2019,<=2020",
+            "schema": {
+                "dependencies": {
+                    "foo": [
+                        "bar"
+                    ]
+                },
+                "dependentSchemas": {
+                    "foo": {
+                        "required": [
+                            "baz"
+                        ]
+                    }
+                }
+            },
+            "tests": [
+                {
+                    "description": "both satisfied",
+                    "data": {
+                        "foo": 1,
+                        "bar": 2,
+                        "baz": 3
+                    },
+                    "valid": true
+                },
+                {
+                    "description": "dependencies not satisfied",
+                    "data": {
+                        "foo": 1,
+                        "baz": 3
+                    },
+                    "valid": false
+                },
+                {
+                    "description": "dependentSchemas not satisfied",
+                    "data": {
+                        "foo": 1,
+                        "bar": 2
+                    },
+                    "valid": false
+                }
+            ]
+        }
+    ]
+}

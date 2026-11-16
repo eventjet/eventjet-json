@@ -1,0 +1,25 @@
+{
+  "symbol-whitelist": [
+    "IDNA_CHECK_BIDI",
+    "IDNA_CHECK_CONTEXTJ",
+    "IDNA_DEFAULT",
+    "IDNA_NONTRANSITIONAL_TO_ASCII",
+    "IDNA_USE_STD3_RULES",
+    "idn_to_ascii",
+    "idn_to_utf8",
+    "INTL_IDNA_VARIANT_UTS46"
+  ],
+  "php-core-extensions": [
+    "Core",
+    "date",
+    "json",
+    "hash",
+    "pcre",
+    "Phar",
+    "Reflection",
+    "SPL",
+    "random",
+    "standard"
+  ],
+  "scan-files": []
+}

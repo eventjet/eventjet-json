@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Ci\Fpm;
 
-use Eventjet\Json\Benchmark\DocumentWorkloads;
+use Eventjet\Json\Benchmark\RequestWorkloads;
 use Eventjet\Json\Ci\FpmRuntime;
-use Eventjet\Json\DecodeError;
-use Eventjet\Json\Json;
 use RuntimeException;
 
 require dirname(__DIR__) . '/FpmRuntime.php';
@@ -25,17 +23,14 @@ $name = getenv('QUERY_STRING');
 if ($name === false) {
     throw new RuntimeException('Missing workload query string.');
 }
-$workload = DocumentWorkloads::named(rawurldecode($name));
+$workload = RequestWorkloads::named(rawurldecode($name));
 $before = FpmRuntime::status();
 $start = hrtime(true);
-$decoded = Json::decode($workload->json, $workload->class);
+$result = $workload->run();
 $elapsed = (hrtime(true) - $start) / 1000;
 $peak = memory_get_peak_usage(true);
 $after = FpmRuntime::status();
-if ($decoded instanceof DecodeError) {
-    throw $decoded;
-}
-$workload->verify($decoded);
+$workload->verify($result);
 header('Content-Type: application/json');
 echo
     json_encode([
@@ -46,5 +41,5 @@ echo
         'opcache_misses' => $after['misses'] - $before['misses'],
         'jit_enabled' => $after['jit'],
         'pid' => getmypid(),
-        'input_bytes' => strlen($workload->json),
+        'input_bytes' => $workload->inputBytes(),
     ], JSON_THROW_ON_ERROR);

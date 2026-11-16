@@ -1,0 +1,27 @@
+{
+    "description": "unevaluatedProperties validation",
+    "tests": [
+        {
+            "description": "unevaluatedProperties alongside unevaluatedItems",
+            "compatibility": "2019,<=2020",
+            "schema": {
+                "unevaluatedItems": false,
+                "unevaluatedProperties": false
+            },
+            "tests": [
+                {
+                    "description": "an empty object is valid",
+                    "data": {},
+                    "valid": true
+                },
+                {
+                    "description": "an object with a property is invalid",
+                    "data": {
+                        "foo": 1
+                    },
+                    "valid": false
+                }
+            ]
+        }
+    ]
+}

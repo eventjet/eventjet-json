@@ -1,0 +1,67 @@
+{
+    "description": "multipleOf validation",
+    "tests": [
+        {
+            "description": "multipleOf an integer, with decimal values",
+            "compatibility": "4",
+            "schema": {
+                "multipleOf": 2
+            },
+            "tests": [
+                {
+                    "description": "4.0 is a multiple of 2",
+                    "data": 4.0,
+                    "valid": true
+                },
+                {
+                    "description": "0.4 is not a multiple of 2",
+                    "data": 0.4,
+                    "valid": false
+                },
+                {
+                    "description": "12.0 is a multiple of 2",
+                    "data": 12.0,
+                    "valid": true
+                },
+                {
+                    "description": "3.0 is not a multiple of 2",
+                    "data": 3.0,
+                    "valid": false
+                }
+            ]
+        },
+        {
+            "description": "multipleOf a decimal, with integer values",
+            "compatibility": "4",
+            "schema": {
+                "multipleOf": 2.5
+            },
+            "tests": [
+                {
+                    "description": "5 is a multiple of 2.5",
+                    "data": 5,
+                    "valid": true
+                },
+                {
+                    "description": "1 is not a multiple of 2.5",
+                    "data": 1,
+                    "valid": false
+                }
+            ]
+        },
+        {
+            "description": "multipleOf a decimal ending in an even digit, with integer values",
+            "compatibility": "4",
+            "schema": {
+                "multipleOf": 0.2
+            },
+            "tests": [
+                {
+                    "description": "1 is a multiple of 0.2",
+                    "data": 1,
+                    "valid": true
+                }
+            ]
+        }
+    ]
+}

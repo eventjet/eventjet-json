@@ -12,7 +12,9 @@ Optional field-name mapping uses `#[Field]` with PHP's `JsonSerializable`.
 ## Installation
 
 Requires PHP 8.4 or later, with the JSON and Tokenizer extensions. There are no
-other runtime dependencies.
+other runtime dependencies. Checking the `idn-hostname` and `idn-email`
+formats of JSON Schema needs the intl extension, and so do `hostname` and
+`email` from Draft 7 on.
 
 ```bash
 composer require eventjet/json
@@ -337,31 +339,61 @@ fields. See the [type reference](docs/types.md#other-members) for the details.
 
 ## JSON Schema
 
-The package includes classes for JSON Schema documents of Draft 4, Draft 6,
+The package reads and checks JSON Schema documents of Draft 4, Draft 6,
 Draft 7, Draft 2019-09, and Draft 2020-12, in the `Eventjet\Json\Schema`
-namespace:
+namespace. `JsonSchema::decode()` reads a document's `$schema` and returns an
+object of that draft's class, or a Boolean for `true` and `false`.
+`Validator::compile()` turns it into a validator, which you can reuse for any
+number of values:
 
 ```php
+use Eventjet\Json\DecodeError;
 use Eventjet\Json\Schema\Draft202012;
-use Eventjet\Json\Schema\Type;
+use Eventjet\Json\Schema\JsonSchema;
+use Eventjet\Json\Schema\SchemaError;
+use Eventjet\Json\Schema\Validator;
 
-$schema = Json::decode(
-    '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"name":{"type":"string"}}}',
-    Draft202012::class,
+$schema = JsonSchema::decode(
+    '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","required":["name"]}',
+    Draft202012::class, // for documents without $schema
 );
 if ($schema instanceof DecodeError) {
     throw $schema;
 }
+$validator = Validator::compile($schema);
+if ($validator instanceof SchemaError) {
+    throw $validator;
+}
 
-var_dump($schema->type === Type::Object);   // bool(true)
-echo $schema->title ?? 'Untitled';           // Untitled
+$validator->isValid(json_decode('{"name":"Ada"}')); // true
+echo $validator->validateValue(['age' => 36]);      // (root): The member "name" is required. (/required)
+```
+
+`validateValue()` returns `null` for a valid value, or a `ValidationError`
+that lists every failure with where it is in the value, which keyword failed,
+and a message. `isValid()` returns whether the value is valid. Both read
+values the way `json_encode()` writes them, so `json_decode()` output, arrays,
+`stdClass`, `JsonSerializable` objects, and backed enums all work. A value
+that `json_encode()` can't write returns an `UnsupportedValue` error. If PCRE
+gives up on a `pattern` or `patternProperties` regex, for example at its
+backtrack limit, the result is a `RegexLimit` error.
+
+The validator passes every required and optional test of the official
+[JSON Schema Test Suite](https://github.com/json-schema-org/JSON-Schema-Test-Suite)
+for these drafts, except the optional cases that compare numbers more precisely
+than PHP's `int` and `float` can hold them. The library never fetches documents. To resolve references
+to other documents, pass a loader; the official meta-schemas are built in.
+`format` is only an annotation unless you pass `assertFormats: true`. Schemas
+are trusted input: a hostile `pattern` can make PCRE backtrack for a long time.
+See the [type reference](docs/types.md#json-schema) for the details.
+
+If you know the draft, you can also decode a document directly into its class:
+
+```php
+$schema = Json::decode($json, Draft202012::class);
 $name = $schema->properties['name'] ?? null; // Draft202012|bool|null
 echo json_encode($schema, JSON_THROW_ON_ERROR); // the same document
 ```
-
-Each keyword is a property, and `null` means the schema doesn't have it, so
-you can read keywords with `??` and `?->`. The classes parse schemas; they
-don't validate them, validate instances against them, or resolve `$ref`.
 
 The classes are readonly. To change a schema, call `with()` with the keywords
 to change as named arguments. It returns a copy, and `null` removes a keyword:
@@ -369,19 +401,6 @@ to change as named arguments. It returns a copy, and `null` removes a keyword:
 ```php
 $person = $schema->with(title: 'Person', description: null);
 ```
-
-Keywords that the draft doesn't define, such as `x-*` extensions, are kept in
-`$schema->unknownKeywords`, so `json_encode()` writes the whole document back.
-
-A schema that is just `true` or `false` returns an `UnexpectedRootValue`
-error. Check for it first if your input can be one:
-
-```php
-$data = json_decode($json);
-$schema = is_bool($data) ? $data : Json::decode($json, Draft202012::class);
-```
-
-See the [type reference](docs/types.md#json-schema) for the details.
 
 ## Decoding rules
 
