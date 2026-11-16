@@ -13,7 +13,6 @@ use Eventjet\Json\JsonValue;
 use Eventjet\Json\OtherMembers;
 use JsonSerializable;
 use Override;
-use ReflectionException;
 use UnexpectedValueException;
 
 /**
@@ -217,7 +216,6 @@ final readonly class Draft7 implements JsonSerializable
      * Returns the keywords that the schema has, under their JSON names, followed by its unknown keywords.
      *
      * @throws DecodeError
-     * @throws ReflectionException
      * @throws UnexpectedValueException If an unknown keyword has the name of a keyword of the draft, because decoding
      *     would bind it to that keyword.
      */

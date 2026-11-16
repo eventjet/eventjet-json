@@ -12,7 +12,6 @@ use Eventjet\Json\Schema\Draft6;
 use Eventjet\Json\Schema\Draft7;
 use Eventjet\Json\Schema\SchemaError;
 use JsonException;
-use ReflectionException;
 use stdClass;
 use UnexpectedValueException;
 
@@ -38,7 +37,7 @@ final class SchemaTree
                 json_encode($schema->jsonSerialize(), JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
                 flags: JSON_THROW_ON_ERROR,
             );
-        } catch (JsonException|DecodeError|ReflectionException|UnexpectedValueException $exception) {
+        } catch (JsonException|DecodeError|UnexpectedValueException $exception) {
             throw new SchemaError('Could not read the schema: ' . $exception->getMessage(), $exception);
         }
     }

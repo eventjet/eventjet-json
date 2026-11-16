@@ -6,7 +6,7 @@ namespace Eventjet\Json\Internal;
 
 use Eventjet\Json\DecodeError;
 use ReflectionClass;
-use ReflectionException;
+use ReflectionObject;
 use UnexpectedValueException;
 
 use function array_filter;
@@ -22,13 +22,12 @@ final class MappedObjectSerializer
      * #[OtherMembers] collects.
      *
      * @throws DecodeError
-     * @throws ReflectionException
      * @throws UnexpectedValueException If a collected member has the JSON name of a declared field, because decoding
      *     would bind it to that field.
      */
     public static function serialize(object $object): object
     {
-        $class = new ReflectionClass($object);
+        $class = new ReflectionObject($object);
         /** @var array<string, array<array-key, mixed>|object|bool|int|float|string|resource|null> $properties */
         $properties = get_object_vars($object);
         foreach (NullableJsonValues::of($class) as $name => $_) {
@@ -44,14 +43,13 @@ final class MappedObjectSerializer
      * Like serialize(), but leaves out every property that is null, for classes in which null means absent.
      *
      * @throws DecodeError
-     * @throws ReflectionException
      * @throws UnexpectedValueException If a collected member has the JSON name of a declared field.
      */
     public static function serializeWithoutNulls(object $object): object
     {
         /** @var array<string, array<array-key, mixed>|object|bool|int|float|string|resource|null> $properties */
         $properties = array_filter(get_object_vars($object), static fn(mixed $value): bool => $value !== null);
-        return self::write(new ReflectionClass($object), $properties);
+        return self::write(new ReflectionObject($object), $properties);
     }
 
     /**
