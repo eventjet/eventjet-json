@@ -211,8 +211,10 @@ final class OfficialTestSuiteTest extends TestCase
 
     /**
      * Besides the validity, checks the laws that every failure obeys: see {@see KeywordLocationLaw},
-     * {@see ApplicatorFailureLaw}, {@see SchemaRewrites} and {@see ApplicatorWrapping}. It also checks the laws for
-     * PCRE's limits: see {@see RegexLimitLaw} and {@see RepetitionLaw}.
+     * {@see ApplicatorFailureLaw}, {@see FailureStringLaw}, {@see KeywordMessageLaw}, {@see SchemaRewrites} and
+     * {@see ApplicatorWrapping}. It also checks the laws for PCRE's limits, {@see RegexLimitLaw} and
+     * {@see RepetitionLaw}, and those for values and schemas that are not valid: {@see UnsupportedValueLaw} and
+     * {@see MalformedKeywordLaw}.
      *
      * @throws \PHPUnit\Framework\Exception
      * @throws \PHPUnit\Framework\UnknownClassOrInterfaceException
@@ -237,9 +239,13 @@ final class OfficialTestSuiteTest extends TestCase
         foreach ($failures as $failure) {
             KeywordLocationLaw::assertHolds($document, $failure);
             ApplicatorFailureLaw::assertHolds($document, $failure, $failures);
+            FailureStringLaw::assertHolds($failure);
+            KeywordMessageLaw::assertHolds($document, $failure);
         }
         RegexLimitLaw::assertHolds($schema->json, $document, $validator, $value, $valid);
         RepetitionLaw::assertHolds($document, $validator, $value, $error);
+        UnsupportedValueLaw::assertHolds($validator, $value);
+        MalformedKeywordLaw::assertHolds($schema);
         self::assertRewritesKeepTheFailures($schema, $value, $failures);
     }
 
