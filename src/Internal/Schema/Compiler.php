@@ -4,9 +4,16 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Schema;
 
+use Closure;
+use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Schema\Compile\KeywordCompiler;
 use Eventjet\Json\Internal\Schema\Compile\ReferenceLoops;
 use Eventjet\Json\Internal\Schema\Compile\SchemaObject;
+use Eventjet\Json\Schema\Draft201909;
+use Eventjet\Json\Schema\Draft202012;
+use Eventjet\Json\Schema\Draft4;
+use Eventjet\Json\Schema\Draft6;
+use Eventjet\Json\Schema\Draft7;
 use Eventjet\Json\Schema\SchemaError;
 use SplObjectStorage;
 use stdClass;
@@ -28,16 +35,39 @@ final class Compiler
     /** @var list<Node> */
     private array $compiled = [];
 
+    /** @param bool $intl Whether the intl extension is loaded, which some formats need. */
     public function __construct(
         private readonly Registry $registry,
+        public readonly bool $intl,
     ) {
         /** @var SplObjectStorage<stdClass, Node> $nodes */
         $nodes = new SplObjectStorage();
         $this->nodes = $nodes;
     }
 
+    /**
+     * Compiles a schema and every schema that it refers to, and returns the node of its root.
+     *
+     * @param (Closure(string): (Draft4|Draft6|Draft7|Draft201909|Draft202012|bool|DecodeError|null))|null $loader
+     * @param bool $intl Whether the intl extension is loaded, which some formats need.
+     * @throws SchemaError
+     */
+    public static function root(
+        Draft4|Draft6|Draft7|Draft201909|Draft202012|bool $schema,
+        Closure|null $loader,
+        bool $assertFormats,
+        bool $intl,
+    ): Node {
+        $registry = new Registry($loader, $assertFormats);
+        $resource = $registry->addSchema($schema, '');
+        $compiler = new self($registry, $intl);
+        $root = $compiler->compile($resource->root, $registry->rootLocation($resource));
+        $compiler->checkLoops();
+        return $root;
+    }
+
     /** @throws SchemaError */
-    public function compile(stdClass|bool $schema, Location $location): Node
+    private function compile(stdClass|bool $schema, Location $location): Node
     {
         if (is_bool($schema)) {
             return new Node($location->resource, $location->absolute(), $schema);
@@ -60,7 +90,7 @@ final class Compiler
      *
      * @throws SchemaError
      */
-    public function checkLoops(): void
+    private function checkLoops(): void
     {
         ReferenceLoops::check($this->compiled);
     }

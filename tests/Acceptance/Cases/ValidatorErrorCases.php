@@ -18,6 +18,9 @@ use Eventjet\Json\Schema\Type;
 use Eventjet\Json\Test\Acceptance\Fixtures\FailingSerializer;
 use InvalidArgumentException;
 
+use function in_array;
+use function str_starts_with;
+
 use const INF;
 use const NAN;
 
@@ -28,6 +31,28 @@ use const NAN;
  */
 final class ValidatorErrorCases
 {
+    private const array FORMATS = [
+        'date-time',
+        'date',
+        'time',
+        'duration',
+        'email',
+        'idn-email',
+        'hostname',
+        'idn-hostname',
+        'ipv4',
+        'ipv6',
+        'uri',
+        'uri-reference',
+        'iri',
+        'iri-reference',
+        'uri-template',
+        'json-pointer',
+        'relative-json-pointer',
+        'regex',
+        'uuid',
+    ];
+
     /**
      * Schemas whose in-place subschemas refer back to the root, for every keyword that applies subschemas in place.
      *
@@ -233,6 +258,36 @@ final class ValidatorErrorCases
             'Could not load https://example.com/broken: Invalid JSON: Syntax error',
             $decodeError,
         ];
+    }
+
+    /**
+     * Every format that the validator checks, in every draft, with the error that compiling it fails with where the
+     * intl extension is missing, or null if it compiles. The internationalized formats always need intl, and from draft
+     * 7 on, so do `hostname` and `email`, which check punycode labels with it.
+     *
+     * @api Called by PHPUnit through DataProviderExternal.
+     * @return iterable<string, array{Draft4|Draft6|Draft7|Draft201909|Draft202012, string|null}>
+     */
+    public static function formatsWithoutIntl(): iterable
+    {
+        $drafts = [
+            'Draft 4' => [static fn(string $format): Draft4 => new Draft4(format: $format), false],
+            'Draft 6' => [static fn(string $format): Draft6 => new Draft6(format: $format), false],
+            'Draft 7' => [static fn(string $format): Draft7 => new Draft7(format: $format), true],
+            'Draft 2019-09' => [static fn(string $format): Draft201909 => new Draft201909(format: $format), true],
+            'Draft 2020-12' => [static fn(string $format): Draft202012 => new Draft202012(format: $format), true],
+        ];
+        foreach (self::FORMATS as $format) {
+            foreach ($drafts as $name => [$create, $sinceDraft7]) {
+                $needsIntl =
+                    str_starts_with($format, 'idn-')
+                    || $sinceDraft7 && in_array($format, ['hostname', 'email'], strict: true);
+                yield $format . ' in ' . $name => [
+                    $create($format),
+                    $needsIntl ? 'Checking the format ' . $format . ' at #/format needs the intl extension.' : null,
+                ];
+            }
+        }
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Internal\Schema\Compile;
 
+use Eventjet\Json\Internal\Schema\Compiler;
 use Eventjet\Json\Internal\Schema\Draft;
 use Eventjet\Json\Internal\Schema\Formats;
 use Eventjet\Json\Internal\Schema\Keyword;
@@ -11,7 +12,6 @@ use Eventjet\Json\Internal\Schema\Keyword\ContentKeyword;
 use Eventjet\Json\Internal\Schema\Keyword\FormatKeyword;
 use Eventjet\Json\Schema\SchemaError;
 
-use function extension_loaded;
 use function sprintf;
 
 /**
@@ -25,11 +25,11 @@ final class FormatKeywords
      * @return list<Keyword>
      * @throws SchemaError
      */
-    public static function compile(SchemaObject $schema): array
+    public static function compile(Compiler $compiler, SchemaObject $schema): array
     {
         $keywords = [];
         $format = $schema->vocabulary->formatAssertion ? $schema->string('format') : null;
-        $formatKeyword = $format === null ? null : self::format($schema, $format);
+        $formatKeyword = $format === null ? null : self::format($compiler, $schema, $format);
         if ($formatKeyword !== null) {
             $keywords[] = $formatKeyword;
         }
@@ -54,10 +54,10 @@ final class FormatKeywords
      *
      * @throws SchemaError
      */
-    private static function format(SchemaObject $schema, string $format): FormatKeyword|null
+    private static function format(Compiler $compiler, SchemaObject $schema, string $format): FormatKeyword|null
     {
         $needsIntl = Formats::needsIntl($format, $schema->draft);
-        if ($needsIntl && !extension_loaded(extension: 'intl')) {
+        if ($needsIntl && !$compiler->intl) {
             throw new SchemaError(sprintf(
                 'Checking the format %s at %s needs the intl extension.',
                 $format,

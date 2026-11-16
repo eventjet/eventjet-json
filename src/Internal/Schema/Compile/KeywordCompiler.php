@@ -36,7 +36,7 @@ final class KeywordCompiler
         return [
             ...ReferenceKeywords::compile($compiler, $schema),
             ...($schema->vocabulary->validation ? ValidationKeywords::compile($schema) : []),
-            ...FormatKeywords::compile($schema),
+            ...FormatKeywords::compile($compiler, $schema),
             ...($schema->vocabulary->applicator ? ApplicatorKeywords::compile($compiler, $schema) : []),
             ...self::unevaluated($compiler, $schema),
         ];

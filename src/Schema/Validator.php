@@ -8,12 +8,12 @@ use Closure;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\Internal\Schema\Compiler;
 use Eventjet\Json\Internal\Schema\Node;
-use Eventjet\Json\Internal\Schema\Registry;
 use Eventjet\Json\Internal\Schema\Run;
 use JsonException;
 use Throwable;
 
 use function assert;
+use function extension_loaded;
 use function json_decode;
 use function json_encode;
 
@@ -48,11 +48,7 @@ final readonly class Validator
         bool $assertFormats = false,
     ): self|SchemaError {
         try {
-            $registry = new Registry($loader, $assertFormats);
-            $resource = $registry->addSchema($schema, '');
-            $compiler = new Compiler($registry);
-            $root = $compiler->compile($resource->root, $registry->rootLocation($resource));
-            $compiler->checkLoops();
+            $root = Compiler::root($schema, $loader, $assertFormats, intl: extension_loaded(extension: 'intl'));
         } catch (SchemaError $error) {
             return $error;
         }
