@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Eventjet\Json\Test\Unit\Fixtures;
+namespace Eventjet\Json\Test\Acceptance\Fixtures;
 
 enum DeferredValueEnum: string
 {

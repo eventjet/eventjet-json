@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Parity\Corpus;
 
+use Eventjet\Json\Test\Acceptance\Fixtures\FailingAutoloader;
 use ReflectionClass;
 use ReflectionMethod;
 
@@ -41,6 +42,10 @@ final class CaseProviders
     private static function loadClassesIn(mixed $value, int $depth): void
     {
         $name = is_string($value) && preg_match('~\A\\\\?+[A-Za-z_][\\\\A-Za-z0-9_]*+\z~', $value) === 1;
+        $failing = FailingAutoloader::target();
+        if ($name && $value === $failing) {
+            return;
+        }
         if ($name && class_exists($value) || $depth === 0 || !is_iterable($value)) {
             return;
         }

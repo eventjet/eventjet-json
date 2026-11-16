@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance;
 
+use Closure;
 use Eventjet\Json\DecodeError;
 use Eventjet\Json\DecodeErrorKind;
 use Eventjet\Json\Discriminator;
@@ -59,18 +60,57 @@ use Eventjet\Json\Internal\NullableJsonValues;
 use Eventjet\Json\Internal\OtherMemberRules;
 use Eventjet\Json\Internal\OtherMembersField;
 use Eventjet\Json\Internal\OtherMembersMapping;
+use Eventjet\Json\Internal\PhpDocArrayShapeParser;
+use Eventjet\Json\Internal\PhpDocAtomicTypeParser;
+use Eventjet\Json\Internal\PhpDocCallableParser;
+use Eventjet\Json\Internal\PhpDocCallableReturnParser;
+use Eventjet\Json\Internal\PhpDocChildKind;
 use Eventjet\Json\Internal\PhpDocClassNameResolver;
+use Eventjet\Json\Internal\PhpDocConstantImportStatement;
+use Eventjet\Json\Internal\PhpDocConstantNameParser;
+use Eventjet\Json\Internal\PhpDocConstantParser;
+use Eventjet\Json\Internal\PhpDocConstantResolver;
+use Eventjet\Json\Internal\PhpDocConstantValues;
+use Eventjet\Json\Internal\PhpDocDescriptionParser;
+use Eventjet\Json\Internal\PhpDocDoctrineArgumentParser;
+use Eventjet\Json\Internal\PhpDocDoctrineArrayParser;
+use Eventjet\Json\Internal\PhpDocDoctrineParser;
+use Eventjet\Json\Internal\PhpDocFieldTagValue;
 use Eventjet\Json\Internal\PhpDocFieldType;
+use Eventjet\Json\Internal\PhpDocGenericParser;
+use Eventjet\Json\Internal\PhpDocHtmlDetector;
 use Eventjet\Json\Internal\PhpDocImports;
 use Eventjet\Json\Internal\PhpDocImportScanner;
 use Eventjet\Json\Internal\PhpDocImportStatement;
+use Eventjet\Json\Internal\PhpDocIntegerRange;
+use Eventjet\Json\Internal\PhpDocLexer;
+use Eventjet\Json\Internal\PhpDocLiteral;
+use Eventjet\Json\Internal\PhpDocLiteralNativeType;
+use Eventjet\Json\Internal\PhpDocLiteralString;
+use Eventjet\Json\Internal\PhpDocMethodParameterTagValue;
+use Eventjet\Json\Internal\PhpDocMethodTagValue;
+use Eventjet\Json\Internal\PhpDocNamedTypeParser;
 use Eventjet\Json\Internal\PhpDocNamespaceDeclaration;
 use Eventjet\Json\Internal\PhpDocNarrowing;
+use Eventjet\Json\Internal\PhpDocNestedTypeParser;
+use Eventjet\Json\Internal\PhpDocOtherTagValue;
+use Eventjet\Json\Internal\PhpDocShapeItemParser;
+use Eventjet\Json\Internal\PhpDocSimpleTag;
+use Eventjet\Json\Internal\PhpDocSimpleTags;
+use Eventjet\Json\Internal\PhpDocSimpleType;
+use Eventjet\Json\Internal\PhpDocSyntaxError;
+use Eventjet\Json\Internal\PhpDocTag;
+use Eventjet\Json\Internal\PhpDocTagParser;
+use Eventjet\Json\Internal\PhpDocTagValues;
+use Eventjet\Json\Internal\PhpDocTextParser;
+use Eventjet\Json\Internal\PhpDocTokens;
+use Eventjet\Json\Internal\PhpDocTokenState;
 use Eventjet\Json\Internal\PhpDocTokenStream;
 use Eventjet\Json\Internal\PhpDocTupleEntry;
 use Eventjet\Json\Internal\PhpDocType;
 use Eventjet\Json\Internal\PhpDocTypeParser;
 use Eventjet\Json\Internal\PhpDocTypeResolver;
+use Eventjet\Json\Internal\PhpDocTypeTree;
 use Eventjet\Json\Internal\PropertyAttributes;
 use Eventjet\Json\Internal\RootDescriptor;
 use Eventjet\Json\Internal\TargetClass;
@@ -87,309 +127,243 @@ use Eventjet\Json\Schema\Draft202012;
 use Eventjet\Json\Schema\Draft4;
 use Eventjet\Json\Schema\Draft6;
 use Eventjet\Json\Schema\Draft7;
-use Eventjet\Json\Test\Acceptance\Cases\ConstructorDefaultCases;
-use Eventjet\Json\Test\Acceptance\Cases\DecodeErrorCases;
-use Eventjet\Json\Test\Acceptance\Cases\EmptyShapeRoundTripCases;
-use Eventjet\Json\Test\Acceptance\Cases\JsonFormattingRoundTripCases;
-use Eventjet\Json\Test\Acceptance\Cases\NumericObjectKeyCases;
-use Eventjet\Json\Test\Acceptance\Cases\ObjectRoundTripCases;
-use Eventjet\Json\Test\Acceptance\Cases\RootCollectionRoundTripCases;
-use Eventjet\Json\Test\Acceptance\Cases\SupportedDocumentRoundTripCases;
-use Eventjet\Json\Test\Acceptance\Cases\TypeValidationCases;
-use Eventjet\Json\Test\Acceptance\Cases\UnknownFieldCases;
-use JsonException;
+use Eventjet\Json\Test\Acceptance\Cases\DecodeFailureCases;
+use Eventjet\Json\Test\Acceptance\Cases\DecodeSuccess;
+use Eventjet\Json\Test\Acceptance\Cases\DecodeSuccessCases;
+use Eventjet\Json\Test\Acceptance\Cases\LoadingCases;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
-use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 use Throwable;
 use TypeError;
 
+use function array_slice;
+use function count;
 use function is_string;
-use function json_encode;
 use function spl_autoload_register;
 use function spl_autoload_unregister;
-use function uniqid;
 
-use const JSON_THROW_ON_ERROR;
-
-#[CoversClass(ClassGraphValidator::class)]
-#[CoversClass(Json::class)]
-#[CoversClass(JsonType::class)]
-#[CoversClass(RootDescriptor::class)]
-#[CoversClass(DecodeError::class)]
-#[CoversClass(DecodeErrors::class)]
-#[CoversClass(InvalidInput::class)]
-#[CoversClass(PhpDocTupleEntry::class)]
-#[CoversClass(FieldPath::class)]
-#[CoversClass(FieldTypeNameResolver::class)]
-#[CoversClass(PhpDocImportScanner::class)]
-#[CoversClass(PhpDocImportStatement::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocConstantImportStatement::class)]
-#[CoversClass(PhpDocClassNameResolver::class)]
-#[CoversClass(PhpDocImports::class)]
-#[CoversClass(PhpDocFieldType::class)]
-#[CoversClass(CollectionDeclarationError::class)]
-#[CoversClass(PhpDocType::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteral::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocIntegerRange::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocConstantResolver::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocConstantValues::class)]
-#[CoversClass(\Eventjet\Json\Internal\PhpDocLiteralNativeType::class)]
-#[UsesClass(PhpDocTypeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLexer::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocTokens::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocSyntaxError::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocTokenState::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocTypeTree::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocNestedTypeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocAtomicTypeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocNamedTypeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocHtmlDetector::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocGenericParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocConstantNameParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocCallableReturnParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocArrayShapeParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocShapeItemParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocTagValues::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocFieldTagValue::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocOtherTagValue::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodTagValue::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocMethodParameterTagValue::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocTextParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocDescriptionParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArgumentParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineArrayParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocTagParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocChildKind::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTags::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleTag::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocSimpleType::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocDoctrineParser::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocLiteralString::class)]
-#[UsesClass(\Eventjet\Json\Internal\PhpDocTag::class)]
-#[CoversClass(PhpDocTokenStream::class)]
-#[CoversClass(PhpDocNamespaceDeclaration::class)]
-#[CoversClass(TypeCompiler::class)]
-#[CoversClass(NamedTypeCompiler::class)]
-#[CoversClass(NodeCompiler::class)]
-#[CoversClass(PhpDocNarrowing::class)]
-#[CoversClass(PhpDocTypeResolver::class)]
-#[CoversClass(EnumNode::class)]
-#[CoversClass(ListNode::class)]
-#[CoversClass(MapNode::class)]
-#[CoversClass(NullableNode::class)]
-#[CoversClass(NullOnlyNode::class)]
-#[CoversClass(ObjectNode::class)]
-#[CoversClass(ScalarNode::class)]
-#[CoversClass(ScalarItems::class)]
-#[CoversClass(TupleNode::class)]
-#[CoversClass(UncheckedNode::class)]
-#[CoversClass(UnionNode::class)]
-#[CoversClass(Field::class)]
-#[CoversMethod(MappedJsonFields::class, 'jsonSerialize')]
-#[CoversClass(MappedObjectSerializer::class)]
-#[CoversClass(TargetClass::class)]
-#[CoversClass(PropertyAttributes::class)]
-#[CoversClass(FieldNameRules::class)]
-#[CoversClass(DecodeErrorKind::class)]
 #[CoversClass(AmbiguousUnion::class)]
-#[CoversClass(ConstructorFailure::class)]
-#[CoversClass(InvalidFieldMapping::class)]
-#[CoversClass(InvalidNumber::class)]
-#[CoversClass(InvalidValue::class)]
-#[CoversClass(UnsupportedCollection::class)]
-#[CoversClass(UnsupportedField::class)]
-#[CoversClass(UnsupportedFieldClass::class)]
-#[CoversClass(UnsupportedTarget::class)]
-#[CoversClass(UnsupportedClass::class)]
-#[CoversClass(UnionBuilder::class)]
-#[CoversClass(UnionConflicts::class)]
-#[CoversClass(DiscriminatorInference::class)]
-#[CoversClass(DiscriminatorCandidates::class)]
-#[CoversClass(DiscriminatorValues::class)]
-#[CoversClass(FieldDiscriminator::class)]
-#[CoversClass(Discriminator::class)]
-#[CoversClass(DiscriminatedNode::class)]
-#[CoversClass(InvalidDiscriminator::class)]
-#[CoversClass(UnsupportedClassUnion::class)]
-#[CoversClass(LiteralNode::class)]
-#[CoversClass(ClassDecoder::class)]
-#[CoversClass(ClassField::class)]
-#[CoversClass(ClassDecoders::class)]
-#[CoversClass(EnumRoots::class)]
-#[CoversClass(JsonValue::class)]
 #[CoversClass(CanonicalScalar::class)]
-#[CoversClass(JsonValueNode::class)]
-#[CoversClass(NullableJsonValues::class)]
-#[CoversClass(UnsupportedJsonValue::class)]
+#[CoversClass(ClassDecoder::class)]
+#[CoversClass(ClassDecoders::class)]
+#[CoversClass(ClassField::class)]
+#[CoversClass(ClassGraphValidator::class)]
+#[CoversClass(CollectionDeclarationError::class)]
+#[CoversClass(ConstructorFailure::class)]
+#[CoversClass(DecodeError::class)]
+#[CoversClass(DecodeErrorKind::class)]
+#[CoversClass(DecodeErrors::class)]
+#[CoversClass(DiscriminatedNode::class)]
+#[CoversClass(Discriminator::class)]
+#[CoversClass(DiscriminatorCandidates::class)]
+#[CoversClass(DiscriminatorInference::class)]
+#[CoversClass(DiscriminatorValues::class)]
+#[CoversClass(Draft201909::class)]
+#[CoversClass(Draft202012::class)]
 #[CoversClass(Draft4::class)]
 #[CoversClass(Draft6::class)]
 #[CoversClass(Draft7::class)]
-#[CoversClass(Draft201909::class)]
-#[CoversClass(Draft202012::class)]
-#[CoversClass(OtherMembers::class)]
+#[CoversClass(EnumNode::class)]
+#[CoversClass(EnumRoots::class)]
+#[CoversClass(Field::class)]
+#[CoversClass(FieldDiscriminator::class)]
+#[CoversClass(FieldNameRules::class)]
+#[CoversClass(FieldPath::class)]
+#[CoversClass(FieldTypeNameResolver::class)]
+#[CoversClass(InvalidDiscriminator::class)]
+#[CoversClass(InvalidFieldMapping::class)]
+#[CoversClass(InvalidInput::class)]
+#[CoversClass(InvalidNumber::class)]
+#[CoversClass(InvalidOtherMembers::class)]
+#[CoversClass(InvalidValue::class)]
+#[CoversClass(Json::class)]
+#[CoversClass(JsonType::class)]
+#[CoversClass(JsonValue::class)]
+#[CoversClass(JsonValueNode::class)]
+#[CoversClass(ListNode::class)]
+#[CoversClass(LiteralNode::class)]
+#[CoversClass(MapNode::class)]
+#[CoversClass(MappedObjectSerializer::class)]
+#[CoversClass(NamedTypeCompiler::class)]
+#[CoversClass(NodeCompiler::class)]
+#[CoversClass(NullableJsonValues::class)]
+#[CoversClass(NullableNode::class)]
+#[CoversClass(NullOnlyNode::class)]
+#[CoversClass(ObjectNode::class)]
 #[CoversClass(OtherMemberRules::class)]
+#[CoversClass(OtherMembers::class)]
 #[CoversClass(OtherMembersField::class)]
 #[CoversClass(OtherMembersMapping::class)]
-#[CoversClass(InvalidOtherMembers::class)]
+#[CoversClass(PhpDocArrayShapeParser::class)]
+#[CoversClass(PhpDocAtomicTypeParser::class)]
+#[CoversClass(PhpDocCallableParser::class)]
+#[CoversClass(PhpDocCallableReturnParser::class)]
+#[CoversClass(PhpDocChildKind::class)]
+#[CoversClass(PhpDocClassNameResolver::class)]
+#[CoversClass(PhpDocConstantImportStatement::class)]
+#[CoversClass(PhpDocConstantNameParser::class)]
+#[CoversClass(PhpDocConstantParser::class)]
+#[CoversClass(PhpDocConstantResolver::class)]
+#[CoversClass(PhpDocConstantValues::class)]
+#[CoversClass(PhpDocDescriptionParser::class)]
+#[CoversClass(PhpDocDoctrineArgumentParser::class)]
+#[CoversClass(PhpDocDoctrineArrayParser::class)]
+#[CoversClass(PhpDocDoctrineParser::class)]
+#[CoversClass(PhpDocFieldTagValue::class)]
+#[CoversClass(PhpDocFieldType::class)]
+#[CoversClass(PhpDocGenericParser::class)]
+#[CoversClass(PhpDocHtmlDetector::class)]
+#[CoversClass(PhpDocImports::class)]
+#[CoversClass(PhpDocImportScanner::class)]
+#[CoversClass(PhpDocImportStatement::class)]
+#[CoversClass(PhpDocIntegerRange::class)]
+#[CoversClass(PhpDocLexer::class)]
+#[CoversClass(PhpDocLiteral::class)]
+#[CoversClass(PhpDocLiteralNativeType::class)]
+#[CoversClass(PhpDocLiteralString::class)]
+#[CoversClass(PhpDocMethodParameterTagValue::class)]
+#[CoversClass(PhpDocMethodTagValue::class)]
+#[CoversClass(PhpDocNamedTypeParser::class)]
+#[CoversClass(PhpDocNamespaceDeclaration::class)]
+#[CoversClass(PhpDocNarrowing::class)]
+#[CoversClass(PhpDocNestedTypeParser::class)]
+#[CoversClass(PhpDocOtherTagValue::class)]
+#[CoversClass(PhpDocShapeItemParser::class)]
+#[CoversClass(PhpDocSimpleTag::class)]
+#[CoversClass(PhpDocSimpleTags::class)]
+#[CoversClass(PhpDocSimpleType::class)]
+#[CoversClass(PhpDocSyntaxError::class)]
+#[CoversClass(PhpDocTag::class)]
+#[CoversClass(PhpDocTagParser::class)]
+#[CoversClass(PhpDocTagValues::class)]
+#[CoversClass(PhpDocTextParser::class)]
+#[CoversClass(PhpDocTokens::class)]
+#[CoversClass(PhpDocTokenState::class)]
+#[CoversClass(PhpDocTokenStream::class)]
+#[CoversClass(PhpDocTupleEntry::class)]
+#[CoversClass(PhpDocType::class)]
+#[CoversClass(PhpDocTypeParser::class)]
+#[CoversClass(PhpDocTypeResolver::class)]
+#[CoversClass(PhpDocTypeTree::class)]
+#[CoversClass(PropertyAttributes::class)]
+#[CoversClass(RootDescriptor::class)]
+#[CoversClass(ScalarItems::class)]
+#[CoversClass(ScalarNode::class)]
+#[CoversClass(TargetClass::class)]
+#[CoversClass(TupleNode::class)]
+#[CoversClass(TypeCompiler::class)]
+#[CoversClass(UncheckedNode::class)]
+#[CoversClass(UnionBuilder::class)]
+#[CoversClass(UnionConflicts::class)]
+#[CoversClass(UnionNode::class)]
+#[CoversClass(UnsupportedClass::class)]
+#[CoversClass(UnsupportedClassUnion::class)]
+#[CoversClass(UnsupportedCollection::class)]
+#[CoversClass(UnsupportedField::class)]
+#[CoversClass(UnsupportedFieldClass::class)]
+#[CoversClass(UnsupportedJsonValue::class)]
+#[CoversClass(UnsupportedTarget::class)]
+#[CoversMethod(MappedJsonFields::class, 'jsonSerialize')]
 final class AcceptanceTest extends TestCase
 {
-    /** @param class-string|JsonType<mixed> $type */
-    #[DataProviderExternal(TypeValidationCases::class, 'declarations')]
-    public function testTypeDeclarationsCanBeValidatedWithoutValues(
+    #[DataProviderExternal(DecodeSuccessCases::class, 'cases')]
+    public function testDecodeSucceeds(DecodeSuccess $case): void
+    {
+        $json = ($case->json)();
+        if ($case->prepare !== null) {
+            static::assertTrue(self::decode($json, ($case->type)()) instanceof DecodeError);
+            ($case->prepare)();
+        }
+        for ($attempt = 0; $attempt < 2; ++$attempt) {
+            ($case->verify)(self::decode($json, ($case->type)()), $json);
+        }
+    }
+
+    /** @param class-string|JsonType<list<mixed>|object> $type */
+    #[DataProviderExternal(DecodeFailureCases::class, 'failures')]
+    public function testDecodeFails(
+        string $json,
         string|JsonType $type,
-        string|null $expectedError = null,
-    ): void {
-        $error = Json::validateType($type);
-        static::assertSame($expectedError, $error?->getMessage());
-    }
-
-    /** @throws JsonException */
-    #[DataProviderExternal(ObjectRoundTripCases::class, 'objects')]
-    public function testDecodeIsTheExactInverseOfJsonEncode(object $original): void
-    {
-        $json = json_encode($original, JSON_THROW_ON_ERROR);
-
-        $decoded = Json::decode($json, $original::class);
-
-        static::assertEquals($original, $decoded);
-        static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
-    }
-
-    /** @throws JsonException */
-    #[DataProviderExternal(ObjectRoundTripCases::class, 'objects')]
-    public function testValidatingATypeDoesNotChangeHowItDecodes(object $original): void
-    {
-        static::assertNull(Json::validateType($original::class));
-        $json = json_encode($original, JSON_THROW_ON_ERROR);
-
-        $decoded = Json::decode($json, $original::class);
-
-        static::assertEquals($original, $decoded);
-        static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
-    }
-
-    /**
-     * @param list<mixed>|object $original
-     * @param callable(): JsonType<list<mixed>|object> $createType
-     * @throws JsonException
-     */
-    #[DataProviderExternal(RootCollectionRoundTripCases::class, 'objects')]
-    public function testRootCollectionRoundTrips(array|object $original, callable $createType): void
-    {
-        $json = json_encode($original, JSON_THROW_ON_ERROR);
-
-        $decoded = Json::decode($json, $createType());
-
-        static::assertEquals($original, $decoded);
-        static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
-    }
-
-    /** @throws JsonException */
-    #[DataProviderExternal(JsonFormattingRoundTripCases::class, 'objects')]
-    #[DataProviderExternal(EmptyShapeRoundTripCases::class, 'objects')]
-    public function testJsonDocumentDecodesWithoutChangingItsMeaning(object $expected, string $json): void
-    {
-        $decoded = Json::decode($json, $expected::class);
-
-        static::assertEquals($expected, $decoded);
-        static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
-    }
-
-    /**
-     * @param class-string $class
-     * @param callable(object): bool $isFullyHydrated
-     * @throws JsonException
-     */
-    #[DataProviderExternal(SupportedDocumentRoundTripCases::class, 'objects')]
-    public function testSupportedDocumentIsFullyHydratedAndRoundTrips(
-        string $json,
-        string $class,
-        callable $isFullyHydrated,
-    ): void {
-        $decoded = Json::decode($json, $class);
-
-        static::assertFalse($decoded instanceof DecodeError);
-        static::assertTrue($isFullyHydrated($decoded));
-        static::assertJsonStringEqualsJsonString($json, json_encode($decoded, JSON_THROW_ON_ERROR));
-    }
-
-    #[DataProviderExternal(ConstructorDefaultCases::class, 'objects')]
-    #[DataProviderExternal(UnknownFieldCases::class, 'objects')]
-    public function testDecodeReturnsExpectedObject(string $json, object $expected): void
-    {
-        $decoded = Json::decode($json, $expected::class);
-        static::assertEquals($expected, $decoded);
-    }
-
-    /** @param class-string|JsonType<list<mixed>|object> $class */
-    #[DataProviderExternal(DecodeErrorCases::class, 'errors')]
-    public function testDecodeReturnsErrorsAsValues(
-        string $json,
-        string|JsonType $class,
         string $message,
         DecodeErrorKind $kind,
         Throwable|null $previous = null,
     ): void {
-        // Separate calls preserve each target's generic type during static analysis.
-        $decoded = is_string($class) ? Json::decode($json, $class) : Json::decode($json, $class);
-        static::assertTrue($decoded instanceof DecodeError);
-        static::assertSame($message, $decoded->getMessage());
-        static::assertSame($kind, $decoded->kind);
-        if ($previous !== null) {
-            static::assertSame($previous, $decoded->getPrevious());
+        for ($attempt = 0; $attempt < 2; ++$attempt) {
+            $decoded = self::decode($json, $type);
+            static::assertTrue($decoded instanceof DecodeError);
+            static::assertSame($message, $decoded->getMessage());
+            static::assertSame($kind, $decoded->kind);
+            static::assertSame(0, $decoded->getCode());
+            static::assertFalse($decoded->getPrevious() instanceof DecodeError);
+            if ($previous !== null) {
+                static::assertSame($previous, $decoded->getPrevious());
+            }
         }
     }
 
-    /** @throws TypeError */
-    public function testAutoloaderFailureForTheTargetIsReturnedAsAnError(): void
+    /** @param Closure(): (class-string|JsonType<list<mixed>|object>) $type */
+    #[DataProviderExternal(DecodeSuccessCases::class, 'types')]
+    public function testValidateTypeAcceptsEveryDecodableType(Closure $type): void
     {
-        /** @var class-string $class */
-        $class = uniqid('FailingAutoloadTarget_');
-        $failure = new RuntimeException('Autoloader failed.');
-        $autoload =
-            /** @throws RuntimeException */
-            static function (string $requested) use ($class, $failure): void {
-                if ($requested === $class) {
-                    throw $failure;
-                }
-            };
-        spl_autoload_register($autoload, prepend: true);
+        static::assertNull(Json::validateType($type())?->getMessage());
+    }
 
+    /** @param class-string|JsonType<list<mixed>|object> $type */
+    #[DataProviderExternal(DecodeFailureCases::class, 'validations')]
+    public function testValidateTypeAgreesWithDecodeFailures(string|JsonType $type, string|null $expected): void
+    {
+        static::assertSame($expected, Json::validateType($type)?->getMessage());
+    }
+
+    /**
+     * @throws \JsonException
+     * @throws \ReflectionException
+     * @throws \RuntimeException
+     * @throws TypeError
+     */
+    #[DataProviderExternal(LoadingCases::class, 'names')]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testDecodingLoadsOnlyWhatItNeeds(string $name): void
+    {
+        $steps = LoadingCases::steps($name);
+        static::assertNotSame([], $steps);
+        $requests = new class {
+            /** @var list<string> */
+            public array $names = [];
+        };
+        $autoload = static function (string $class) use ($requests): void {
+            $requests->names[] = $class;
+        };
+        spl_autoload_register($autoload, prepend: true);
         try {
-            $errors = [
-                Json::decode('{}', $class),
-                Json::decode('"ready"', $class),
-                Json::decode('[]', JsonType::array($class)),
-                Json::validateType($class),
-                Json::validateType(JsonType::array($class)),
-            ];
+            foreach ($steps as $step) {
+                $first = count($requests->names);
+                $results = [];
+                foreach ($step->decodes as [$json, $type]) {
+                    $results[] = self::decode($json, $type);
+                }
+                $step->assertLoading(array_slice($requests->names, $first));
+                foreach ($step->decodes as $index => [2 => $verify]) {
+                    $verify($results[$index] ?? null);
+                }
+            }
         } finally {
             spl_autoload_unregister($autoload);
         }
-
-        foreach ($errors as $error) {
-            static::assertTrue($error instanceof DecodeError);
-            static::assertSame(
-                'Could not create ' . $class . ' from the JSON object: Autoloader failed.',
-                $error->getMessage(),
-            );
-            static::assertSame(DecodeErrorKind::UnsupportedDeclaration, $error->kind);
-            static::assertSame($failure, $error->getPrevious());
-        }
     }
 
-    /** @param class-string $class */
-    #[DataProviderExternal(NumericObjectKeyCases::class, 'mismatches')]
-    public function testNumericObjectKeysCannotBypassScalarValidation(string $json, string $class): void
+    /**
+     * @param class-string|JsonType<list<mixed>|object> $type
+     * @return list<mixed>|object
+     */
+    private static function decode(string $json, string|JsonType $type): array|object
     {
-        $decoded = Json::decode($json, $class);
-        static::assertTrue($decoded instanceof DecodeError);
-        static::assertSame(DecodeErrorKind::InvalidValue, $decoded->kind);
+        // Separate calls preserve each target's generic type during static analysis.
+        return is_string($type) ? Json::decode($json, $type) : Json::decode($json, $type);
     }
 }
