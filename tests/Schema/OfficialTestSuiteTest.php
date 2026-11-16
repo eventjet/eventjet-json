@@ -246,6 +246,7 @@ final class OfficialTestSuiteTest extends TestCase
         RepetitionLaw::assertHolds($document, $validator, $value, $error);
         UnsupportedValueLaw::assertHolds($validator, $value);
         MalformedKeywordLaw::assertHolds($schema);
+        ContentConjunctionLaw::assertHolds($schema, $value, $failures);
         self::assertRewritesKeepTheFailures($schema, $value, $failures);
     }
 

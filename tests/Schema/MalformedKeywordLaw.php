@@ -45,7 +45,8 @@ final class MalformedKeywordLaw
         'https://json-schema.org/draft/2020-12/schema' => Draft202012::class,
     ];
 
-    private static string|null $checked = null;
+    /** @var array{string, string, array{assertFormats?: true}}|null The schema, class and options last checked. */
+    private static array|null $checked = null;
 
     /**
      * @throws \PHPUnit\Framework\Exception
@@ -54,10 +55,11 @@ final class MalformedKeywordLaw
      */
     public static function assertHolds(OfficialSuiteSchema $schema): void
     {
-        if (self::$checked === $schema->json) {
+        $key = [$schema->json, $schema->class, $schema->options];
+        if (self::$checked === $key) {
             return;
         }
-        self::$checked = $schema->json;
+        self::$checked = $key;
         $selfContained = SelfContainedSchemas::is($schema->json);
         /** @var mixed $document */
         $document = json_decode($schema->json, flags: JSON_THROW_ON_ERROR);
