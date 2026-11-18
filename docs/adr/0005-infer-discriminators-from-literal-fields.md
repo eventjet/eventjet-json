@@ -30,6 +30,6 @@ in unions that need different members.
 - The compiled union holds a lookup table from each tag to its class. A decode costs one member read and one lookup
   before the chosen class decodes the object, including the tag, through its usual path.
 - Unions with at most one class, and fields without `#[Discriminator]`, load none of the new classes, so their first
-  decode in a request does not get slower. Unit tests under `tests/Unit/Optimization` pin this.
+  decode in a request does not get slower. `DecodingTest::testDecodingLoadsOnlyWhatItNeeds` pins this.
 - `true`, `false`, floats, `null`, and whole enums stay unsupported as tags. Supporting them later, or adding a root
   union factory, is not a breaking change, because it only turns errors into successful decodes.

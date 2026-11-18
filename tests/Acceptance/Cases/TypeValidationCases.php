@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Eventjet\Json\Test\Acceptance\Cases;
 
+use Closure;
 use Eventjet\Json\JsonType;
 use Eventjet\Json\Test\Acceptance\Fixtures\Coordinates;
 use InvalidArgumentException;
-use JsonException;
 use ReflectionException;
 use RuntimeException;
 
@@ -15,54 +15,34 @@ use RuntimeException;
 final class TypeValidationCases
 {
     /**
-     * @api Called by PHPUnit through DataProviderExternal.
-     * @return iterable<string, array{0: class-string|JsonType<mixed>, 1?: string}>
-     * @throws ReflectionException
+     * Declarations that decode no case but validate.
+     *
+     * @return iterable<string, array{Closure(): class-string}>
      * @throws RuntimeException
-     * @throws JsonException
-     * @throws InvalidArgumentException
      */
-    public static function declarations(): iterable
+    public static function valid(): iterable
     {
-        yield from self::valid();
-        yield from self::invalid();
-    }
-
-    /**
-     * @return iterable<string, array{class-string|JsonType<mixed>}>
-     * @throws ReflectionException
-     * @throws RuntimeException
-     * @throws JsonException
-     * @throws InvalidArgumentException
-     */
-    private static function valid(): iterable
-    {
-        foreach (ObjectRoundTripCases::objects() as $label => [$object]) {
-            yield $label => [$object::class];
-        }
-        foreach (RootCollectionRoundTripCases::objects() as $label => [1 => $type]) {
-            yield $label => [$type()];
-        }
-        foreach (SupportedDocumentRoundTripCases::objects() as $label => [1 => $class]) {
-            yield $label => [$class];
-        }
-        yield 'constructors are never called' => [CollectionNameSource::load(
+        $constructor = CollectionNameSource::load(
             'ValidationThrowingConstructor',
             'final class ValidationThrowingConstructor { public function __construct(public int $value) { throw new RuntimeException("must not run"); } }',
-        )];
-        yield 'mutually recursive declarations' => [CollectionNameSource::load(
+        );
+        yield 'constructors are never called' => [static fn(): string => $constructor];
+        $cycle = CollectionNameSource::load(
             'ValidationCycleA',
             'final class ValidationCycleA { public ValidationCycleB $child; } final class ValidationCycleB { public ValidationCycleA $parent; }',
-        )];
+        );
+        yield 'mutually recursive declarations' => [static fn(): string => $cycle];
     }
 
     /**
-     * @return iterable<string, array{class-string|JsonType<mixed>, string}>
+     * Declarations that validation rejects, with the message it returns.
+     *
+     * @return iterable<string, array{class-string|JsonType<list<mixed>|object>, string}>
      * @throws ReflectionException
      * @throws RuntimeException
      * @throws InvalidArgumentException
      */
-    private static function invalid(): iterable
+    public static function invalid(): iterable
     {
         foreach ([
             FieldDeclarationErrorCases::errors(),
@@ -93,7 +73,7 @@ final class TypeValidationCases
     }
 
     /**
-     * @return iterable<string, array{class-string|JsonType<mixed>, string}>
+     * @return iterable<string, array{class-string|JsonType<list<mixed>|object>, string}>
      * @throws RuntimeException
      */
     private static function nested(): iterable
