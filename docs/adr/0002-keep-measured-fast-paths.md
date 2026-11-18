@@ -28,4 +28,4 @@ When a change removes or renames a fast path, it updates its row.
 
 Some rules exist twice: once in the general path, and once in a fast path that must agree with it. Removing a fast
 path changes no result, so only the paths that skip loading classes are pinned, by
-`AcceptanceTest::testDecodingLoadsOnlyWhatItNeeds`. The others rely on the benchmarks and this record.
+`DecodingTest::testDecodingLoadsOnlyWhatItNeeds`. The others rely on the benchmarks and this record.

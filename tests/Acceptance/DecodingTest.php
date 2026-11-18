@@ -268,7 +268,7 @@ use function spl_autoload_unregister;
 #[CoversClass(UnsupportedJsonValue::class)]
 #[CoversClass(UnsupportedTarget::class)]
 #[CoversMethod(MappedJsonFields::class, 'jsonSerialize')]
-final class AcceptanceTest extends TestCase
+final class DecodingTest extends TestCase
 {
     #[DataProviderExternal(DecodeSuccessCases::class, 'cases')]
     public function testDecodeSucceeds(DecodeSuccess $case): void

@@ -22,11 +22,11 @@ case, not a new method.
 
 | Entry point | Drives |
 | --- | --- |
-| `AcceptanceTest::testDecodeSucceeds` | Public API. `Json::decode()` returns the expected value for every supported document, and lossless cases encode back to the same JSON. Every case decodes twice, so results do not depend on a cold or warm cache. |
-| `AcceptanceTest::testDecodeFails` | Public API. `Json::decode()` returns a `DecodeError` with the exact message, kind, code `0`, and previous exception, and never one that wraps another `DecodeError`. Every case decodes twice. |
-| `AcceptanceTest::testValidateTypeAcceptsEveryDecodableType` | Public API. `Json::validateType()` accepts the type of every success case. |
-| `AcceptanceTest::testValidateTypeAgreesWithDecodeFailures` | Public API. `Json::validateType()` reports a decode failure's message when its kind is `UnsupportedDeclaration`, and nothing otherwise. `ValidationOverrides` lists the exceptions. |
-| `AcceptanceTest::testDecodingLoadsOnlyWhatItNeeds` | Public API, observed through autoloading. `Json::decode()` loads only the classes that the declarations and values need. Runs in a separate process. |
+| `DecodingTest::testDecodeSucceeds` | Public API. `Json::decode()` returns the expected value for every supported document, and lossless cases encode back to the same JSON. Every case decodes twice, so results do not depend on a cold or warm cache. |
+| `DecodingTest::testDecodeFails` | Public API. `Json::decode()` returns a `DecodeError` with the exact message, kind, code `0`, and previous exception, and never one that wraps another `DecodeError`. Every case decodes twice. |
+| `DecodingTest::testValidateTypeAcceptsEveryDecodableType` | Public API. `Json::validateType()` accepts the type of every success case. |
+| `DecodingTest::testValidateTypeAgreesWithDecodeFailures` | Public API. `Json::validateType()` reports a decode failure's message when its kind is `UnsupportedDeclaration`, and nothing otherwise. `ValidationOverrides` lists the exceptions. |
+| `DecodingTest::testDecodingLoadsOnlyWhatItNeeds` | Public API, observed through autoloading. `Json::decode()` loads only the classes that the declarations and values need. Runs in a separate process. |
 
 ### `tests/Unit/Schema`
 
